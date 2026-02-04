@@ -12,7 +12,7 @@
 
 ## In Progress
 
-- [ ] `[P0]` Library with unlock status based on prerequisites
+- [ ] `[P1]` Test evaluation flow with real DeepSeek API key
 
 ---
 
@@ -97,3 +97,6 @@
 - [x] `[P1]` Auth flow (login/signup/logout) - 2026-02-04
 - [x] `[P1]` Dashboard page with progress stats - 2026-02-04
 - [x] `[P1]` Protected routes middleware - 2026-02-04
+- [x] `[P1]` Library with unlock status based on prerequisites - 2026-02-04
+- [x] `[P1]` Evaluation flow (generate questions + evaluate) - 2026-02-04
+- [x] `[P1]` DeepSeek API integration - 2026-02-04

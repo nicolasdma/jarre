@@ -28,9 +28,11 @@ First session. Project inception and planning.
 - [x] Database migrations (14 tables with RLS)
 - [x] Seed database (50 concepts, 41 resources, 6 projects)
 - [x] Library page - displays all resources from DB
-- [ ] Auth flow (next session)
-- [ ] Dashboard page
-- [ ] Evaluation flow
+- [x] Auth flow (login/signup/logout)
+- [x] Dashboard page with progress stats
+- [x] Library with unlock status based on prerequisites
+- [x] Evaluation flow complete (generate + submit + feedback)
+- [x] DeepSeek API integration with retry logic
 
 ## Decisions Made
 
