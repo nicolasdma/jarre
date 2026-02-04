@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-04 (session-01, notes feature added)
+> Last updated: 2026-02-04 (session-02, evaluation history feature)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -45,6 +45,11 @@
 ---
 
 ## Pending - Post-MVP
+
+### Evaluation History - Phase 2
+- [ ] `[P2]` Re-evaluation of failed questions (parent_evaluation_id)
+- [ ] `[P2]` Progress tracking: "Attempt 1: 60% → Attempt 2: 85%"
+- [ ] `[P2]` Dashboard section: "Recent Evaluations" with last 5
 
 ### Robustness (from failure analysis)
 - [ ] `[P2]` Handle incomplete evaluations (resume or discard)
@@ -101,3 +106,4 @@
 - [x] `[P1]` Evaluation flow (generate questions + evaluate) - 2026-02-04
 - [x] `[P1]` DeepSeek API integration - 2026-02-04
 - [x] `[P2]` Notes system - take structured notes while reading - 2026-02-04
+- [x] `[P1]` Evaluation history - view past evaluations with detail - 2026-02-04

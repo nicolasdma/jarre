@@ -122,6 +122,31 @@ const translations = {
   'resource.concepts': { es: 'Conceptos que enseña', en: 'Concepts taught' },
   'resource.notFound': { es: 'Recurso no encontrado', en: 'Resource not found' },
   'resource.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
+
+  // Evaluation History
+  'history.title': { es: 'Evaluaciones Anteriores', en: 'Previous Evaluations' },
+  'history.empty': { es: 'No has completado ninguna evaluación de este recurso aún.', en: 'You haven\'t completed any evaluations for this resource yet.' },
+  'history.viewDetail': { es: 'Ver Detalle', en: 'View Detail' },
+  'history.newEvaluation': { es: 'Nueva Evaluación', en: 'New Evaluation' },
+  'history.score': { es: 'Puntuación', en: 'Score' },
+  'history.date': { es: 'Fecha', en: 'Date' },
+  'history.questions': { es: 'preguntas', en: 'questions' },
+  'history.backToResource': { es: 'Volver al Recurso', en: 'Back to Resource' },
+
+  // Evaluation Detail Page
+  'evalDetail.title': { es: 'Detalle de Evaluación', en: 'Evaluation Detail' },
+  'evalDetail.notFound': { es: 'Evaluación no encontrada', en: 'Evaluation not found' },
+  'evalDetail.completedAt': { es: 'Completada el', en: 'Completed on' },
+  'evalDetail.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
+  'evalDetail.feedback': { es: 'Retroalimentación', en: 'Feedback' },
+  'evalDetail.questionType': { es: 'Tipo', en: 'Type' },
+
+  // Question Types
+  'questionType.explanation': { es: 'Explicación', en: 'Explanation' },
+  'questionType.scenario': { es: 'Escenario', en: 'Scenario' },
+  'questionType.error_detection': { es: 'Detección de Error', en: 'Error Detection' },
+  'questionType.connection': { es: 'Conexión', en: 'Connection' },
+  'questionType.tradeoff': { es: 'Trade-off', en: 'Trade-off' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

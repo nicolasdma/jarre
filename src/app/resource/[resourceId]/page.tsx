@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { NotesEditor } from './notes-editor';
+import { EvaluationHistory } from './evaluation-history';
 import { t, type Language } from '@/lib/translations';
 import type { NoteSection } from '@/types/notes';
 
@@ -141,6 +142,12 @@ export default async function ResourcePage({ params }: PageProps) {
             </div>
           )}
         </div>
+
+        {/* Evaluation History */}
+        <EvaluationHistory
+          resourceId={resourceId}
+          language={lang}
+        />
 
         {/* Notes Editor */}
         <NotesEditor
