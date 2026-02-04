@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-04 (session-01)
+> Last updated: 2026-02-04 (session-01, updated)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -12,20 +12,17 @@
 
 ## In Progress
 
-- [ ] `[P0]` Supabase project setup + database schema
+- [ ] `[P0]` Auth flow (login/signup)
 
 ---
 
 ## Pending - MVP
 
 ### Infrastructure
-- [ ] `[P1]` Supabase project setup
-- [ ] `[P1]` Database schema + migrations
 - [ ] `[P1]` Auth flow (login/signup)
-- [ ] `[P1]` DeepSeek API integration
+- [ ] `[P1]` DeepSeek API integration (client done, needs API route)
 
 ### Core Features
-- [ ] `[P1]` Library page - list resources
 - [ ] `[P1]` Resource detail page - concepts, prerequisites
 - [ ] `[P1]` Evaluation flow - generate questions
 - [ ] `[P1]` Evaluation flow - submit answers
@@ -93,3 +90,7 @@
 - [x] `[P1]` DeepSeek client with retry logic - 2026-02-04
 - [x] `[P1]` Supabase client stubs (browser + server) - 2026-02-04
 - [x] `[P1]` Seed data: 50 concepts, 41 resources, 6 projects - 2026-02-04
+- [x] `[P1]` Supabase project setup - 2026-02-04
+- [x] `[P1]` Database schema + migrations (14 tables with RLS) - 2026-02-04
+- [x] `[P1]` Seed database with study content - 2026-02-04
+- [x] `[P1]` Library page - list resources by phase - 2026-02-04

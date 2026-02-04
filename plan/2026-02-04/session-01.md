@@ -24,9 +24,13 @@ First session. Project inception and planning.
 - [x] Create versioned prompts
 - [x] Create landing page
 - [x] Create seed data with full study plan (50 concepts, 41 resources, 6 projects)
-- [ ] Set up Supabase project (next session)
-- [ ] Database migrations
-- [ ] Seed database
+- [x] Set up Supabase project (user created jarre project)
+- [x] Database migrations (14 tables with RLS)
+- [x] Seed database (50 concepts, 41 resources, 6 projects)
+- [x] Library page - displays all resources from DB
+- [ ] Auth flow (next session)
+- [ ] Dashboard page
+- [ ] Evaluation flow
 
 ## Decisions Made
 
