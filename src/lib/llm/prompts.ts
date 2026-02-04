@@ -2,18 +2,21 @@
  * Jarre - LLM Prompts
  *
  * All prompts are versioned for traceability.
- * When updating a prompt, create a new version.
+ * Supports multiple languages (es, en).
  */
 
 export const PROMPT_VERSIONS = {
-  GENERATE_QUESTIONS: 'v1.0.0',
-  EVALUATE_ANSWERS: 'v1.0.0',
+  GENERATE_QUESTIONS: 'v1.1.0',
+  EVALUATE_ANSWERS: 'v1.1.0',
 } as const;
+
+export type SupportedLanguage = 'es' | 'en';
 
 /**
  * System prompt for the evaluation generator.
  */
-export const SYSTEM_PROMPT_EVALUATOR = `You are Jarre, an expert technical evaluator. Your job is to test deep understanding of complex technical concepts, not surface-level memorization.
+const SYSTEM_PROMPTS: Record<SupportedLanguage, string> = {
+  en: `You are Jarre, an expert technical evaluator. Your job is to test deep understanding of complex technical concepts, not surface-level memorization.
 
 Rules:
 1. Generate questions that require UNDERSTANDING, not recall
@@ -28,7 +31,29 @@ Question types to use:
 - SCENARIO: "Given [situation], what would happen and why?"
 - ERROR_DETECTION: "This statement has a subtle error: [statement]. What is wrong?"
 - CONNECTION: "How does X relate to Y?"
-- TRADEOFF: "When would you NOT use X? Give a concrete example."`;
+- TRADEOFF: "When would you NOT use X? Give a concrete example."`,
+
+  es: `Eres Jarre, un evaluador técnico experto. Tu trabajo es evaluar la comprensión profunda de conceptos técnicos complejos, no la memorización superficial.
+
+Reglas:
+1. Genera preguntas que requieran COMPRENSIÓN, no memorización
+2. Cada pregunta debe evaluar un concepto específico
+3. Las preguntas deben poder responderse en 2-4 oraciones
+4. Incluye una mezcla de tipos de preguntas
+5. Sé preciso y técnico
+6. Nunca hagas preguntas triviales u obvias
+
+Tipos de preguntas a usar:
+- EXPLANATION: "Explicá X con tus propias palabras"
+- SCENARIO: "Dado [situación], ¿qué pasaría y por qué?"
+- ERROR_DETECTION: "Esta afirmación tiene un error sutil: [afirmación]. ¿Cuál es el error?"
+- CONNECTION: "¿Cómo se relaciona X con Y?"
+- TRADEOFF: "¿Cuándo NO usarías X? Da un ejemplo concreto."`,
+};
+
+export function getSystemPrompt(language: SupportedLanguage = 'es'): string {
+  return SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.es;
+}
 
 /**
  * Generate evaluation questions for a resource.
@@ -38,14 +63,16 @@ export function buildGenerateQuestionsPrompt(params: {
   resourceType: string;
   concepts: Array<{ name: string; definition: string }>;
   questionCount: number;
+  language?: SupportedLanguage;
 }): string {
-  const { resourceTitle, resourceType, concepts, questionCount } = params;
+  const { resourceTitle, resourceType, concepts, questionCount, language = 'es' } = params;
 
   const conceptList = concepts
     .map((c, i) => `${i + 1}. **${c.name}**: ${c.definition}`)
     .join('\n');
 
-  return `Generate ${questionCount} evaluation questions for someone who just finished reading:
+  if (language === 'en') {
+    return `Generate ${questionCount} evaluation questions for someone who just finished reading:
 
 **Resource**: ${resourceTitle} (${resourceType})
 
@@ -71,6 +98,36 @@ Respond in JSON format:
     }
   ]
 }`;
+  }
+
+  // Spanish (default)
+  return `Generá ${questionCount} preguntas de evaluación para alguien que acaba de terminar de leer:
+
+**Recurso**: ${resourceTitle} (${resourceType})
+
+**Conceptos a evaluar**:
+${conceptList}
+
+Requisitos:
+- Generá exactamente ${questionCount} preguntas
+- Cada pregunta debe evaluar la comprensión de uno de los conceptos listados
+- Usá una variedad de tipos de preguntas (explanation, scenario, error_detection, connection, tradeoff)
+- Las preguntas deben ser desafiantes pero justas
+- Para preguntas error_detection, incluí la afirmación incorrecta en la pregunta
+- IMPORTANTE: Las preguntas deben estar en ESPAÑOL
+
+Respondé en formato JSON:
+{
+  "questions": [
+    {
+      "type": "explanation|scenario|error_detection|connection|tradeoff",
+      "conceptName": "el concepto que se evalúa",
+      "question": "el texto de la pregunta en español",
+      "incorrectStatement": "solo para tipo error_detection",
+      "relatedConceptName": "solo para tipo connection"
+    }
+  ]
+}`;
 }
 
 /**
@@ -85,22 +142,24 @@ export function buildEvaluateAnswersPrompt(params: {
     conceptDefinition: string;
     userAnswer: string;
   }>;
+  language?: SupportedLanguage;
 }): string {
-  const { resourceTitle, questions } = params;
+  const { resourceTitle, questions, language = 'es' } = params;
 
   const qaList = questions
     .map(
       (q, i) => `
-### Question ${i + 1} (${q.type})
-**Concept**: ${q.conceptName}
-**Correct understanding**: ${q.conceptDefinition}
-**Question**: ${q.question}
-**User's answer**: ${q.userAnswer}
+### ${language === 'es' ? 'Pregunta' : 'Question'} ${i + 1} (${q.type})
+**${language === 'es' ? 'Concepto' : 'Concept'}**: ${q.conceptName}
+**${language === 'es' ? 'Comprensión correcta' : 'Correct understanding'}**: ${q.conceptDefinition}
+**${language === 'es' ? 'Pregunta' : 'Question'}**: ${q.question}
+**${language === 'es' ? 'Respuesta del usuario' : "User's answer"}**: ${q.userAnswer}
 `
     )
     .join('\n');
 
-  return `Evaluate the following answers about "${resourceTitle}":
+  if (language === 'en') {
+    return `Evaluate the following answers about "${resourceTitle}":
 
 ${qaList}
 
@@ -123,4 +182,34 @@ Respond in JSON format:
   "overallScore": 0-100,
   "summary": "brief overall assessment"
 }`;
+  }
+
+  // Spanish (default)
+  return `Evaluá las siguientes respuestas sobre "${resourceTitle}":
+
+${qaList}
+
+Para cada respuesta:
+1. Determiná si la respuesta demuestra comprensión genuina (no solo coincidencia de palabras clave)
+2. Puntuación de 0-100 (0=completamente incorrecto, 50=parcialmente correcto, 100=excelente)
+3. Proporcioná feedback específico explicando qué estuvo bien/mal
+4. Sé justo pero riguroso - aceptá frases no estándar si la comprensión es correcta
+5. IMPORTANTE: El feedback debe estar en ESPAÑOL
+
+Respondé en formato JSON:
+{
+  "responses": [
+    {
+      "questionIndex": 0,
+      "isCorrect": true|false,
+      "score": 0-100,
+      "feedback": "feedback específico en español explicando la evaluación"
+    }
+  ],
+  "overallScore": 0-100,
+  "summary": "evaluación general breve en español"
+}`;
 }
+
+// Legacy export for backwards compatibility
+export const SYSTEM_PROMPT_EVALUATOR = SYSTEM_PROMPTS.es;

@@ -13,6 +13,7 @@
 ## In Progress
 
 - [ ] `[P1]` Test evaluation flow with real DeepSeek API key
+- [ ] `[P1]` Re-seed database with new YouTube resources (57 total)
 
 ---
 
@@ -89,7 +90,7 @@
 - [x] `[P1]` Versioned prompts (lib/llm/prompts.ts) - 2026-02-04
 - [x] `[P1]` DeepSeek client with retry logic - 2026-02-04
 - [x] `[P1]` Supabase client stubs (browser + server) - 2026-02-04
-- [x] `[P1]` Seed data: 50 concepts, 41 resources, 6 projects - 2026-02-04
+- [x] `[P1]` Seed data: 50 concepts, 57 resources, 6 projects - 2026-02-04 (updated with YouTube curriculum)
 - [x] `[P1]` Supabase project setup - 2026-02-04
 - [x] `[P1]` Database schema + migrations (14 tables with RLS) - 2026-02-04
 - [x] `[P1]` Seed database with study content - 2026-02-04

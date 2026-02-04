@@ -33,6 +33,7 @@ First session. Project inception and planning.
 - [x] Library with unlock status based on prerequisites
 - [x] Evaluation flow complete (generate + submit + feedback)
 - [x] DeepSeek API integration with retry logic
+- [x] Added YouTube video resources (Hussein Nasser, Karpathy full series, evaluation videos, infrastructure talks)
 
 ## Decisions Made
 
@@ -135,18 +136,13 @@ Target profile (from job posting):
 - Phase 5 (Inference): 7 concepts
 - Phase 6 (Frameworks): 3 concepts
 
-### Resources (41 total)
-- DDIA chapters (8)
-- Tanenbaum chapters (2)
-- SRE Book chapters (3)
-- MIT/Stanford courses (3)
-- Foundational papers (Attention, Scaling Laws, Chinchilla, etc.)
-- Agent papers (ReAct, Tree of Thoughts, Reflexion, Toolformer)
-- RAG papers
-- Safety papers (Constitutional AI, Self-Consistency)
-- Inference papers (vLLM, PagedAttention)
-- Karpathy videos
-- Framework docs
+### Resources (57 total, updated with YouTube curriculum)
+- Phase 1 (18): DDIA chapters, Tanenbaum, SRE Book, MIT 6.824, Hussein Nasser videos
+- Phase 2 (16): Papers (Attention, Scaling Laws, Chinchilla, ReAct, ToT), Karpathy full series, Stanford CS25, agent videos
+- Phase 3 (5): RAG papers, LlamaIndex, Pinecone
+- Phase 4 (7): Safety papers, Anthropic talks, DeepLearning.AI evals, Harvard AI Ethics, Stanford HAI
+- Phase 5 (7): vLLM paper, pricing docs, Modal/Vercel/Replicate infra, OpenAI/DeepMind talks
+- Phase 6 (4): LangChain docs/videos, AutoGen videos, LlamaIndex docs
 
 ### Projects (6 total)
 1. Distributed KV Store (Phase 1)

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
-import { buildEvaluateAnswersPrompt, SYSTEM_PROMPT_EVALUATOR, PROMPT_VERSIONS } from '@/lib/llm/prompts';
+import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS, type SupportedLanguage } from '@/lib/llm/prompts';
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +15,15 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get user's language preference
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('language')
+      .eq('id', user.id)
+      .single();
+
+    const language = (profile?.language || 'es') as SupportedLanguage;
 
     const body = await request.json();
     const { resourceId, resourceTitle, questions, userId } = body;
@@ -47,12 +56,13 @@ export async function POST(request: Request) {
         conceptDefinition: q.conceptDefinition,
         userAnswer: q.userAnswer,
       })),
+      language,
     });
 
     // Call DeepSeek
     const { content, tokensUsed } = await callDeepSeek({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_EVALUATOR },
+        { role: 'system', content: getSystemPrompt(language) },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.2, // More deterministic for evaluation

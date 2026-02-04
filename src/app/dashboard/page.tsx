@@ -3,16 +3,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogoutButton } from '@/components/logout-button';
-
-// Phase names
-const phaseNames: Record<string, string> = {
-  '1': 'Distributed Systems',
-  '2': 'LLMs + Reasoning',
-  '3': 'RAG + Memory',
-  '4': 'Safety + Guardrails',
-  '5': 'Inference + Economics',
-  '6': 'Frameworks',
-};
+import { LanguageSelector } from '@/components/language-selector';
+import { t, getPhaseNames, getMasteryLevels, type Language } from '@/lib/translations';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -31,6 +23,10 @@ export default async function DashboardPage() {
     .select('*')
     .eq('id', user.id)
     .single();
+
+  const lang = (profile?.language || 'es') as Language;
+  const phaseNames = getPhaseNames(lang);
+  const masteryLevels = getMasteryLevels(lang);
 
   // Get concept progress counts by level
   const { data: progressCounts } = await supabase
@@ -67,12 +63,12 @@ export default async function DashboardPage() {
             </Link>
             <nav className="flex items-center gap-4">
               <Link href="/library" className="text-sm text-stone-600 hover:text-stone-900">
-                Library
+                {t('nav.library', lang)}
               </Link>
               <Link href="/dashboard" className="text-sm font-medium text-stone-900">
-                Dashboard
+                {t('nav.dashboard', lang)}
               </Link>
-              <LogoutButton />
+              <LogoutButton label={t('nav.logout', lang)} />
             </nav>
           </div>
         </div>
@@ -82,10 +78,10 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-stone-900">
-            Welcome, {profile?.display_name || user.email}
+            {t('dashboard.welcome', lang)}, {profile?.display_name || user.email}
           </h1>
           <p className="mt-2 text-stone-600">
-            Current phase: <strong>{phaseNames[currentPhase]}</strong>
+            {t('dashboard.currentPhase', lang)}: <strong>{phaseNames[currentPhase]}</strong>
           </p>
         </div>
 
@@ -93,7 +89,7 @@ export default async function DashboardPage() {
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Concepts</CardDescription>
+              <CardDescription>{t('dashboard.totalConcepts', lang)}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-stone-900">{totalConcepts || 0}</p>
@@ -101,7 +97,7 @@ export default async function DashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Concepts Started</CardDescription>
+              <CardDescription>{t('dashboard.conceptsStarted', lang)}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-stone-900">
@@ -111,7 +107,7 @@ export default async function DashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Evaluations</CardDescription>
+              <CardDescription>{t('dashboard.evaluations', lang)}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-stone-900">{evaluationCount || 0}</p>
@@ -119,10 +115,12 @@ export default async function DashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Streak</CardDescription>
+              <CardDescription>{t('dashboard.streak', lang)}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-stone-900">{profile?.streak_days || 0} days</p>
+              <p className="text-3xl font-bold text-stone-900">
+                {profile?.streak_days || 0} {t('dashboard.days', lang)}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -130,18 +128,12 @@ export default async function DashboardPage() {
         {/* Mastery Levels */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Mastery Progress</CardTitle>
-            <CardDescription>Your concept mastery distribution</CardDescription>
+            <CardTitle>{t('dashboard.masteryProgress', lang)}</CardTitle>
+            <CardDescription>{t('dashboard.masteryDescription', lang)}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-5 gap-4">
-              {[
-                { level: '0', name: 'Exposed', color: 'bg-stone-200' },
-                { level: '1', name: 'Understood', color: 'bg-amber-200' },
-                { level: '2', name: 'Applied', color: 'bg-blue-200' },
-                { level: '3', name: 'Criticized', color: 'bg-green-200' },
-                { level: '4', name: 'Taught', color: 'bg-purple-200' },
-              ].map((item) => (
+              {masteryLevels.map((item) => (
                 <div key={item.level} className="text-center">
                   <div
                     className={`mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full ${item.color}`}
@@ -158,9 +150,9 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('dashboard.quickActions', lang)}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
@@ -168,15 +160,26 @@ export default async function DashboardPage() {
                 href="/library"
                 className="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-900 hover:bg-stone-50"
               >
-                Browse Library
+                {t('dashboard.browseLibrary', lang)}
               </Link>
               <Link
                 href={`/library?phase=${currentPhase}`}
                 className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
               >
-                Continue Phase {currentPhase}
+                {t('dashboard.continuePhase', lang)} {currentPhase}
               </Link>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('dashboard.settings', lang)}</CardTitle>
+            <CardDescription>{t('dashboard.settingsDescription', lang)}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LanguageSelector currentLanguage={lang} />
           </CardContent>
         </Card>
       </main>

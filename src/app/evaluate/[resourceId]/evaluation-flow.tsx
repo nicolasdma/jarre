@@ -6,6 +6,41 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
+type Language = 'es' | 'en';
+
+// Client-side translations for the evaluation flow
+const translations = {
+  'eval.testUnderstanding': { es: 'Evalúa tu comprensión de este', en: 'Test your understanding of this' },
+  'eval.conceptsToEvaluate': { es: 'Conceptos a evaluar:', en: 'Concepts to be evaluated:' },
+  'eval.aiWillGenerate': {
+    es: 'La IA generará 5 preguntas para evaluar tu comprensión. Respondé honestamente - esto ayuda a identificar vacíos en tu conocimiento.',
+    en: 'AI will generate 5 questions to test your understanding. Answer honestly - this helps identify gaps in your knowledge.'
+  },
+  'eval.start': { es: 'Comenzar Evaluación', en: 'Start Evaluation' },
+  'eval.generating': { es: 'Generando preguntas...', en: 'Generating questions...' },
+  'eval.mayTakeSeconds': { es: 'Esto puede tomar unos segundos', en: 'This may take a few seconds' },
+  'eval.answerAll': { es: 'Respondé todas las preguntas para completar la evaluación', en: 'Answer all questions to complete the evaluation' },
+  'eval.question': { es: 'Pregunta', en: 'Question' },
+  'eval.of': { es: 'de', en: 'of' },
+  'eval.concept': { es: 'Concepto', en: 'Concept' },
+  'eval.placeholder': { es: 'Escribí tu respuesta aquí...', en: 'Type your answer here...' },
+  'eval.cancel': { es: 'Cancelar', en: 'Cancel' },
+  'eval.submit': { es: 'Enviar Respuestas', en: 'Submit Answers' },
+  'eval.answerAllCount': { es: 'Respondé todas las preguntas', en: 'Answer all questions' },
+  'eval.evaluating': { es: 'Evaluando tus respuestas...', en: 'Evaluating your answers...' },
+  'eval.aiReviewing': { es: 'La IA está revisando tus respuestas', en: 'AI is reviewing your responses' },
+  'eval.complete': { es: 'Evaluación Completada', en: 'Evaluation Complete' },
+  'eval.overallScore': { es: 'Puntuación General', en: 'Overall Score' },
+  'eval.yourAnswer': { es: 'Tu respuesta:', en: 'Your answer:' },
+  'eval.feedback': { es: 'Retroalimentación:', en: 'Feedback:' },
+  'eval.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
+  'eval.viewDashboard': { es: 'Ver Panel', en: 'View Dashboard' },
+} as const;
+
+function t(key: keyof typeof translations, lang: Language): string {
+  return translations[key]?.[lang] || translations[key]?.en || key;
+}
+
 interface Concept {
   id: string;
   name: string;
@@ -36,11 +71,12 @@ interface Props {
   resource: Resource;
   concepts: Concept[];
   userId: string;
+  language: Language;
 }
 
 type Phase = 'intro' | 'loading' | 'questions' | 'submitting' | 'results';
 
-export function EvaluationFlow({ resource, concepts, userId }: Props) {
+export function EvaluationFlow({ resource, concepts, userId, language }: Props) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('intro');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -127,14 +163,14 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Evaluate: {resource.title}</CardTitle>
+          <CardTitle>{language === 'es' ? 'Evaluar' : 'Evaluate'}: {resource.title}</CardTitle>
           <CardDescription>
-            Test your understanding of this {resource.type}
+            {t('eval.testUnderstanding', language)} {resource.type}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-medium text-stone-900">Concepts to be evaluated:</h3>
+            <h3 className="font-medium text-stone-900">{t('eval.conceptsToEvaluate', language)}</h3>
             <ul className="mt-2 space-y-1">
               {concepts.map((concept) => (
                 <li key={concept.id} className="text-sm text-stone-600">
@@ -145,13 +181,12 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
           </div>
 
           <p className="text-sm text-stone-600">
-            AI will generate 5 questions to test your understanding. Answer honestly -
-            this helps identify gaps in your knowledge.
+            {t('eval.aiWillGenerate', language)}
           </p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <Button onClick={handleStartEvaluation}>Start Evaluation</Button>
+          <Button onClick={handleStartEvaluation}>{t('eval.start', language)}</Button>
         </CardContent>
       </Card>
     );
@@ -162,8 +197,8 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-stone-600">Generating questions...</p>
-          <p className="mt-2 text-sm text-stone-500">This may take a few seconds</p>
+          <p className="text-stone-600">{t('eval.generating', language)}</p>
+          <p className="mt-2 text-sm text-stone-500">{t('eval.mayTakeSeconds', language)}</p>
         </CardContent>
       </Card>
     );
@@ -175,7 +210,7 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">{resource.title}</h1>
-          <p className="text-stone-600">Answer all questions to complete the evaluation</p>
+          <p className="text-stone-600">{t('eval.answerAll', language)}</p>
         </div>
 
         {questions.map((question, index) => (
@@ -183,22 +218,22 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardDescription>
-                  Question {index + 1} of {questions.length}
+                  {t('eval.question', language)} {index + 1} {t('eval.of', language)} {questions.length}
                 </CardDescription>
                 <span className="text-xs text-stone-500 capitalize">{question.type}</span>
               </div>
               <CardTitle className="text-lg">{question.question}</CardTitle>
-              <p className="text-sm text-stone-500">Concept: {question.conceptName}</p>
+              <p className="text-sm text-stone-500">{t('eval.concept', language)}: {question.conceptName}</p>
             </CardHeader>
             <CardContent>
               <Label htmlFor={`answer-${index}`} className="sr-only">
-                Your answer
+                {t('eval.yourAnswer', language)}
               </Label>
               <textarea
                 id={`answer-${index}`}
                 className="w-full rounded-md border border-stone-200 p-3 text-sm focus:border-stone-400 focus:outline-none"
                 rows={4}
-                placeholder="Type your answer here..."
+                placeholder={t('eval.placeholder', language)}
                 value={answers[index.toString()] || ''}
                 onChange={(e) =>
                   setAnswers((prev) => ({ ...prev, [index.toString()]: e.target.value }))
@@ -212,10 +247,10 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
 
         <div className="flex gap-4">
           <Button variant="outline" onClick={() => router.push('/library')}>
-            Cancel
+            {t('eval.cancel', language)}
           </Button>
           <Button onClick={handleSubmitAnswers} disabled={!allAnswered}>
-            {allAnswered ? 'Submit Answers' : `Answer all questions (${Object.keys(answers).length}/${questions.length})`}
+            {allAnswered ? t('eval.submit', language) : `${t('eval.answerAllCount', language)} (${Object.keys(answers).length}/${questions.length})`}
           </Button>
         </div>
       </div>
@@ -227,8 +262,8 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-stone-600">Evaluating your answers...</p>
-          <p className="mt-2 text-sm text-stone-500">AI is reviewing your responses</p>
+          <p className="text-stone-600">{t('eval.evaluating', language)}</p>
+          <p className="mt-2 text-sm text-stone-500">{t('eval.aiReviewing', language)}</p>
         </CardContent>
       </Card>
     );
@@ -240,14 +275,14 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Evaluation Complete</CardTitle>
+            <CardTitle>{t('eval.complete', language)}</CardTitle>
             <CardDescription>{resource.title}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-8">
               <div className="text-center">
                 <p className="text-4xl font-bold text-stone-900">{results.overallScore}%</p>
-                <p className="text-sm text-stone-500">Overall Score</p>
+                <p className="text-sm text-stone-500">{t('eval.overallScore', language)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-stone-600">{results.summary}</p>
@@ -265,7 +300,7 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardDescription>Question {index + 1}</CardDescription>
+                  <CardDescription>{t('eval.question', language)} {index + 1}</CardDescription>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       result.isCorrect
@@ -280,11 +315,11 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-stone-500">Your answer:</p>
+                  <p className="text-xs font-medium text-stone-500">{t('eval.yourAnswer', language)}</p>
                   <p className="text-sm text-stone-700">{answers[index.toString()]}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-stone-500">Feedback:</p>
+                  <p className="text-xs font-medium text-stone-500">{t('eval.feedback', language)}</p>
                   <p className="text-sm text-stone-700">{result.feedback}</p>
                 </div>
               </CardContent>
@@ -294,9 +329,9 @@ export function EvaluationFlow({ resource, concepts, userId }: Props) {
 
         <div className="flex gap-4">
           <Button variant="outline" onClick={() => router.push('/library')}>
-            Back to Library
+            {t('eval.backToLibrary', language)}
           </Button>
-          <Button onClick={() => router.push('/dashboard')}>View Dashboard</Button>
+          <Button onClick={() => router.push('/dashboard')}>{t('eval.viewDashboard', language)}</Button>
         </div>
       </div>
     );

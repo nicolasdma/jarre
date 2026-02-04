@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
+import { t, getPhaseNames, type Language } from '@/lib/translations';
 
 // Resource type badge colors
 const typeColors: Record<string, string> = {
@@ -12,16 +13,6 @@ const typeColors: Record<string, string> = {
   article: 'bg-purple-100 text-purple-800',
 };
 
-// Phase names
-const phaseNames: Record<string, string> = {
-  '1': 'Distributed Systems',
-  '2': 'LLMs + Reasoning',
-  '3': 'RAG + Memory',
-  '4': 'Safety + Guardrails',
-  '5': 'Inference + Economics',
-  '6': 'Frameworks',
-};
-
 export default async function LibraryPage() {
   const supabase = await createClient();
 
@@ -29,6 +20,19 @@ export default async function LibraryPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Get language preference
+  let lang: Language = 'es';
+  if (user) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('language')
+      .eq('id', user.id)
+      .single();
+    lang = (profile?.language || 'es') as Language;
+  }
+
+  const phaseNames = getPhaseNames(lang);
 
   // Fetch all resources with their prerequisite concepts
   const { data: resources, error } = await supabase
@@ -49,7 +53,7 @@ export default async function LibraryPage() {
       <div className="min-h-screen bg-stone-50">
         <Header currentPage="library" />
         <main className="mx-auto max-w-6xl px-6 py-8">
-          <p className="text-red-600">Error loading resources: {error.message}</p>
+          <p className="text-red-600">{t('common.error', lang)}: {error.message}</p>
         </main>
       </div>
     );
@@ -129,21 +133,21 @@ export default async function LibraryPage() {
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-900">Library</h1>
+          <h1 className="text-3xl font-bold text-stone-900">{t('library.title', lang)}</h1>
           <p className="mt-2 text-stone-600">
-            {resources?.length || 0} resources across 6 phases
+            {resources?.length || 0} {t('library.resources', lang)} {t('common.across', lang)} 6 {t('common.phases', lang)}
             {user && (
               <span className="ml-2 text-green-600">
-                • {resourcesWithStatus.filter((r) => r.isUnlocked).length} unlocked
+                • {resourcesWithStatus.filter((r) => r.isUnlocked).length} {t('library.unlocked', lang).toLowerCase()}
               </span>
             )}
           </p>
           {!user && (
             <p className="mt-2 text-sm text-amber-600">
               <Link href="/login" className="underline">
-                Sign in
+                {t('common.signin', lang)}
               </Link>{' '}
-              to track your progress and see personalized unlock status.
+              {t('library.signInPrompt', lang)}
             </p>
           )}
         </div>
@@ -156,7 +160,7 @@ export default async function LibraryPage() {
                 key={phase}
                 className="rounded-lg border border-stone-200 bg-white p-3 text-center"
               >
-                <p className="text-xs text-stone-500">Phase {phase}</p>
+                <p className="text-xs text-stone-500">Fase {phase}</p>
                 <p className="text-lg font-bold text-stone-900">
                   {unlocked}/{total}
                 </p>
@@ -173,10 +177,10 @@ export default async function LibraryPage() {
                 {phase}
               </span>
               <h2 className="text-xl font-semibold text-stone-900">
-                {phaseNames[phase] || `Phase ${phase}`}
+                {phaseNames[phase] || `Fase ${phase}`}
               </h2>
               <span className="text-sm text-stone-500">
-                ({phaseResources.length} resources)
+                ({phaseResources.length} {phaseResources.length === 1 ? t('library.resource', lang) : t('library.resources', lang)})
               </span>
             </div>
 
@@ -200,8 +204,8 @@ export default async function LibraryPage() {
                             }`}
                             title={
                               resource.isUnlocked
-                                ? 'Unlocked - prerequisites met'
-                                : `Locked - need: ${resource.missingPrerequisites.join(', ')}`
+                                ? t('library.unlocked', lang)
+                                : `${t('library.locked', lang)} - ${t('library.requires', lang)}: ${resource.missingPrerequisites.join(', ')}`
                             }
                           >
                             {resource.isUnlocked ? '●' : '○'}
@@ -231,15 +235,15 @@ export default async function LibraryPage() {
                     {/* Missing prerequisites */}
                     {user && !resource.isUnlocked && resource.missingPrerequisites.length > 0 && (
                       <p className="mb-3 text-xs text-amber-600">
-                        Requires: {resource.missingPrerequisites.slice(0, 3).join(', ')}
+                        {t('library.requires', lang)}: {resource.missingPrerequisites.slice(0, 3).join(', ')}
                         {resource.missingPrerequisites.length > 3 &&
-                          ` +${resource.missingPrerequisites.length - 3} more`}
+                          ` +${resource.missingPrerequisites.length - 3} ${t('common.more', lang)}`}
                       </p>
                     )}
 
                     <div className="flex items-center gap-4 text-xs text-stone-500">
                       {resource.estimated_hours && (
-                        <span>{resource.estimated_hours}h estimated</span>
+                        <span>{resource.estimated_hours}h {t('common.estimated', lang)}</span>
                       )}
                       {resource.url && resource.isUnlocked && (
                         <a
@@ -248,7 +252,7 @@ export default async function LibraryPage() {
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline"
                         >
-                          Open →
+                          {t('common.open', lang)} →
                         </a>
                       )}
                       {resource.isUnlocked && (
@@ -256,7 +260,7 @@ export default async function LibraryPage() {
                           href={`/evaluate/${resource.id}`}
                           className="ml-auto text-green-600 hover:underline"
                         >
-                          Evaluate →
+                          {t('common.evaluate', lang)} →
                         </Link>
                       )}
                     </div>
