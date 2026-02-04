@@ -23,7 +23,6 @@
 - [ ] `[P1]` Database schema + migrations
 - [ ] `[P1]` Auth flow (login/signup)
 - [ ] `[P1]` DeepSeek API integration
-- [ ] `[P1]` `scripts/seed.ts` for study plan data
 
 ### Core Features
 - [ ] `[P1]` Library page - list resources
@@ -93,3 +92,4 @@
 - [x] `[P1]` Versioned prompts (lib/llm/prompts.ts) - 2026-02-04
 - [x] `[P1]` DeepSeek client with retry logic - 2026-02-04
 - [x] `[P1]` Supabase client stubs (browser + server) - 2026-02-04
+- [x] `[P1]` Seed data: 50 concepts, 41 resources, 6 projects - 2026-02-04

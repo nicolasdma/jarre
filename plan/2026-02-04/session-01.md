@@ -23,7 +23,10 @@ First session. Project inception and planning.
 - [x] Create Zod schemas for LLM responses
 - [x] Create versioned prompts
 - [x] Create landing page
+- [x] Create seed data with full study plan (50 concepts, 41 resources, 6 projects)
 - [ ] Set up Supabase project (next session)
+- [ ] Database migrations
+- [ ] Seed database
 
 ## Decisions Made
 
@@ -115,6 +118,37 @@ Target profile (from job posting):
 
 ### Phase 6: Framework Critique
 - LangChain docs + critique exercise
+
+## Seed Data Created
+
+### Concepts (50 total)
+- Phase 1 (Distributed Systems): 14 concepts
+- Phase 2 (LLMs + Reasoning): 13 concepts
+- Phase 3 (RAG + Memory): 8 concepts
+- Phase 4 (Safety): 5 concepts
+- Phase 5 (Inference): 7 concepts
+- Phase 6 (Frameworks): 3 concepts
+
+### Resources (41 total)
+- DDIA chapters (8)
+- Tanenbaum chapters (2)
+- SRE Book chapters (3)
+- MIT/Stanford courses (3)
+- Foundational papers (Attention, Scaling Laws, Chinchilla, etc.)
+- Agent papers (ReAct, Tree of Thoughts, Reflexion, Toolformer)
+- RAG papers
+- Safety papers (Constitutional AI, Self-Consistency)
+- Inference papers (vLLM, PagedAttention)
+- Karpathy videos
+- Framework docs
+
+### Projects (6 total)
+1. Distributed KV Store (Phase 1)
+2. ReAct Agent from Scratch (Phase 2)
+3. RAG System with Metrics (Phase 3)
+4. LLM Output Validators (Phase 4)
+5. Model Router with Cost Tracking (Phase 5)
+6. Framework Feature Reimplementation (Phase 6)
 
 ## Blockers
 
