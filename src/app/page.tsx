@@ -1,26 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Header } from '@/components/header';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-stone-900">Jarre</h1>
-            <nav className="flex gap-4">
-              <Link href="/library" className="text-sm text-stone-600 hover:text-stone-900">
-                Library
-              </Link>
-              <Link href="/dashboard" className="text-sm text-stone-600 hover:text-stone-900">
-                Dashboard
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header currentPage="home" />
 
       {/* Hero */}
       <main className="mx-auto max-w-6xl px-6 py-16">

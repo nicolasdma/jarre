@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Header } from '@/components/header';
 
 // Resource type badge colors
 const typeColors: Record<string, string> = {
@@ -54,24 +54,7 @@ export default async function LibraryPage() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-xl font-semibold text-stone-900">
-              Jarre
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/library" className="text-sm font-medium text-stone-900">
-                Library
-              </Link>
-              <Link href="/dashboard" className="text-sm text-stone-600 hover:text-stone-900">
-                Dashboard
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header currentPage="library" />
 
       {/* Content */}
       <main className="mx-auto max-w-6xl px-6 py-8">
