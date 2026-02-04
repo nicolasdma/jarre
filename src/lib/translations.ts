@@ -45,6 +45,10 @@ const translations = {
   'library.concepts': { es: 'conceptos', en: 'concepts' },
   'library.requires': { es: 'Requiere', en: 'Requires' },
   'library.startEvaluation': { es: 'Iniciar Evaluación', en: 'Start Evaluation' },
+  'library.evaluated': { es: 'evaluados', en: 'evaluated' },
+  'library.bestScore': { es: 'Mejor', en: 'Best' },
+  'library.attempt': { es: 'intento', en: 'attempt' },
+  'library.attempts': { es: 'intentos', en: 'attempts' },
 
   // Evaluation
   'eval.title': { es: 'Evaluación', en: 'Evaluation' },
