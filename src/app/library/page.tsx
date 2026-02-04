@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
 
@@ -24,46 +25,145 @@ const phaseNames: Record<string, string> = {
 export default async function LibraryPage() {
   const supabase = await createClient();
 
-  // Fetch all resources grouped by phase
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Fetch all resources with their prerequisite concepts
   const { data: resources, error } = await supabase
     .from('resources')
-    .select('*')
+    .select(`
+      *,
+      resource_concepts!inner (
+        concept_id,
+        is_prerequisite
+      )
+    `)
     .order('phase')
     .order('title');
 
   if (error) {
     console.error('Error fetching resources:', error);
     return (
-      <div className="min-h-screen bg-stone-50 p-8">
-        <p className="text-red-600">Error loading resources: {error.message}</p>
+      <div className="min-h-screen bg-stone-50">
+        <Header currentPage="library" />
+        <main className="mx-auto max-w-6xl px-6 py-8">
+          <p className="text-red-600">Error loading resources: {error.message}</p>
+        </main>
       </div>
     );
   }
 
-  // Group by phase
-  type Resource = NonNullable<typeof resources>[number];
-  const byPhase: Record<string, Resource[]> = {};
+  // Get user's concept progress (if logged in)
+  let userProgress: Record<string, number> = {};
+  if (user) {
+    const { data: progress } = await supabase
+      .from('concept_progress')
+      .select('concept_id, level')
+      .eq('user_id', user.id);
 
-  if (resources) {
-    for (const resource of resources) {
-      const phase = resource.phase;
-      if (!byPhase[phase]) byPhase[phase] = [];
-      byPhase[phase].push(resource);
+    if (progress) {
+      userProgress = progress.reduce(
+        (acc, p) => {
+          acc[p.concept_id] = parseInt(p.level);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
     }
   }
+
+  // Process resources to determine unlock status
+  type ResourceWithStatus = NonNullable<typeof resources>[number] & {
+    isUnlocked: boolean;
+    missingPrerequisites: string[];
+    conceptsTaught: string[];
+  };
+
+  const resourcesWithStatus: ResourceWithStatus[] = (resources || []).map((resource) => {
+    const prerequisites = resource.resource_concepts
+      .filter((rc: { is_prerequisite: boolean }) => rc.is_prerequisite)
+      .map((rc: { concept_id: string }) => rc.concept_id);
+
+    const conceptsTaught = resource.resource_concepts
+      .filter((rc: { is_prerequisite: boolean }) => !rc.is_prerequisite)
+      .map((rc: { concept_id: string }) => rc.concept_id);
+
+    // A resource is unlocked if:
+    // 1. User is not logged in (show all as available for browsing)
+    // 2. User has no prerequisites for this resource
+    // 3. User has level >= 1 on all prerequisites
+    const missingPrerequisites = prerequisites.filter(
+      (prereqId: string) => (userProgress[prereqId] || 0) < 1
+    );
+
+    const isUnlocked = !user || prerequisites.length === 0 || missingPrerequisites.length === 0;
+
+    return {
+      ...resource,
+      isUnlocked,
+      missingPrerequisites,
+      conceptsTaught,
+    };
+  });
+
+  // Group by phase
+  const byPhase: Record<string, ResourceWithStatus[]> = {};
+  for (const resource of resourcesWithStatus) {
+    const phase = resource.phase;
+    if (!byPhase[phase]) byPhase[phase] = [];
+    byPhase[phase].push(resource);
+  }
+
+  // Calculate phase stats
+  const phaseStats = Object.entries(byPhase).map(([phase, phaseResources]) => {
+    const unlocked = phaseResources.filter((r) => r.isUnlocked).length;
+    const total = phaseResources.length;
+    return { phase, unlocked, total };
+  });
 
   return (
     <div className="min-h-screen bg-stone-50">
       <Header currentPage="library" />
 
-      {/* Content */}
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-stone-900">Library</h1>
           <p className="mt-2 text-stone-600">
             {resources?.length || 0} resources across 6 phases
+            {user && (
+              <span className="ml-2 text-green-600">
+                • {resourcesWithStatus.filter((r) => r.isUnlocked).length} unlocked
+              </span>
+            )}
           </p>
+          {!user && (
+            <p className="mt-2 text-sm text-amber-600">
+              <Link href="/login" className="underline">
+                Sign in
+              </Link>{' '}
+              to track your progress and see personalized unlock status.
+            </p>
+          )}
         </div>
+
+        {/* Phase Progress Overview */}
+        {user && (
+          <div className="mb-8 grid grid-cols-6 gap-2">
+            {phaseStats.map(({ phase, unlocked, total }) => (
+              <div
+                key={phase}
+                className="rounded-lg border border-stone-200 bg-white p-3 text-center"
+              >
+                <p className="text-xs text-stone-500">Phase {phase}</p>
+                <p className="text-lg font-bold text-stone-900">
+                  {unlocked}/{total}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Resources by phase */}
         {Object.entries(byPhase).map(([phase, phaseResources]) => (
@@ -82,12 +182,35 @@ export default async function LibraryPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {phaseResources.map((resource) => (
-                <Card key={resource.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={resource.id}
+                  className={`transition-shadow ${
+                    resource.isUnlocked
+                      ? 'hover:shadow-md'
+                      : 'opacity-60 bg-stone-50'
+                  }`}
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base leading-tight">
-                        {resource.title}
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        {user && (
+                          <span
+                            className={`text-lg ${
+                              resource.isUnlocked ? 'text-green-500' : 'text-stone-400'
+                            }`}
+                            title={
+                              resource.isUnlocked
+                                ? 'Unlocked - prerequisites met'
+                                : `Locked - need: ${resource.missingPrerequisites.join(', ')}`
+                            }
+                          >
+                            {resource.isUnlocked ? '●' : '○'}
+                          </span>
+                        )}
+                        <CardTitle className="text-base leading-tight">
+                          {resource.title}
+                        </CardTitle>
+                      </div>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[resource.type] || 'bg-stone-100 text-stone-800'}`}
                       >
@@ -104,11 +227,21 @@ export default async function LibraryPage() {
                         {resource.description}
                       </p>
                     )}
+
+                    {/* Missing prerequisites */}
+                    {user && !resource.isUnlocked && resource.missingPrerequisites.length > 0 && (
+                      <p className="mb-3 text-xs text-amber-600">
+                        Requires: {resource.missingPrerequisites.slice(0, 3).join(', ')}
+                        {resource.missingPrerequisites.length > 3 &&
+                          ` +${resource.missingPrerequisites.length - 3} more`}
+                      </p>
+                    )}
+
                     <div className="flex items-center gap-4 text-xs text-stone-500">
                       {resource.estimated_hours && (
                         <span>{resource.estimated_hours}h estimated</span>
                       )}
-                      {resource.url && (
+                      {resource.url && resource.isUnlocked && (
                         <a
                           href={resource.url}
                           target="_blank"
@@ -117,6 +250,14 @@ export default async function LibraryPage() {
                         >
                           Open →
                         </a>
+                      )}
+                      {resource.isUnlocked && (
+                        <Link
+                          href={`/evaluate/${resource.id}`}
+                          className="ml-auto text-green-600 hover:underline"
+                        >
+                          Evaluate →
+                        </Link>
                       )}
                     </div>
                   </CardContent>
