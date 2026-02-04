@@ -377,8 +377,16 @@ CREATE TRIGGER update_user_notes_updated_at
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO user_profiles (id, display_name)
-    VALUES (NEW.id, NEW.raw_user_meta_data->>'display_name');
+    INSERT INTO user_profiles (id, display_name, current_phase)
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'display_name', 'User'),
+        '1'::study_phase
+    );
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    -- Log error but don't fail user creation
+    RAISE WARNING 'Could not create user profile: %', SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
