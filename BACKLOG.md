@@ -12,7 +12,7 @@
 
 ## In Progress
 
-- [ ] `[P0]` Auth flow (login/signup)
+- [ ] `[P0]` Library with unlock status based on prerequisites
 
 ---
 
@@ -94,3 +94,6 @@
 - [x] `[P1]` Database schema + migrations (14 tables with RLS) - 2026-02-04
 - [x] `[P1]` Seed database with study content - 2026-02-04
 - [x] `[P1]` Library page - list resources by phase - 2026-02-04
+- [x] `[P1]` Auth flow (login/signup/logout) - 2026-02-04
+- [x] `[P1]` Dashboard page with progress stats - 2026-02-04
+- [x] `[P1]` Protected routes middleware - 2026-02-04
