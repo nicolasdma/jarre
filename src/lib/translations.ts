@@ -93,6 +93,35 @@ const translations = {
 
   // Library specific
   'library.signInPrompt': { es: 'para ver tu progreso y estado de desbloqueo personalizado.', en: 'to track your progress and see personalized unlock status.' },
+
+  // Notes
+  'notes.title': { es: 'Notas', en: 'Notes' },
+  'notes.addSection': { es: 'Agregar Sección', en: 'Add Section' },
+  'notes.addSubsection': { es: 'Agregar Subsección', en: 'Add Subsection' },
+  'notes.editSection': { es: 'Editar Sección', en: 'Edit Section' },
+  'notes.deleteSection': { es: 'Eliminar Sección', en: 'Delete Section' },
+  'notes.deleteSubsection': { es: 'Eliminar Subsección', en: 'Delete Subsection' },
+  'notes.sectionTitle': { es: 'Título de la sección', en: 'Section title' },
+  'notes.subsectionTitle': { es: 'Título de la subsección', en: 'Subsection title' },
+  'notes.content': { es: 'Contenido', en: 'Content' },
+  'notes.save': { es: 'Guardar', en: 'Save' },
+  'notes.cancel': { es: 'Cancelar', en: 'Cancel' },
+  'notes.saving': { es: 'Guardando...', en: 'Saving...' },
+  'notes.saved': { es: 'Guardado', en: 'Saved' },
+  'notes.empty': { es: 'No hay notas aún. ¡Agrega tu primera sección!', en: 'No notes yet. Add your first section!' },
+  'notes.confirmDelete': { es: '¿Eliminar esta sección y todas sus subsecciones?', en: 'Delete this section and all its subsections?' },
+  'notes.confirmDeleteSub': { es: '¿Eliminar esta subsección?', en: 'Delete this subsection?' },
+  'notes.placeholder': { es: 'Escribe tus notas aquí... (soporta markdown)', en: 'Write your notes here... (supports markdown)' },
+
+  // Resource page
+  'resource.evaluate': { es: 'Evaluar', en: 'Evaluate' },
+  'resource.openResource': { es: 'Abrir Recurso', en: 'Open Resource' },
+  'resource.phase': { es: 'Fase', en: 'Phase' },
+  'resource.estimatedTime': { es: 'Tiempo estimado', en: 'Estimated time' },
+  'resource.hours': { es: 'horas', en: 'hours' },
+  'resource.concepts': { es: 'Conceptos que enseña', en: 'Concepts taught' },
+  'resource.notFound': { es: 'Recurso no encontrado', en: 'Resource not found' },
+  'resource.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

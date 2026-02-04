@@ -34,6 +34,7 @@ First session. Project inception and planning.
 - [x] Evaluation flow complete (generate + submit + feedback)
 - [x] DeepSeek API integration with retry logic
 - [x] Added YouTube video resources (Hussein Nasser, Karpathy full series, evaluation videos, infrastructure talks)
+- [x] Notes system - structured notes with sections/subsections per resource
 
 ## Decisions Made
 

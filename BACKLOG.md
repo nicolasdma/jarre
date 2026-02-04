@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-04 (session-01, updated)
+> Last updated: 2026-02-04 (session-01, notes feature added)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -54,7 +54,6 @@
 - [ ] `[P2]` Admin/debug route for reviewing evaluations
 
 ### Features
-- [ ] `[P2]` Notes system - take notes while reading
 - [ ] `[P2]` Spaced repetition for weak concepts
 - [ ] `[P2]` Export progress report
 - [ ] `[P3]` Dark mode
@@ -101,3 +100,4 @@
 - [x] `[P1]` Library with unlock status based on prerequisites - 2026-02-04
 - [x] `[P1]` Evaluation flow (generate questions + evaluate) - 2026-02-04
 - [x] `[P1]` DeepSeek API integration - 2026-02-04
+- [x] `[P2]` Notes system - take structured notes while reading - 2026-02-04

@@ -257,6 +257,14 @@ export default async function LibraryPage() {
                       )}
                       {resource.isUnlocked && (
                         <Link
+                          href={`/resource/${resource.id}`}
+                          className="text-stone-600 hover:underline"
+                        >
+                          {t('notes.title', lang)}
+                        </Link>
+                      )}
+                      {resource.isUnlocked && (
+                        <Link
                           href={`/evaluate/${resource.id}`}
                           className="ml-auto text-green-600 hover:underline"
                         >
