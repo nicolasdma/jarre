@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Button } from '@/components/ui/button';
 import { LogoutButton } from '@/components/logout-button';
 import { t, type Language } from '@/lib/translations';
 
@@ -14,7 +13,6 @@ export async function Header({ currentPage }: HeaderProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Get language preference
   let lang: Language = 'es';
   if (user) {
     const { data: profile } = await supabase
@@ -26,38 +24,59 @@ export async function Header({ currentPage }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-stone-200 bg-white">
-      <div className="mx-auto max-w-6xl px-6 py-4">
+    <header className="border-b border-[#e8e6e0] bg-[#faf9f6]">
+      <div className="mx-auto max-w-6xl px-8 py-5">
         <div className="flex items-center justify-between">
-          <Link href="/" className="text-xl font-semibold text-stone-900">
-            Jarre
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 border border-[#4a5d4a] flex items-center justify-center">
+              <span className="text-[#4a5d4a] font-mono text-xs">J</span>
+            </div>
+            <span className="font-mono text-sm tracking-[0.1em] text-[#2c2c2c] uppercase group-hover:text-[#4a5d4a] transition-colors">
+              Jarre
+            </span>
           </Link>
-          <nav className="flex items-center gap-4">
+
+          {/* Navigation */}
+          <nav className="flex items-center gap-8">
             <Link
               href="/library"
-              className={`text-sm ${currentPage === 'library' ? 'font-medium text-stone-900' : 'text-stone-600 hover:text-stone-900'}`}
+              className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
+                currentPage === 'library'
+                  ? 'text-[#4a5d4a]'
+                  : 'text-[#7a7a6e] hover:text-[#2c2c2c]'
+              }`}
             >
-              {t('nav.library', lang)}
+              01. {t('nav.library', lang)}
             </Link>
+
             {user ? (
               <>
                 <Link
                   href="/dashboard"
-                  className={`text-sm ${currentPage === 'dashboard' ? 'font-medium text-stone-900' : 'text-stone-600 hover:text-stone-900'}`}
+                  className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
+                    currentPage === 'dashboard'
+                      ? 'text-[#4a5d4a]'
+                      : 'text-[#7a7a6e] hover:text-[#2c2c2c]'
+                  }`}
                 >
-                  {t('nav.dashboard', lang)}
+                  02. {t('nav.dashboard', lang)}
                 </Link>
                 <LogoutButton label={t('nav.logout', lang)} />
               </>
             ) : (
               <>
-                <Link href="/login">
-                  <Button variant="ghost" size="sm">
-                    {t('common.login', lang)}
-                  </Button>
+                <Link
+                  href="/login"
+                  className="font-mono text-[11px] tracking-[0.15em] text-[#7a7a6e] uppercase hover:text-[#2c2c2c] transition-colors"
+                >
+                  {t('common.login', lang)}
                 </Link>
-                <Link href="/signup">
-                  <Button size="sm">{t('common.signup', lang)}</Button>
+                <Link
+                  href="/signup"
+                  className="font-mono text-[11px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                >
+                  {t('common.signup', lang)}
                 </Link>
               </>
             )}

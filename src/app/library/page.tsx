@@ -4,15 +4,25 @@ import { Header } from '@/components/header';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 
+// Corner bracket component for decorative framing
+function CornerBrackets({ className = '' }: { className?: string }) {
+  return (
+    <>
+      <div className={`absolute top-0 left-0 w-4 h-4 border-l border-t ${className}`} />
+      <div className={`absolute top-0 right-0 w-4 h-4 border-r border-t ${className}`} />
+      <div className={`absolute bottom-0 left-0 w-4 h-4 border-l border-b ${className}`} />
+      <div className={`absolute bottom-0 right-0 w-4 h-4 border-r border-b ${className}`} />
+    </>
+  );
+}
+
 export default async function LibraryPage() {
   const supabase = await createClient();
 
-  // Get current user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Get language preference
   let lang: Language = 'es';
   if (user) {
     const { data: profile } = await supabase
@@ -25,7 +35,6 @@ export default async function LibraryPage() {
 
   const phaseNames = getPhaseNames(lang);
 
-  // Fetch all resources with their prerequisite concepts
   const { data: resources, error } = await supabase
     .from('resources')
     .select(`
@@ -41,16 +50,15 @@ export default async function LibraryPage() {
   if (error) {
     console.error('Error fetching resources:', error);
     return (
-      <div className="min-h-screen bg-stone-50">
+      <div className="min-h-screen bg-[#faf9f6]">
         <Header currentPage="library" />
-        <main className="mx-auto max-w-6xl px-6 py-8">
-          <p className="text-red-600">{t('common.error', lang)}: {error.message}</p>
+        <main className="mx-auto max-w-6xl px-8 py-12">
+          <p className="font-mono text-sm text-[#7d6b6b]">{t('common.error', lang)}: {error.message}</p>
         </main>
       </div>
     );
   }
 
-  // Get user's concept progress (if logged in)
   let userProgress: Record<string, number> = {};
   if (user) {
     const { data: progress } = await supabase
@@ -69,7 +77,6 @@ export default async function LibraryPage() {
     }
   }
 
-  // Get evaluation stats per resource (if logged in)
   type EvalStats = {
     resourceId: string;
     bestScore: number;
@@ -87,7 +94,6 @@ export default async function LibraryPage() {
       .order('completed_at', { ascending: false });
 
     if (evaluations) {
-      // Group by resource and calculate stats
       const byResource: Record<string, typeof evaluations> = {};
       for (const e of evaluations) {
         if (!byResource[e.resource_id]) byResource[e.resource_id] = [];
@@ -96,7 +102,7 @@ export default async function LibraryPage() {
 
       for (const [resourceId, evals] of Object.entries(byResource)) {
         const bestScore = Math.max(...evals.map(e => e.overall_score));
-        const lastEvaluatedAt = evals[0].completed_at; // Already sorted desc
+        const lastEvaluatedAt = evals[0].completed_at;
         evaluationStats[resourceId] = {
           resourceId,
           bestScore,
@@ -107,7 +113,6 @@ export default async function LibraryPage() {
     }
   }
 
-  // Process resources to determine unlock status
   type ResourceWithStatus = NonNullable<typeof resources>[number] & {
     isUnlocked: boolean;
     missingPrerequisites: string[];
@@ -139,7 +144,6 @@ export default async function LibraryPage() {
     };
   });
 
-  // Group by phase
   const byPhase: Record<string, ResourceWithStatus[]> = {};
   for (const resource of resourcesWithStatus) {
     const phase = resource.phase;
@@ -147,42 +151,43 @@ export default async function LibraryPage() {
     byPhase[phase].push(resource);
   }
 
-  // Calculate phase stats
-  const phaseStats = Object.entries(byPhase).map(([phase, phaseResources]) => {
-    const unlocked = phaseResources.filter((r) => r.isUnlocked).length;
-    const evaluated = phaseResources.filter((r) => r.evalStats !== null).length;
-    const total = phaseResources.length;
-    return { phase, unlocked, evaluated, total };
-  });
-
+  const totalResources = resources?.length || 0;
   const totalEvaluated = resourcesWithStatus.filter(r => r.evalStats !== null).length;
+  const totalUnlocked = resourcesWithStatus.filter(r => r.isUnlocked).length;
+  const avgScore = totalEvaluated > 0
+    ? Math.round(resourcesWithStatus.filter(r => r.evalStats !== null).reduce((sum, r) => sum + r.evalStats!.bestScore, 0) / totalEvaluated)
+    : 0;
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-[#faf9f6]">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-900">{t('library.title', lang)}</h1>
-          <p className="mt-2 text-stone-600">
-            {resources?.length || 0} {t('library.resources', lang)} {t('common.across', lang)} 6 {t('common.phases', lang)}
+      <main className="mx-auto max-w-6xl px-8 py-12">
+        {/* Hero Section */}
+        <div className="mb-16">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-px bg-[#4a5d4a]"></div>
+            <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+              {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
+            </span>
+          </div>
+
+          <h1 className="text-5xl font-bold text-[#2c2c2c] mb-2">
+            {t('library.title', lang)}
+          </h1>
+          <p className="text-3xl font-light text-[#9c9a8e]">
+            {lang === 'es' ? 'para dominar sistemas de IA' : 'for AI systems mastery'}
           </p>
-          {user && (
-            <div className="mt-3 flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-green-500"></span>
-                {resourcesWithStatus.filter((r) => r.isUnlocked).length} {t('library.unlocked', lang).toLowerCase()}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-                {totalEvaluated} {t('library.evaluated', lang)}
-              </span>
-            </div>
-          )}
+
+          <p className="mt-6 text-[#7a7a6e] max-w-xl leading-relaxed">
+            {lang === 'es'
+              ? 'Cuando la comprensión superficial no es suficiente. Valida tu conocimiento real de papers, libros y conceptos complejos.'
+              : 'When surface-level understanding isn\'t enough. Validate real comprehension of papers, books, and complex concepts.'}
+          </p>
+
           {!user && (
-            <p className="mt-3 text-sm text-amber-600">
-              <Link href="/login" className="underline hover:text-amber-700">
+            <p className="mt-6 text-sm text-[#8b7355]">
+              <Link href="/login" className="underline hover:text-[#4a5d4a] transition-colors">
                 {t('common.signin', lang)}
               </Link>{' '}
               {t('library.signInPrompt', lang)}
@@ -190,59 +195,97 @@ export default async function LibraryPage() {
           )}
         </div>
 
-        {/* Phase Progress Overview */}
+        {/* Stats Section */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+          <div className="text-center">
+            <p className="text-4xl font-light text-[#2c2c2c]">{totalResources}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+              {t('library.resources', lang)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-4xl font-light text-[#4a5d4a]">{totalUnlocked}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+              {t('library.unlocked', lang)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-4xl font-light text-[#4a5d4a]">{totalEvaluated}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+              {t('library.evaluated', lang)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-4xl font-light text-[#8b7355]">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+              {lang === 'es' ? 'Promedio' : 'Average'}
+            </p>
+          </div>
+        </div>
+
+        {/* Phase Progress - Only when logged in */}
         {user && (
-          <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {phaseStats.map(({ phase, unlocked, evaluated, total }) => {
-              const progress = total > 0 ? Math.round((evaluated / total) * 100) : 0;
-              return (
-                <div
-                  key={phase}
-                  className="relative overflow-hidden rounded-xl border border-stone-200 bg-white p-4"
-                >
-                  {/* Progress bar background */}
-                  <div
-                    className="absolute inset-0 bg-gradient-to-r from-green-50 to-green-100 transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
-                  <div className="relative">
-                    <p className="text-xs font-medium text-stone-500">{t('resource.phase', lang)} {phase}</p>
-                    <p className="mt-1 text-lg font-bold text-stone-900">
-                      {evaluated}<span className="text-stone-400">/{total}</span>
+          <div className="relative mb-16 p-8 bg-white/50">
+            <CornerBrackets className="border-[#d4d0c8]" />
+
+            <div className="flex items-center gap-2 mb-6">
+              <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+                {lang === 'es' ? 'Progreso por Fase' : 'Phase Progress'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+              {Object.entries(byPhase).map(([phase, phaseResources]) => {
+                const evaluated = phaseResources.filter(r => r.evalStats !== null).length;
+                const total = phaseResources.length;
+                const progress = total > 0 ? Math.round((evaluated / total) * 100) : 0;
+
+                return (
+                  <div key={phase} className="text-center">
+                    <div className="relative h-1 bg-[#e8e6e0] mb-3">
+                      <div
+                        className="absolute left-0 top-0 h-full bg-[#4a5d4a] transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+                      {t('resource.phase', lang)} {phase}
                     </p>
-                    <p className="mt-0.5 text-xs text-stone-500">
-                      {t('library.evaluated', lang)}
+                    <p className="text-lg font-light text-[#2c2c2c]">
+                      {evaluated}<span className="text-[#9c9a8e]">/{total}</span>
                     </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Resources by phase */}
+        {/* Resources by Phase */}
         {Object.entries(byPhase).map(([phase, phaseResources]) => (
-          <section key={phase} className="mb-12">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
-                {phase}
+          <section key={phase} className="mb-16">
+            {/* Phase Header */}
+            <div className="flex items-center gap-4 mb-8">
+              <span className="font-mono text-5xl font-light text-[#e8e6e0]">
+                {phase.toString().padStart(2, '0')}
               </span>
               <div>
-                <h2 className="text-xl font-semibold text-stone-900">
-                  {phaseNames[phase] || `Fase ${phase}`}
+                <h2 className="text-xl font-medium text-[#2c2c2c]">
+                  {phaseNames[phase] || `${t('resource.phase', lang)} ${phase}`}
                 </h2>
-                <p className="text-sm text-stone-500">
+                <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase mt-1">
                   {phaseResources.length} {phaseResources.length === 1 ? t('library.resource', lang) : t('library.resources', lang)}
                   {user && (
-                    <span className="ml-2">
-                      · {phaseResources.filter(r => r.evalStats !== null).length} {t('library.evaluated', lang)}
+                    <span className="ml-3">
+                      {phaseResources.filter(r => r.evalStats !== null).length} {t('library.evaluated', lang)}
                     </span>
                   )}
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Resource Grid */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {phaseResources.map((resource) => (
                 <ResourceCard
                   key={resource.id}
@@ -255,6 +298,15 @@ export default async function LibraryPage() {
           </section>
         ))}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-[#e8e6e0] py-8 mt-8">
+        <div className="mx-auto max-w-6xl px-8">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase text-center">
+            Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

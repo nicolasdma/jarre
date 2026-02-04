@@ -3,24 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 
-// Resource type badge colors
-const typeColors: Record<string, string> = {
-  book: 'bg-amber-100 text-amber-700 border-amber-200',
-  paper: 'bg-blue-100 text-blue-700 border-blue-200',
-  video: 'bg-red-100 text-red-700 border-red-200',
-  course: 'bg-green-100 text-green-700 border-green-200',
-  article: 'bg-purple-100 text-purple-700 border-purple-200',
-};
-
-// Type icons (simple unicode)
-const typeIcons: Record<string, string> = {
-  book: '📖',
-  paper: '📄',
-  video: '🎬',
-  course: '🎓',
-  article: '📝',
-};
-
 interface EvalStats {
   resourceId: string;
   bestScore: number;
@@ -45,18 +27,6 @@ interface ResourceCardProps {
   language: Language;
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 70) return 'text-green-600 bg-green-50 border-green-200';
-  if (score >= 50) return 'text-amber-600 bg-amber-50 border-amber-200';
-  return 'text-red-600 bg-red-50 border-red-200';
-}
-
-function getScoreRingColor(score: number): string {
-  if (score >= 70) return 'stroke-green-500';
-  if (score >= 50) return 'stroke-amber-500';
-  return 'stroke-red-500';
-}
-
 function formatRelativeDate(dateString: string, lang: Language): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -65,7 +35,7 @@ function formatRelativeDate(dateString: string, lang: Language): string {
 
   if (diffDays === 0) return lang === 'es' ? 'Hoy' : 'Today';
   if (diffDays === 1) return lang === 'es' ? 'Ayer' : 'Yesterday';
-  if (diffDays < 7) return lang === 'es' ? `Hace ${diffDays} días` : `${diffDays} days ago`;
+  if (diffDays < 7) return lang === 'es' ? `Hace ${diffDays} días` : `${diffDays}d ago`;
   if (diffDays < 30) {
     const weeks = Math.floor(diffDays / 7);
     return lang === 'es' ? `Hace ${weeks} sem.` : `${weeks}w ago`;
@@ -74,38 +44,19 @@ function formatRelativeDate(dateString: string, lang: Language): string {
   return lang === 'es' ? `Hace ${months} mes${months > 1 ? 'es' : ''}` : `${months}mo ago`;
 }
 
-// SVG Progress Ring
-function ProgressRing({ score, size = 44 }: { score: number; size?: number }) {
-  const strokeWidth = 4;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (score / 100) * circumference;
-
+// Corner bracket component for decorative framing
+function CornerBrackets({ className = '' }: { className?: string }) {
   return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      {/* Background circle */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        className="text-stone-200"
-      />
-      {/* Progress circle */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        className={getScoreRingColor(score)}
-      />
-    </svg>
+    <>
+      {/* Top left */}
+      <div className={`absolute top-0 left-0 w-3 h-3 border-l border-t ${className}`} />
+      {/* Top right */}
+      <div className={`absolute top-0 right-0 w-3 h-3 border-r border-t ${className}`} />
+      {/* Bottom left */}
+      <div className={`absolute bottom-0 left-0 w-3 h-3 border-l border-b ${className}`} />
+      {/* Bottom right */}
+      <div className={`absolute bottom-0 right-0 w-3 h-3 border-r border-b ${className}`} />
+    </>
   );
 }
 
@@ -120,6 +71,16 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
     }
   };
 
+  const getScoreDisplay = () => {
+    if (!hasEvaluation) return null;
+    const score = resource.evalStats!.bestScore;
+    if (score >= 70) return { color: 'text-[#4a5d4a]', label: 'MASTERED' };
+    if (score >= 50) return { color: 'text-[#8b7355]', label: 'PROGRESS' };
+    return { color: 'text-[#7d6b6b]', label: 'LEARNING' };
+  };
+
+  const scoreDisplay = getScoreDisplay();
+
   return (
     <div
       role="button"
@@ -131,159 +92,129 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           handleCardClick();
         }
       }}
-      className={`group relative block rounded-xl border bg-white transition-all duration-200 ${
+      className={`group relative p-6 transition-all duration-300 ${
         isLocked
-          ? 'cursor-not-allowed border-stone-200 opacity-60'
-          : 'cursor-pointer border-stone-200 hover:border-stone-300 hover:shadow-lg hover:-translate-y-0.5'
+          ? 'cursor-not-allowed opacity-50'
+          : 'cursor-pointer hover:bg-[#f8f7f4]'
       }`}
     >
-      {/* Card Content */}
-      <div className="p-5">
-        {/* Header: Type badge + Status indicator */}
-        <div className="mb-3 flex items-center justify-between">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
-              typeColors[resource.type] || 'bg-stone-100 text-stone-700 border-stone-200'
-            }`}
-          >
-            <span>{typeIcons[resource.type] || '📚'}</span>
-            {resource.type}
-          </span>
+      {/* Corner brackets */}
+      <CornerBrackets className={`border-[#d4d0c8] transition-colors duration-300 ${!isLocked ? 'group-hover:border-[#4a5d4a]' : ''}`} />
 
-          {/* Status: Locked, Unlocked, or Score */}
-          {isLoggedIn && (
-            <>
-              {isLocked ? (
-                <span className="flex items-center gap-1 text-xs text-stone-400">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  {t('library.locked', language)}
-                </span>
-              ) : hasEvaluation ? (
-                <div className="relative flex items-center justify-center">
-                  <ProgressRing score={resource.evalStats!.bestScore} />
-                  <span className="absolute text-xs font-bold text-stone-700">
-                    {resource.evalStats!.bestScore}
-                  </span>
-                </div>
-              ) : (
-                <span className="flex items-center gap-1 text-xs text-green-600">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {t('library.unlocked', language)}
-                </span>
-              )}
-            </>
-          )}
-        </div>
+      {/* Type label */}
+      <div className="mb-4">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+          {resource.type}
+        </span>
+      </div>
 
-        {/* Title */}
-        <h3 className={`mb-1 font-semibold leading-tight ${
-          isLocked ? 'text-stone-500' : 'text-stone-900 group-hover:text-stone-700'
-        }`}>
-          {resource.title}
-        </h3>
+      {/* Title */}
+      <h3 className={`text-lg font-medium leading-tight mb-1 ${
+        isLocked ? 'text-[#9c9a8e]' : 'text-[#2c2c2c]'
+      }`}>
+        {resource.title}
+      </h3>
 
-        {/* Author */}
-        {resource.author && (
-          <p className="mb-2 text-sm text-stone-500">{resource.author}</p>
-        )}
+      {/* Author */}
+      {resource.author && (
+        <p className="text-sm text-[#7a7a6e] mb-3">{resource.author}</p>
+      )}
 
-        {/* Description */}
-        {resource.description && (
-          <p className="mb-3 text-sm text-stone-600 line-clamp-2">
-            {resource.description}
-          </p>
-        )}
+      {/* Description */}
+      {resource.description && (
+        <p className="text-sm text-[#7a7a6e] leading-relaxed line-clamp-2 mb-4">
+          {resource.description}
+        </p>
+      )}
 
-        {/* Evaluation Stats (if has evaluations) */}
-        {hasEvaluation && (
-          <div className="mb-3 flex items-center gap-3 rounded-lg bg-stone-50 px-3 py-2 text-xs">
-            <span className={`font-medium ${
-              resource.evalStats!.bestScore >= 70 ? 'text-green-600' :
-              resource.evalStats!.bestScore >= 50 ? 'text-amber-600' : 'text-red-600'
-            }`}>
-              {t('library.bestScore', language)}: {resource.evalStats!.bestScore}%
+      {/* Evaluation Stats */}
+      {hasEvaluation && scoreDisplay && (
+        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-[#e8e6e0]">
+          <div>
+            <span className={`text-2xl font-light ${scoreDisplay.color}`}>
+              {resource.evalStats!.bestScore}
             </span>
-            <span className="text-stone-400">·</span>
-            <span className="text-stone-500">
+            <span className="text-[#9c9a8e] text-sm">%</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+              {scoreDisplay.label}
+            </p>
+            <p className="text-xs text-[#7a7a6e]">
               {resource.evalStats!.evalCount} {resource.evalStats!.evalCount === 1
                 ? t('library.attempt', language)
-                : t('library.attempts', language)}
-            </span>
-            <span className="text-stone-400">·</span>
-            <span className="text-stone-500">
-              {formatRelativeDate(resource.evalStats!.lastEvaluatedAt, language)}
-            </span>
+                : t('library.attempts', language)} · {formatRelativeDate(resource.evalStats!.lastEvaluatedAt, language)}
+            </p>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Missing Prerequisites (if locked) */}
-        {isLocked && resource.missingPrerequisites.length > 0 && (
-          <div className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <span className="font-medium">{t('library.requires', language)}:</span>{' '}
+      {/* Locked message */}
+      {isLocked && resource.missingPrerequisites.length > 0 && (
+        <div className="mb-4 py-2">
+          <p className="font-mono text-[10px] tracking-[0.15em] text-[#b5a48b] uppercase">
+            {t('library.requires', language)}
+          </p>
+          <p className="text-xs text-[#8b7355] mt-1">
             {resource.missingPrerequisites.slice(0, 2).join(', ')}
             {resource.missingPrerequisites.length > 2 && (
               <span> +{resource.missingPrerequisites.length - 2} {t('common.more', language)}</span>
             )}
-          </div>
-        )}
+          </p>
+        </div>
+      )}
 
-        {/* Footer: Time estimate + Actions */}
-        <div className="flex items-center justify-between border-t border-stone-100 pt-3 mt-3">
-          <div className="flex items-center gap-3 text-xs text-stone-500">
-            {resource.estimated_hours && (
-              <span className="flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {resource.estimated_hours}h
-              </span>
-            )}
-          </div>
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center gap-4">
+          {resource.estimated_hours && (
+            <span className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+              {resource.estimated_hours}h
+            </span>
+          )}
+          {isLoggedIn && (
+            <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+              isLocked
+                ? 'text-[#b5a48b]'
+                : hasEvaluation
+                  ? 'text-[#4a5d4a]'
+                  : 'text-[#6b7c6b]'
+            }`}>
+              {isLocked ? t('library.locked', language) : hasEvaluation ? t('library.evaluated', language) : t('library.unlocked', language)}
+            </span>
+          )}
+        </div>
 
-          {/* Action buttons */}
-          {!isLocked && (
-            <div className="flex items-center gap-2">
-              {resource.url && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.open(resource.url, '_blank');
-                  }}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
-                >
-                  {t('common.open', language)}
-                </button>
-              )}
+        {/* Action buttons */}
+        {!isLocked && (
+          <div className="flex items-center gap-3">
+            {resource.url && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push(`/evaluate/${resource.id}`);
+                  window.open(resource.url, '_blank');
                 }}
-                className="rounded-md bg-stone-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-stone-800"
+                className="font-mono text-[10px] tracking-[0.15em] text-[#7a7a6e] uppercase hover:text-[#4a5d4a] transition-colors"
               >
-                {t('common.evaluate', language)}
+                {t('common.open', language)}
               </button>
-            </div>
-          )}
-        </div>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/evaluate/${resource.id}`);
+              }}
+              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-3 py-1.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+            >
+              {t('common.evaluate', language)}
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Hover arrow indicator */}
-      {!isLocked && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
-          <svg className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      )}
     </div>
   );
 }
