@@ -19,7 +19,7 @@ const LESSONS: LessonStep[] = [
     title: '1. Tu primera base de datos',
     theory: `Estás conectado a un storage engine que escribimos desde cero. Es la parte más baja de cualquier base de datos: donde los bytes tocan el disco.
 
-En tu computadora hay un archivo real: engine/data/append.log. Cada vez que haces SET, el engine escribe bytes al final de ese archivo. Literalmente: abre el archivo, pone bytes al final, cierra. Eso es todo.
+En tu computadora hay un archivo real: engine/data/engine.log. Cada vez que haces SET, el engine escribe bytes al final de ese archivo. Literalmente: abre el archivo, pone bytes al final, cierra. Eso es todo.
 
 En el panel derecho vas a ver ese archivo representado visualmente: cada bloque es un record binario con su posición en bytes (offset) y su tamaño.`,
     commands: [
@@ -99,22 +99,39 @@ Estas limitaciones motivan LSM-Trees y B-Trees (futuras sessions).`,
     observe: 'En INSPECT ves indexEntries con offsets. "x" solo tiene un entry en el índice (el más reciente), pero hay 3 records en disco. El log sigue creciendo — necesitaríamos compaction.',
   },
   {
-    title: '6. Compara tú mismo',
+    title: '6. Write-Ahead Log (WAL)',
+    theory: `¿Qué pasa si el proceso muere a mitad de una escritura? Pierdes datos.
+
+La solución: antes de escribir al log principal, escribe primero al WAL (Write-Ahead Log) con un checksum CRC32. Si el proceso muere después del WAL pero antes del log principal, al reiniciar el engine recupera los datos del WAL.
+
+El WAL es la red de seguridad. Cada entrada tiene un CRC32 que detecta corrupción — si el proceso murió a mitad de escritura, el CRC no coincide y esa entrada se descarta.
+
+Esto es lo que hace toda base de datos real: PostgreSQL, MySQL, SQLite... todas usan WAL.`,
+    commands: [
+      { cmd: 'SET dato_importante valor_critico', explain: 'Escribe normalmente (WAL + log)' },
+      { cmd: 'DEBUG WAL INJECT dato_oculto solo_en_wal', explain: 'Escribe SOLO al WAL (simula crash)' },
+      { cmd: 'GET dato_oculto', explain: 'No lo encuentra — no está en el log principal' },
+      { cmd: 'DEBUG WAL STATUS', explain: 'Ve el WAL con la entrada pendiente' },
+    ],
+    observe: 'dato_oculto está en el WAL pero no en el índice. Ahora reinicia el engine (npm run engine) y haz GET dato_oculto — lo va a encontrar. El WAL lo recuperó.',
+  },
+  {
+    title: '7. Compara tú mismo',
     theory: `Ahora puedes alternar entre backends y sentir la diferencia.
 
 Con append-log: GET escanea todo.
-Con hash-index: GET hace un seek directo.
+Con hash-index: GET hace un seek directo + WAL para durabilidad.
 
 Con pocos datos no hay diferencia perceptible. Pero piensa en millones de keys — el append-log sería inutilizable.
 
-Este es el fundamento de DDIA Capítulo 3: los storage engines existen porque la forma más simple (append-log) no escala para reads.`,
+Este es el fundamento de DDIA Capítulo 3: los storage engines existen porque la forma más simple (append-log) no escala para reads. Y el WAL existe porque la durabilidad no es opcional.`,
     commands: [
       { cmd: 'DEBUG BACKEND append-log', explain: 'Vuelve al log sin índice' },
       { cmd: 'DBSIZE', explain: 'Ve cuántos keys hay' },
-      { cmd: 'DEBUG BACKEND hash-index', explain: 'Ahora con índice' },
+      { cmd: 'DEBUG BACKEND hash-index', explain: 'Ahora con índice + WAL' },
       { cmd: 'DBSIZE', explain: 'Misma data, distinta estructura' },
     ],
-    observe: 'Los datos son los mismos. Lo que cambia es la estructura de acceso. Esa es la esencia de los storage engines.',
+    observe: 'Los datos son los mismos. Lo que cambia es la estructura de acceso y la garantía de durabilidad. Esa es la esencia de los storage engines.',
   },
 ];
 

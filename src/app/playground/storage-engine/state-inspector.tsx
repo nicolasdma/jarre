@@ -170,6 +170,14 @@ function HashIndexDiagram() {
           </div>
         </div>
       </div>
+      {/* WAL explanation */}
+      <div className="bg-white border border-[#5b6abf] border-dashed px-2 py-2 mb-2">
+        <p className="font-mono text-[10px] text-[#5b6abf] mb-1">WAL (Write-Ahead Log)</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          Cada SET escribe al WAL <span className="text-[#5b6abf]">antes</span> del log principal.
+          Si el proceso muere, el WAL tiene los datos con checksum CRC32.
+        </p>
+      </div>
       {/* GET explanation */}
       <div className="bg-white border border-[#dde5dd] px-2 py-2">
         <p className="font-mono text-[10px] text-[#4a5d4a] mb-1">GET ciudad →</p>
@@ -321,9 +329,26 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
   }>;
   const totalDiskRecords = details.totalRecordsOnDisk as number ?? 0;
   const indexSize = details.indexSize as number ?? 0;
+  const walState = details.wal as {
+    fileSizeBytes: number;
+    entryCount: number;
+    corruptedCount: number;
+    entries: Array<{
+      type: string;
+      key: string;
+      value: string;
+      offset: number;
+      totalSize: number;
+      checksumValid: boolean;
+    }>;
+  } | undefined;
+  const lastWalRecoveryCount = details.lastWalRecoveryCount as number ?? 0;
 
   return (
     <div className="px-5 py-4">
+      {/* WAL section */}
+      <WALViz walState={walState} lastRecoveryCount={lastWalRecoveryCount} />
+
       {/* Index table */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -387,6 +412,117 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
             </span>
           </p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── WAL visualization ────────────────────────────────────────
+
+function WALViz({ walState, lastRecoveryCount }: {
+  walState: {
+    fileSizeBytes: number;
+    entryCount: number;
+    corruptedCount: number;
+    entries: Array<{
+      type: string;
+      key: string;
+      value: string;
+      offset: number;
+      totalSize: number;
+      checksumValid: boolean;
+    }>;
+  } | undefined;
+  lastRecoveryCount: number;
+}) {
+  if (!walState) return null;
+
+  const hasEntries = walState.entryCount > 0;
+  const hasCorruption = walState.corruptedCount > 0;
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+          Write-Ahead Log
+        </span>
+        <span className={`font-mono text-[10px] px-2 py-0.5 ${
+          hasEntries
+            ? 'bg-[#eeedf8] text-[#5b6abf]'
+            : hasCorruption
+              ? 'bg-[#fdf0f0] text-[#c07070]'
+              : 'bg-[#f0f0ec] text-[#aaa]'
+        }`}>
+          {hasEntries ? `${walState.entryCount} pendiente${walState.entryCount !== 1 ? 's' : ''}` : hasCorruption ? 'corrupto' : 'limpio'}
+        </span>
+      </div>
+
+      {/* Last recovery info */}
+      {lastRecoveryCount > 0 && (
+        <div className="bg-[#eeedf8] border border-[#d5d3ee] px-3 py-2 mb-2">
+          <p className="font-mono text-[10px] text-[#5b6abf]">
+            Ultimo inicio: {lastRecoveryCount} entrada{lastRecoveryCount !== 1 ? 's' : ''} recuperada{lastRecoveryCount !== 1 ? 's' : ''} del WAL
+          </p>
+        </div>
+      )}
+
+      {/* WAL entries */}
+      {hasEntries ? (
+        <div className="border border-[#d5d3ee] bg-[#fafaff]">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0eff8] border-b border-[#d5d3ee] font-mono text-[9px] text-[#8888aa] uppercase">
+            <span className="w-10 shrink-0">Byte</span>
+            <span className="w-7 shrink-0">Op</span>
+            <span className="flex-1">Key = Value</span>
+            <span className="w-10 shrink-0 text-right">CRC</span>
+          </div>
+          {walState.entries.map((entry, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eeedf8] last:border-0 ${
+                entry.checksumValid ? '' : 'bg-[#fdf5f5]'
+              }`}
+            >
+              <span className="w-10 shrink-0 text-[9px] text-[#bbb] tabular-nums">
+                {entry.offset}
+              </span>
+              <span className={`w-7 shrink-0 text-[10px] ${
+                entry.type === 'DEL' ? 'text-[#c07070]' : 'text-[#5b6abf]'
+              }`}>
+                {entry.type}
+              </span>
+              <span className="flex-1 text-[#555] truncate">
+                {entry.key}{entry.type === 'SET' ? ` = ${entry.value}` : ''}
+              </span>
+              <span className={`w-10 shrink-0 text-right text-[9px] ${
+                entry.checksumValid ? 'text-[#4a5d4a]' : 'text-[#c07070]'
+              }`}>
+                {entry.checksumValid ? 'OK' : 'FAIL'}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={`border border-dashed px-3 py-3 text-center ${
+          hasCorruption ? 'border-[#e0c0c0] bg-[#fdf8f8]' : 'border-[#d5d3ee]'
+        }`}>
+          <p className="font-mono text-[10px] text-[#aaa]">
+            {hasCorruption
+              ? `WAL corrupto — ${walState.corruptedCount} entrada${walState.corruptedCount !== 1 ? 's' : ''} no valida${walState.corruptedCount !== 1 ? 's' : ''}`
+              : 'WAL vacio — todas las escrituras estan en el log principal'}
+          </p>
+          {!hasCorruption && (
+            <p className="font-mono text-[9px] text-[#ccc] mt-1">
+              Usa DEBUG WAL INJECT key value para simular un crash
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* WAL file size */}
+      {walState.fileSizeBytes > 0 && (
+        <p className="font-mono text-[9px] text-[#bbb] mt-1">
+          engine.wal — {walState.fileSizeBytes} bytes
+        </p>
       )}
     </div>
   );

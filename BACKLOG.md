@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-05 (session-02, storage engine hash index + web UI)
+> Last updated: 2026-02-05 (session-03, routing integration + RAM/SSD viz)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -121,3 +121,5 @@
 - [x] `[P1]` Evaluation history - view past evaluations with detail - 2026-02-04
 - [x] `[P1]` Storage engine Session 1: RESP protocol + Append-Only Log - 2026-02-05
 - [x] `[P1]` Storage engine Session 2: Hash Index + Web UI - 2026-02-05
+- [x] `[P1]` Routing integration: Library → /learn → playground redirect - 2026-02-05
+- [x] `[P1]` RAM vs SSD visualization in state inspector - 2026-02-05

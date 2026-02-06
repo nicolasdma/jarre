@@ -38,7 +38,7 @@ async function handleDebug(
   const sub = cmd.args[0]?.toUpperCase();
 
   if (!sub) {
-    return resp.error('DEBUG requires a subcommand: BACKEND, SLEEP');
+    return resp.error('DEBUG requires a subcommand: BACKEND, SLEEP, CRASH, WAL');
   }
 
   switch (sub) {
@@ -60,7 +60,76 @@ async function handleDebug(
       return resp.ok();
     }
 
+    case 'CRASH': {
+      // Simulate a crash: kill the process WITHOUT flushing or checkpointing.
+      // This leaves the WAL with un-checkpointed entries.
+      // On restart, the engine will replay the WAL to recover.
+      console.log('[crash] !!! SIMULATED CRASH — process.exit(1) !!!');
+      // Use setTimeout so the response is sent before dying
+      setTimeout(() => process.exit(1), 50);
+      return resp.bulkString('CRASHING NOW — restart engine to see WAL recovery');
+    }
+
+    case 'WAL': {
+      return handleWalSubcommand(cmd, ctx);
+    }
+
     default:
       return resp.error(`unknown DEBUG subcommand '${sub}'`);
+  }
+}
+
+/**
+ * DEBUG WAL [subcommand]
+ * - DEBUG WAL          — show WAL status
+ * - DEBUG WAL STATUS   — same as above
+ * - DEBUG WAL INJECT key value — write ONLY to WAL (not to main log)
+ *   This simulates the crash scenario: data is in WAL but not in main log.
+ *   On next restart, the engine will replay this entry from the WAL.
+ */
+async function handleWalSubcommand(
+  cmd: ParsedCommand,
+  ctx: CommandContext,
+): Promise<string> {
+  const walSub = cmd.args[1]?.toUpperCase() ?? 'STATUS';
+
+  switch (walSub) {
+    case 'STATUS': {
+      const state = await ctx.getBackend().inspect();
+      const wal = (state.details as Record<string, unknown>).wal;
+      if (!wal) {
+        return resp.error('current backend does not use a WAL');
+      }
+      return resp.bulkString(JSON.stringify(wal, null, 2));
+    }
+
+    case 'INJECT': {
+      // Write to WAL ONLY — simulates a crash between WAL write and main log write
+      const key = cmd.args[2];
+      const value = cmd.args[3] ?? '';
+      if (!key) {
+        return resp.error('usage: DEBUG WAL INJECT <key> <value>');
+      }
+
+      // Access WAL through the backend's inspect to get the wal path,
+      // then create a temporary WAL instance to write directly
+      const { WriteAheadLog } = await import('../storage/wal.js');
+      const state = await ctx.getBackend().inspect();
+      const details = state.details as Record<string, unknown>;
+      const walState = details.wal as { filePath: string } | undefined;
+      if (!walState) {
+        return resp.error('current backend does not use a WAL');
+      }
+
+      // Extract data dir from WAL file path (remove /engine.wal)
+      const dataDir = walState.filePath.replace(/\/engine\.wal$/, '');
+      const wal = new WriteAheadLog(dataDir);
+      wal.appendSet(key, value);
+
+      return resp.bulkString(`Injected into WAL only: ${key}=${value}. Restart engine to see recovery.`);
+    }
+
+    default:
+      return resp.error(`unknown WAL subcommand '${walSub}'. Try: STATUS, INJECT`);
   }
 }

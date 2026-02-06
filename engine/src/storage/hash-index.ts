@@ -2,22 +2,29 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { StorageBackend, BackendState } from './interface.js';
 import { appendToFile, readFileBuffer, fileSize, ensureDir, deleteFile } from '../utils/file-io.js';
+import { WriteAheadLog } from './wal.js';
 
 /**
- * Hash Index Storage Backend (DDIA Ch3 — Bitcask model)
+ * Hash Index Storage Backend (DDIA Ch3 — Bitcask model + WAL)
  *
  * Improvement over AppendLog: keeps an in-memory Map<key, offset>
  * that points directly to the byte position of the latest value.
  *
- * - SET: append to log + update hashmap → O(1) write
- * - GET: lookup offset in hashmap + single seek → O(1) read
- * - DEL: append tombstone + remove from hashmap → O(1)
+ * Write path (with WAL):
+ * 1. Write to WAL with CRC32 checksum  ← safety net
+ * 2. Append to main log file           ← durable storage
+ * 3. Update in-memory hash map          ← fast lookups
  *
- * Same binary log format as AppendLog, but with in-memory index.
+ * If the process crashes between step 1 and 2, the WAL has the data.
+ * On restart, we rebuild from the main log, then replay the WAL.
+ *
+ * - SET: WAL write → log append → update hashmap → O(1) write
+ * - GET: lookup offset in hashmap + single seek → O(1) read
+ * - DEL: WAL write → log append tombstone → remove from hashmap → O(1)
  *
  * Trade-offs (DDIA):
  * ✅ O(1) reads AND writes — very fast
- * ✅ Simple crash recovery — scan log to rebuild index
+ * ✅ Crash recovery with CRC32 validation via WAL
  * ❌ All keys MUST fit in RAM — can't have more keys than memory
  * ❌ No range queries — hash map only does point lookups
  * ❌ Log grows forever without compaction
@@ -43,21 +50,29 @@ interface IndexEntry {
 export class HashIndex implements StorageBackend {
   readonly name = 'hash-index';
   private readonly filePath: string;
+  private readonly wal: WriteAheadLog;
   private readonly index: Map<string, IndexEntry> = new Map();
   private currentOffset: number = 0;
+  /** Count of entries recovered from WAL on last startup */
+  private lastWalRecoveryCount: number = 0;
 
   constructor(dataDir: string) {
     ensureDir(dataDir);
     this.filePath = path.join(dataDir, 'engine.log');
-    this.rebuildIndex();
+    this.wal = new WriteAheadLog(dataDir);
+    this.recoverFromDisk();
   }
 
   async set(key: string, value: string): Promise<void> {
+    // Step 1: Write to WAL first (safety net with CRC32)
+    this.wal.appendSet(key, value);
+
+    // Step 2: Append to main log (durable storage)
     const recordOffset = this.currentOffset;
     const record = encodeRecord(RECORD_TYPE_SET, key, value);
     appendToFile(this.filePath, record);
 
-    // Calculate where the value bytes live inside the record
+    // Step 3: Update in-memory index
     const keyBuf = Buffer.from(key, 'utf8');
     const valBuf = Buffer.from(value, 'utf8');
     const valueOffset = recordOffset + 1 + 4 + keyBuf.length + 4;
@@ -70,6 +85,9 @@ export class HashIndex implements StorageBackend {
     });
 
     this.currentOffset += record.length;
+
+    // Step 4: Checkpoint WAL (entry is safely in main log now)
+    this.wal.checkpoint();
   }
 
   async get(key: string): Promise<string | null> {
@@ -88,11 +106,19 @@ export class HashIndex implements StorageBackend {
   async delete(key: string): Promise<boolean> {
     if (!this.index.has(key)) return false;
 
+    // Step 1: WAL first
+    this.wal.appendDelete(key);
+
+    // Step 2: Main log
     const record = encodeRecord(RECORD_TYPE_DELETE, key, '');
     appendToFile(this.filePath, record);
     this.currentOffset += record.length;
 
+    // Step 3: Update index
     this.index.delete(key);
+
+    // Step 4: Checkpoint
+    this.wal.checkpoint();
     return true;
   }
 
@@ -105,6 +131,7 @@ export class HashIndex implements StorageBackend {
   }
 
   async close(): Promise<void> {
+    this.wal.checkpoint();
     this.index.clear();
   }
 
@@ -129,21 +156,82 @@ export class HashIndex implements StorageBackend {
         indexSize: this.index.size,
         indexEntries: indexEntries.slice(0, 50),
         totalRecordsOnDisk: this.countTotalRecords(),
+        wal: this.wal.inspect(),
+        lastWalRecoveryCount: this.lastWalRecoveryCount,
       },
     };
   }
 
   async clear(): Promise<void> {
     deleteFile(this.filePath);
+    this.wal.checkpoint();
     this.index.clear();
     this.currentOffset = 0;
   }
 
   /**
-   * Rebuild the in-memory index by scanning the entire log file.
-   * Called once on startup — this is the crash recovery mechanism.
+   * Full crash recovery sequence:
+   * 1. Rebuild index from main log (same as before)
+   * 2. Replay any WAL entries (data that was written to WAL but not yet in main log)
+   * 3. Checkpoint WAL (it's now safely in the main log)
+   *
+   * This handles the crash scenario:
+   * - Process crashed after WAL write but before main log write
+   * - WAL has the data, main log doesn't → replay fills the gap
    */
-  private rebuildIndex(): void {
+  private recoverFromDisk(): void {
+    // Phase 1: Rebuild from main log
+    this.rebuildFromLog();
+
+    // Phase 2: Replay WAL entries (if any)
+    const { entries, corruptedCount } = this.wal.recover();
+    this.lastWalRecoveryCount = entries.length;
+
+    if (entries.length > 0) {
+      console.log(`[hash-index] Replaying ${entries.length} WAL entries...`);
+      for (const entry of entries) {
+        if (entry.type === 'SET') {
+          // Write to main log and update index
+          const recordOffset = this.currentOffset;
+          const record = encodeRecord(RECORD_TYPE_SET, entry.key, entry.value);
+          appendToFile(this.filePath, record);
+
+          const keyBuf = Buffer.from(entry.key, 'utf8');
+          const valBuf = Buffer.from(entry.value, 'utf8');
+          const valueOffset = recordOffset + 1 + 4 + keyBuf.length + 4;
+
+          this.index.set(entry.key, {
+            offset: recordOffset,
+            recordSize: record.length,
+            valueOffset,
+            valueLength: valBuf.length,
+          });
+
+          this.currentOffset += record.length;
+        } else if (entry.type === 'DEL') {
+          const record = encodeRecord(RECORD_TYPE_DELETE, entry.key, '');
+          appendToFile(this.filePath, record);
+          this.currentOffset += record.length;
+          this.index.delete(entry.key);
+        }
+      }
+      console.log(`[hash-index] WAL replay complete: ${entries.length} entries applied`);
+    }
+
+    if (corruptedCount > 0) {
+      console.warn(`[hash-index] ${corruptedCount} corrupted WAL entries skipped (crash damage)`);
+    }
+
+    // Phase 3: Checkpoint — WAL data is now safely in main log
+    if (entries.length > 0 || corruptedCount > 0) {
+      this.wal.checkpoint();
+    }
+  }
+
+  /**
+   * Rebuild the in-memory index by scanning the entire log file.
+   */
+  private rebuildFromLog(): void {
     const buffer = readFileBuffer(this.filePath);
     if (!buffer || buffer.length === 0) return;
 
