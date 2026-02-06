@@ -3,6 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 
+// Resources that have learn pages (deep explanations or playgrounds)
+const RESOURCES_WITH_LEARN_PAGES = ['ddia-ch1', 'ddia-ch2', 'ddia-ch3'];
+
+function hasLearnPage(resourceId: string): boolean {
+  return RESOURCES_WITH_LEARN_PAGES.includes(resourceId);
+}
+
 interface EvalStats {
   resourceId: string;
   bestScore: number;
@@ -67,7 +74,11 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
 
   const handleCardClick = () => {
     if (!isLocked) {
-      router.push(`/resource/${resource.id}`);
+      if (hasLearnPage(resource.id)) {
+        router.push(`/learn/${resource.id}`);
+      } else {
+        router.push(`/evaluate/${resource.id}`);
+      }
     }
   };
 

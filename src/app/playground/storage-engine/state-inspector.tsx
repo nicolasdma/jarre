@@ -98,25 +98,43 @@ export function StateInspector({ state, status }: StateInspectorProps) {
   );
 }
 
-// ── Diagrams ──────────────────────────────────────────────────
+// ── RAM vs SSD Diagrams ───────────────────────────────────────
 
 function AppendLogDiagram() {
   return (
     <div>
-      <p className="font-mono text-[10px] text-[#a08050] uppercase tracking-wider mb-2">
-        Como funciona GET
+      <p className="font-mono text-[10px] text-[#a08050] uppercase tracking-wider mb-3">
+        Donde viven los datos
       </p>
-      <div className="font-mono text-[11px] leading-relaxed text-[#666] bg-white px-3 py-2 border border-[#e8e0d0]">
-        <p className="text-[#a08050]">GET ciudad</p>
-        <p className="text-[#999] mt-1">  1. Abrir archivo</p>
-        <p className="text-[#999]">  2. Leer record #n ... es "ciudad"?</p>
-        <p className="text-[#999]">  3. Leer record #n-1 ... es "ciudad"?</p>
-        <p className="text-[#999]">  4. Leer record #n-2 ... es "ciudad"?</p>
-        <p className="text-[#c07070]">  ... escanea TODOS hasta encontrar</p>
+      <div className="flex gap-2 mb-3">
+        {/* RAM */}
+        <div className="flex-1 border border-dashed border-[#ddd] bg-white px-2 py-2">
+          <p className="font-mono text-[9px] text-[#bbb] uppercase tracking-wider mb-2">RAM</p>
+          <p className="font-mono text-[10px] text-[#ccc] italic text-center py-3">
+            vacia
+          </p>
+          <p className="font-mono text-[9px] text-[#ccc] text-center">
+            no hay indice
+          </p>
+        </div>
+        {/* SSD */}
+        <div className="flex-1 border border-[#e8e0d0] bg-white px-2 py-2">
+          <p className="font-mono text-[9px] text-[#a08050] uppercase tracking-wider mb-2">SSD (archivo)</p>
+          <div className="space-y-0.5">
+            <div className="bg-[#f5f0e8] px-1.5 py-0.5 font-mono text-[9px] text-[#888]">SET ciudad Madrid</div>
+            <div className="bg-[#f5f0e8] px-1.5 py-0.5 font-mono text-[9px] text-[#888]">SET pais Peru</div>
+            <div className="bg-[#fdf8f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#c4a07a]">SET ciudad Barcelona</div>
+          </div>
+        </div>
       </div>
-      <p className="font-mono text-[10px] text-[#a08050] mt-2">
-        Tiempo: proporcional a la cantidad de records
-      </p>
+      {/* GET explanation */}
+      <div className="bg-white border border-[#e8e0d0] px-2 py-2">
+        <p className="font-mono text-[10px] text-[#a08050] mb-1">GET ciudad →</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          Lee record 3... no es. Lee record 2... no es. Lee record 1... si!
+          <span className="text-[#c07070]"> Escanea TODOS los records.</span>
+        </p>
+      </div>
     </div>
   );
 }
@@ -124,18 +142,42 @@ function AppendLogDiagram() {
 function HashIndexDiagram() {
   return (
     <div>
-      <p className="font-mono text-[10px] text-[#4a5d4a] uppercase tracking-wider mb-2">
-        Como funciona GET
+      <p className="font-mono text-[10px] text-[#4a5d4a] uppercase tracking-wider mb-3">
+        Donde viven los datos
       </p>
-      <div className="font-mono text-[11px] leading-relaxed text-[#666] bg-white px-3 py-2 border border-[#dde5dd]">
-        <p className="text-[#4a5d4a]">GET ciudad</p>
-        <p className="text-[#999] mt-1">  1. Buscar "ciudad" en el Map de RAM</p>
-        <p className="text-[#4a5d4a]">  2. Offset = 81 → ir directo al byte 81</p>
-        <p className="text-[#4a5d4a]">  3. Leer valor → listo</p>
+      <div className="flex gap-2 mb-3">
+        {/* RAM */}
+        <div className="flex-1 border border-[#dde5dd] bg-white px-2 py-2">
+          <p className="font-mono text-[9px] text-[#4a5d4a] uppercase tracking-wider mb-2">RAM (indice)</p>
+          <div className="space-y-0.5">
+            <div className="flex justify-between bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px]">
+              <span className="text-[#2c2c2c]">ciudad</span>
+              <span className="text-[#4a5d4a]">→ byte 39</span>
+            </div>
+            <div className="flex justify-between bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px]">
+              <span className="text-[#2c2c2c]">pais</span>
+              <span className="text-[#4a5d4a]">→ byte 21</span>
+            </div>
+          </div>
+        </div>
+        {/* SSD */}
+        <div className="flex-1 border border-[#dde5dd] bg-white px-2 py-2">
+          <p className="font-mono text-[9px] text-[#888] uppercase tracking-wider mb-2">SSD (archivo)</p>
+          <div className="space-y-0.5">
+            <div className="bg-[#f5f5f0] px-1.5 py-0.5 font-mono text-[9px] text-[#ccc]">SET ciudad Madrid</div>
+            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#4a5d4a]">SET pais Peru</div>
+            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#4a5d4a]">SET ciudad Barcelona</div>
+          </div>
+        </div>
       </div>
-      <p className="font-mono text-[10px] text-[#4a5d4a] mt-2">
-        Tiempo: siempre igual, sin importar cuantos records haya
-      </p>
+      {/* GET explanation */}
+      <div className="bg-white border border-[#dde5dd] px-2 py-2">
+        <p className="font-mono text-[10px] text-[#4a5d4a] mb-1">GET ciudad →</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          RAM dice "byte 39" → lee SOLO ese byte del disco.
+          <span className="text-[#4a5d4a]"> Siempre 1 lectura, sin importar el tamaño.</span>
+        </p>
+      </div>
     </div>
   );
 }
