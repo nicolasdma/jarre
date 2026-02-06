@@ -22,33 +22,39 @@ import { ensureDir, fileSize } from '../utils/file-io.js';
  * ├──────────────────────────────────────────────┤
  * │ Layer 3: SSTables (Disk — sorted, immutable) │
  * │ When memtable fills up, flush to new SSTable. │
- * │ Read path: memtable → newest SSTable → ...   │
+ * │ Read path: memtable → bloom → SSTables       │
  * └──────────────────────────────────────────────┘
  *
  * Write path:
  * 1. WAL.append(key, value)      ← crash safety
  * 2. Memtable.set(key, value)    ← fast, in RAM
  * 3. If memtable full → flush()  ← write SSTable to disk
+ * 4. If too many SSTables → compact() ← merge SSTables
  *
  * Read path:
  * 1. Check memtable              ← newest data, O(log n)
- * 2. Check SSTables newest→oldest ← binary search each
+ * 2. For each SSTable (newest→oldest):
+ *    a. Bloom filter check       ← "definitely not here?" skip!
+ *    b. Binary search index      ← find the right chunk
+ *    c. Scan chunk on disk       ← find exact key
  * 3. Return first match found    ← or null if not found
  *
- * Flush:
- * 1. Write memtable → new SSTable file (sorted)
- * 2. Add SSTable to the list
- * 3. Clear memtable
- * 4. Checkpoint WAL (entries are safe in SSTable now)
+ * Compaction (size-tiered):
+ * When too many SSTables accumulate, merge them into one.
+ * During merge: keep newest version of each key, drop tombstones.
+ * This reclaims space and reduces read amplification.
  *
  * Trade-offs (DDIA):
  * ✅ Very fast writes — always sequential (WAL + memtable)
  * ✅ Sorted data on disk — enables range queries and merging
  * ✅ Crash safe via WAL
- * ❌ Reads may check multiple SSTables (read amplification)
- * ❌ SSTables accumulate without compaction (Session 5)
- * ❌ Space amplification — same key in multiple SSTables
+ * ✅ Bloom filters reduce unnecessary disk reads
+ * ❌ Write amplification — data gets rewritten during compaction
+ * ❌ Space amplification — same key in multiple SSTables until compaction
  */
+
+/** When this many SSTables exist, trigger compaction */
+const COMPACTION_THRESHOLD = 4;
 
 export class LSMTree implements StorageBackend {
   readonly name = 'lsm-tree';
@@ -59,7 +65,12 @@ export class LSMTree implements StorageBackend {
   private sstables: SSTableReader[] = [];
   private readonly flushThreshold: number;
   private flushCount: number = 0;
+  private compactionCount: number = 0;
   private lastWalRecoveryCount: number = 0;
+  /** Total bloom filter "definitely not" results (across all GETs) */
+  private totalBloomNegatives: number = 0;
+  /** Total bloom filter "maybe" results (across all GETs) */
+  private totalBloomPositives: number = 0;
 
   constructor(dataDir: string, flushThreshold = DEFAULT_FLUSH_THRESHOLD) {
     this.dataDir = dataDir;
@@ -111,12 +122,18 @@ export class LSMTree implements StorageBackend {
     }
 
     // Step 2: Check SSTables from newest to oldest
+    // Bloom filter check happens inside SSTableReader.get()
     for (let i = this.sstables.length - 1; i >= 0; i--) {
       const result = this.sstables[i].get(key);
       if (result !== undefined) {
+        // Accumulate bloom stats
+        this.syncBloomStats();
         return result.deleted ? null : result.value;
       }
     }
+
+    // Accumulate bloom stats even on miss
+    this.syncBloomStats();
 
     // Step 3: Not found anywhere
     return null;
@@ -126,12 +143,6 @@ export class LSMTree implements StorageBackend {
 
   /**
    * Flush memtable to a new SSTable on disk.
-   *
-   * This is the key operation of an LSM-Tree:
-   * 1. Take the sorted memtable entries
-   * 2. Write them as a new SSTable file
-   * 3. Clear the memtable (it's safely on disk now)
-   * 4. Checkpoint the WAL (entries are in the SSTable now)
    */
   private async flushMemtable(): Promise<void> {
     if (this.memtable.size() === 0) return;
@@ -141,7 +152,7 @@ export class LSMTree implements StorageBackend {
 
     console.log(`[lsm-tree] Flushing memtable (${this.memtable.size()} entries) → ${path.basename(sstPath)}`);
 
-    // Write sorted entries to SSTable
+    // Write sorted entries to SSTable (now includes bloom filter)
     const entries = this.memtable.entries();
     writeSSTable(sstPath, entries);
 
@@ -154,39 +165,118 @@ export class LSMTree implements StorageBackend {
     this.wal.checkpoint();
 
     console.log(`[lsm-tree] Flush complete. ${this.sstables.length} SSTable(s) on disk.`);
+
+    // Check if compaction is needed
+    if (this.sstables.length >= COMPACTION_THRESHOLD) {
+      await this.compact();
+    }
+  }
+
+  // ── Compaction ──────────────────────────────────────────
+
+  /**
+   * Compact all SSTables into one.
+   *
+   * Compaction is the "cleanup" phase of an LSM-Tree:
+   * 1. Read all entries from all SSTables (they're all sorted)
+   * 2. Merge them like merge sort — for duplicate keys, keep the newest
+   * 3. Drop tombstones (deleted keys) — they're no longer needed
+   * 4. Write one new SSTable
+   * 5. Delete old SSTables
+   *
+   * Why? Without compaction:
+   * - Reads get slower (check more SSTables)
+   * - Disk space grows (same key stored multiple times)
+   *
+   * Trade-off: compaction = WRITE AMPLIFICATION
+   * Data that was already on disk gets rewritten. This is the cost
+   * of fast writes in LSM-Trees.
+   */
+  async compact(): Promise<void> {
+    if (this.sstables.length < 2) return;
+
+    const oldCount = this.sstables.length;
+    const oldTotalBytes = this.sstables.reduce((s, t) => s + t.meta.fileSizeBytes, 0);
+    console.log(`[lsm-tree] Compacting ${oldCount} SSTables (${oldTotalBytes} bytes)...`);
+
+    // K-way merge: collect iterators from all SSTables (oldest first)
+    const merged = this.kWayMerge(this.sstables);
+
+    // Write merged entries to new SSTable
+    this.compactionCount++;
+    const newPath = path.join(this.sstDir, `sst_c${this.compactionCount}_${Date.now()}.sst`);
+    writeSSTable(newPath, merged, 1);
+
+    // Remember old file paths for deletion
+    const oldPaths = this.sstables.map(s => s.meta.filePath);
+
+    // Replace old SSTables with the new compacted one
+    const newReader = new SSTableReader(newPath, 1);
+    this.sstables = [newReader];
+
+    // Delete old SSTable files
+    for (const oldPath of oldPaths) {
+      try { fs.unlinkSync(oldPath); } catch { /* ignore */ }
+    }
+
+    const newBytes = newReader.meta.fileSizeBytes;
+    const saved = oldTotalBytes - newBytes;
+    console.log(
+      `[lsm-tree] Compaction complete: ${oldCount} → 1 SSTable, ` +
+      `${newBytes} bytes (saved ${saved} bytes, ${Math.round(saved / oldTotalBytes * 100)}%)`
+    );
+  }
+
+  /**
+   * K-way merge of sorted SSTables.
+   *
+   * Since each SSTable is sorted, merging is like merge sort:
+   * - Take the smallest key from all iterators
+   * - If multiple SSTables have the same key, keep the NEWEST (last one wins)
+   * - Skip tombstones (they've served their purpose)
+   *
+   * SSTables are ordered oldest→newest, so later entries override earlier ones.
+   */
+  private kWayMerge(sstables: SSTableReader[]): { key: string; value: string; deleted: boolean }[] {
+    // Collect all entries from all SSTables into per-SSTable arrays
+    // (SSTables are ordered oldest → newest)
+    const allEntries: Array<{ key: string; value: string; deleted: boolean; sstIdx: number }> = [];
+
+    for (let i = 0; i < sstables.length; i++) {
+      for (const entry of sstables[i].entries()) {
+        allEntries.push({ ...entry, sstIdx: i });
+      }
+    }
+
+    // Sort by key, then by SSTable index (higher = newer = wins on tie)
+    allEntries.sort((a, b) => {
+      const cmp = a.key.localeCompare(b.key);
+      if (cmp !== 0) return cmp;
+      return a.sstIdx - b.sstIdx; // older first, newer overwrites
+    });
+
+    // Deduplicate: for each key, keep only the last occurrence (newest)
+    const result: { key: string; value: string; deleted: boolean }[] = [];
+    for (let i = 0; i < allEntries.length; i++) {
+      const isLast = i === allEntries.length - 1 || allEntries[i + 1].key !== allEntries[i].key;
+      if (isLast) {
+        // Skip tombstones during compaction — the key is truly gone
+        if (!allEntries[i].deleted) {
+          result.push({
+            key: allEntries[i].key,
+            value: allEntries[i].value,
+            deleted: false,
+          });
+        }
+      }
+    }
+
+    return result;
   }
 
   // ── Other interface methods ──────────────────────────────
 
   async size(): Promise<number> {
-    // Count unique live keys across memtable + all SSTables
-    // This is expensive but accurate
-    const keys = new Map<string, boolean>(); // key → isDeleted
-
-    // SSTables oldest to newest
-    for (const sst of this.sstables) {
-      // We need to scan the SSTable for this... for simplicity,
-      // we'll estimate from memtable + SSTable record counts
-    }
-
-    // For now, approximate: memtable live count + SSTable records
-    // Accurate count would require scanning all SSTables
-    let count = 0;
-    const seen = new Set<string>();
-
-    // Memtable first (newest)
-    for (const entry of this.memtable.entries()) {
-      seen.add(entry.key);
-      if (!entry.deleted) count++;
-    }
-
-    // TODO: For accurate count, would need to scan SSTables
-    // For now, use SSTable record counts as approximation
-    for (const sst of this.sstables) {
-      count += sst.meta.numRecords;
-    }
-
-    // Subtract memtable size to avoid double-counting rough estimate
     return this.memtable.liveCount() + this.sstables.reduce((sum, s) => sum + s.meta.numRecords, 0);
   }
 
@@ -195,7 +285,6 @@ export class LSMTree implements StorageBackend {
   }
 
   async close(): Promise<void> {
-    // Flush remaining memtable entries
     if (this.memtable.size() > 0) {
       await this.flushMemtable();
     }
@@ -206,12 +295,14 @@ export class LSMTree implements StorageBackend {
     this.memtable.clear();
     this.wal.checkpoint();
 
-    // Delete all SSTable files
     for (const sst of this.sstables) {
       try { fs.unlinkSync(sst.meta.filePath); } catch { /* ignore */ }
     }
     this.sstables = [];
     this.flushCount = 0;
+    this.compactionCount = 0;
+    this.totalBloomNegatives = 0;
+    this.totalBloomPositives = 0;
   }
 
   walCheckpoint(): void {
@@ -221,6 +312,8 @@ export class LSMTree implements StorageBackend {
   // ── Inspection (for visualization) ───────────────────────
 
   async inspect(): Promise<BackendState> {
+    this.syncBloomStats();
+
     const memEntries = this.memtable.entries().map(e => ({
       key: e.key,
       value: e.value,
@@ -243,25 +336,35 @@ export class LSMTree implements StorageBackend {
         sstables: sstMetas,
         sstableCount: this.sstables.length,
         flushCount: this.flushCount,
+        compactionCount: this.compactionCount,
+        compactionThreshold: COMPACTION_THRESHOLD,
         wal: this.wal.inspect(),
         lastWalRecoveryCount: this.lastWalRecoveryCount,
+        bloom: {
+          totalNegatives: this.totalBloomNegatives,
+          totalPositives: this.totalBloomPositives,
+        },
       },
     };
   }
 
+  /** Sync bloom stats from individual SSTable readers */
+  private syncBloomStats(): void {
+    let neg = 0;
+    let pos = 0;
+    for (const sst of this.sstables) {
+      neg += sst.meta.bloomNegatives;
+      pos += sst.meta.bloomPositives;
+    }
+    this.totalBloomNegatives = neg;
+    this.totalBloomPositives = pos;
+  }
+
   // ── Recovery ─────────────────────────────────────────────
 
-  /**
-   * Crash recovery sequence:
-   * 1. Load existing SSTable files from disk (sorted by name/time)
-   * 2. Replay WAL entries into a fresh memtable
-   * 3. Checkpoint WAL (entries are now in memtable, safe)
-   */
   private recover(): void {
-    // Phase 1: Load existing SSTables
     this.loadSSTables();
 
-    // Phase 2: Replay WAL into memtable
     const { entries, corruptedCount } = this.wal.recover();
     this.lastWalRecoveryCount = entries.length;
 
@@ -281,7 +384,6 @@ export class LSMTree implements StorageBackend {
       console.warn(`[lsm-tree] ${corruptedCount} corrupted WAL entries skipped.`);
     }
 
-    // Phase 3: Checkpoint (WAL entries are in memtable now)
     if (entries.length > 0 || corruptedCount > 0) {
       this.wal.checkpoint();
     }
@@ -289,18 +391,19 @@ export class LSMTree implements StorageBackend {
     console.log(`[lsm-tree] Ready: ${this.memtable.size()} keys in memtable, ${this.sstables.length} SSTables on disk.`);
   }
 
-  /** Scan SSTable directory and load all .sst files */
   private loadSSTables(): void {
     if (!fs.existsSync(this.sstDir)) return;
 
     const files = fs.readdirSync(this.sstDir)
       .filter(f => f.endsWith('.sst'))
-      .sort(); // Sort by name (which includes sequence number)
+      .sort();
 
     for (const file of files) {
       const fullPath = path.join(this.sstDir, file);
       try {
-        const reader = new SSTableReader(fullPath);
+        // Compacted SSTables (start with "sst_c") are level 1+
+        const level = file.startsWith('sst_c') ? 1 : 0;
+        const reader = new SSTableReader(fullPath, level);
         this.sstables.push(reader);
         this.flushCount++;
       } catch (err) {

@@ -38,7 +38,7 @@ async function handleDebug(
   const sub = cmd.args[0]?.toUpperCase();
 
   if (!sub) {
-    return resp.error('DEBUG requires a subcommand: BACKEND, SLEEP, CRASH, WAL');
+    return resp.error('DEBUG requires a subcommand: BACKEND, SLEEP, CRASH, WAL, COMPACT');
   }
 
   switch (sub) {
@@ -72,6 +72,17 @@ async function handleDebug(
 
     case 'WAL': {
       return handleWalSubcommand(cmd, ctx);
+    }
+
+    case 'COMPACT': {
+      const backend = ctx.getBackend();
+      if (backend.name !== 'lsm-tree') {
+        return resp.error('COMPACT is only available for the lsm-tree backend');
+      }
+      // Access the compact method via the backend
+      const lsm = backend as unknown as { compact: () => Promise<void> };
+      await lsm.compact();
+      return resp.ok();
     }
 
     default:
@@ -128,8 +139,9 @@ async function handleWalSubcommand(
         return resp.error('current backend does not use a WAL');
       }
 
-      const dataDir = walState.filePath.replace(/\/engine\.wal$/, '');
-      const wal = new WriteAheadLog(dataDir);
+      const walFileName = walState.filePath.split('/').pop() ?? 'engine.wal';
+      const dataDir = walState.filePath.replace(/\/[^/]+$/, '');
+      const wal = new WriteAheadLog(dataDir, walFileName);
       wal.appendSet(key, value);
 
       return resp.bulkString(`Injected into WAL only: ${key}=${value}. Restart engine to see recovery.`);

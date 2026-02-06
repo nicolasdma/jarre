@@ -198,6 +198,91 @@ Escribi mas datos para tener cosas en memtable y en SSTables, y despues busca:`,
     ],
     observe: 'GET a devuelve "NUEVO" (de la memtable), no "fruta" (del SSTable). GET d busca en la memtable, no lo encuentra, y va al SSTable. El panel derecho muestra donde esta cada dato.',
   },
+  {
+    title: '11. Bloom Filter: el atajo probabilistico',
+    theory: `Cuando el LSM-Tree busca un dato, revisa cada SSTable de mas nuevo a mas viejo. Si hay 10 SSTables y el dato esta en el ultimo, tuvo que abrir y buscar en 9 archivos inutil mente.
+
+¿Como evitar abrir archivos que NO tienen el dato? Con un Bloom Filter.
+
+Un Bloom Filter es una estructura probabilistica: un arreglo de bits donde cada key "prende" ciertos bits usando funciones de hash. Para preguntar "¿esta esta key?":
+- Si algun bit esta APAGADO → "Definitivamente NO esta" (se salta el archivo)
+- Si todos los bits estan PRENDIDOS → "QUIZAS esta" (hay que verificar en disco)
+
+Puede dar falsos positivos (decir "quizas" cuando no esta), pero NUNCA falsos negativos.
+
+Cada SSTable ahora tiene un Bloom Filter embebido. Haz varias lecturas de keys que NO existen para ver los "skips":`,
+    commands: [
+      { cmd: 'GET xyz', explain: 'No existe — el bloom filter de cada SSTable lo sabe' },
+      { cmd: 'GET zzz', explain: 'Tampoco existe — bloom filter evita lectura de disco' },
+      { cmd: 'GET aaa', explain: 'Otro miss — mira los "skips" en el panel derecho' },
+      { cmd: 'GET d', explain: 'Este SI existe — bloom dice "maybe", y lo encuentra' },
+    ],
+    observe: 'En el panel derecho, cada SSTable muestra su Bloom Filter: cuantos bits tiene, cuantos estan prendidos, la tasa de falsos positivos (FP), y cuantos "skips" (lecturas evitadas). Tambien mira los stats globales arriba.',
+  },
+  {
+    title: '12. Compaction: limpiando SSTables',
+    theory: `Cada vez que la memtable se llena, se crea un nuevo SSTable. Sin limpieza, los SSTables se acumulan:
+- Lecturas mas lentas (revisar mas archivos)
+- Espacio desperdiciado (la misma key en varios archivos)
+- Tombstones que no se borran (siguen ocupando espacio)
+
+La solucion: COMPACTION. Es como hacer merge sort de todos los SSTables:
+1. Leer todos los SSTables (cada uno ya esta ordenado)
+2. Fusionarlos: para cada key, quedarse con la version mas nueva
+3. Eliminar tombstones (ya no hacen falta)
+4. Escribir UN nuevo SSTable
+5. Borrar los viejos
+
+El trade-off: compaction REESCRIBE datos que ya estaban en disco. A esto se le llama "write amplification" — el precio de las escrituras rapidas.
+
+Automaticamente se compacta cuando hay 4+ SSTables. Tambien podes forzar la compaction:`,
+    commands: [
+      { cmd: 'FLUSHDB', explain: 'Empezar limpio' },
+      { cmd: 'SET a 1', explain: '' },
+      { cmd: 'SET b 2', explain: '' },
+      { cmd: 'SET c 3', explain: '' },
+      { cmd: 'SET d 4', explain: '' },
+      { cmd: 'SET e 5', explain: '' },
+      { cmd: 'SET f 6', explain: '' },
+      { cmd: 'SET g 7', explain: '' },
+      { cmd: 'SET h 8', explain: '' },
+      { cmd: 'SET i 9', explain: '' },
+      { cmd: 'SET j 10', explain: 'Flush #1 (10 entries → SSTable)' },
+    ],
+    observe: 'Mira como se acumulan SSTables. Con 4 SSTables, la compaction se dispara automaticamente: varios archivos → 1 archivo compactado con tag "compacted". Los bytes totales en disco bajan.',
+  },
+  {
+    title: '13. Amplificacion: el gran trade-off',
+    theory: `Todo storage engine enfrenta tres tipos de amplificacion:
+
+WRITE AMPLIFICATION: cuantas veces se escribe el mismo dato.
+En un LSM-Tree: se escribe al WAL, despues a la memtable, despues al SSTable, y despues la compaction lo reescribe. El mismo dato se escribe 3-4 veces.
+
+READ AMPLIFICATION: cuantos lugares hay que buscar para leer un dato.
+Sin bloom filters, hay que buscar en CADA SSTable. Con bloom filters, la mayoria de SSTables se saltan.
+
+SPACE AMPLIFICATION: cuanto espacio extra se usa.
+La misma key puede estar en la memtable Y en un SSTable. Los tombstones ocupan espacio hasta que la compaction los elimina.
+
+Ningun storage engine elimina las tres. Es un trade-off:
+- LSM-Tree: optimiza ESCRITURAS (rapidas), a costa de read/write amplification
+- B-Tree (Session 6): optimiza LECTURAS, a costa de write amplification
+
+Este es el concepto central del Capitulo 3 de DDIA.`,
+    commands: [
+      { cmd: 'SET k 11', explain: '' },
+      { cmd: 'SET l 12', explain: '' },
+      { cmd: 'SET m 13', explain: '' },
+      { cmd: 'SET n 14', explain: '' },
+      { cmd: 'SET o 15', explain: '' },
+      { cmd: 'SET p 16', explain: '' },
+      { cmd: 'SET q 17', explain: '' },
+      { cmd: 'SET r 18', explain: '' },
+      { cmd: 'SET s 19', explain: '' },
+      { cmd: 'SET t 20', explain: 'Flush #2 + mas SSTables' },
+    ],
+    observe: 'Mira como crecen los flushes, las compactions, y los bloom filter skips. Cada operacion tiene un costo: escribir es rapido pero genera SSTables que eventualmente hay que compactar. Leer es mas lento porque puede tocar varios archivos — pero el bloom filter ayuda.',
+  },
 ];
 
 export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) {

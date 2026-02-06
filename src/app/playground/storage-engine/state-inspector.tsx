@@ -470,11 +470,18 @@ function LSMTreeDiagram() {
         </div>
       </div>
       {/* Read explanation */}
-      <div className="bg-white border border-[#d5d0e8] px-2 py-2">
+      <div className="bg-white border border-[#d5d0e8] px-2 py-2 mb-1.5">
         <p className="font-mono text-[10px] text-[#6b4f8a] mb-1">GET key →</p>
         <p className="font-mono text-[9px] text-[#999] leading-relaxed">
-          1. Busca en Memtable (RAM) → 2. Busca en SSTables de mas nueva a mas vieja.
-          <span className="text-[#6b4f8a]"> Primer resultado encontrado gana.</span>
+          1. Memtable → 2. <span className="text-[#4a8a4a]">Bloom filter</span> de cada SSTable → 3. Disco si &quot;maybe&quot;.
+          <span className="text-[#6b4f8a]"> Primer resultado gana.</span>
+        </p>
+      </div>
+      {/* Compaction hint */}
+      <div className="bg-white border border-dashed border-[#d5d0e8] px-2 py-1.5">
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          <span className="text-[#5b7abf]">Compaction:</span> cuando hay 4+ SSTables,
+          se fusionan en 1 (merge sort). Elimina duplicados y tombstones.
         </p>
       </div>
     </div>
@@ -487,22 +494,27 @@ function LSMStats({ details, uptimeMs }: { details: Record<string, unknown>; upt
   } | undefined;
   const sstableCount = details.sstableCount as number ?? 0;
   const flushCount = details.flushCount as number ?? 0;
+  const compactionCount = details.compactionCount as number ?? 0;
+  const compactionThreshold = details.compactionThreshold as number ?? 4;
+  const bloomStats = details.bloom as { totalNegatives: number; totalPositives: number } | undefined;
 
   const fillPercent = memtable
     ? Math.min(100, Math.round((memtable.size / memtable.flushThreshold) * 100))
     : 0;
 
+  const totalBloomChecks = (bloomStats?.totalNegatives ?? 0) + (bloomStats?.totalPositives ?? 0);
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 mb-3">
         <Stat label="En Memtable" value={`${memtable?.size ?? 0} / ${memtable?.flushThreshold ?? 0}`} />
-        <Stat label="SSTables" value={String(sstableCount)} />
+        <Stat label="SSTables" value={`${sstableCount} / ${compactionThreshold}`} />
         <Stat label="Flushes" value={String(flushCount)} />
-        <Stat label="Uptime" value={formatUptime(uptimeMs)} />
+        <Stat label="Compactions" value={String(compactionCount)} />
       </div>
       {/* Memtable fill bar */}
       {memtable && (
-        <div>
+        <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <span className="font-mono text-[9px] text-[#aaa] uppercase">Memtable</span>
             <span className="font-mono text-[9px] text-[#aaa]">{fillPercent}%</span>
@@ -520,6 +532,23 @@ function LSMStats({ details, uptimeMs }: { details: Record<string, unknown>; upt
               Casi llena — proximo SET provoca flush a disco
             </p>
           )}
+        </div>
+      )}
+      {/* Bloom filter stats */}
+      {totalBloomChecks > 0 && (
+        <div className="bg-[#f0f8f0] border border-[#d5e8d5] px-3 py-2">
+          <p className="font-mono text-[9px] text-[#4a6a4a] uppercase tracking-wider mb-1">Bloom Filter</p>
+          <div className="flex gap-4 font-mono text-[10px]">
+            <span className="text-[#4a8a4a]">
+              {bloomStats?.totalNegatives ?? 0} skips
+            </span>
+            <span className="text-[#888]">
+              {bloomStats?.totalPositives ?? 0} checks
+            </span>
+          </div>
+          <p className="font-mono text-[9px] text-[#999] mt-0.5">
+            {bloomStats?.totalNegatives ?? 0} lecturas de disco evitadas
+          </p>
         </div>
       )}
     </div>
@@ -542,6 +571,16 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
     numIndexEntries: number;
     minKey: string;
     maxKey: string;
+    bloom?: {
+      numBits: number;
+      numHashes: number;
+      bitsSet: number;
+      falsePositiveRate: number;
+    };
+    bloomNegatives: number;
+    bloomPositives: number;
+    version: number;
+    level: number;
   }>;
   const walState = details.wal as {
     fileSizeBytes: number;
@@ -622,17 +661,29 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
             {sstables.map((sst, i) => {
               const fileName = sst.filePath.split('/').pop() ?? sst.filePath;
               const isNewest = i === sstables.length - 1;
+              const isCompacted = sst.level > 0;
               return (
                 <div
                   key={i}
                   className={`border px-3 py-2 ${
-                    isNewest ? 'border-[#d5d0e8] bg-[#fafaff]' : 'border-[#e8e6e0] bg-[#fcfcfa]'
+                    isCompacted
+                      ? 'border-[#d0d8e8] bg-[#f8faff]'
+                      : isNewest
+                        ? 'border-[#d5d0e8] bg-[#fafaff]'
+                        : 'border-[#e8e6e0] bg-[#fcfcfa]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-[10px] text-[#555] font-medium">
-                      {fileName}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-[#555] font-medium">
+                        {fileName}
+                      </span>
+                      {isCompacted && (
+                        <span className="font-mono text-[8px] text-[#5b7abf] bg-[#eef0f8] px-1 py-0.5">
+                          compacted
+                        </span>
+                      )}
+                    </div>
                     <span className="font-mono text-[9px] text-[#aaa]">
                       {formatBytes(sst.fileSizeBytes)}
                     </span>
@@ -640,11 +691,30 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
                   <div className="flex items-center gap-3 font-mono text-[9px] text-[#999]">
                     <span>{sst.numRecords} records</span>
                     <span className="text-[#ddd]">|</span>
-                    <span>{sst.numIndexEntries} index entries</span>
+                    <span>{sst.numIndexEntries} idx</span>
                     <span className="text-[#ddd]">|</span>
-                    <span>keys: {sst.minKey} → {sst.maxKey}</span>
+                    <span>{sst.minKey} → {sst.maxKey}</span>
                   </div>
-                  {isNewest && (
+                  {/* Bloom filter info */}
+                  {sst.bloom && (
+                    <div className="flex items-center gap-3 font-mono text-[9px] mt-1">
+                      <span className="text-[#4a8a4a]">
+                        bloom: {sst.bloom.numBits}bit
+                      </span>
+                      <span className="text-[#999]">
+                        {sst.bloom.bitsSet}/{sst.bloom.numBits} set
+                      </span>
+                      <span className="text-[#c4a07a]">
+                        FP: {(sst.bloom.falsePositiveRate * 100).toFixed(1)}%
+                      </span>
+                      {(sst.bloomNegatives > 0 || sst.bloomPositives > 0) && (
+                        <span className="text-[#4a8a4a]">
+                          {sst.bloomNegatives} skip{sst.bloomNegatives !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isNewest && !isCompacted && (
                     <span className="font-mono text-[9px] text-[#6b4f8a] mt-1 inline-block">
                       mas reciente — se busca primero
                     </span>
