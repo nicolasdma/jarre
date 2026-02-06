@@ -45,7 +45,7 @@ export default async function LibraryPage() {
       )
     `)
     .order('phase')
-    .order('title');
+    .order('sort_order');
 
   if (error) {
     console.error('Error fetching resources:', error);
@@ -144,18 +144,34 @@ export default async function LibraryPage() {
     };
   });
 
+  // Filter out courses, videos, and specific resources from main view
+  const hiddenTypes = ['course', 'video'];
+  const hiddenIds = [
+    'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
+    'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
+    'hussein-backpressure', 'hussein-latency-throughput', // Unavailable videos
+  ];
+  const visibleResources = resourcesWithStatus.filter(
+    r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id)
+  );
+
+  // Supplementary resources (videos, etc.) - shown in collapsible section
+  const supplementaryResources = resourcesWithStatus.filter(
+    r => r.type === 'video' && !hiddenIds.includes(r.id)
+  );
+
   const byPhase: Record<string, ResourceWithStatus[]> = {};
-  for (const resource of resourcesWithStatus) {
+  for (const resource of visibleResources) {
     const phase = resource.phase;
     if (!byPhase[phase]) byPhase[phase] = [];
     byPhase[phase].push(resource);
   }
 
-  const totalResources = resources?.length || 0;
-  const totalEvaluated = resourcesWithStatus.filter(r => r.evalStats !== null).length;
-  const totalUnlocked = resourcesWithStatus.filter(r => r.isUnlocked).length;
+  const totalResources = visibleResources.length;
+  const totalEvaluated = visibleResources.filter(r => r.evalStats !== null).length;
+  const totalUnlocked = visibleResources.filter(r => r.isUnlocked).length;
   const avgScore = totalEvaluated > 0
-    ? Math.round(resourcesWithStatus.filter(r => r.evalStats !== null).reduce((sum, r) => sum + r.evalStats!.bestScore, 0) / totalEvaluated)
+    ? Math.round(visibleResources.filter(r => r.evalStats !== null).reduce((sum, r) => sum + r.evalStats!.bestScore, 0) / totalEvaluated)
     : 0;
 
   return (
@@ -297,6 +313,53 @@ export default async function LibraryPage() {
             </div>
           </section>
         ))}
+
+        {/* Supplementary Resources (Videos) */}
+        {supplementaryResources.length > 0 && (
+          <details className="mb-16 group">
+            <summary className="cursor-pointer list-none">
+              <div className="flex items-center gap-4 py-4 border-t border-b border-[#e8e6e0] hover:bg-[#f8f7f4] transition-colors">
+                <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+                  {lang === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
+                </span>
+                <span className="text-xs text-[#9c9a8e]">
+                  ({supplementaryResources.length} {lang === 'es' ? 'videos' : 'videos'})
+                </span>
+                <span className="ml-auto text-[#9c9a8e] group-open:rotate-180 transition-transform">
+                  ▼
+                </span>
+              </div>
+            </summary>
+            <div className="pt-8">
+              <p className="text-sm text-[#7a7a6e] mb-6">
+                {lang === 'es'
+                  ? 'Videos y materiales adicionales para profundizar en los temas.'
+                  : 'Videos and additional materials to dive deeper into topics.'}
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {supplementaryResources.map((resource) => (
+                  <a
+                    key={resource.id}
+                    href={resource.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/item flex items-start gap-3 p-4 border border-[#e8e6e0] hover:border-[#4a5d4a] transition-colors"
+                  >
+                    <span className="text-lg">▶</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[#2c2c2c] group-hover/item:text-[#4a5d4a] transition-colors line-clamp-2">
+                        {resource.title}
+                      </p>
+                      {resource.author && (
+                        <p className="text-xs text-[#9c9a8e] mt-1">{resource.author}</p>
+                      )}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </details>
+        )}
       </main>
 
       {/* Footer */}
