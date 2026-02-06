@@ -87,6 +87,7 @@ async function seedResources() {
     phase: r.phase.toString(),
     description: r.description || null,
     estimated_hours: r.estimatedHours || null,
+    sort_order: r.sortOrder,
   }));
 
   const { error: resourceError } = await supabase

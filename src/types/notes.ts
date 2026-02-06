@@ -31,6 +31,8 @@ export interface ResourceNotesRow {
   user_id: string;
   resource_id: string;
   sections: NoteSection[];
+  canvas_data: unknown;
+  split_position: number;
   created_at: string;
   updated_at: string;
 }

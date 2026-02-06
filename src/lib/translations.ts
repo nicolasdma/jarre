@@ -151,6 +151,14 @@ const translations = {
   'questionType.error_detection': { es: 'Detección de Error', en: 'Error Detection' },
   'questionType.connection': { es: 'Conexión', en: 'Connection' },
   'questionType.tradeoff': { es: 'Trade-off', en: 'Trade-off' },
+
+  // Study View
+  'study.title': { es: 'Estudio', en: 'Study' },
+  'study.noUrl': { es: 'Este recurso no tiene URL asociada', en: 'This resource has no associated URL' },
+  'study.embedBlocked': { es: 'No se pudo cargar el contenido embebido', en: 'Could not load embedded content' },
+  'study.openNewTab': { es: 'Abrir en nueva pestaña', en: 'Open in new tab' },
+  'study.canvasHint': { es: 'Dibuja, escribe, conecta ideas', en: 'Draw, write, connect ideas' },
+  'study.saving': { es: 'Guardando...', en: 'Saving...' },
 } as const;
 
 type TranslationKey = keyof typeof translations;
