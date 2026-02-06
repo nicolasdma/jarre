@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-05 (session-03, routing integration + RAM/SSD viz)
+> Last updated: 2026-02-06 (session-06, B-Tree Storage Backend)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -75,10 +75,10 @@
 
 - [x] `[P1]` Session 1: RESP protocol + Append-Only Log backend - 2026-02-05
 - [x] `[P1]` Session 2: Hash Index + Web UI shell - 2026-02-05
-- [ ] `[P1]` Session 3: WAL + Crash Recovery
-- [ ] `[P2]` Session 4: Memtable + SSTable
-- [ ] `[P2]` Session 5: LSM-Tree + Bloom Filters + Compaction
-- [ ] `[P2]` Session 6: B-Tree
+- [x] `[P1]` Session 3: WAL + Crash Recovery - 2026-02-05
+- [x] `[P1]` Session 4: Memtable + SSTable + LSM-Tree - 2026-02-05
+- [x] `[P2]` Session 5: Bloom Filters + Compaction - 2026-02-05
+- [x] `[P2]` Session 6: B-Tree - 2026-02-06
 - [ ] `[P3]` Session 7: Benchmarks + Comparison
 
 ---
@@ -123,3 +123,8 @@
 - [x] `[P1]` Storage engine Session 2: Hash Index + Web UI - 2026-02-05
 - [x] `[P1]` Routing integration: Library → /learn → playground redirect - 2026-02-05
 - [x] `[P1]` RAM vs SSD visualization in state inspector - 2026-02-05
+- [x] `[P1]` Storage engine Session 3: WAL + CRC32 + crash recovery - 2026-02-05
+- [x] `[P1]` Storage engine Session 4: Memtable + SSTable + LSM-Tree - 2026-02-05
+- [x] `[P1]` Per-backend WAL isolation (separate WAL files) - 2026-02-05
+- [x] `[P2]` Storage engine Session 5: Bloom Filters + SSTable v2 + Compaction - 2026-02-05
+- [x] `[P2]` Storage engine Session 6: B-Tree backend + visualization + lessons 14-18 - 2026-02-06

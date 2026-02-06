@@ -44,18 +44,23 @@ export function StateInspector({ state, status }: StateInspectorProps) {
   const details = backend.details;
   const isHashIndex = backend.name === 'hash-index';
   const isLSM = backend.name === 'lsm-tree';
+  const isBTree = backend.name === 'b-tree';
 
-  const badgeStyle = isLSM
-    ? 'bg-[#eee8f5] text-[#6b4f8a]'
-    : isHashIndex
-      ? 'bg-[#eef3ee] text-[#4a5d4a]'
-      : 'bg-[#f5f0e8] text-[#a08050]';
+  const badgeStyle = isBTree
+    ? 'bg-[#e8f0f2] text-[#2d6a7a]'
+    : isLSM
+      ? 'bg-[#eee8f5] text-[#6b4f8a]'
+      : isHashIndex
+        ? 'bg-[#eef3ee] text-[#4a5d4a]'
+        : 'bg-[#f5f0e8] text-[#a08050]';
 
-  const diagramBg = isLSM
-    ? 'bg-[#f9f7fc] border-[#ddd5e8]'
-    : isHashIndex
-      ? 'bg-[#f8faf8] border-[#dde5dd]'
-      : 'bg-[#faf8f4] border-[#e8e0d0]';
+  const diagramBg = isBTree
+    ? 'bg-[#f5f9fa] border-[#d0dfe4]'
+    : isLSM
+      ? 'bg-[#f9f7fc] border-[#ddd5e8]'
+      : isHashIndex
+        ? 'bg-[#f8faf8] border-[#dde5dd]'
+        : 'bg-[#faf8f4] border-[#e8e0d0]';
 
   return (
     <div className="h-full overflow-y-auto">
@@ -71,7 +76,9 @@ export function StateInspector({ state, status }: StateInspectorProps) {
 
       {/* How it works — diagram */}
       <div className={`px-5 py-4 border-b ${diagramBg}`}>
-        {isLSM ? (
+        {isBTree ? (
+          <BTreeDiagram />
+        ) : isLSM ? (
           <LSMTreeDiagram />
         ) : isHashIndex ? (
           <HashIndexDiagram />
@@ -82,7 +89,9 @@ export function StateInspector({ state, status }: StateInspectorProps) {
 
       {/* Stats */}
       <div className="px-5 py-4 border-b border-[#e8e6e0]">
-        {isLSM ? (
+        {isBTree ? (
+          <BTreeStats details={details} uptimeMs={state.uptimeMs} />
+        ) : isLSM ? (
           <LSMStats details={details} uptimeMs={state.uptimeMs} />
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -109,6 +118,9 @@ export function StateInspector({ state, status }: StateInspectorProps) {
       )}
       {backend.name === 'lsm-tree' && (
         <LSMTreeViz details={details} />
+      )}
+      {backend.name === 'b-tree' && (
+        <BTreeViz details={details} />
       )}
     </div>
   );
@@ -843,6 +855,253 @@ function WALViz({ walState, lastRecoveryCount }: {
           engine.wal — {walState.fileSizeBytes} bytes
         </p>
       )}
+    </div>
+  );
+}
+
+// ── B-Tree diagram ────────────────────────────────────────────
+
+function BTreeDiagram() {
+  return (
+    <div>
+      <p className="font-mono text-[10px] text-[#2d6a7a] uppercase tracking-wider mb-3">
+        Como funciona el B-Tree
+      </p>
+      <div className="space-y-1.5 mb-3">
+        {/* Disk: Pages */}
+        <div className="border border-[#c0d8e0] bg-white px-2 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <p className="font-mono text-[9px] text-[#2d6a7a] uppercase tracking-wider">SSD — Paginas de 4 KB</p>
+            <p className="font-mono text-[9px] text-[#aaa]">acceso aleatorio</p>
+          </div>
+          <div className="space-y-0.5">
+            <div className="bg-[#e8f0f2] px-1.5 py-0.5 font-mono text-[9px] text-[#2d6a7a] text-center">
+              Pagina 3 (raiz): [ d ]
+            </div>
+            <div className="flex gap-0.5">
+              <div className="flex-1 bg-[#f0f6f8] px-1.5 py-0.5 font-mono text-[9px] text-[#555] text-center">
+                Pag 1: [a, b, c]
+              </div>
+              <div className="flex-1 bg-[#f0f6f8] px-1.5 py-0.5 font-mono text-[9px] text-[#555] text-center">
+                Pag 2: [d, e]
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Key difference */}
+        <div className="text-center font-mono text-[9px] text-[#bbb]">
+          ↕ modificacion IN-PLACE (reescribe la pagina) ↕
+        </div>
+        {/* Contrast */}
+        <div className="bg-white border border-dashed border-[#c0d8e0] px-2 py-2">
+          <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+            <span className="text-[#2d6a7a]">vs LSM-Tree:</span> el B-Tree
+            SOBREESCRIBE paginas existentes en lugar de crear archivos nuevos.
+            No necesita compaction, pero reescribe 4 KB por cada cambio.
+          </p>
+        </div>
+      </div>
+      {/* Read explanation */}
+      <div className="bg-white border border-[#c0d8e0] px-2 py-2 mb-1.5">
+        <p className="font-mono text-[10px] text-[#2d6a7a] mb-1">GET key →</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          Raiz → busqueda binaria → hijo correcto → ... → hoja.
+          <span className="text-[#2d6a7a]"> Siempre O(log n) — predecible.</span>
+        </p>
+      </div>
+      {/* Write explanation */}
+      <div className="bg-white border border-[#c0d8e0] px-2 py-2">
+        <p className="font-mono text-[10px] text-[#2d6a7a] mb-1">SET key value →</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          Encuentra la hoja → inserta ordenado → si se desborda →
+          <span className="text-[#c07070]"> split (divide la pagina en 2).</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BTreeStats({ details, uptimeMs }: { details: Record<string, unknown>; uptimeMs: number }) {
+  const height = details.height as number ?? 1;
+  const totalPages = details.totalPages as number ?? 2;
+  const splitCount = details.splitCount as number ?? 0;
+  const fileSizeBytes = details.fileSizeBytes as number ?? 0;
+  const keyCount = details.keyCount as number ?? 0;
+  const maxKeysPerNode = details.maxKeysPerNode as number ?? 4;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Stat label="Live Keys" value={String(keyCount)} />
+      <Stat label="Altura" value={String(height)} />
+      <Stat label="Paginas" value={String(totalPages)} />
+      <Stat label="Splits" value={String(splitCount)} />
+      <Stat label="Archivo" value={formatBytes(fileSizeBytes)} />
+      <Stat label="Uptime" value={formatUptime(uptimeMs)} />
+    </div>
+  );
+}
+
+// ── B-Tree visualization ──────────────────────────────────────
+
+function BTreeViz({ details }: { details: Record<string, unknown> }) {
+  const nodes = (details.nodes ?? []) as Array<{
+    pageId: number;
+    type: 'leaf' | 'internal';
+    keys: string[];
+    values?: string[];
+    childIds?: number[];
+    level: number;
+  }>;
+  const maxKeysPerNode = details.maxKeysPerNode as number ?? 4;
+  const walState = details.wal as {
+    fileSizeBytes: number;
+    entryCount: number;
+    corruptedCount: number;
+    entries: Array<{
+      type: string; key: string; value: string;
+      offset: number; totalSize: number; checksumValid: boolean;
+    }>;
+  } | undefined;
+  const lastWalRecoveryCount = details.lastWalRecoveryCount as number ?? 0;
+
+  // Group nodes by level for level-by-level rendering
+  const levels = new Map<number, typeof nodes>();
+  for (const node of nodes) {
+    const level = levels.get(node.level) ?? [];
+    level.push(node);
+    levels.set(node.level, level);
+  }
+  const sortedLevels = Array.from(levels.entries()).sort((a, b) => a[0] - b[0]);
+
+  return (
+    <div className="px-5 py-4">
+      {/* WAL */}
+      <WALViz walState={walState} lastRecoveryCount={lastWalRecoveryCount} />
+
+      {/* Tree structure */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+            Arbol en disco
+          </span>
+          <span className="font-mono text-[10px] text-[#2d6a7a]">
+            {nodes.length} pagina{nodes.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {nodes.length === 0 || (nodes.length === 1 && nodes[0].keys.length === 0) ? (
+          <div className="border border-dashed border-[#c0d8e0] px-4 py-6 text-center">
+            <p className="font-mono text-xs text-[#999]">Arbol vacio</p>
+            <p className="font-mono text-[10px] text-[#bbb] mt-1">Haz SET key value para insertar</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sortedLevels.map(([level, levelNodes]) => (
+              <div key={level}>
+                <p className="font-mono text-[9px] text-[#aaa] uppercase tracking-wider mb-1.5">
+                  Nivel {level} {level === 0 ? '(raiz)' : ''}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {levelNodes.map((node) => (
+                    <BTreeNodeBox
+                      key={node.pageId}
+                      node={node}
+                      maxKeys={maxKeysPerNode}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BTreeNodeBox({ node, maxKeys }: {
+  node: {
+    pageId: number;
+    type: 'leaf' | 'internal';
+    keys: string[];
+    values?: string[];
+    childIds?: number[];
+  };
+  maxKeys: number;
+}) {
+  const utilization = node.keys.length / maxKeys;
+  const utilizationPercent = Math.round(utilization * 100);
+  const isLeaf = node.type === 'leaf';
+
+  return (
+    <div className={`border px-3 py-2 min-w-[140px] ${
+      isLeaf
+        ? 'border-[#c0d8e0] bg-[#f8fbfc]'
+        : 'border-[#a0c8d4] bg-[#f0f6f8]'
+    }`}>
+      {/* Header: page id + type */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-[9px] text-[#2d6a7a] font-medium">
+          Pag {node.pageId}
+        </span>
+        <span className={`font-mono text-[8px] px-1 py-0.5 ${
+          isLeaf
+            ? 'text-[#4a8a4a] bg-[#eef5ee]'
+            : 'text-[#2d6a7a] bg-[#e0eef2]'
+        }`}>
+          {isLeaf ? 'hoja' : 'interno'}
+        </span>
+      </div>
+
+      {/* Keys */}
+      {node.keys.length > 0 ? (
+        <div className="space-y-0.5 mb-1.5">
+          {node.keys.map((key, i) => (
+            <div key={i} className="flex items-center gap-1.5 font-mono text-[10px]">
+              <span className="text-[#2c2c2c] font-medium">{key}</span>
+              {isLeaf && node.values && (
+                <>
+                  <span className="text-[#ccc]">=</span>
+                  <span className="text-[#666] truncate">{node.values[i]}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="font-mono text-[9px] text-[#ccc] italic mb-1.5">vacia</p>
+      )}
+
+      {/* Child pointers for internal nodes */}
+      {!isLeaf && node.childIds && (
+        <div className="flex gap-1 mb-1.5">
+          {node.childIds.map((childId, i) => (
+            <span key={i} className="font-mono text-[8px] text-[#2d6a7a] bg-[#e0eef2] px-1 py-0.5">
+              →{childId}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Utilization bar */}
+      <div>
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="font-mono text-[8px] text-[#bbb]">
+            {node.keys.length}/{maxKeys}
+          </span>
+          <span className="font-mono text-[8px] text-[#bbb]">
+            {utilizationPercent}%
+          </span>
+        </div>
+        <div className="h-1 bg-[#eee] overflow-hidden">
+          <div
+            className={`h-full transition-all duration-300 ${
+              utilization >= 1 ? 'bg-[#c07070]' : utilization >= 0.75 ? 'bg-[#c4a07a]' : 'bg-[#2d6a7a]'
+            }`}
+            style={{ width: `${utilizationPercent}%` }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
