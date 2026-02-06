@@ -94,7 +94,7 @@ export function EnginePlayground() {
       </div>
 
       {/* Center: Terminal */}
-      <div className="w-[280px] shrink-0 border-r border-[#e8e6e0]">
+      <div className="flex-[3] min-w-0 border-r border-[#e8e6e0]">
         <CommandTerminal
           lines={lines}
           onCommand={executeCommand}
@@ -103,7 +103,7 @@ export function EnginePlayground() {
       </div>
 
       {/* Right: State Inspector */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="flex-[4] min-w-0 overflow-y-auto">
         <StateInspector state={engineState} status={status} />
       </div>
     </div>
