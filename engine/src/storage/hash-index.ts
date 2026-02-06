@@ -86,8 +86,9 @@ export class HashIndex implements StorageBackend {
 
     this.currentOffset += record.length;
 
-    // Step 4: Checkpoint WAL (entry is safely in main log now)
-    this.wal.checkpoint();
+    // WAL is NOT checkpointed here — entries accumulate.
+    // Checkpoint happens on: explicit command, clean shutdown, or after recovery.
+    // This matches real databases: WAL grows until checkpoint.
   }
 
   async get(key: string): Promise<string | null> {
@@ -116,10 +117,12 @@ export class HashIndex implements StorageBackend {
 
     // Step 3: Update index
     this.index.delete(key);
-
-    // Step 4: Checkpoint
-    this.wal.checkpoint();
     return true;
+  }
+
+  /** Manually checkpoint the WAL — clears all accumulated entries */
+  walCheckpoint(): void {
+    this.wal.checkpoint();
   }
 
   async size(): Promise<number> {

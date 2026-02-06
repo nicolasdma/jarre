@@ -16,122 +16,125 @@ interface LessonGuideProps {
 
 const LESSONS: LessonStep[] = [
   {
-    title: '1. Tu primera base de datos',
-    theory: `Estás conectado a un storage engine que escribimos desde cero. Es la parte más baja de cualquier base de datos: donde los bytes tocan el disco.
+    title: '1. Como funciona una base de datos por dentro',
+    theory: `Cuando haces INSERT en PostgreSQL o SET en Redis, ¿que pasa fisicamente? Se escriben bytes en un archivo en tu disco.
 
-En tu computadora hay un archivo real: engine/data/engine.log. Cada vez que haces SET, el engine escribe bytes al final de ese archivo. Literalmente: abre el archivo, pone bytes al final, cierra. Eso es todo.
+Eso es lo que vas a ver aqui. Este engine es una base de datos minima que escribimos desde cero. Cada SET escribe bytes al final de un archivo real en tu computadora (engine/data/engine.log).
 
-En el panel derecho vas a ver ese archivo representado visualmente: cada bloque es un record binario con su posición en bytes (offset) y su tamaño.`,
+El panel de la derecha te muestra el contenido de ese archivo en tiempo real.
+
+Si queres empezar de cero en cualquier momento, usa FLUSHDB para borrar todos los datos.`,
     commands: [
-      { cmd: 'SET ciudad Madrid', explain: 'Escribe bytes al final del archivo' },
-      { cmd: 'SET pais España', explain: 'Más bytes al final' },
-      { cmd: 'GET ciudad', explain: 'Recupera el valor' },
+      { cmd: 'FLUSHDB', explain: 'Borra todo y empieza limpio' },
+      { cmd: 'SET nombre Maria', explain: 'Escribe bytes al final del archivo' },
+      { cmd: 'SET pais Colombia', explain: 'Mas bytes al final' },
+      { cmd: 'GET nombre', explain: 'Busca "nombre" en el archivo' },
     ],
-    observe: 'Mira el panel derecho: ves los bloques del archivo real. Cada uno muestra su offset (posición en bytes desde el inicio) y su tamaño. El archivo solo crece, nunca se modifica lo que ya está.',
+    observe: 'Mira el panel derecho: cada bloque es un record binario en el archivo. El numero de la izquierda (0, 18, 38...) es la posicion en bytes desde el inicio del archivo. El archivo solo crece, nunca se modifica lo que ya esta escrito.',
   },
   {
-    title: '2. El problema del O(n)',
-    theory: `O(n) significa que el tiempo crece proporcionalmente con la cantidad de datos.
+    title: '2. El problema: buscar es lento',
+    theory: `Para encontrar un dato, el engine tiene que leer el archivo entero de atras para adelante hasta encontrar la key. Si hay 10 records, lee 10. Si hay 1 millon, lee 1 millon.
 
-Si tienes 10 records, buscar uno requiere revisar hasta 10. Si tienes 1 millón, hasta 1 millón. Esto es porque el append-log NO tiene índice — para encontrar un key, escanea todo el archivo de atrás hacia adelante.
+En computacion esto se llama O(n): el tiempo de busqueda crece proporcionalmente con la cantidad de datos. Escribir es rapido (O(1), siempre tarda lo mismo), pero leer es lento.
 
-Esto es lo que DDIA llama "full scan". Es O(1) para escribir (solo agrega al final), pero O(n) para leer.`,
+Esta es la version mas basica posible de un storage engine. Se llama "append-only log" en el libro DDIA.`,
     commands: [
-      { cmd: 'SET a 1', explain: 'Agrega record #1' },
-      { cmd: 'SET b 2', explain: 'Agrega record #2' },
+      { cmd: 'DEBUG BACKEND append-log', explain: 'Asegurate de estar en el backend basico' },
+      { cmd: 'SET a 1', explain: 'Record #1' },
+      { cmd: 'SET b 2', explain: 'Record #2' },
       { cmd: 'SET c 3', explain: 'Record #3' },
-      { cmd: 'SET d 4', explain: 'Record #4...' },
-      { cmd: 'GET a', explain: 'Para encontrar "a", escanea TODOS los records' },
+      { cmd: 'SET d 4', explain: 'Record #4' },
+      { cmd: 'GET a', explain: '¿Cuantos records tuvo que revisar?' },
     ],
-    observe: 'Mira "Total Records" creciendo. GET a tiene que revisar todos esos records para encontrar "a" al principio del archivo. Con más datos, esto se vuelve insostenible.',
+    observe: 'Para encontrar "a" (que esta al principio), tuvo que revisar TODOS los records. Imagina esto con millones de registros: inaceptable.',
   },
   {
-    title: '3. Espacio desperdiciado',
-    theory: `Otro problema del append-only log: si haces SET del mismo key 10 veces, guardas 10 copias. Solo la última importa, pero las anteriores siguen en disco.
+    title: '3. Otro problema: espacio desperdiciado',
+    theory: `Si guardas el mismo dato 3 veces, el archivo tiene 3 copias. Solo la ultima importa, pero las anteriores siguen en disco ocupando espacio.
 
-Observa cómo "Total Records" es mayor que "Live Keys". La diferencia es espacio desperdiciado.`,
+Mira la diferencia entre "Records en disco" (total de records escritos) y "Live Keys" (keys que realmente existen). La diferencia es espacio desperdiciado.`,
     commands: [
-      { cmd: 'SET nombre version1', explain: 'Primera versión' },
-      { cmd: 'SET nombre version2', explain: 'Sobreescribe con v2' },
-      { cmd: 'SET nombre version3', explain: 'Sobreescribe con v3' },
-      { cmd: 'GET nombre', explain: 'Solo devuelve la última' },
-      { cmd: 'DBSIZE', explain: 'Cuenta keys VIVOS (no records)' },
+      { cmd: 'SET color rojo', explain: 'Primera version' },
+      { cmd: 'SET color azul', explain: 'Ahora es azul (la anterior sigue en disco)' },
+      { cmd: 'SET color verde', explain: 'Ahora es verde (hay 3 copias en disco)' },
+      { cmd: 'GET color', explain: 'Solo devuelve la ultima version' },
+      { cmd: 'DBSIZE', explain: 'Cuenta solo los keys vivos, no los records' },
     ],
-    observe: 'Live Keys queda igual, pero Total Records sube con cada SET. El "% wasted space" muestra cuánto disco estamos desperdiciando. Esto motiva la "compaction" (futuro).',
+    observe: 'En el panel derecho, los records obsoletos aparecen atenuados. El archivo crece con cada SET aunque la key sea la misma. Esto se resuelve con "compaction" (tema futuro).',
   },
   {
-    title: '4. La solución: Hash Index',
-    theory: `¿Cómo hacer reads en O(1)? Con un índice.
+    title: '4. La solucion: un indice en memoria',
+    theory: `El problema del append-log es que no sabe DONDE esta cada dato en el archivo. Tiene que buscar uno por uno.
 
-Un hash index es un Map en memoria: para cada key, guarda la posición exacta (offset en bytes) donde está su valor en disco.
+La solucion: mantener un mapa en la memoria RAM de tu computadora. Para cada key, el mapa guarda la posicion exacta (byte offset) donde esta el dato en disco.
 
-SET → escribe al log + actualiza el Map
-GET → busca el offset en el Map + lee directo de disco
+SET → escribe al archivo + guarda la posicion en el mapa
+GET → busca la posicion en el mapa + lee ESE byte del disco
 
-Un solo seek en lugar de escanear todo. Esto es O(1): el tiempo es constante sin importar cuántos datos tengas.
+Ya no escanea todo. Va directo. Esto es O(1): siempre tarda lo mismo sin importar cuantos datos tengas.
 
-Este es el modelo "Bitcask" de DDIA — usado en Riak.`,
+Cambia al backend "hash-index" para ver esto en accion:`,
     commands: [
-      { cmd: 'DEBUG BACKEND hash-index', explain: 'Cambia al backend con índice' },
-      { cmd: 'SET usuario alice', explain: 'Escribe + actualiza índice' },
-      { cmd: 'SET email alice@test.com', explain: 'Otra entrada en el índice' },
-      { cmd: 'GET usuario', explain: 'Lee directo del offset — O(1)' },
+      { cmd: 'DEBUG BACKEND hash-index', explain: 'Cambia al backend con indice' },
+      { cmd: 'FLUSHDB', explain: 'Limpia para ver desde cero' },
+      { cmd: 'SET usuario alice', explain: 'Escribe + guarda posicion en el mapa' },
+      { cmd: 'SET email alice@test.com', explain: 'Otra entrada en el mapa' },
+      { cmd: 'GET usuario', explain: 'Va directo al byte — sin escanear' },
     ],
-    observe: 'Ahora el panel derecho muestra una tabla de índice: cada key tiene su offset y tamaño. GET ya no escanea — va directo a la posición. Compara "Disk Records" vs "Keys in Index".',
+    observe: 'El panel derecho ahora muestra dos cosas: (1) el mapa en RAM con cada key y su posicion, y (2) el archivo en disco. GET ya no escanea — va directo a la posicion que dice el mapa.',
   },
   {
-    title: '5. Trade-offs del Hash Index',
-    theory: `El hash index soluciona los reads, pero tiene limitaciones:
+    title: '5. ¿Que pasa si el engine se muere?',
+    theory: `El mapa que vive en RAM se pierde si el proceso se muere (un crash, un corte de luz, un kill).
 
-1. Todas las keys deben caber en RAM — el Map vive en memoria. Si tienes más keys que RAM, no funciona.
+Pero el archivo en disco sobrevive. Al reiniciar, el engine lee todo el archivo y reconstruye el mapa. Es lento (tiene que leer todo) pero funciona.
 
-2. No soporta range queries — puedes buscar "usuario" pero no "todos los keys que empiezan con u". Un hash map no tiene orden.
+El problema: ¿que pasa si el engine muere A MITAD de una escritura? El archivo podria quedar corrupto — bytes a medias, datos incompletos.
 
-3. Crash recovery es lento — si el proceso muere, hay que re-escanear todo el log para reconstruir el Map.
-
-Estas limitaciones motivan LSM-Trees y B-Trees (futuras sessions).`,
+Para eso existe el WAL: Write-Ahead Log.`,
     commands: [
-      { cmd: 'SET x 1', explain: '' },
-      { cmd: 'SET x 2', explain: '' },
-      { cmd: 'SET x 3', explain: 'Sobreescribe 3 veces' },
-      { cmd: 'INSPECT', explain: 'Ve el estado completo en JSON' },
+      { cmd: 'SET dato_1 valor_1', explain: 'Mira el panel derecho: el WAL crece' },
+      { cmd: 'SET dato_2 valor_2', explain: 'Otra entrada en el WAL' },
+      { cmd: 'SET dato_3 valor_3', explain: 'El WAL tiene 3 entradas ahora' },
     ],
-    observe: 'En INSPECT ves indexEntries con offsets. "x" solo tiene un entry en el índice (el más reciente), pero hay 3 records en disco. El log sigue creciendo — necesitaríamos compaction.',
+    observe: 'Mira la seccion "Write-Ahead Log" en el panel derecho. Cada SET aparece ahi con un CRC32 (un checksum que detecta corrupcion). El WAL es la copia de seguridad en tiempo real.',
   },
   {
-    title: '6. Write-Ahead Log (WAL)',
-    theory: `¿Qué pasa si el proceso muere a mitad de una escritura? Pierdes datos.
+    title: '6. WAL: la red de seguridad',
+    theory: `El WAL es un segundo archivo donde se escribe ANTES de escribir al archivo principal. Cada entrada tiene un checksum CRC32 que verifica que los datos no estan corruptos.
 
-La solución: antes de escribir al log principal, escribe primero al WAL (Write-Ahead Log) con un checksum CRC32. Si el proceso muere después del WAL pero antes del log principal, al reiniciar el engine recupera los datos del WAL.
+Orden de cada SET:
+1. Escribe al WAL (con checksum) ← red de seguridad
+2. Escribe al archivo principal
+3. Actualiza el mapa en RAM
 
-El WAL es la red de seguridad. Cada entrada tiene un CRC32 que detecta corrupción — si el proceso murió a mitad de escritura, el CRC no coincide y esa entrada se descarta.
+Si el proceso muere entre el paso 1 y el 2, el WAL tiene los datos. Al reiniciar, el engine encuentra las entradas en el WAL y las recupera.
 
-Esto es lo que hace toda base de datos real: PostgreSQL, MySQL, SQLite... todas usan WAL.`,
+Vamos a simular un crash. DEBUG WAL INJECT escribe SOLO al WAL (simula que el proceso murio antes de escribir al archivo principal):`,
     commands: [
-      { cmd: 'SET dato_importante valor_critico', explain: 'Escribe normalmente (WAL + log)' },
-      { cmd: 'DEBUG WAL INJECT dato_oculto solo_en_wal', explain: 'Escribe SOLO al WAL (simula crash)' },
-      { cmd: 'GET dato_oculto', explain: 'No lo encuentra — no está en el log principal' },
-      { cmd: 'DEBUG WAL STATUS', explain: 'Ve el WAL con la entrada pendiente' },
+      { cmd: 'DEBUG WAL INJECT dato_secreto valor_oculto', explain: 'Escribe SOLO al WAL (no al archivo principal)' },
+      { cmd: 'GET dato_secreto', explain: 'No lo encuentra — no esta en el archivo principal' },
+      { cmd: 'DEBUG WAL STATUS', explain: 'Ve el WAL: tiene la entrada con checksum' },
     ],
-    observe: 'dato_oculto está en el WAL pero no en el índice. Ahora reinicia el engine (npm run engine) y haz GET dato_oculto — lo va a encontrar. El WAL lo recuperó.',
+    observe: 'dato_secreto esta en el WAL pero NO en el indice. Ahora reinicia el engine (para el proceso y hace npm run engine). Despues de reiniciar, haz GET dato_secreto — va a aparecer. El WAL lo recupero.',
   },
   {
-    title: '7. Compara tú mismo',
-    theory: `Ahora puedes alternar entre backends y sentir la diferencia.
+    title: '7. Checkpoint: limpiar el WAL',
+    theory: `El WAL crece con cada escritura. Si nunca lo limpias, se hace enorme. En las bases de datos reales, periodicamente se hace un "checkpoint": se limpia el WAL porque todos los datos ya estan seguros en el archivo principal.
 
-Con append-log: GET escanea todo.
-Con hash-index: GET hace un seek directo + WAL para durabilidad.
+Aca podes hacerlo manualmente:
 
-Con pocos datos no hay diferencia perceptible. Pero piensa en millones de keys — el append-log sería inutilizable.
+Tambien podes comparar los dos backends: append-log (sin indice, sin WAL) vs hash-index (con indice + WAL). Los datos son los mismos, lo que cambia es la estructura de acceso.
 
-Este es el fundamento de DDIA Capítulo 3: los storage engines existen porque la forma más simple (append-log) no escala para reads. Y el WAL existe porque la durabilidad no es opcional.`,
+Este es el fundamento del Capitulo 3 de DDIA (Designing Data-Intensive Applications): los storage engines existen porque la forma mas simple no escala.`,
     commands: [
-      { cmd: 'DEBUG BACKEND append-log', explain: 'Vuelve al log sin índice' },
-      { cmd: 'DBSIZE', explain: 'Ve cuántos keys hay' },
-      { cmd: 'DEBUG BACKEND hash-index', explain: 'Ahora con índice + WAL' },
-      { cmd: 'DBSIZE', explain: 'Misma data, distinta estructura' },
+      { cmd: 'DEBUG WAL CHECKPOINT', explain: 'Limpia el WAL (los datos ya estan en el archivo)' },
+      { cmd: 'DEBUG BACKEND append-log', explain: 'Cambia al backend sin indice' },
+      { cmd: 'DBSIZE', explain: 'Mismos datos, distinta estructura' },
+      { cmd: 'DEBUG BACKEND hash-index', explain: 'Vuelve al backend con indice + WAL' },
     ],
-    observe: 'Los datos son los mismos. Lo que cambia es la estructura de acceso y la garantía de durabilidad. Esa es la esencia de los storage engines.',
+    observe: 'Despues del checkpoint, el WAL queda vacio. Los dos backends leen el mismo archivo — lo que cambia es si usan un indice en RAM o no. Esa decision define la velocidad de lectura.',
   },
 ];
 
@@ -170,7 +173,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
         {/* Commands to run */}
         <div className="mb-5">
           <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
-            Ejecuta en la terminal
+            Haz click para ejecutar
           </p>
           <div className="space-y-1.5">
             {step.commands.map((c, i) => (
@@ -183,7 +186,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
                   <span className="text-[#4a5d4a] font-mono text-[11px] shrink-0">{'>'}</span>
                   <span className="text-[#e0e0d0] font-mono text-[11px]">{c.cmd}</span>
                   <span className="ml-auto text-[#555] font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    click to run
+                    click
                   </span>
                 </div>
                 {c.explain && (
@@ -197,7 +200,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
         {/* What to observe */}
         <div className="bg-[#f0efe8] px-4 py-3 border-l-2 border-[#c4a07a]">
           <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Observa
+            Que observar
           </p>
           <p className="text-[12px] text-[#555] leading-relaxed">
             {step.observe}

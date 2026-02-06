@@ -40,4 +40,10 @@ export interface StorageBackend {
 
   /** Return internal state for visualization / debugging */
   inspect(): Promise<BackendState>;
+
+  /** Delete all data — used for resetting or switching backends */
+  clear(): Promise<void>;
+
+  /** Checkpoint WAL if the backend uses one (optional) */
+  walCheckpoint?(): void;
 }

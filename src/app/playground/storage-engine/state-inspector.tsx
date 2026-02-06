@@ -508,11 +508,11 @@ function WALViz({ walState, lastRecoveryCount }: {
           <p className="font-mono text-[10px] text-[#aaa]">
             {hasCorruption
               ? `WAL corrupto — ${walState.corruptedCount} entrada${walState.corruptedCount !== 1 ? 's' : ''} no valida${walState.corruptedCount !== 1 ? 's' : ''}`
-              : 'WAL vacio — todas las escrituras estan en el log principal'}
+              : 'WAL vacio — haz SET para ver entradas acumularse'}
           </p>
           {!hasCorruption && (
             <p className="font-mono text-[9px] text-[#ccc] mt-1">
-              Usa DEBUG WAL INJECT key value para simular un crash
+              DEBUG WAL CHECKPOINT para limpiar
             </p>
           )}
         </div>

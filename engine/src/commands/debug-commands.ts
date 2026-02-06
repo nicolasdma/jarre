@@ -103,6 +103,15 @@ async function handleWalSubcommand(
       return resp.bulkString(JSON.stringify(wal, null, 2));
     }
 
+    case 'CHECKPOINT': {
+      const backend = ctx.getBackend();
+      if (!backend.walCheckpoint) {
+        return resp.error('current backend does not use a WAL');
+      }
+      backend.walCheckpoint();
+      return resp.ok();
+    }
+
     case 'INJECT': {
       // Write to WAL ONLY — simulates a crash between WAL write and main log write
       const key = cmd.args[2];
@@ -111,8 +120,6 @@ async function handleWalSubcommand(
         return resp.error('usage: DEBUG WAL INJECT <key> <value>');
       }
 
-      // Access WAL through the backend's inspect to get the wal path,
-      // then create a temporary WAL instance to write directly
       const { WriteAheadLog } = await import('../storage/wal.js');
       const state = await ctx.getBackend().inspect();
       const details = state.details as Record<string, unknown>;
@@ -121,7 +128,6 @@ async function handleWalSubcommand(
         return resp.error('current backend does not use a WAL');
       }
 
-      // Extract data dir from WAL file path (remove /engine.wal)
       const dataDir = walState.filePath.replace(/\/engine\.wal$/, '');
       const wal = new WriteAheadLog(dataDir);
       wal.appendSet(key, value);
@@ -130,6 +136,6 @@ async function handleWalSubcommand(
     }
 
     default:
-      return resp.error(`unknown WAL subcommand '${walSub}'. Try: STATUS, INJECT`);
+      return resp.error(`unknown WAL subcommand '${walSub}'. Try: STATUS, CHECKPOINT, INJECT`);
   }
 }
