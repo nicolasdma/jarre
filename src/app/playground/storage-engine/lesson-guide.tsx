@@ -136,6 +136,68 @@ Este es el fundamento del Capitulo 3 de DDIA (Designing Data-Intensive Applicati
     ],
     observe: 'Despues del checkpoint, el WAL queda vacio. Los dos backends leen el mismo archivo — lo que cambia es si usan un indice en RAM o no. Esa decision define la velocidad de lectura.',
   },
+  {
+    title: '8. LSM-Tree: lo mejor de ambos mundos',
+    theory: `El hash-index es rapido pero tiene un problema: TODAS las keys deben caber en la memoria RAM. Si tenes 10 millones de keys, necesitas 10 millones de entradas en el mapa. Eso puede no caber.
+
+El LSM-Tree (Log-Structured Merge Tree) resuelve esto con una idea elegante:
+
+1. Escribe en una "memtable" en RAM (una tabla ordenada, pequeña)
+2. Cuando la memtable se llena, la baja a disco como un archivo ordenado llamado SSTable (Sorted String Table)
+3. Para leer, busca primero en la memtable, despues en los SSTables de mas nuevo a mas viejo
+
+¿Por que ordenado? Porque un archivo ordenado permite buscar con "binary search" (como buscar en un diccionario: abris por la mitad, ves si tu palabra esta antes o despues, repetis).
+
+Cambia al backend LSM-Tree y observa:`,
+    commands: [
+      { cmd: 'DEBUG BACKEND lsm-tree', explain: 'Cambia al LSM-Tree' },
+      { cmd: 'FLUSHDB', explain: 'Empieza limpio' },
+      { cmd: 'SET manzana fruta', explain: 'Va a la memtable (RAM)' },
+      { cmd: 'SET banana fruta', explain: 'Tambien a la memtable' },
+      { cmd: 'SET cereza fruta', explain: 'Mira: estan ORDENADAS en la memtable' },
+    ],
+    observe: 'El panel derecho muestra la memtable con los datos ORDENADOS alfabeticamente (banana, cereza, manzana). Tambien ves la barra de llenado — cuando llegue al 100%, hace flush a disco.',
+  },
+  {
+    title: '9. Flush: de RAM a disco',
+    theory: `La memtable tiene un limite (10 entradas en este demo). Cuando se llena, todo su contenido se escribe a disco como un SSTable: un archivo donde los datos estan ordenados e inmutables (nunca se modifica).
+
+Despues del flush:
+- La memtable se vacia (lista para mas datos)
+- El WAL se limpia (los datos ya estan seguros en el SSTable)
+- El SSTable queda en disco para siempre (hasta compaction)
+
+Llena la memtable para ver el flush en accion:`,
+    commands: [
+      { cmd: 'SET d 4', explain: '' },
+      { cmd: 'SET e 5', explain: '' },
+      { cmd: 'SET f 6', explain: '' },
+      { cmd: 'SET g 7', explain: '' },
+      { cmd: 'SET h 8', explain: '' },
+      { cmd: 'SET i 9', explain: '' },
+      { cmd: 'SET j 10', explain: 'Este deberia provocar el flush' },
+    ],
+    observe: 'Cuando la memtable llega a 10 entradas, se escribe un SSTable en disco. La memtable se vacia, y el SSTable aparece abajo con su rango de keys (min → max) y su tamaño en bytes.',
+  },
+  {
+    title: '10. Lectura: memtable primero, SSTables despues',
+    theory: `Cuando haces GET, el LSM-Tree busca en orden:
+
+1. Memtable (RAM) — lo mas reciente, lo mas rapido
+2. SSTable mas nuevo — por si fue escrito en el ultimo flush
+3. SSTable mas viejo — y asi hasta el mas antiguo
+
+Se detiene en el primer resultado que encuentra. Esto significa que si un dato fue actualizado, la version mas nueva (en memtable o SSTable reciente) gana sobre la vieja.
+
+Escribi mas datos para tener cosas en memtable y en SSTables, y despues busca:`,
+    commands: [
+      { cmd: 'SET k 11', explain: 'Esto va a la memtable' },
+      { cmd: 'SET a NUEVO', explain: 'Sobreescribe "a" (que esta en un SSTable)' },
+      { cmd: 'GET a', explain: 'Encuentra "NUEVO" en memtable (no busca en SSTable)' },
+      { cmd: 'GET d', explain: 'No esta en memtable → busca en SSTable → lo encuentra' },
+    ],
+    observe: 'GET a devuelve "NUEVO" (de la memtable), no "fruta" (del SSTable). GET d busca en la memtable, no lo encuentra, y va al SSTable. El panel derecho muestra donde esta cada dato.',
+  },
 ];
 
 export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) {

@@ -59,7 +59,7 @@ export class HashIndex implements StorageBackend {
   constructor(dataDir: string) {
     ensureDir(dataDir);
     this.filePath = path.join(dataDir, 'engine.log');
-    this.wal = new WriteAheadLog(dataDir);
+    this.wal = new WriteAheadLog(dataDir, 'hash-index.wal');
     this.recoverFromDisk();
   }
 

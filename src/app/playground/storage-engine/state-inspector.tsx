@@ -43,6 +43,19 @@ export function StateInspector({ state, status }: StateInspectorProps) {
   const { backend } = state;
   const details = backend.details;
   const isHashIndex = backend.name === 'hash-index';
+  const isLSM = backend.name === 'lsm-tree';
+
+  const badgeStyle = isLSM
+    ? 'bg-[#eee8f5] text-[#6b4f8a]'
+    : isHashIndex
+      ? 'bg-[#eef3ee] text-[#4a5d4a]'
+      : 'bg-[#f5f0e8] text-[#a08050]';
+
+  const diagramBg = isLSM
+    ? 'bg-[#f9f7fc] border-[#ddd5e8]'
+    : isHashIndex
+      ? 'bg-[#f8faf8] border-[#dde5dd]'
+      : 'bg-[#faf8f4] border-[#e8e0d0]';
 
   return (
     <div className="h-full overflow-y-auto">
@@ -51,20 +64,16 @@ export function StateInspector({ state, status }: StateInspectorProps) {
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           State Inspector
         </span>
-        <span className={`font-mono text-[11px] font-medium px-2 py-0.5 ${
-          isHashIndex
-            ? 'bg-[#eef3ee] text-[#4a5d4a]'
-            : 'bg-[#f5f0e8] text-[#a08050]'
-        }`}>
+        <span className={`font-mono text-[11px] font-medium px-2 py-0.5 ${badgeStyle}`}>
           {backend.name}
         </span>
       </div>
 
-      {/* How GET works — the key visual difference */}
-      <div className={`px-5 py-4 border-b ${
-        isHashIndex ? 'bg-[#f8faf8] border-[#dde5dd]' : 'bg-[#faf8f4] border-[#e8e0d0]'
-      }`}>
-        {isHashIndex ? (
+      {/* How it works — diagram */}
+      <div className={`px-5 py-4 border-b ${diagramBg}`}>
+        {isLSM ? (
+          <LSMTreeDiagram />
+        ) : isHashIndex ? (
           <HashIndexDiagram />
         ) : (
           <AppendLogDiagram />
@@ -73,18 +82,22 @@ export function StateInspector({ state, status }: StateInspectorProps) {
 
       {/* Stats */}
       <div className="px-5 py-4 border-b border-[#e8e6e0]">
-        <div className="grid grid-cols-2 gap-3">
-          <Stat label="Live Keys" value={String(backend.keyCount)} />
-          <Stat
-            label="Archivo"
-            value={formatBytes(details.fileSizeBytes as number ?? 0)}
-          />
-          <Stat
-            label="Records en disco"
-            value={String(details.totalRecords ?? details.totalRecordsOnDisk ?? 0)}
-          />
-          <Stat label="Uptime" value={formatUptime(state.uptimeMs)} />
-        </div>
+        {isLSM ? (
+          <LSMStats details={details} uptimeMs={state.uptimeMs} />
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <Stat label="Live Keys" value={String(backend.keyCount)} />
+            <Stat
+              label="Archivo"
+              value={formatBytes(details.fileSizeBytes as number ?? 0)}
+            />
+            <Stat
+              label="Records en disco"
+              value={String(details.totalRecords ?? details.totalRecordsOnDisk ?? 0)}
+            />
+            <Stat label="Uptime" value={formatUptime(state.uptimeMs)} />
+          </div>
+        )}
       </div>
 
       {/* Backend-specific visualization */}
@@ -93,6 +106,9 @@ export function StateInspector({ state, status }: StateInspectorProps) {
       )}
       {backend.name === 'hash-index' && (
         <HashIndexViz details={details} />
+      )}
+      {backend.name === 'lsm-tree' && (
+        <LSMTreeViz details={details} />
       )}
     </div>
   );
@@ -413,6 +429,239 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── LSM-Tree diagram ─────────────────────────────────────────
+
+function LSMTreeDiagram() {
+  return (
+    <div>
+      <p className="font-mono text-[10px] text-[#6b4f8a] uppercase tracking-wider mb-3">
+        Como funciona el LSM-Tree
+      </p>
+      {/* Three layers */}
+      <div className="space-y-1.5 mb-3">
+        {/* RAM: Memtable */}
+        <div className="border border-[#d5d0e8] bg-white px-2 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <p className="font-mono text-[9px] text-[#6b4f8a] uppercase tracking-wider">RAM — Memtable</p>
+            <p className="font-mono text-[9px] text-[#aaa]">ordenada</p>
+          </div>
+          <div className="flex gap-0.5">
+            <div className="bg-[#f0edf8] px-1.5 py-0.5 font-mono text-[9px] text-[#6b4f8a]">a=1</div>
+            <div className="bg-[#f0edf8] px-1.5 py-0.5 font-mono text-[9px] text-[#6b4f8a]">b=2</div>
+            <div className="bg-[#f0edf8] px-1.5 py-0.5 font-mono text-[9px] text-[#6b4f8a]">c=3</div>
+            <div className="font-mono text-[9px] text-[#ccc] px-1">...</div>
+          </div>
+        </div>
+        {/* Arrow: flush */}
+        <div className="text-center font-mono text-[9px] text-[#bbb]">
+          ↓ flush cuando se llena ↓
+        </div>
+        {/* SSD: SSTables */}
+        <div className="border border-[#ddd] bg-white px-2 py-2">
+          <p className="font-mono text-[9px] text-[#888] uppercase tracking-wider mb-1">SSD — SSTables (inmutables)</p>
+          <div className="space-y-0.5">
+            <div className="bg-[#f5f5f0] px-1.5 py-0.5 font-mono text-[9px] text-[#888]">sst_2.sst: d→z (mas reciente)</div>
+            <div className="bg-[#f8f8f5] px-1.5 py-0.5 font-mono text-[9px] text-[#bbb]">sst_1.sst: a→c (mas vieja)</div>
+          </div>
+        </div>
+      </div>
+      {/* Read explanation */}
+      <div className="bg-white border border-[#d5d0e8] px-2 py-2">
+        <p className="font-mono text-[10px] text-[#6b4f8a] mb-1">GET key →</p>
+        <p className="font-mono text-[9px] text-[#999] leading-relaxed">
+          1. Busca en Memtable (RAM) → 2. Busca en SSTables de mas nueva a mas vieja.
+          <span className="text-[#6b4f8a]"> Primer resultado encontrado gana.</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function LSMStats({ details, uptimeMs }: { details: Record<string, unknown>; uptimeMs: number }) {
+  const memtable = details.memtable as {
+    size: number; liveCount: number; sizeBytes: number; flushThreshold: number;
+  } | undefined;
+  const sstableCount = details.sstableCount as number ?? 0;
+  const flushCount = details.flushCount as number ?? 0;
+
+  const fillPercent = memtable
+    ? Math.min(100, Math.round((memtable.size / memtable.flushThreshold) * 100))
+    : 0;
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <Stat label="En Memtable" value={`${memtable?.size ?? 0} / ${memtable?.flushThreshold ?? 0}`} />
+        <Stat label="SSTables" value={String(sstableCount)} />
+        <Stat label="Flushes" value={String(flushCount)} />
+        <Stat label="Uptime" value={formatUptime(uptimeMs)} />
+      </div>
+      {/* Memtable fill bar */}
+      {memtable && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-mono text-[9px] text-[#aaa] uppercase">Memtable</span>
+            <span className="font-mono text-[9px] text-[#aaa]">{fillPercent}%</span>
+          </div>
+          <div className="h-2 bg-[#f0f0ec] overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${
+                fillPercent >= 90 ? 'bg-[#c07070]' : fillPercent >= 60 ? 'bg-[#c4a07a]' : 'bg-[#6b4f8a]'
+              }`}
+              style={{ width: `${fillPercent}%` }}
+            />
+          </div>
+          {fillPercent >= 90 && (
+            <p className="font-mono text-[9px] text-[#c07070] mt-1">
+              Casi llena — proximo SET provoca flush a disco
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── LSM-Tree visualization ───────────────────────────────────
+
+function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
+  const memtable = details.memtable as {
+    entries: Array<{ key: string; value: string; deleted: boolean }>;
+    size: number;
+    liveCount: number;
+    flushThreshold: number;
+  } | undefined;
+  const sstables = (details.sstables ?? []) as Array<{
+    filePath: string;
+    fileSizeBytes: number;
+    numRecords: number;
+    numIndexEntries: number;
+    minKey: string;
+    maxKey: string;
+  }>;
+  const walState = details.wal as {
+    fileSizeBytes: number;
+    entryCount: number;
+    corruptedCount: number;
+    entries: Array<{
+      type: string; key: string; value: string;
+      offset: number; totalSize: number; checksumValid: boolean;
+    }>;
+  } | undefined;
+  const lastWalRecoveryCount = details.lastWalRecoveryCount as number ?? 0;
+
+  return (
+    <div className="px-5 py-4">
+      {/* WAL */}
+      <WALViz walState={walState} lastRecoveryCount={lastWalRecoveryCount} />
+
+      {/* Memtable */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+            Memtable (RAM)
+          </span>
+          <span className="font-mono text-[10px] text-[#6b4f8a]">
+            {memtable?.size ?? 0} entradas (ordenadas)
+          </span>
+        </div>
+
+        {memtable && memtable.entries.length > 0 ? (
+          <div className="border border-[#d5d0e8] bg-[#fafaff]">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0edf8] border-b border-[#d5d0e8] font-mono text-[9px] text-[#8888aa] uppercase">
+              <span className="w-20 shrink-0">Key</span>
+              <span className="flex-1">Value</span>
+              <span className="w-12 shrink-0 text-right">Estado</span>
+            </div>
+            {memtable.entries.map((entry, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eeedf8] last:border-0 ${
+                  entry.deleted ? 'bg-[#fdf5f5]' : ''
+                }`}
+              >
+                <span className="w-20 shrink-0 text-[#2c2c2c] truncate font-medium">
+                  {entry.key}
+                </span>
+                <span className={`flex-1 truncate ${entry.deleted ? 'text-[#c07070] line-through' : 'text-[#666]'}`}>
+                  {entry.deleted ? '(tombstone)' : entry.value}
+                </span>
+                <span className={`w-12 shrink-0 text-right text-[9px] ${
+                  entry.deleted ? 'text-[#c07070]' : 'text-[#6b4f8a]'
+                }`}>
+                  {entry.deleted ? 'DEL' : 'LIVE'}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border border-dashed border-[#d5d0e8] px-4 py-4 text-center">
+            <p className="font-mono text-[10px] text-[#aaa]">Memtable vacia</p>
+            <p className="font-mono text-[9px] text-[#ccc] mt-1">Haz SET para agregar datos</p>
+          </div>
+        )}
+      </div>
+
+      {/* SSTables */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+            SSTables (Disco)
+          </span>
+          <span className="font-mono text-[10px] text-[#888]">
+            {sstables.length} archivo{sstables.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {sstables.length > 0 ? (
+          <div className="space-y-1.5">
+            {sstables.map((sst, i) => {
+              const fileName = sst.filePath.split('/').pop() ?? sst.filePath;
+              const isNewest = i === sstables.length - 1;
+              return (
+                <div
+                  key={i}
+                  className={`border px-3 py-2 ${
+                    isNewest ? 'border-[#d5d0e8] bg-[#fafaff]' : 'border-[#e8e6e0] bg-[#fcfcfa]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[10px] text-[#555] font-medium">
+                      {fileName}
+                    </span>
+                    <span className="font-mono text-[9px] text-[#aaa]">
+                      {formatBytes(sst.fileSizeBytes)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 font-mono text-[9px] text-[#999]">
+                    <span>{sst.numRecords} records</span>
+                    <span className="text-[#ddd]">|</span>
+                    <span>{sst.numIndexEntries} index entries</span>
+                    <span className="text-[#ddd]">|</span>
+                    <span>keys: {sst.minKey} → {sst.maxKey}</span>
+                  </div>
+                  {isNewest && (
+                    <span className="font-mono text-[9px] text-[#6b4f8a] mt-1 inline-block">
+                      mas reciente — se busca primero
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border border-dashed border-[#e8e6e0] px-4 py-4 text-center">
+            <p className="font-mono text-[10px] text-[#aaa]">Sin SSTables todavia</p>
+            <p className="font-mono text-[9px] text-[#ccc] mt-1">
+              Cuando la memtable se llene, se escribe un SSTable
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { routeCommand, type CommandContext } from './commands/router.js';
 import * as resp from './resp/serializer.js';
 import { AppendLog } from './storage/append-log.js';
 import { HashIndex } from './storage/hash-index.js';
+import { LSMTree } from './storage/lsm-tree.js';
 import type { StorageBackend } from './storage/interface.js';
 import { startDebugServer } from './debug/server.js';
 
@@ -25,6 +26,7 @@ const DEFAULT_BACKEND = process.env.ENGINE_BACKEND ?? 'hash-index';
 const BACKEND_FACTORIES: Record<string, () => StorageBackend> = {
   'append-log': () => new AppendLog(DATA_DIR),
   'hash-index': () => new HashIndex(DATA_DIR),
+  'lsm-tree': () => new LSMTree(DATA_DIR),
 };
 
 let currentBackend: StorageBackend = BACKEND_FACTORIES[DEFAULT_BACKEND]();

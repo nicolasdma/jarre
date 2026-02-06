@@ -60,8 +60,8 @@ export interface WALState {
 export class WriteAheadLog {
   private readonly filePath: string;
 
-  constructor(dataDir: string) {
-    this.filePath = path.join(dataDir, 'engine.wal');
+  constructor(dataDir: string, walFileName = 'engine.wal') {
+    this.filePath = path.join(dataDir, walFileName);
   }
 
   /**
