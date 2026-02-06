@@ -1,0 +1,380 @@
+'use client';
+
+export interface EngineState {
+  timestamp: string;
+  uptimeMs: number;
+  backend: {
+    name: string;
+    keyCount: number;
+    details: Record<string, unknown>;
+  };
+}
+
+interface StateInspectorProps {
+  state: EngineState | null;
+  status: 'connecting' | 'connected' | 'disconnected';
+}
+
+export function StateInspector({ state, status }: StateInspectorProps) {
+  if (status === 'disconnected') {
+    return (
+      <div className="h-full flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-12 h-12 border border-[#e8e6e0] flex items-center justify-center mx-auto mb-4">
+            <span className="font-mono text-[#a0a090] text-lg">/</span>
+          </div>
+          <p className="font-mono text-xs text-[#7a7a6e] mb-2">Engine offline</p>
+          <code className="font-mono text-[10px] text-[#a0a090] bg-[#f0efe8] px-2 py-1">
+            npm run engine
+          </code>
+        </div>
+      </div>
+    );
+  }
+
+  if (!state) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <span className="font-mono text-[11px] text-[#a0a090]">Loading...</span>
+      </div>
+    );
+  }
+
+  const { backend } = state;
+  const details = backend.details;
+  const isHashIndex = backend.name === 'hash-index';
+
+  return (
+    <div className="h-full overflow-y-auto">
+      {/* Header with backend name */}
+      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between">
+        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
+          State Inspector
+        </span>
+        <span className={`font-mono text-[11px] font-medium px-2 py-0.5 ${
+          isHashIndex
+            ? 'bg-[#eef3ee] text-[#4a5d4a]'
+            : 'bg-[#f5f0e8] text-[#a08050]'
+        }`}>
+          {backend.name}
+        </span>
+      </div>
+
+      {/* How GET works — the key visual difference */}
+      <div className={`px-5 py-4 border-b ${
+        isHashIndex ? 'bg-[#f8faf8] border-[#dde5dd]' : 'bg-[#faf8f4] border-[#e8e0d0]'
+      }`}>
+        {isHashIndex ? (
+          <HashIndexDiagram />
+        ) : (
+          <AppendLogDiagram />
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+        <div className="grid grid-cols-2 gap-3">
+          <Stat label="Live Keys" value={String(backend.keyCount)} />
+          <Stat
+            label="Archivo"
+            value={formatBytes(details.fileSizeBytes as number ?? 0)}
+          />
+          <Stat
+            label="Records en disco"
+            value={String(details.totalRecords ?? details.totalRecordsOnDisk ?? 0)}
+          />
+          <Stat label="Uptime" value={formatUptime(state.uptimeMs)} />
+        </div>
+      </div>
+
+      {/* Backend-specific visualization */}
+      {backend.name === 'append-log' && (
+        <AppendLogViz details={details} />
+      )}
+      {backend.name === 'hash-index' && (
+        <HashIndexViz details={details} />
+      )}
+    </div>
+  );
+}
+
+// ── Diagrams ──────────────────────────────────────────────────
+
+function AppendLogDiagram() {
+  return (
+    <div>
+      <p className="font-mono text-[10px] text-[#a08050] uppercase tracking-wider mb-2">
+        Como funciona GET
+      </p>
+      <div className="font-mono text-[11px] leading-relaxed text-[#666] bg-white px-3 py-2 border border-[#e8e0d0]">
+        <p className="text-[#a08050]">GET ciudad</p>
+        <p className="text-[#999] mt-1">  1. Abrir archivo</p>
+        <p className="text-[#999]">  2. Leer record #n ... es "ciudad"?</p>
+        <p className="text-[#999]">  3. Leer record #n-1 ... es "ciudad"?</p>
+        <p className="text-[#999]">  4. Leer record #n-2 ... es "ciudad"?</p>
+        <p className="text-[#c07070]">  ... escanea TODOS hasta encontrar</p>
+      </div>
+      <p className="font-mono text-[10px] text-[#a08050] mt-2">
+        Tiempo: proporcional a la cantidad de records
+      </p>
+    </div>
+  );
+}
+
+function HashIndexDiagram() {
+  return (
+    <div>
+      <p className="font-mono text-[10px] text-[#4a5d4a] uppercase tracking-wider mb-2">
+        Como funciona GET
+      </p>
+      <div className="font-mono text-[11px] leading-relaxed text-[#666] bg-white px-3 py-2 border border-[#dde5dd]">
+        <p className="text-[#4a5d4a]">GET ciudad</p>
+        <p className="text-[#999] mt-1">  1. Buscar "ciudad" en el Map de RAM</p>
+        <p className="text-[#4a5d4a]">  2. Offset = 81 → ir directo al byte 81</p>
+        <p className="text-[#4a5d4a]">  3. Leer valor → listo</p>
+      </div>
+      <p className="font-mono text-[10px] text-[#4a5d4a] mt-2">
+        Tiempo: siempre igual, sin importar cuantos records haya
+      </p>
+    </div>
+  );
+}
+
+// ── Append Log visualization ──────────────────────────────────
+
+function AppendLogViz({ details }: { details: Record<string, unknown> }) {
+  const records = (details.recentRecords ?? []) as Array<{
+    type: string;
+    key: string;
+    value: string | null;
+    offset: number;
+    size: number;
+  }>;
+
+  const fileSizeBytes = details.fileSizeBytes as number ?? 0;
+  const totalRecords = details.totalRecords as number;
+  const liveKeys = details.liveKeys as number;
+
+  if (records.length === 0) {
+    return (
+      <div className="px-5 py-4">
+        <div className="border border-dashed border-[#ddd] px-4 py-8 text-center">
+          <p className="font-mono text-xs text-[#999]">Archivo vacio — 0 bytes</p>
+          <p className="font-mono text-[10px] text-[#bbb] mt-1">Haz SET key value para escribir</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Track which keys are "stale" (overwritten by a later record)
+  const latestForKey = new Map<string, number>();
+  for (let i = 0; i < records.length; i++) {
+    latestForKey.set(records[i].key, i);
+  }
+
+  const wasteRatio = totalRecords > 0
+    ? ((totalRecords - liveKeys) / totalRecords * 100).toFixed(0)
+    : '0';
+
+  return (
+    <div className="px-5 py-4">
+      {/* File header */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+          Archivo en disco
+        </span>
+        <span className="font-mono text-[10px] text-[#999]">
+          {fileSizeBytes} bytes
+        </span>
+      </div>
+      <p className="font-mono text-[10px] text-[#bbb] mb-3">
+        engine/data/engine.log
+      </p>
+
+      {/* File visualization — stacked blocks */}
+      <div className="border border-[#e0dfd8] bg-[#fcfcfa] mb-4">
+        <div className="flex items-center justify-between px-2 py-1 bg-[#f0efe8] border-b border-[#e0dfd8]">
+          <span className="font-mono text-[9px] text-[#aaa]">byte 0</span>
+          <span className="font-mono text-[9px] text-[#aaa]">byte {fileSizeBytes}</span>
+        </div>
+
+        <div className="divide-y divide-[#eee]">
+          {records.map((record, i) => {
+            const isLatest = latestForKey.get(record.key) === i;
+            const isDeleted = record.type === 'DEL';
+            const isStale = !isLatest && !isDeleted;
+
+            return (
+              <div
+                key={i}
+                className={`px-2 py-1.5 font-mono text-[11px] ${
+                  isDeleted
+                    ? 'bg-[#fdf5f5]'
+                    : isStale
+                      ? 'bg-[#f9f8f4] opacity-50'
+                      : 'bg-white'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-[#bbb] w-10 shrink-0 text-right tabular-nums">
+                    {record.offset}
+                  </span>
+                  <span className="text-[#ddd]">|</span>
+                  <span className={`text-[10px] w-7 shrink-0 ${
+                    isDeleted ? 'text-[#c07070]' : 'text-[#4a5d4a]'
+                  }`}>
+                    {record.type}
+                  </span>
+                  <span className={isStale ? 'text-[#bbb]' : 'text-[#555]'}>
+                    {record.key}
+                  </span>
+                  {record.value !== null && (
+                    <>
+                      <span className="text-[#ddd]">=</span>
+                      <span className={`truncate ${isStale ? 'text-[#ccc]' : 'text-[#888]'}`}>
+                        {record.value}
+                      </span>
+                    </>
+                  )}
+                  <span className="ml-auto text-[9px] text-[#ccc] shrink-0 tabular-nums">
+                    {record.size}B
+                  </span>
+                </div>
+                {isStale && (
+                  <span className="text-[9px] text-[#d4a07a] ml-12">
+                    obsoleto — sobreescrito
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {totalRecords > records.length && (
+        <p className="font-mono text-[10px] text-[#bbb] mb-3">
+          ...mostrando ultimos {records.length} de {totalRecords}
+        </p>
+      )}
+
+      {/* Waste indicator */}
+      {totalRecords > liveKeys && (
+        <div className="bg-[#fdf8f0] border border-[#ece0c8] px-3 py-2">
+          <p className="font-mono text-[10px] text-[#a08050]">
+            {wasteRatio}% del archivo son records obsoletos
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Hash Index visualization ──────────────────────────────────
+
+function HashIndexViz({ details }: { details: Record<string, unknown> }) {
+  const entries = (details.indexEntries ?? []) as Array<{
+    key: string;
+    offset: number;
+    valueLength: number;
+  }>;
+  const totalDiskRecords = details.totalRecordsOnDisk as number ?? 0;
+  const indexSize = details.indexSize as number ?? 0;
+
+  return (
+    <div className="px-5 py-4">
+      {/* Index table */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+            Index en RAM
+          </span>
+          <span className="font-mono text-[10px] text-[#4a5d4a]">
+            Map&lt;key, offset&gt;
+          </span>
+        </div>
+
+        {entries.length === 0 ? (
+          <div className="border border-dashed border-[#dde5dd] px-4 py-6 text-center">
+            <p className="font-mono text-xs text-[#999]">Index vacio</p>
+            <p className="font-mono text-[10px] text-[#bbb] mt-1">Haz SET key value</p>
+          </div>
+        ) : (
+          <div className="border border-[#dde5dd] bg-[#fcfdfb]">
+            {/* Header */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0f4f0] border-b border-[#dde5dd] font-mono text-[9px] text-[#a0a090] uppercase">
+              <span className="w-20 shrink-0">Key</span>
+              <span className="text-center flex-1">→</span>
+              <span className="w-14 shrink-0 text-right">Offset</span>
+              <span className="w-14 shrink-0 text-right">Bytes</span>
+            </div>
+            {entries.map((entry, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eef3ee] last:border-0"
+              >
+                <span className="w-20 shrink-0 text-[#2c2c2c] truncate font-medium">
+                  {entry.key}
+                </span>
+                <span className="text-[#4a5d4a] text-center flex-1">→</span>
+                <span className="w-14 shrink-0 text-right text-[#4a5d4a] tabular-nums">
+                  byte {entry.offset}
+                </span>
+                <span className="w-14 shrink-0 text-right text-[#a0a090] tabular-nums">
+                  {entry.valueLength}B
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {entries.length > 0 && entries.length < indexSize && (
+          <p className="font-mono text-[10px] text-[#bbb] mt-2">
+            ...mostrando {entries.length} de {indexSize}
+          </p>
+        )}
+      </div>
+
+      {/* Disk waste comparison */}
+      {totalDiskRecords > 0 && totalDiskRecords > indexSize && (
+        <div className="bg-[#f8faf8] border border-[#dde5dd] px-3 py-2">
+          <p className="font-mono text-[10px] text-[#666]">
+            <span className="text-[#2c2c2c] font-medium">{indexSize}</span> keys en RAM,{' '}
+            <span className="text-[#a08050]">{totalDiskRecords}</span> records en disco.{' '}
+            <span className="text-[#999]">
+              Los {totalDiskRecords - indexSize} extra son versiones viejas.
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-[#f5f5f0] px-3 py-2">
+      <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
+        {label}
+      </p>
+      <p className="font-mono text-sm text-[#2c2c2c] mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatUptime(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}

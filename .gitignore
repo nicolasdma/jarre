@@ -42,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# storage engine runtime data
+/engine/data/*
+!/engine/data/.gitkeep

@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-04 (session-02, evaluation history feature)
+> Last updated: 2026-02-05 (session-02, storage engine hash index + web UI)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -71,6 +71,18 @@
 
 ---
 
+## Storage Engine (Learn by Doing - DDIA Ch3)
+
+- [x] `[P1]` Session 1: RESP protocol + Append-Only Log backend - 2026-02-05
+- [x] `[P1]` Session 2: Hash Index + Web UI shell - 2026-02-05
+- [ ] `[P1]` Session 3: WAL + Crash Recovery
+- [ ] `[P2]` Session 4: Memtable + SSTable
+- [ ] `[P2]` Session 5: LSM-Tree + Bloom Filters + Compaction
+- [ ] `[P2]` Session 6: B-Tree
+- [ ] `[P3]` Session 7: Benchmarks + Comparison
+
+---
+
 ## Ideas / Someday
 
 - [ ] AI tutor mode (conversational learning)
@@ -107,3 +119,5 @@
 - [x] `[P1]` DeepSeek API integration - 2026-02-04
 - [x] `[P2]` Notes system - take structured notes while reading - 2026-02-04
 - [x] `[P1]` Evaluation history - view past evaluations with detail - 2026-02-04
+- [x] `[P1]` Storage engine Session 1: RESP protocol + Append-Only Log - 2026-02-05
+- [x] `[P1]` Storage engine Session 2: Hash Index + Web UI - 2026-02-05
