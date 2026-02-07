@@ -13,9 +13,13 @@ interface PageProps {
 
 /** Where does the "next step" go for each resource */
 const NEXT_STEP: Record<string, { label: string; href: string }> = {
-  'ddia-ch1': { label: 'Evaluar', href: '/evaluate/ddia-ch1' },
+  'ddia-ch1': { label: 'Playground', href: '/playground/latency-simulator' },
   'ddia-ch2': { label: 'Evaluar', href: '/evaluate/ddia-ch2' },
   'ddia-ch3': { label: 'Playground', href: '/playground/storage-engine' },
+  'ddia-ch5': { label: 'Playground', href: '/playground/replication-lab' },
+  'ddia-ch6': { label: 'Playground', href: '/playground/partitioning' },
+  'ddia-ch8': { label: 'Playground', href: '/playground/consensus' },
+  'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
 };
 
 export default async function QuestionsPage({ params }: PageProps) {

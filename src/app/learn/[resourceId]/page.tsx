@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { DDIAChapter1 } from './ddia-ch1';
 import { DDIAChapter2 } from './ddia-ch2';
 import { DDIAChapter3 } from './ddia-ch3';
+import { DDIAChapter5 } from './ddia-ch5';
+import { DDIAChapter6 } from './ddia-ch6';
+import { DDIAChapter8 } from './ddia-ch8';
+import { DDIAChapter9 } from './ddia-ch9';
 import { READING_QUESTIONS } from './reading-questions';
 
 interface PageProps {
@@ -12,9 +16,13 @@ interface PageProps {
 
 /** Where does the "practical" step go for each resource */
 const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
-  'ddia-ch1': { label: 'Evaluar', href: '/evaluate/ddia-ch1' },
+  'ddia-ch1': { label: 'Playground', href: '/playground/latency-simulator' },
   'ddia-ch2': { label: 'Evaluar', href: '/evaluate/ddia-ch2' },
   'ddia-ch3': { label: 'Playground', href: '/playground/storage-engine' },
+  'ddia-ch5': { label: 'Playground', href: '/playground/replication-lab' },
+  'ddia-ch6': { label: 'Playground', href: '/playground/partitioning' },
+  'ddia-ch8': { label: 'Playground', href: '/playground/consensus' },
+  'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
 };
 
 /** Resources with deep explanation components */
@@ -22,6 +30,10 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'ddia-ch1': () => <DDIAChapter1 />,
   'ddia-ch2': () => <DDIAChapter2 />,
   'ddia-ch3': () => <DDIAChapter3 />,
+  'ddia-ch5': () => <DDIAChapter5 />,
+  'ddia-ch6': () => <DDIAChapter6 />,
+  'ddia-ch8': () => <DDIAChapter8 />,
+  'ddia-ch9': () => <DDIAChapter9 />,
 };
 
 const AVAILABLE_RESOURCES = new Set(Object.keys(EXPLANATION_COMPONENTS));

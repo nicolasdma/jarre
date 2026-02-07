@@ -148,6 +148,188 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       hint: 'Row-oriented vs column-oriented no es solo formato — afecta qué operaciones son rápidas.',
     },
   ],
+
+  'ddia-ch5': [
+    {
+      type: 'tradeoff',
+      question:
+        'Replicación síncrona garantiza que los datos están en al menos dos nodos. ¿Por qué entonces la mayoría de los sistemas usan replicación asíncrona a pesar de poder perder datos?',
+      concept: 'Sync vs async replication',
+      hint: 'Piensa en qué pasa cuando un seguidor síncrono tiene alta latencia o se cae.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué "read-after-write consistency" es un problema específico de la replicación asíncrona? Describe un escenario concreto donde un usuario ve datos desactualizados de algo que acaba de escribir.',
+      concept: 'Read-after-write consistency',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Si el líder muere, simplemente promovemos al seguidor más reciente y no se pierde ningún dato." ¿Qué está mal con esta afirmación en un sistema con replicación asíncrona?',
+      concept: 'Failover y pérdida de datos',
+      hint: 'El seguidor "más reciente" puede estar segundos detrás del líder.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'En un sistema leaderless (estilo Dynamo), ¿por qué se necesita que W + R > N para garantizar lecturas frescas? ¿Qué pasa si W + R ≤ N?',
+      concept: 'Quorum reads/writes',
+      hint: 'Piensa en la intersección de conjuntos: los nodos que escribieron y los que lees.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se relaciona el problema de "split brain" en replicación con el problema de consenso del capítulo 9? ¿Por qué detectar que el líder murió es tan difícil?',
+      concept: 'Split brain',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué "monotonic reads" requiere fijar al usuario a una réplica específica? ¿No sería suficiente con que todas las réplicas apliquen los cambios en el mismo orden?',
+      concept: 'Monotonic reads',
+      hint: 'Aplicar en el mismo orden no significa que estén al mismo punto en el tiempo.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Multi-leader replication permite escrituras en múltiples datacenters simultáneamente. ¿Qué nuevo problema introduce que single-leader no tiene, y cómo se resuelve típicamente?',
+      concept: 'Multi-leader conflict resolution',
+    },
+  ],
+
+  'ddia-ch6': [
+    {
+      type: 'tradeoff',
+      question:
+        'Hash partitioning distribuye datos uniformemente, pero pierde la capacidad de hacer range queries eficientes. ¿En qué tipo de aplicación aceptarías este trade-off y en cuál no?',
+      concept: 'Hash vs range partitioning',
+      hint: 'Piensa en time-series data vs user profiles.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué hash(key) mod N es una mala estrategia de particionamiento cuando necesitas agregar nodos? ¿Qué problema resuelve consistent hashing?',
+      concept: 'Consistent hashing',
+      hint: 'Calcula qué porcentaje de datos se mueve al pasar de 10 a 11 nodos con mod N.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Los hotspots solo ocurren con range partitioning porque hash partitioning distribuye uniformemente." ¿Por qué esto es incorrecto?',
+      concept: 'Hotspots',
+      hint: 'Piensa en una celebridad cuyo user_id siempre va a la misma partición, sin importar el hash.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Tienes una tabla de eventos con timestamp como key primaria y necesitas range queries por fecha. ¿Cómo diseñarías el particionamiento para evitar que todas las escrituras actuales vayan a una sola partición?',
+      concept: 'Partitioning time-series data',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se complementan particionamiento (ch6) y replicación (ch5)? ¿Por qué necesitas ambos y no solo uno?',
+      concept: 'Partitioning + replication',
+      hint: 'Particionamiento resuelve escala, replicación resuelve disponibilidad. Sin uno, el otro falla.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Un índice secundario local (document-partitioned) vs global (term-partitioned): ¿cuándo elegirías cada uno? Piensa en el costo de escritura vs lectura.',
+      concept: 'Secondary indexes in partitioned data',
+    },
+  ],
+
+  'ddia-ch8': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué en un sistema distribuido "no recibir respuesta" es fundamentalmente diferente a "recibir un error"? ¿Qué implica esto para el diseño de retries?',
+      concept: 'Unreliable networks',
+      hint: 'Si no recibes respuesta, la operación puede haberse ejecutado. Si retrías, ¿qué pasa si se ejecuta dos veces?',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Para ordenar eventos en un sistema distribuido, basta con usar timestamps sincronizados por NTP." ¿Qué está fundamentalmente mal con esta afirmación?',
+      concept: 'Unreliable clocks',
+      hint: 'NTP puede tener errores de milisegundos. ¿Qué pasa si dos eventos ocurren con 1ms de diferencia?',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Un nodo obtiene un lease (lock temporal) por 10 segundos. ¿Por qué una pausa de GC de 15 segundos puede causar corrupción de datos, y cómo lo previenen los fencing tokens?',
+      concept: 'Process pauses y fencing',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta el concepto de "fallas parciales" del capítulo 8 con la necesidad de consenso del capítulo 9? ¿Por qué las fallas parciales hacen que el consenso sea tan difícil?',
+      concept: 'Partial failures and consensus',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Timeouts cortos detectan fallas rápido pero generan falsos positivos. Timeouts largos son precisos pero lentos. ¿Cómo elegirías el timeout para un sistema de elección de líder?',
+      concept: 'Timeout configuration',
+      hint: 'Un falso positivo en elección de líder puede causar split brain.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué la mayoría de los sistemas no necesitan tolerancia a fallas bizantinas? ¿En qué contextos específicos sí es necesaria?',
+      concept: 'Byzantine faults',
+    },
+  ],
+
+  'ddia-ch9': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué la linearizabilidad es más costosa que la eventual consistency? ¿Qué tiene que hacer el sistema internamente para garantizar que una lectura siempre ve la escritura más reciente?',
+      concept: 'Linearizability cost',
+      hint: 'Piensa en cuántos nodos necesitas consultar para cada lectura.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'El teorema CAP dice que durante una partición de red debes elegir entre C y A. Kleppmann critica esta simplificación. ¿Por qué dice que es más útil pensar en un espectro de garantías?',
+      concept: 'CAP theorem critique',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"2PC (Two-Phase Commit) resuelve el problema de transacciones distribuidas de forma segura y eficiente." ¿Cuál es el fallo fundamental de 2PC que lo hace inadecuado para muchos sistemas?',
+      concept: 'Two-Phase Commit limitations',
+      hint: '¿Qué pasa si el coordinador muere entre las fases prepare y commit?',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Cuándo usarías un sistema CP (como ZooKeeper) vs uno AP (como Cassandra)? Da un ejemplo concreto de una operación que requiere CP y otra que tolera AP.',
+      concept: 'CP vs AP systems',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta la elección de líder (replicación, ch5) con el problema de consenso (ch9)? ¿Por qué elegir un líder ES un problema de consenso?',
+      concept: 'Leader election as consensus',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué Raft fue diseñado cuando ya existía Paxos? ¿Qué ventaja práctica tiene Raft sobre Paxos, y por qué la "understandability" importa en algoritmos distribuidos?',
+      concept: 'Raft vs Paxos',
+      hint: 'Un algoritmo que nadie entiende correctamente es un algoritmo que nadie implementa correctamente.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Lamport timestamps dan un orden total consistente con causalidad. ¿Por qué no son suficientes para implementar un constraint de unicidad (como "este username no existe")?',
+      concept: 'Lamport timestamps limitations',
+    },
+  ],
 };
 
 export const QUESTION_TYPE_LABELS: Record<ReadingQuestion['type'], string> = {
