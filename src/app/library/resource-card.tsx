@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 
 // Resources that have learn pages (deep explanations or playgrounds)
-const RESOURCES_WITH_LEARN_PAGES = ['ddia-ch1', 'ddia-ch2', 'ddia-ch3'];
+const RESOURCES_WITH_LEARN_PAGES = ['ddia-ch1', 'ddia-ch2', 'ddia-ch3', 'ddia-ch5', 'ddia-ch6', 'ddia-ch8', 'ddia-ch9'];
 
 function hasLearnPage(resourceId: string): boolean {
   return RESOURCES_WITH_LEARN_PAGES.includes(resourceId);

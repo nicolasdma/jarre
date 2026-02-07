@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-06 (session-06, B-Tree Storage Backend)
+> Last updated: 2026-02-06 (session-07, Phase 1 Playgrounds)
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -83,6 +83,19 @@
 
 ---
 
+## Phase 1 Playgrounds (DDIA Chapters)
+
+- [x] `[P1]` Latency Simulator (Ch1) — percentiles, SLOs, tail latency amplification - 2026-02-06
+- [x] `[P1]` Replication Lab (Ch5) — leader-based replication, failover, consistency violations - 2026-02-06
+- [x] `[P1]` Partition Visualizer (Ch6) — hash/consistent/range partitioning, hotspots - 2026-02-06
+- [x] `[P1]` Consensus Stepper (Ch8-9) — Raft protocol, election, log replication - 2026-02-06
+- [x] `[P1]` Routing integration — Library → Learn → Playground navigation - 2026-02-06
+- [ ] `[P2]` Visual polish pass — review all 4 playgrounds for UI consistency
+- [ ] `[P2]` Edge case testing — kill all nodes, rate=0, empty states
+- [ ] `[P3]` Mobile/responsive layout for playgrounds
+
+---
+
 ## Ideas / Someday
 
 - [ ] AI tutor mode (conversational learning)
@@ -128,3 +141,8 @@
 - [x] `[P1]` Per-backend WAL isolation (separate WAL files) - 2026-02-05
 - [x] `[P2]` Storage engine Session 5: Bloom Filters + SSTable v2 + Compaction - 2026-02-05
 - [x] `[P2]` Storage engine Session 6: B-Tree backend + visualization + lessons 14-18 - 2026-02-06
+- [x] `[P1]` Latency Simulator playground (DDIA Ch1) — 5 files, 1639 lines - 2026-02-06
+- [x] `[P1]` Replication Lab playground (DDIA Ch5) — 5 files, 1923 lines - 2026-02-06
+- [x] `[P1]` Partition Visualizer playground (DDIA Ch6) — 5 files, 1615 lines - 2026-02-06
+- [x] `[P1]` Consensus Stepper playground (DDIA Ch8-9) — 7 files, 2061 lines - 2026-02-06
+- [x] `[P1]` Phase 1 routing integration (resource-card, learn page, questions page) - 2026-02-06
