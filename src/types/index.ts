@@ -30,6 +30,18 @@ export type EvaluationStatus = 'in_progress' | 'completed' | 'abandoned';
 
 export type ProjectStatus = 'not_started' | 'in_progress' | 'completed';
 
+export type QuestionBankType =
+  | 'definition'
+  | 'fact'
+  | 'property'
+  | 'guarantee'
+  | 'complexity'
+  | 'comparison';
+
+export type ReviewRating = 'wrong' | 'hard' | 'easy';
+
+export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay';
+
 // ============================================================================
 // CORE ENTITIES
 // ============================================================================
@@ -89,6 +101,9 @@ export interface ConceptProgress {
   conceptId: string;
   level: MasteryLevel;
   lastEvaluatedAt?: Date;
+  level1Score?: number;
+  level2ProjectId?: string;
+  level3Score?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,6 +120,68 @@ export interface Project {
   status: ProjectStatus;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// ============================================================================
+// QUESTION BANK & SPACED REPETITION
+// ============================================================================
+
+/**
+ * A pre-generated factual question in the question bank
+ */
+export interface QuestionBankItem {
+  id: string;
+  conceptId: string;
+  type: QuestionBankType;
+  questionText: string;
+  expectedAnswer: string;
+  difficulty: 1 | 2 | 3;
+  relatedConceptId?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * SM-2 spaced repetition state for a user/question pair
+ */
+export interface ReviewSchedule {
+  id: string;
+  userId: string;
+  questionId: string;
+  easeFactor: number;
+  intervalDays: number;
+  repetitionCount: number;
+  nextReviewAt: Date;
+  lastReviewedAt?: Date;
+  lastRating?: ReviewRating;
+  correctCount: number;
+  incorrectCount: number;
+  streak: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Audit trail entry for mastery level changes
+ */
+export interface MasteryHistory {
+  id: string;
+  userId: string;
+  conceptId: string;
+  oldLevel: MasteryLevel;
+  newLevel: MasteryLevel;
+  triggerType: MasteryTriggerType;
+  triggerId?: string;
+  createdAt: Date;
+}
+
+/**
+ * Maps a project to concepts it advances to level 2
+ */
+export interface ProjectConcept {
+  projectId: string;
+  conceptId: string;
 }
 
 // ============================================================================
@@ -231,4 +308,53 @@ export interface ResourceWithProgress extends Resource {
   concepts: Array<Concept & { progress?: ConceptProgress }>;
   prerequisites: Array<Concept & { progress?: ConceptProgress }>;
   completionPercentage: number;
+}
+
+// ============================================================================
+// REVIEW API TYPES
+// ============================================================================
+
+/**
+ * A review card returned by the due endpoint
+ */
+export interface ReviewCard {
+  questionId: string;
+  conceptId: string;
+  conceptName: string;
+  questionText: string;
+  type: QuestionBankType;
+  difficulty: 1 | 2 | 3;
+  streak: number;
+  repetitionCount: number;
+}
+
+/**
+ * Request to submit a review answer
+ */
+export interface ReviewSubmitRequest {
+  questionId: string;
+  userAnswer: string;
+}
+
+/**
+ * Response from the review submit endpoint
+ */
+export interface ReviewSubmitResponse {
+  score: number;
+  feedback: string;
+  isCorrect: boolean;
+  expectedAnswer: string;
+  rating: ReviewRating;
+  nextReviewAt: string;
+  intervalDays: number;
+}
+
+/**
+ * Stats for the review dashboard
+ */
+export interface ReviewStats {
+  totalDue: number;
+  completedToday: number;
+  currentStreak: number;
+  totalCards: number;
 }

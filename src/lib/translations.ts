@@ -159,6 +159,55 @@ const translations = {
   'study.openNewTab': { es: 'Abrir en nueva pestaña', en: 'Open in new tab' },
   'study.canvasHint': { es: 'Dibuja, escribe, conecta ideas', en: 'Draw, write, connect ideas' },
   'study.saving': { es: 'Guardando...', en: 'Saving...' },
+
+  // Review
+  'nav.review': { es: 'Repaso', en: 'Review' },
+  'review.title': { es: 'Repaso Espaciado', en: 'Spaced Review' },
+  'review.subtitle': { es: 'Combate el olvido con repetición espaciada', en: 'Fight forgetting with spaced repetition' },
+  'review.pendingCards': { es: 'preguntas pendientes', en: 'pending questions' },
+  'review.noPending': { es: 'No tienes preguntas pendientes. ¡Bien hecho!', en: 'No pending questions. Well done!' },
+  'review.startReview': { es: 'Comenzar Repaso', en: 'Start Review' },
+  'review.verify': { es: 'Verificar', en: 'Verify' },
+  'review.next': { es: 'Siguiente', en: 'Next' },
+  'review.finish': { es: 'Finalizar', en: 'Finish' },
+  'review.correct': { es: 'Correcto', en: 'Correct' },
+  'review.incorrect': { es: 'Incorrecto', en: 'Incorrect' },
+  'review.expectedAnswer': { es: 'Respuesta esperada', en: 'Expected answer' },
+  'review.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
+  'review.answerPlaceholder': { es: 'Escribe tu respuesta...', en: 'Write your answer...' },
+  'review.sessionComplete': { es: 'Sesión Completada', en: 'Session Complete' },
+  'review.correctCount': { es: 'Correctas', en: 'Correct' },
+  'review.incorrectCount': { es: 'Incorrectas', en: 'Incorrect' },
+  'review.streak': { es: 'Racha', en: 'Streak' },
+  'review.nextReview': { es: 'Próxima revisión', en: 'Next review' },
+  'review.evaluating': { es: 'Evaluando...', en: 'Evaluating...' },
+  'review.difficulty': { es: 'Dificultad', en: 'Difficulty' },
+  'review.concept': { es: 'Concepto', en: 'Concept' },
+  'review.cardOf': { es: 'de', en: 'of' },
+  'review.backToDashboard': { es: 'Volver al Inicio', en: 'Back to Home' },
+
+  // Dashboard review section
+  'dashboard.reviewPending': { es: 'Repaso Pendiente', en: 'Review Pending' },
+  'dashboard.startReview': { es: 'Comenzar Repaso', en: 'Start Review' },
+  'dashboard.noReviewPending': { es: 'Sin repasos pendientes', en: 'No pending reviews' },
+
+  // Projects
+  'project.title': { es: 'Proyecto', en: 'Project' },
+  'project.deliverables': { es: 'Entregables', en: 'Deliverables' },
+  'project.start': { es: 'Iniciar Proyecto', en: 'Start Project' },
+  'project.markComplete': { es: 'Marcar Completado', en: 'Mark Complete' },
+  'project.completed': { es: 'Completado', en: 'Completed' },
+  'project.inProgress': { es: 'En Progreso', en: 'In Progress' },
+  'project.notStarted': { es: 'No Iniciado', en: 'Not Started' },
+  'project.concepts': { es: 'Conceptos que avanza', en: 'Concepts advanced' },
+  'project.milestone': { es: 'Proyecto de Fase', en: 'Phase Project' },
+
+  // Quick Quiz
+  'quiz.start': { es: 'Probar Conocimiento', en: 'Test Knowledge' },
+  'quiz.another': { es: 'Otra Pregunta', en: 'Another Question' },
+  'quiz.done': { es: 'Listo', en: 'Done' },
+  'quiz.title': { es: 'Quiz Rápido', en: 'Quick Quiz' },
+  'quiz.description': { es: 'Pon a prueba tu conocimiento con una pregunta aleatoria', en: 'Test your knowledge with a random question' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

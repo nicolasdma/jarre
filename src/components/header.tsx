@@ -4,7 +4,7 @@ import { LogoutButton } from '@/components/logout-button';
 import { t, type Language } from '@/lib/translations';
 
 interface HeaderProps {
-  currentPage?: 'home' | 'library' | 'dashboard';
+  currentPage?: 'home' | 'library' | 'review';
 }
 
 export async function Header({ currentPage }: HeaderProps) {
@@ -14,6 +14,8 @@ export async function Header({ currentPage }: HeaderProps) {
   } = await supabase.auth.getUser();
 
   let lang: Language = 'es';
+  let dueCount = 0;
+
   if (user) {
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -21,6 +23,14 @@ export async function Header({ currentPage }: HeaderProps) {
       .eq('id', user.id)
       .single();
     lang = (profile?.language || 'es') as Language;
+
+    // Get due review count for badge
+    const { count } = await supabase
+      .from('review_schedule')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .lte('next_review_at', new Date().toISOString());
+    dueCount = count || 0;
   }
 
   return (
@@ -53,14 +63,19 @@ export async function Header({ currentPage }: HeaderProps) {
             {user ? (
               <>
                 <Link
-                  href="/dashboard"
-                  className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
-                    currentPage === 'dashboard'
+                  href="/review"
+                  className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors flex items-center gap-2 ${
+                    currentPage === 'review'
                       ? 'text-[#4a5d4a]'
                       : 'text-[#7a7a6e] hover:text-[#2c2c2c]'
                   }`}
                 >
-                  02. {t('nav.dashboard', lang)}
+                  02. {t('nav.review', lang)}
+                  {dueCount > 0 && (
+                    <span className="bg-[#4a5d4a] text-[#f5f4f0] text-[9px] font-mono px-1.5 py-0.5 min-w-[18px] text-center">
+                      {dueCount > 99 ? '99+' : dueCount}
+                    </span>
+                  )}
                 </Link>
                 <LogoutButton label={t('nav.logout', lang)} />
               </>

@@ -43,3 +43,28 @@ export const EvaluateAnswersResponseSchema = z.object({
 
 export type EvaluatedResponse = z.infer<typeof EvaluatedResponseSchema>;
 export type EvaluateAnswersResponse = z.infer<typeof EvaluateAnswersResponseSchema>;
+
+/**
+ * Schema for question bank items (internal validation for seed data).
+ */
+export const BankQuestionSchema = z.object({
+  conceptName: z.string().min(1),
+  type: z.enum(['definition', 'fact', 'property', 'guarantee', 'complexity', 'comparison']),
+  questionText: z.string().min(10),
+  expectedAnswer: z.string().min(10),
+  difficulty: z.number().int().min(1).max(3),
+  relatedConceptName: z.string().optional(),
+});
+
+export type BankQuestion = z.infer<typeof BankQuestionSchema>;
+
+/**
+ * Schema for review answer evaluation (DeepSeek response).
+ */
+export const ReviewEvaluationSchema = z.object({
+  score: z.number().min(0).max(100),
+  feedback: z.string().min(1),
+  isCorrect: z.boolean(),
+});
+
+export type ReviewEvaluation = z.infer<typeof ReviewEvaluationSchema>;
