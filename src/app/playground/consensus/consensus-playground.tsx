@@ -7,6 +7,8 @@ import { ClusterVisualizer } from './cluster-visualizer';
 import { LogVisualizer } from './log-visualizer';
 import { ControlsPanel } from './controls-panel';
 import { LessonGuide } from './lesson-guide';
+import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { TutorPanel } from '@/components/playground/tutor-panel';
 
 let writeCounter = 0;
 
@@ -37,6 +39,8 @@ export function ConsensusPlayground() {
   const [speed, setSpeed] = useState(500);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [proactiveQuestion, setProactiveQuestion] = useState<string | null>(null);
+  const lastProactiveRef = useRef(0);
 
   const updateSnapshot = useCallback(() => {
     setSnapshot(clusterRef.current.snapshot());
@@ -134,6 +138,34 @@ export function ConsensusPlayground() {
     };
   }, [mode, speed]);
 
+  // Proactive tutor trigger: fires on significant events
+  useEffect(() => {
+    const recentEvents = snapshot.events.slice(-5);
+    const hasSignificantEvent = recentEvents.some(
+      (e) => e.type === 'elected_leader' || e.type === 'partition_created' || e.type === 'entry_committed'
+    );
+    if (!hasSignificantEvent) return;
+
+    const now = Date.now();
+    if (now - lastProactiveRef.current < 30000) return;
+    lastProactiveRef.current = now;
+
+    fetch('/api/playground/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playground: 'consensus',
+        state: snapshot,
+        history: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.question) setProactiveQuestion(data.question);
+      })
+      .catch(() => {});
+  }, [snapshot.events.length]);
+
   const currentLeader = snapshot.nodes.find(
     (n) => n.state === 'leader' && n.status === 'alive'
   );
@@ -147,15 +179,30 @@ export function ConsensusPlayground() {
       <div className="flex-1 min-h-0 flex">
         {/* Lesson Guide sidebar */}
         <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
-          <LessonGuide
-            onReset={handleReset}
-            onStep={handleStep}
-            onStepUntilElection={handleStepUntilElection}
-            onKillLeader={handleKillLeader}
-            onToggleMode={handleToggleMode}
-            onClientWrite={handleClientWrite}
-            onPartition={handlePartition}
-            onHeal={handleHeal}
+          <TabbedSidebar
+            lessons={
+              <LessonGuide
+                onReset={handleReset}
+                onStep={handleStep}
+                onStepUntilElection={handleStepUntilElection}
+                onKillLeader={handleKillLeader}
+                onToggleMode={handleToggleMode}
+                onClientWrite={handleClientWrite}
+                onPartition={handlePartition}
+                onHeal={handleHeal}
+              />
+            }
+            tutor={
+              <TutorPanel
+                playground="consensus"
+                getState={() => snapshot}
+                accentColor="#991b1b"
+                proactiveQuestion={proactiveQuestion}
+                onDismissProactive={() => setProactiveQuestion(null)}
+              />
+            }
+            hasNotification={!!proactiveQuestion}
+            accentColor="#991b1b"
           />
         </div>
 

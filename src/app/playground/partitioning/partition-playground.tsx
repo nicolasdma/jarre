@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { RingVisualizer } from './ring-visualizer';
 import { PartitionStats } from './partition-stats';
 import { LessonGuide } from './lesson-guide';
+import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { TutorPanel } from '@/components/playground/tutor-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -204,6 +206,34 @@ const INITIAL_STATE: PartitionState = {
 export function PartitionPlayground() {
   const [state, setState] = useState<PartitionState>(INITIAL_STATE);
   const nextNodeIndex = useRef(0);
+  const [proactiveQuestion, setProactiveQuestion] = useState<string | null>(null);
+  const lastProactiveRef = useRef(0);
+
+  // Proactive tutor trigger: fires on rebalance with >30% keys moved
+  useEffect(() => {
+    if (!state.lastRebalance) return;
+    const { moved, total } = state.lastRebalance;
+    if (total === 0 || (moved / total) <= 0.3) return;
+
+    const now = Date.now();
+    if (now - lastProactiveRef.current < 30000) return;
+    lastProactiveRef.current = now;
+
+    fetch('/api/playground/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playground: 'partitioning',
+        state,
+        history: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.question) setProactiveQuestion(data.question);
+      })
+      .catch(() => {});
+  }, [state.lastRebalance]);
 
   // ---- Add Node ----
   const addNode = useCallback(() => {
@@ -442,7 +472,20 @@ export function PartitionPlayground() {
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
       <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
-        <LessonGuide onAction={handleLessonAction} />
+        <TabbedSidebar
+          lessons={<LessonGuide onAction={handleLessonAction} />}
+          tutor={
+            <TutorPanel
+              playground="partitioning"
+              getState={() => state}
+              accentColor="#059669"
+              proactiveQuestion={proactiveQuestion}
+              onDismissProactive={() => setProactiveQuestion(null)}
+            />
+          }
+          hasNotification={!!proactiveQuestion}
+          accentColor="#059669"
+        />
       </div>
 
       {/* Center: Ring Visualizer */}
