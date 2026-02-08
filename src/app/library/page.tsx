@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Header } from '@/components/header';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
+import { ProjectMilestone } from './project-milestone';
+import { QuickQuiz } from '@/components/quick-quiz';
 
 // Corner bracket component for decorative framing
 function CornerBrackets({ className = '' }: { className?: string }) {
@@ -110,6 +112,70 @@ export default async function LibraryPage() {
           evalCount: evals.length,
         };
       }
+    }
+  }
+
+  // Fetch projects for milestones
+  type ProjectWithDetails = {
+    id: string;
+    title: string;
+    phase: string;
+    description: string;
+    deliverables: string[];
+    status: string;
+    concepts: Array<{ id: string; name: string }>;
+  };
+  let projectsByPhase: Record<string, ProjectWithDetails> = {};
+
+  if (user) {
+    const { data: allProjects } = await supabase
+      .from('projects')
+      .select('*');
+
+    const { data: projectConcepts } = await supabase
+      .from('project_concepts')
+      .select('project_id, concept_id');
+
+    const { data: projectProgress } = await supabase
+      .from('project_progress')
+      .select('project_id, status')
+      .eq('user_id', user.id);
+
+    // Fetch concept names for display
+    const pcConceptIds = [...new Set((projectConcepts || []).map((pc) => pc.concept_id))];
+    const { data: pcConcepts } = pcConceptIds.length > 0
+      ? await supabase.from('concepts').select('id, name').in('id', pcConceptIds)
+      : { data: [] };
+
+    const conceptNameMap = (pcConcepts || []).reduce(
+      (acc, c) => { acc[c.id] = c.name; return acc; },
+      {} as Record<string, string>
+    );
+
+    const progressMap = (projectProgress || []).reduce(
+      (acc, p) => { acc[p.project_id] = p.status; return acc; },
+      {} as Record<string, string>
+    );
+
+    const conceptsMap = (projectConcepts || []).reduce(
+      (acc, pc) => {
+        if (!acc[pc.project_id]) acc[pc.project_id] = [];
+        acc[pc.project_id].push({ id: pc.concept_id, name: conceptNameMap[pc.concept_id] || pc.concept_id });
+        return acc;
+      },
+      {} as Record<string, Array<{ id: string; name: string }>>
+    );
+
+    for (const proj of (allProjects || [])) {
+      projectsByPhase[proj.phase] = {
+        id: proj.id,
+        title: proj.title,
+        phase: proj.phase,
+        description: proj.description,
+        deliverables: proj.deliverables || [],
+        status: progressMap[proj.id] || 'not_started',
+        concepts: conceptsMap[proj.id] || [],
+      };
     }
   }
 
@@ -277,7 +343,7 @@ export default async function LibraryPage() {
           </div>
         )}
 
-        {/* Resources by Phase */}
+        {/* Resources by Phase with Project Milestones */}
         {Object.entries(byPhase).map(([phase, phaseResources]) => (
           <section key={phase} className="mb-16">
             {/* Phase Header */}
@@ -311,6 +377,15 @@ export default async function LibraryPage() {
                 />
               ))}
             </div>
+
+            {/* Project Milestone after this phase */}
+            {user && projectsByPhase[phase] && (
+              <ProjectMilestone
+                project={projectsByPhase[phase]}
+                isLoggedIn={!!user}
+                language={lang}
+              />
+            )}
           </section>
         ))}
 
@@ -370,6 +445,9 @@ export default async function LibraryPage() {
           </p>
         </div>
       </footer>
+
+      {/* Floating Quiz Bubble — only for logged-in users */}
+      {user && <QuickQuiz language={lang} />}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
 import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS, type SupportedLanguage } from '@/lib/llm/prompts';
+import { computeNewLevelFromEvaluation, buildMasteryHistoryRecord } from '@/lib/mastery';
+import type { EvaluationType } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
       // Continue anyway - user should see results
     }
 
-    // Save questions and responses
+    // Save questions and responses, update mastery
     if (evaluation) {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
           .from('evaluation_questions')
           .insert({
             evaluation_id: evaluation.id,
-            concept_id: q.conceptId || null, // May not have concept_id mapped
+            concept_id: q.conceptId || null,
             type: q.type,
             question: q.question,
           })
@@ -121,9 +123,8 @@ export async function POST(request: Request) {
           });
         }
 
-        // Update concept progress if score >= 50
-        if (r && r.score >= 50 && q.conceptName) {
-          // Find concept by name
+        // Update concept progress with new mastery logic
+        if (r && q.conceptName) {
           const { data: concept } = await supabase
             .from('concepts')
             .select('id')
@@ -131,7 +132,6 @@ export async function POST(request: Request) {
             .single();
 
           if (concept) {
-            // Upsert progress - set to level 1 (understood) if not already higher
             const { data: existingProgress } = await supabase
               .from('concept_progress')
               .select('level')
@@ -140,17 +140,80 @@ export async function POST(request: Request) {
               .single();
 
             const currentLevel = existingProgress ? parseInt(existingProgress.level) : 0;
-            const newLevel = Math.max(currentLevel, 1); // At least level 1 if passed
+            const questionType = q.type as EvaluationType;
+            const newLevel = computeNewLevelFromEvaluation(currentLevel, questionType, r.score);
 
-            await supabase.from('concept_progress').upsert(
-              {
+            if (newLevel > currentLevel) {
+              // Build update fields based on which level we're advancing to
+              const updateFields: Record<string, unknown> = {
                 user_id: user.id,
                 concept_id: concept.id,
                 level: newLevel.toString(),
                 last_evaluated_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,concept_id' }
-            );
+              };
+
+              if (newLevel === 1) {
+                updateFields.level_1_score = r.score;
+              } else if (newLevel === 3) {
+                updateFields.level_3_score = r.score;
+              }
+
+              await supabase.from('concept_progress').upsert(
+                updateFields,
+                { onConflict: 'user_id,concept_id' }
+              );
+
+              // Log mastery history
+              await supabase.from('mastery_history').insert(
+                buildMasteryHistoryRecord({
+                  userId: user.id,
+                  conceptId: concept.id,
+                  oldLevel: currentLevel,
+                  newLevel,
+                  triggerType: 'evaluation',
+                  triggerId: evaluation.id,
+                })
+              );
+
+              // When advancing to level 1, create review_schedule entries
+              // for this concept's questions in the question bank
+              if (newLevel >= 1 && currentLevel < 1) {
+                const { data: bankQuestions } = await supabase
+                  .from('question_bank')
+                  .select('id')
+                  .eq('concept_id', concept.id)
+                  .eq('is_active', true);
+
+                if (bankQuestions && bankQuestions.length > 0) {
+                  const scheduleEntries = bankQuestions.map((bq) => ({
+                    user_id: user.id,
+                    question_id: bq.id,
+                    next_review_at: new Date().toISOString(),
+                  }));
+
+                  const { error: schedError } = await supabase
+                    .from('review_schedule')
+                    .upsert(scheduleEntries, { onConflict: 'user_id,question_id' });
+
+                  if (schedError) {
+                    console.error('[Evaluate] Error creating review schedule:', schedError);
+                  } else {
+                    console.log(`[Evaluate] Created ${scheduleEntries.length} review cards for concept ${concept.id}`);
+                  }
+                }
+              }
+            } else if (currentLevel === 0 && r.score < 60) {
+              // Even if not advancing, ensure concept_progress exists at level 0
+              await supabase.from('concept_progress').upsert(
+                {
+                  user_id: user.id,
+                  concept_id: concept.id,
+                  level: '0',
+                  last_evaluated_at: new Date().toISOString(),
+                },
+                { onConflict: 'user_id,concept_id' }
+              );
+            }
           }
         }
       }

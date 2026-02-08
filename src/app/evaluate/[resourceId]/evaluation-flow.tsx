@@ -331,7 +331,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
           <Button variant="outline" onClick={() => router.push('/library')}>
             {t('eval.backToLibrary', language)}
           </Button>
-          <Button onClick={() => router.push('/dashboard')}>{t('eval.viewDashboard', language)}</Button>
+          <Button onClick={() => router.push('/')}>{t('eval.viewDashboard', language)}</Button>
         </div>
       </div>
     );
