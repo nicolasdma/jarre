@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { LessonGuide } from './lesson-guide';
 import { ControlPanel } from './control-panel';
 import { MetricsPanel } from './metrics-panel';
+import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { TutorPanel } from '@/components/playground/tutor-panel';
 
 export interface SimulationConfig {
   isRunning: boolean;
@@ -262,6 +264,9 @@ export function LatencyPlayground() {
   const sloViolationsRef = useRef(sloViolations);
   sloViolationsRef.current = sloViolations;
 
+  const [proactiveQuestion, setProactiveQuestion] = useState<string | null>(null);
+  const lastProactiveRef = useRef(0);
+
   // Start/stop simulation
   useEffect(() => {
     if (config.isRunning) {
@@ -311,6 +316,33 @@ export function LatencyPlayground() {
     }
   }, [config.isRunning]);
 
+  // Proactive tutor trigger: SLO violation rate >10% or p99 > 3x p50
+  useEffect(() => {
+    if (totalRequests < 50) return;
+    const violationRate = (sloViolations / totalRequests) * 100;
+    const p99TooHigh = percentiles.p50 > 0 && percentiles.p99 > percentiles.p50 * 3;
+    if (violationRate <= 10 && !p99TooHigh) return;
+
+    const now = Date.now();
+    if (now - lastProactiveRef.current < 30000) return;
+    lastProactiveRef.current = now;
+
+    fetch('/api/playground/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playground: 'latency',
+        state: { config, percentiles, totalRequests, sloViolations },
+        history: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.question) setProactiveQuestion(data.question);
+      })
+      .catch(() => {});
+  }, [totalRequests, sloViolations, percentiles]);
+
   const handleConfigChange = useCallback((updates: Partial<SimulationConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
   }, []);
@@ -348,9 +380,24 @@ export function LatencyPlayground() {
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
       <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
-        <LessonGuide
-          onApplyPreset={handleApplyPreset}
-          currentConfig={config}
+        <TabbedSidebar
+          lessons={
+            <LessonGuide
+              onApplyPreset={handleApplyPreset}
+              currentConfig={config}
+            />
+          }
+          tutor={
+            <TutorPanel
+              playground="latency"
+              getState={() => ({ config, percentiles, totalRequests, sloViolations })}
+              accentColor="#d97706"
+              proactiveQuestion={proactiveQuestion}
+              onDismissProactive={() => setProactiveQuestion(null)}
+            />
+          }
+          hasNotification={!!proactiveQuestion}
+          accentColor="#d97706"
         />
       </div>
 

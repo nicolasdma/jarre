@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { NodeDiagram } from './node-diagram';
 import { EventLog } from './event-log';
 import { LessonGuide } from './lesson-guide';
+import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { TutorPanel } from '@/components/playground/tutor-panel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -119,6 +121,8 @@ export function ReplicationPlayground() {
   const [globalVersion, setGlobalVersion] = useState(0);
   const [lastReadVersions, setLastReadVersions] = useState<Map<string, number>>(new Map());
   const [started, setStarted] = useState(false);
+  const [proactiveQuestion, setProactiveQuestion] = useState<string | null>(null);
+  const lastProactiveRef = useRef(0);
 
   // Refs for the simulation tick to access latest state without re-subscribing
   const nodesRef = useRef(nodes);
@@ -134,6 +138,33 @@ export function ReplicationPlayground() {
   useEffect(() => { configRef.current = config; }, [config]);
   useEffect(() => { isPartitionedRef.current = isPartitioned; }, [isPartitioned]);
   useEffect(() => { globalVersionRef.current = globalVersion; }, [globalVersion]);
+
+  // Proactive tutor trigger: fires on violation, crash, or split brain events
+  useEffect(() => {
+    if (events.length === 0) return;
+    const lastEvent = events[events.length - 1];
+    const isSignificant = lastEvent.type === 'violation' || lastEvent.type === 'crash' || lastEvent.description.includes('SPLIT BRAIN');
+    if (!isSignificant) return;
+
+    const now = Date.now();
+    if (now - lastProactiveRef.current < 30000) return;
+    lastProactiveRef.current = now;
+
+    fetch('/api/playground/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playground: 'replication',
+        state: { nodes, events: events.slice(-10), config, isPartitioned, violations },
+        history: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.question) setProactiveQuestion(data.question);
+      })
+      .catch(() => {});
+  }, [events.length]);
 
   // ------------------------------------------------------------------
   // Simulation tick
@@ -828,7 +859,20 @@ export function ReplicationPlayground() {
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
       <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
-        <LessonGuide actions={actions} config={config} isPartitioned={isPartitioned} />
+        <TabbedSidebar
+          lessons={<LessonGuide actions={actions} config={config} isPartitioned={isPartitioned} />}
+          tutor={
+            <TutorPanel
+              playground="replication"
+              getState={() => ({ nodes, events: events.slice(-10), config, isPartitioned, violations })}
+              accentColor="#2d4a6a"
+              proactiveQuestion={proactiveQuestion}
+              onDismissProactive={() => setProactiveQuestion(null)}
+            />
+          }
+          hasNotification={!!proactiveQuestion}
+          accentColor="#2d4a6a"
+        />
       </div>
 
       {/* Center: Node Diagram */}

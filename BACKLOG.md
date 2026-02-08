@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-06 (session-07, Phase 1 Playgrounds)
+> Last updated: 2026-02-08
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -96,12 +96,78 @@
 
 ---
 
+## AI Tutor — Embodied Orchestrator (Next up)
+
+- [x] `[P1]` Socratic chat panel in all 4 playgrounds (streaming, proactive questions) - 2026-02-07
+- [ ] `[P1]` Add Gemini 2.0 Flash client (`src/lib/llm/gemini.ts`)
+- [ ] `[P1]` TutorOrchestrator React Context (validates + dispatches visual actions)
+- [ ] `[P1]` `useTutorOverlay(elementId)` hook for playground components
+- [ ] `[P1]` CSS effects: glow, dim, annotate, trace, shake, pulse, spotlight
+- [ ] `[P1]` SVG trace overlay layer for animated paths
+- [ ] `[P1]` Structured JSON response parsing (speech + actions)
+- [ ] `[P2]` Integrate with consensus playground (first)
+- [ ] `[P2]` Integrate with remaining 3 playgrounds
+- [ ] `[P2]` "Alive" presence effects (breathing dot, passive notice, natural typing)
+- See: `plan/2026-02-07/tutor-orchestrator-design.md`
+
+---
+
 ## Ideas / Someday
 
-- [ ] AI tutor mode (conversational learning)
 - [ ] Community challenges
 - [ ] Share progress publicly
 - [ ] Integration with Readwise
+
+---
+
+## Practical Track — Cursos (cursos/practical-track/)
+
+> Cada side project completado genera un curso documentado en `cursos/practical-track/`.
+
+- [x] `s01-clima-cli.md` — HTTP, APIs, JSON, argparse, .env, manejo de errores, ANSI colors - 2026-02-07
+
+---
+
+## Side Projects — Aprender CLIs, Cookies, Bots, APIs, MCP
+
+> Inspirados por el stack de steipete (CodexBar, Spogo, SweetCookie, macOS Automator MCP, etc.)
+> Ordenados de fácil a complejo. Cada uno enseña una técnica nueva.
+
+### Nivel 1 — CLIs básicos
+- [x] `[S1]` **clima-cli** — El clima en tu terminal (API REST pública, JSON parsing, API keys) - 2026-02-07
+- [ ] `[S2]` **misgastos** — Gastos desde un CSV (File I/O, parsing, colores ANSI)
+- [ ] `[S3]` **quehay** — Próximos eventos del día vía AppleScript/JXA (osascript, subprocess)
+
+### Nivel 2 — Cookies y scraping
+- [ ] `[S4]` **cookiejar** — Extractor de cookies de Chrome (SQLite, Keychain, AES, base de SweetCookie)
+- [ ] `[S5]` **misubs** — Suscripciones de YouTube con cookies (session cookies, headers, user-agent)
+- [ ] `[S6]` **redditrss** — Feed personalizado de Reddit en terminal (API pública vs endpoints internos)
+
+### Nivel 3 — Automatización macOS
+- [ ] `[S7]` **darkswitch** — Toggle modo oscuro + wallpaper (AppleScript, `defaults write`)
+- [ ] `[S8]` **appspy** — Qué apps tienes abiertas y cuánto tiempo (Accessibility APIs, polling)
+- [ ] `[S9]` **notifyme** — Notificaciones nativas desde CLI (osascript, UNUserNotification)
+
+### Nivel 4 — Menu bar apps
+- [ ] `[S10]` **gitbar** — Estado de repos en barra de menú (SwiftUI menu bar, GitHub API, polling)
+- [ ] `[S11]` **preciodolar** — Precio del dólar en menu bar (URLSession, SwiftUI, API pública)
+
+### Nivel 5 — Servidores MCP
+- [ ] `[S12]` **mcp-notas** — Tu primer servidor MCP (protocolo MCP, JSON-RPC, stdin/stdout)
+- [ ] `[S13]` **mcp-spotify** — Controla Spotify desde Claude (MCP + OAuth + API real)
+- [ ] `[S14]` **mcp-casa** — Smart home desde Claude (MCP + IoT, discovery de red)
+
+### Nivel 6 — Bots y mensajería
+- [ ] `[S15]` **telebot** — Bot de Telegram que ejecuta comandos (Bot API, webhooks, seguridad)
+- [ ] `[S16]` **wanotify** — Alertas WhatsApp post-deploy (WhatsApp Business API/Twilio, CI)
+
+### Nivel 7 — Browser automation
+- [ ] `[S17]` **autofill** — Llena formularios web automáticamente (Playwright/Puppeteer, selectores CSS)
+- [ ] `[S18]` **pricewatcher** — Monitorea precios y avisa si bajan (scraping periódico, cron, persistencia)
+
+### Nivel 8 — Proyectos integradores
+- [ ] `[S19]` **agente-freelance** — Asistente de Upwork en terminal (cookies + scraping + CLI + notificaciones)
+- [ ] `[S20]` **mi-codex** — Tu propio "agente de agentes" (MCP + browser automation + cookies + APIs)
 
 ---
 
@@ -146,3 +212,7 @@
 - [x] `[P1]` Partition Visualizer playground (DDIA Ch6) — 5 files, 1615 lines - 2026-02-06
 - [x] `[P1]` Consensus Stepper playground (DDIA Ch8-9) — 7 files, 2061 lines - 2026-02-06
 - [x] `[P1]` Phase 1 routing integration (resource-card, learn page, questions page) - 2026-02-06
+- [x] `[P1]` Socratic AI tutor chat in all 4 playgrounds (streaming + proactive) - 2026-02-07
+- [x] `[P1]` LLM cost analysis for orchestrator (Gemini Flash selected) - 2026-02-07
+- [x] `[P1]` Embodied tutor orchestrator architecture design doc - 2026-02-07
+- [x] `[S1]` clima-cli — CLI + curso práctico (HTTP, APIs, JSON, argparse, .env) - 2026-02-07
