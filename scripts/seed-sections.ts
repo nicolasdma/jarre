@@ -232,10 +232,41 @@ En términos de procesos organizacionales, los frameworks Agile proporcionan un 
 // ============================================================================
 
 async function main() {
+  const fromDir = process.argv.find((a) => a.startsWith('--from-dir'));
   const fromFile = process.argv.find((a) => a.startsWith('--from-file'));
   let sections: SeedSection[];
 
-  if (fromFile) {
+  if (fromDir) {
+    // Seed all *-translated.json files from a directory
+    const dirPath = process.argv[process.argv.indexOf(fromDir) + 1] || 'scripts/output';
+    const { readdirSync } = await import('fs');
+    const files = readdirSync(dirPath)
+      .filter((f: string) => f.endsWith('-translated.json'))
+      .sort();
+
+    if (files.length === 0) {
+      console.error(`No *-translated.json files found in ${dirPath}`);
+      process.exit(1);
+    }
+
+    console.log(`Found ${files.length} translated files in ${dirPath}:`);
+    let allSections: SeedSection[] = [];
+    for (const file of files) {
+      const filePath = `${dirPath}/${file}`;
+      const raw = JSON.parse(readFileSync(filePath, 'utf-8'));
+      const mapped = raw.map((s: Record<string, unknown>, i: number) => ({
+        resource_id: s.resource_id,
+        concept_id: s.concept_id,
+        section_title: s.section_title,
+        sort_order: s.sort_order ?? i,
+        content_markdown: s.content_markdown,
+        content_original: s.content_original,
+      }));
+      allSections = allSections.concat(mapped);
+      console.log(`  ${file}: ${mapped.length} sections`);
+    }
+    sections = allSections;
+  } else if (fromFile) {
     const filePath = process.argv[process.argv.indexOf(fromFile) + 1];
     if (!filePath || !existsSync(filePath)) {
       console.error(`File not found: ${filePath}`);

@@ -52,3 +52,4 @@ supabase/.temp/
 # storage engine runtime data
 /engine/data/*
 !/engine/data/.gitkeep
+scripts/__pycache__/
