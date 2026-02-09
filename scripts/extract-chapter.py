@@ -46,38 +46,261 @@ CHAPTERS = {
                 "concept_id": "reliability",
                 "title": "Fiabilidad",
                 "heading_pattern": r"^Reliability$",
-                "subsections": [
-                    "Hardware Faults",
-                    "Software Errors",
-                    "Human Errors",
-                    "How Important Is Reliability?",
-                ],
             },
             {
                 "concept_id": "scalability",
                 "title": "Escalabilidad",
                 "heading_pattern": r"^Scalability$",
-                "subsections": [
-                    "Describing Load",
-                    "Describing Performance",
-                    "Approaches for Coping with Load",
-                ],
             },
             {
                 "concept_id": "maintainability",
                 "title": "Mantenibilidad",
                 "heading_pattern": r"^Maintainability$",
-                "subsections": [
-                    "Operability: Making Life Easy for Operations",
-                    "Simplicity: Managing Complexity",
-                    "Evolvability: Making Change Easy",
-                ],
             },
             {
                 "concept_id": "chapter-summary",
                 "title": "Summary",
                 "heading_pattern": r"^Summary$",
-                "include_in_concept": None,  # skip summary, or merge
+                "include_in_concept": None,  # skip
+            },
+        ],
+    },
+    2: {
+        "title": "Data Models and Query Languages",
+        "start_page": 49,
+        "end_page": 89,
+        "sections": [
+            {
+                "concept_id": "relational-vs-document",
+                "title": "Modelo relacional vs documental",
+                "heading_pattern": r"^Relational Model Versus Document Model$",
+                "include_in_concept": "data-models",
+            },
+            {
+                "concept_id": "data-models",
+                "title": "Modelos de datos y lenguajes de consulta",
+                "heading_pattern": r"^Query Languages for Data$",
+            },
+            {
+                "concept_id": "graph-models",
+                "title": "Modelos de grafos",
+                "heading_pattern": r"^Graph-Like Data Models$",
+                "include_in_concept": "data-models",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    3: {
+        "title": "Storage and Retrieval",
+        "start_page": 91,
+        "end_page": 131,
+        "sections": [
+            {
+                "concept_id": "storage-engines",
+                "title": "Motores de almacenamiento",
+                "heading_pattern": r"^Data Structures That Power Your Database$",
+            },
+            {
+                "concept_id": "oltp-vs-olap",
+                "title": "Procesamiento transaccional vs analítico",
+                "heading_pattern": r"^Transaction Processing or Analytics",
+                "include_in_concept": "storage-engines",
+            },
+            {
+                "concept_id": "column-storage",
+                "title": "Almacenamiento columnar",
+                "heading_pattern": r"^Column-Oriented Storage$",
+                "include_in_concept": "storage-engines",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    5: {
+        "title": "Replication",
+        "start_page": 173,
+        "end_page": 219,
+        "sections": [
+            {
+                "concept_id": "replication",
+                "title": "Replicación",
+                "heading_pattern": r"^Leaders and Followers$",
+            },
+            {
+                "concept_id": "replication-lag",
+                "title": "Problemas con el retraso de replicación",
+                "heading_pattern": r"^Problems with Replication Lag$",
+                "include_in_concept": "replication",
+            },
+            {
+                "concept_id": "multi-leader",
+                "title": "Replicación multi-líder",
+                "heading_pattern": r"^Multi-Leader Replication$",
+                "include_in_concept": "replication",
+            },
+            {
+                "concept_id": "leaderless",
+                "title": "Replicación sin líder",
+                "heading_pattern": r"^Leaderless Replication$",
+                "include_in_concept": "replication",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    6: {
+        "title": "Partitioning",
+        "start_page": 221,
+        "end_page": 241,
+        "sections": [
+            {
+                "concept_id": "partitioning-intro",
+                "title": "Particionamiento y replicación",
+                "heading_pattern": r"^Partitioning and Replication$",
+                "include_in_concept": "partitioning",
+            },
+            {
+                "concept_id": "partitioning",
+                "title": "Particionamiento",
+                "heading_pattern": r"^Partitioning of Key-Value Data$",
+            },
+            {
+                "concept_id": "secondary-indexes",
+                "title": "Particionamiento e índices secundarios",
+                "heading_pattern": r"^Partitioning and Secondary Indexes$",
+                "include_in_concept": "partitioning",
+            },
+            {
+                "concept_id": "rebalancing",
+                "title": "Rebalanceo de particiones",
+                "heading_pattern": r"^Rebalancing Partitions$",
+                "include_in_concept": "partitioning",
+            },
+            {
+                "concept_id": "request-routing",
+                "title": "Enrutamiento de peticiones",
+                "heading_pattern": r"^Request Routing$",
+                "include_in_concept": "partitioning",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    8: {
+        "title": "The Trouble with Distributed Systems",
+        "start_page": 295,
+        "end_page": 341,
+        "sections": [
+            {
+                "concept_id": "distributed-failures",
+                "title": "Problemas de los sistemas distribuidos",
+                "heading_pattern": r"^Faults and Partial Failures$",
+            },
+            {
+                "concept_id": "unreliable-networks",
+                "title": "Redes no fiables",
+                "heading_pattern": r"^Unreliable Networks$",
+                "include_in_concept": "distributed-failures",
+            },
+            {
+                "concept_id": "unreliable-clocks",
+                "title": "Relojes no fiables",
+                "heading_pattern": r"^Unreliable Clocks$",
+                "include_in_concept": "distributed-failures",
+            },
+            {
+                "concept_id": "knowledge-truth",
+                "title": "Conocimiento, verdad y mentiras",
+                "heading_pattern": r"^Knowledge, Truth, and Lies$",
+                "include_in_concept": "distributed-failures",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    9: {
+        "title": "Consistency and Consensus",
+        "start_page": 343,
+        "end_page": 405,
+        "sections": [
+            {
+                "concept_id": "consistency-intro",
+                "title": "Garantías de consistencia",
+                "heading_pattern": r"^Consistency Guarantees$",
+                "include_in_concept": "consistency-models",
+            },
+            {
+                "concept_id": "consistency-models",
+                "title": "Modelos de consistencia",
+                "heading_pattern": r"^Linearizability$",
+            },
+            {
+                "concept_id": "ordering",
+                "title": "Garantías de ordenamiento",
+                "heading_pattern": r"^Ordering Guarantees$",
+                "include_in_concept": "consistency-models",
+            },
+            {
+                "concept_id": "consensus",
+                "title": "Consenso",
+                "heading_pattern": r"^Distributed Transactions and Consensus$",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
+            },
+        ],
+    },
+    11: {
+        "title": "Stream Processing",
+        "start_page": 461,
+        "end_page": 509,
+        "sections": [
+            {
+                "concept_id": "stream-processing",
+                "title": "Procesamiento de flujos",
+                "heading_pattern": r"^Transmitting Event Streams$",
+            },
+            {
+                "concept_id": "databases-streams",
+                "title": "Bases de datos y flujos",
+                "heading_pattern": r"^Databases and Streams$",
+                "include_in_concept": "stream-processing",
+            },
+            {
+                "concept_id": "processing-streams",
+                "title": "Procesando flujos",
+                "heading_pattern": r"^Processing Streams$",
+                "include_in_concept": "stream-processing",
+            },
+            {
+                "concept_id": "chapter-summary",
+                "title": "Summary",
+                "heading_pattern": r"^Summary$",
+                "include_in_concept": None,
             },
         ],
     },
