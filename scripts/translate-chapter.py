@@ -17,6 +17,7 @@ Strategy:
 
 Usage:
   python scripts/translate-chapter.py scripts/output/chapter-01-sections.json
+  python scripts/translate-chapter.py scripts/output/chapter-01-sections.json --glossary ml-ai
 
 Output:
   scripts/output/chapter-01-translated.json
@@ -43,53 +44,66 @@ except ImportError:
 load_dotenv(".env.local")
 
 # ============================================================================
-# GLOSSARY — Technical terms with exact Spanish equivalents
+# GLOSSARY LOADING — From JSON files in scripts/glossaries/
 # ============================================================================
 
-GLOSSARY = """GLOSARIO TÉCNICO (usar estos términos exactos):
-- reliability → fiabilidad
-- scalability → escalabilidad
-- maintainability → mantenibilidad
-- fault → fallo
-- failure (system failure) → fallo del sistema / caída
-- fault-tolerant → tolerante a fallos
-- throughput → throughput (no traducir)
-- latency → latencia
-- response time → tiempo de respuesta
-- percentile → percentil
-- tail latency → latencia de cola
-- fan-out → fan-out (no traducir)
-- load → carga
-- SLA/SLO → SLA/SLO (no traducir)
-- head-of-line blocking → bloqueo de cabecera
-- operability → operabilidad
-- evolvability → evolucionabilidad
-- batch processing → procesamiento por lotes
-- stream processing → procesamiento de flujos
-- rolling upgrade → actualización gradual (rolling upgrade)
-- data model → modelo de datos
-- query → consulta
-- index → índice
-- node → nodo
-- replica → réplica
-- partition → partición
-- cache → caché
-- database → base de datos
-- trade-off → trade-off (no traducir)
-- scaling up → escalamiento vertical (scaling up)
-- scaling out → escalamiento horizontal (scaling out)
-- elastic → elástico
-- stateless → sin estado (stateless)
-- stateful → con estado (stateful)
-- shared-nothing → shared-nothing (no traducir)
-- MTTF (mean time to failure) → MTTF (tiempo medio hasta fallo)
-"""
+_GLOSSARIES_DIR = Path(__file__).parent / "glossaries"
+_DEFAULT_GLOSSARY_DOMAIN = "distributed-systems"
 
-# ============================================================================
-# TRANSLATION PROMPT — Explicit anti-summarization instructions
-# ============================================================================
+# Cache for loaded glossary text to avoid re-reading files on every paragraph
+_glossary_cache: dict[str, str] = {}
 
-SYSTEM_PROMPT = f"""Eres un traductor técnico profesional especializado en sistemas distribuidos.
+
+def load_glossary(domain: str) -> str:
+    """Load a glossary JSON file and format it as the GLOSSARY text string.
+
+    Args:
+        domain: The glossary domain name (e.g., 'distributed-systems', 'ml-ai').
+                Must correspond to a file in scripts/glossaries/{domain}.json.
+
+    Returns:
+        Formatted glossary text string for inclusion in the system prompt.
+
+    Raises:
+        FileNotFoundError: If the glossary file does not exist.
+        json.JSONDecodeError: If the glossary file is not valid JSON.
+        KeyError: If the glossary file is missing the 'terms' key.
+    """
+    if domain in _glossary_cache:
+        return _glossary_cache[domain]
+
+    glossary_path = _GLOSSARIES_DIR / f"{domain}.json"
+    if not glossary_path.exists():
+        available = [f.stem for f in _GLOSSARIES_DIR.glob("*.json")]
+        raise FileNotFoundError(
+            f"Glossary '{domain}' not found at {glossary_path}. "
+            f"Available glossaries: {available}"
+        )
+
+    data = json.loads(glossary_path.read_text(encoding="utf-8"))
+
+    if "terms" not in data:
+        raise KeyError(f"Glossary file {glossary_path} is missing the 'terms' key")
+
+    lines = ["GLOSARIO TÉCNICO (usar estos términos exactos):"]
+    for en_term, es_term in data["terms"].items():
+        lines.append(f"- {en_term} → {es_term}")
+
+    glossary_text = "\n".join(lines) + "\n"
+    _glossary_cache[domain] = glossary_text
+    return glossary_text
+
+
+def build_system_prompt(glossary_text: str) -> str:
+    """Build the translation system prompt with the given glossary text.
+
+    Args:
+        glossary_text: Formatted glossary string (output of load_glossary).
+
+    Returns:
+        Complete system prompt for the translation LLM.
+    """
+    return f"""Eres un traductor técnico profesional especializado en sistemas distribuidos.
 
 Tu tarea es TRADUCIR fielmente del inglés al español.
 
@@ -105,10 +119,14 @@ REGLAS CRÍTICAS:
 9. Mantén las notas al pie tal cual.
 10. La traducción debe leerse natural en español, pero NUNCA a costa de perder contenido.
 
-{GLOSSARY}
-
+{glossary_text}
 VERIFICACIÓN: Tu traducción debería tener aproximadamente la misma cantidad de oraciones
 que el original. El español suele ser 15-25% más largo que el inglés en caracteres."""
+
+
+# ============================================================================
+# PARAGRAPH SPLITTING
+# ============================================================================
 
 
 def split_into_paragraphs(text: str) -> list[str]:
@@ -148,17 +166,39 @@ def split_into_paragraphs(text: str) -> list[str]:
     return paragraphs
 
 
+# ============================================================================
+# TRANSLATION
+# ============================================================================
+
+
 def translate_paragraph(
     client: OpenAI,
     paragraph: str,
     prev_translation: str | None,
     section_title: str,
+    system_prompt: str | None = None,
 ) -> tuple[str, int]:
-    """Translate a single paragraph with context."""
+    """Translate a single paragraph with context.
+
+    Args:
+        client: OpenAI-compatible API client.
+        paragraph: The English paragraph to translate.
+        prev_translation: Previous translated paragraph for sliding context (or None).
+        section_title: Title of the section being translated.
+        system_prompt: Optional custom system prompt. If None, uses the default
+                       glossary (distributed-systems) for backward compatibility.
+
+    Returns:
+        Tuple of (translated_text, total_tokens_used).
+    """
+    if system_prompt is None:
+        glossary_text = load_glossary(_DEFAULT_GLOSSARY_DOMAIN)
+        system_prompt = build_system_prompt(glossary_text)
+
     user_msg = ""
 
     if prev_translation:
-        # Sliding context: last 200 chars of previous translation
+        # Sliding context: last 500 chars of previous translation
         context = prev_translation[-500:] if len(prev_translation) > 500 else prev_translation
         user_msg += f"[Contexto del párrafo anterior para mantener coherencia:]\n{context}\n\n---\n\n"
 
@@ -167,7 +207,7 @@ def translate_paragraph(
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_msg},
         ],
         temperature=0.15,
@@ -198,9 +238,21 @@ def verify_length_ratio(original: str, translated: str) -> tuple[float, str]:
 
 
 def translate_section(
-    client: OpenAI, section: dict, section_index: int, total_sections: int
+    client: OpenAI,
+    section: dict,
+    section_index: int,
+    total_sections: int,
+    system_prompt: str | None = None,
 ) -> dict:
-    """Translate an entire section paragraph by paragraph."""
+    """Translate an entire section paragraph by paragraph.
+
+    Args:
+        client: OpenAI-compatible API client.
+        section: Section dict with content_original, concept_id, etc.
+        section_index: Zero-based index of the section being translated.
+        total_sections: Total number of sections in this chapter.
+        system_prompt: Optional custom system prompt. If None, uses default glossary.
+    """
     concept_id = section["concept_id"]
     original = section["content_original"]
     title = section["section_title"]
@@ -217,7 +269,7 @@ def translate_section(
         para_words = len(para.split())
         print(f"    Paragraph {i+1}/{len(paragraphs)} ({para_words} words)...", end="", flush=True)
 
-        translated, tokens = translate_paragraph(client, para, prev_translation, title)
+        translated, tokens = translate_paragraph(client, para, prev_translation, title, system_prompt)
         total_tokens += tokens
 
         # Verify length
@@ -265,12 +317,23 @@ def main():
     parser = argparse.ArgumentParser(description="Translate chapter sections EN→ES faithfully")
     parser.add_argument("input_path", help="Path to chapter sections JSON")
     parser.add_argument("--output-dir", default="scripts/output", help="Output directory")
+    parser.add_argument(
+        "--glossary",
+        default=_DEFAULT_GLOSSARY_DOMAIN,
+        help=f"Glossary domain to use (default: {_DEFAULT_GLOSSARY_DOMAIN}). "
+             f"Must match a file in scripts/glossaries/{{domain}}.json",
+    )
     args = parser.parse_args()
 
     api_key = os.getenv("DEEPSEEK_API_KEY")
     if not api_key:
         print("Error: DEEPSEEK_API_KEY not set in .env.local")
         sys.exit(1)
+
+    # Load glossary and build system prompt
+    glossary_text = load_glossary(args.glossary)
+    system_prompt = build_system_prompt(glossary_text)
+    print(f"Using glossary: {args.glossary}")
 
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
     sections = json.loads(Path(args.input_path).read_text(encoding="utf-8"))
@@ -282,7 +345,7 @@ def main():
     total_tokens = 0
 
     for i, section in enumerate(sections):
-        result = translate_section(client, section, i, len(sections))
+        result = translate_section(client, section, i, len(sections), system_prompt)
         translated_sections.append(result)
         total_tokens += result["tokens_used"]
 

@@ -251,21 +251,43 @@ async function main() {
 
     console.log(`Found ${files.length} translated files in ${dirPath}:`);
     let allSections: SeedSection[] = [];
+    const allConceptIds = new Set<string>();
+
     for (const file of files) {
       const filePath = `${dirPath}/${file}`;
       const raw = JSON.parse(readFileSync(filePath, 'utf-8'));
       const mapped = raw.map((s: Record<string, unknown>, i: number) => ({
         resource_id: s.resource_id,
-        concept_id: s.concept_id,
+        concept_id: s.concept_id as string,
         section_title: s.section_title,
         sort_order: s.sort_order ?? i,
         content_markdown: s.content_markdown,
         content_original: s.content_original,
       }));
+      for (const s of mapped) allConceptIds.add(s.concept_id);
       allSections = allSections.concat(mapped);
       console.log(`  ${file}: ${mapped.length} sections`);
     }
-    sections = allSections;
+
+    // Validate concept_ids against DB
+    const conceptIds = [...allConceptIds];
+    const { data: validConcepts, error: conceptError } = await supabase
+      .from('concepts')
+      .select('id')
+      .in('id', conceptIds);
+
+    if (conceptError) {
+      console.error('Error validating concept_ids:', conceptError.message);
+      process.exit(1);
+    }
+
+    const validIds = new Set(validConcepts.map((c) => c.id));
+    const invalidIds = conceptIds.filter((id) => !validIds.has(id));
+    if (invalidIds.length > 0) {
+      console.warn(`Skipping sections with unknown concept_ids: ${invalidIds.join(', ')}`);
+    }
+
+    sections = allSections.filter((s) => validIds.has(s.concept_id));
   } else if (fromFile) {
     const filePath = process.argv[process.argv.indexOf(fromFile) + 1];
     if (!filePath || !existsSync(filePath)) {

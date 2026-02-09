@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-08
+> Last updated: 2026-02-09
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -16,7 +16,8 @@
 - [ ] `[P1]` Re-seed database with new YouTube resources (57 total)
 - [x] `[P1]` Run PDF pipeline on DDIA Ch1 (extract → translate → deduplicate → seed) - 2026-02-08
 - [ ] `[P1]` Test learn flow end-to-end (login → library → learn/ddia-ch1 → complete sections)
-- [ ] `[P1]` Run PDF pipeline on remaining DDIA chapters (Ch2, Ch3, Ch5, Ch6, Ch8, Ch9)
+- [x] `[P1]` Run PDF pipeline on remaining DDIA chapters (Ch2, Ch3, Ch5, Ch6, Ch8, Ch9, Ch11) - 2026-02-09
+- [x] `[P1]` Seed all 8 DDIA chapters to Supabase (11 concept sections) - 2026-02-09
 
 ---
 
@@ -122,7 +123,12 @@
 - [x] `[P1]` Seed DDIA Ch1 sections (faithful translation, ~7600 words ES) - 2026-02-08
 - [x] `[P1]` LearnFlow + ConceptSection + SectionContent components - 2026-02-08
 - [x] `[P1]` Micro-test mastery integration (0→1 via 3+ correct) - 2026-02-08
-- [ ] `[P1]` Run full pipeline on DDIA PDF (all 7 chapters)
+- [x] `[P1]` Run full pipeline on DDIA PDF (all 8 chapters) - 2026-02-09
+- [x] `[P1]` Build arXiv paper ingestion script (`scripts/ingest-arxiv.py`) - 2026-02-09
+- [x] `[P1]` Build YouTube transcript ingestion script (`scripts/ingest-youtube.py`) - 2026-02-09
+- [x] `[P1]` Create glossary system (`scripts/glossaries/`) + refactor translate-chapter.py - 2026-02-09
+- [ ] `[P1]` Translate and seed first arXiv paper (RAG: 2005.11401)
+- [ ] `[P1]` Translate and seed first YouTube transcript
 - [ ] `[P2]` Section completion persistence per user (currently client-state only)
 - [ ] `[P2]` Pre-question evaluation via DeepSeek (currently just records attempt)
 - [ ] `[P3]` Auto advance organizer for chapters without hand-written component
@@ -234,3 +240,5 @@
 - [x] `[P1]` LLM cost analysis for orchestrator (Gemini Flash selected) - 2026-02-07
 - [x] `[P1]` Embodied tutor orchestrator architecture design doc - 2026-02-07
 - [x] `[S1]` clima-cli — CLI + curso práctico (HTTP, APIs, JSON, argparse, .env) - 2026-02-07
+- [x] `[P1]` Translate all 8 DDIA chapters (120K+ EN words → 130K+ ES words) - 2026-02-09
+- [x] `[P1]` Build multi-source ingestion pipeline (arXiv + YouTube + glossaries) - 2026-02-09
