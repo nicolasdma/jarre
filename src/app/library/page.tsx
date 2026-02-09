@@ -4,7 +4,6 @@ import { Header } from '@/components/header';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { ProjectMilestone } from './project-milestone';
-import { QuickQuiz } from '@/components/quick-quiz';
 
 // Corner bracket component for decorative framing
 function CornerBrackets({ className = '' }: { className?: string }) {
@@ -446,8 +445,6 @@ export default async function LibraryPage() {
         </div>
       </footer>
 
-      {/* Floating Quiz Bubble — only for logged-in users */}
-      {user && <QuickQuiz language={lang} />}
     </div>
   );
 }

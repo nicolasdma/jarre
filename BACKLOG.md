@@ -14,6 +14,9 @@
 
 - [ ] `[P1]` Test evaluation flow with real DeepSeek API key
 - [ ] `[P1]` Re-seed database with new YouTube resources (57 total)
+- [x] `[P1]` Run PDF pipeline on DDIA Ch1 (extract → translate → deduplicate → seed) - 2026-02-08
+- [ ] `[P1]` Test learn flow end-to-end (login → library → learn/ddia-ch1 → complete sections)
+- [ ] `[P1]` Run PDF pipeline on remaining DDIA chapters (Ch2, Ch3, Ch5, Ch6, Ch8, Ch9)
 
 ---
 
@@ -109,6 +112,21 @@
 - [ ] `[P2]` Integrate with remaining 3 playgrounds
 - [ ] `[P2]` "Alive" presence effects (breathing dot, passive notice, natural typing)
 - See: `plan/2026-02-07/tutor-orchestrator-design.md`
+
+---
+
+## Learn Flow — ACTIVATE → LEARN → APPLY → EVALUATE
+
+- [x] `[P1]` Migration 008: resource_sections table - 2026-02-08
+- [x] `[P1]` PDF pipeline scripts (extract, segment, translate) - 2026-02-08
+- [x] `[P1]` Seed DDIA Ch1 sections (faithful translation, ~7600 words ES) - 2026-02-08
+- [x] `[P1]` LearnFlow + ConceptSection + SectionContent components - 2026-02-08
+- [x] `[P1]` Micro-test mastery integration (0→1 via 3+ correct) - 2026-02-08
+- [ ] `[P1]` Run full pipeline on DDIA PDF (all 7 chapters)
+- [ ] `[P2]` Section completion persistence per user (currently client-state only)
+- [ ] `[P2]` Pre-question evaluation via DeepSeek (currently just records attempt)
+- [ ] `[P3]` Auto advance organizer for chapters without hand-written component
+- See: `plan/2026-02-08/session-10-learn-flow.md`
 
 ---
 

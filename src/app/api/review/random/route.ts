@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * GET /api/review/random
+ * GET /api/review/random?concepts=id1,id2,id3
  * Returns a random question from the question bank.
- * No review_schedule needed — works for any active question.
+ * If `concepts` param is provided, scopes to those concept IDs.
+ * Otherwise, scopes to concepts the user has studied (concept_progress).
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const {
@@ -17,20 +18,57 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get total count of active questions
-    const { count } = await supabase
+    // Determine which concepts to filter by
+    const { searchParams } = new URL(request.url);
+    const conceptsParam = searchParams.get('concepts');
+    const excludeId = searchParams.get('exclude');
+
+    let conceptIds: string[];
+
+    if (conceptsParam) {
+      // Scoped to specific concepts (from resource card)
+      conceptIds = conceptsParam.split(',').filter(Boolean);
+    } else {
+      // Default: all concepts the user has studied
+      const { data: progress } = await supabase
+        .from('concept_progress')
+        .select('concept_id')
+        .eq('user_id', user.id);
+
+      conceptIds = (progress || []).map((p) => p.concept_id);
+    }
+
+    if (conceptIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No hay conceptos para repasar.' },
+        { status: 404 }
+      );
+    }
+
+    // Build base query filters
+    let countQuery = supabase
       .from('question_bank')
       .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .in('concept_id', conceptIds);
+
+    if (excludeId) {
+      countQuery = countQuery.neq('id', excludeId);
+    }
+
+    const { count } = await countQuery;
 
     if (!count || count === 0) {
-      return NextResponse.json({ error: 'No questions available' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'No hay preguntas disponibles para estos conceptos.' },
+        { status: 404 }
+      );
     }
 
     // Pick a random offset
     const randomOffset = Math.floor(Math.random() * count);
 
-    const { data: question, error } = await supabase
+    let questionQuery = supabase
       .from('question_bank')
       .select(`
         id,
@@ -39,9 +77,16 @@ export async function GET() {
         expected_answer,
         type,
         difficulty,
-        concepts!inner ( name )
+        concepts!concept_id ( name )
       `)
       .eq('is_active', true)
+      .in('concept_id', conceptIds);
+
+    if (excludeId) {
+      questionQuery = questionQuery.neq('id', excludeId);
+    }
+
+    const { data: question, error } = await questionQuery
       .range(randomOffset, randomOffset)
       .single();
 
@@ -61,6 +106,7 @@ export async function GET() {
       conceptId: question.concept_id,
       conceptName: conceptName || question.concept_id,
       questionText: question.question_text,
+      expectedAnswer: question.expected_answer,
       type: question.type,
       difficulty: question.difficulty,
     });

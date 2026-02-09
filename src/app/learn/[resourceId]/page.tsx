@@ -9,6 +9,8 @@ import { DDIAChapter6 } from './ddia-ch6';
 import { DDIAChapter8 } from './ddia-ch8';
 import { DDIAChapter9 } from './ddia-ch9';
 import { READING_QUESTIONS } from './reading-questions';
+import { LearnFlow } from '@/components/learn-flow';
+import type { Language } from '@/lib/translations';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -25,7 +27,7 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
 };
 
-/** Resources with deep explanation components */
+/** Resources with advance organizer components (Step 1: ACTIVATE) */
 const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'ddia-ch1': () => <DDIAChapter1 />,
   'ddia-ch2': () => <DDIAChapter2 />,
@@ -50,12 +52,20 @@ export default async function LearnPage({ params }: PageProps) {
     redirect(`/login?redirect=/learn/${resourceId}`);
   }
 
-  // Get resource
-  const { data: resource } = await supabase
-    .from('resources')
-    .select('*')
-    .eq('id', resourceId)
-    .single();
+  // Get resource + user language + resource sections in parallel
+  const [resourceResult, profileResult, sectionsResult] = await Promise.all([
+    supabase.from('resources').select('*').eq('id', resourceId).single(),
+    supabase.from('user_profiles').select('language').eq('id', user.id).single(),
+    supabase
+      .from('resource_sections')
+      .select('id, resource_id, concept_id, section_title, content_markdown, sort_order')
+      .eq('resource_id', resourceId)
+      .order('sort_order', { ascending: true }),
+  ]);
+
+  const resource = resourceResult.data;
+  const language = (profileResult.data?.language || 'es') as Language;
+  const sections = sectionsResult.data || [];
 
   if (!resource) {
     return (
@@ -77,8 +87,35 @@ export default async function LearnPage({ params }: PageProps) {
   }
 
   const renderContent = EXPLANATION_COMPONENTS[resourceId];
-  const hasQuestions = !!READING_QUESTIONS[resourceId];
   const practical = PRACTICAL_ROUTES[resourceId];
+  const guidedQuestions = READING_QUESTIONS[resourceId];
+
+  // NEW FLOW: If resource has sections, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
+  if (sections.length > 0) {
+    const flowSections = sections.map((s) => ({
+      id: s.id,
+      conceptId: s.concept_id,
+      sectionTitle: s.section_title,
+      contentMarkdown: s.content_markdown,
+      sortOrder: s.sort_order,
+    }));
+
+    return (
+      <LearnFlow
+        language={language}
+        resourceId={resourceId}
+        sections={flowSections}
+        activateComponent={renderContent?.()}
+        playgroundHref={practical?.href}
+        playgroundLabel={practical?.label}
+        evaluateHref={`/evaluate/${resourceId}`}
+        guidedQuestions={guidedQuestions}
+      />
+    );
+  }
+
+  // FALLBACK: Original flow for resources without sections
+  const hasQuestions = !!guidedQuestions;
 
   return (
     <div className="min-h-screen bg-[#faf9f6]">

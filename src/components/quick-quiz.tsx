@@ -1,25 +1,27 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewSubmitResponse } from '@/types';
 
 interface QuickQuizProps {
   language: Language;
+  conceptIds: string[];
+  onClose: () => void;
 }
 
-type Phase = 'idle' | 'loading' | 'question' | 'evaluating' | 'result';
+type Phase = 'loading' | 'question' | 'evaluating' | 'result' | 'revealed';
 
 interface QuestionData {
   questionId: string;
   conceptName: string;
   questionText: string;
+  expectedAnswer: string;
   difficulty: number;
 }
 
-export function QuickQuiz({ language }: QuickQuizProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [phase, setPhase] = useState<Phase>('idle');
+export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
+  const [phase, setPhase] = useState<Phase>('loading');
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<ReviewSubmitResponse | null>(null);
@@ -32,19 +34,28 @@ export function QuickQuiz({ language }: QuickQuizProps) {
     setResult(null);
 
     try {
-      const res = await fetch('/api/review/random');
+      const params = new URLSearchParams();
+      if (conceptIds.length > 0) params.set('concepts', conceptIds.join(','));
+      if (question?.questionId) params.set('exclude', question.questionId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`/api/review/random${qs}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.details || body.error || 'No questions available');
+        throw new Error(body.error || 'No questions available');
       }
       const data = await res.json();
       setQuestion(data);
       setPhase('question');
     } catch (err) {
       setError((err as Error).message);
-      setPhase('idle');
+      setPhase('question');
     }
-  }, []);
+  }, [conceptIds]);
+
+  // Fetch first question on mount
+  useEffect(() => {
+    fetchQuestion();
+  }, [fetchQuestion]);
 
   const submitAnswer = useCallback(async () => {
     if (!answer.trim() || !question) return;
@@ -72,61 +83,42 @@ export function QuickQuiz({ language }: QuickQuizProps) {
     }
   }, [answer, question]);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setPhase('idle');
-    setQuestion(null);
-    setAnswer('');
-    setResult(null);
-    setError(null);
-  };
-
-  // Floating bubble (collapsed)
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => { setIsOpen(true); fetchQuestion(); }}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-[#4a5d4a] text-[#f5f4f0] flex items-center justify-center hover:bg-[#3d4d3d] transition-all hover:scale-105 shadow-lg"
-        title={t('quiz.start', language)}
-      >
-        <span className="font-mono text-lg">?</span>
-      </button>
-    );
-  }
-
-  // Expanded panel
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[70vh] bg-[#faf9f6] border border-[#d4d0c8] shadow-xl flex flex-col">
-      {/* Panel header */}
+    <div
+      className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[70vh] bg-[#faf9f6] border border-[#d4d0c8] shadow-xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8e6e0]">
         <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
           {t('quiz.title', language)}
         </span>
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="text-[#9c9a8e] hover:text-[#2c2c2c] transition-colors text-lg leading-none"
         >
           ×
         </button>
       </div>
 
-      {/* Panel content */}
+      {/* Content */}
       <div className="p-4 overflow-y-auto flex-1">
         {/* Loading */}
         {phase === 'loading' && (
           <p className="text-sm text-[#9c9a8e]">{t('common.loading', language)}</p>
         )}
 
-        {/* Idle with error */}
-        {phase === 'idle' && (
+        {/* Error without question */}
+        {phase === 'question' && !question && error && (
           <div>
+            <p className="text-xs text-[#7d6b6b] mb-3">{error}</p>
             <button
-              onClick={fetchQuestion}
-              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+              onClick={onClose}
+              className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
             >
-              {t('quiz.start', language)}
+              {t('quiz.done', language)}
             </button>
-            {error && <p className="mt-3 text-xs text-[#7d6b6b]">{error}</p>}
           </div>
         )}
 
@@ -167,7 +159,13 @@ export function QuickQuiz({ language }: QuickQuizProps) {
                 {t('review.verify', language)}
               </button>
               <button
-                onClick={() => fetchQuestion()}
+                onClick={() => setPhase('revealed')}
+                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+              >
+                {t('quiz.showAnswer', language)}
+              </button>
+              <button
+                onClick={fetchQuestion}
                 className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
               >
                 {language === 'es' ? 'Saltar' : 'Skip'}
@@ -175,6 +173,41 @@ export function QuickQuiz({ language }: QuickQuizProps) {
             </div>
 
             {error && <p className="text-xs text-[#7d6b6b]">{error}</p>}
+          </div>
+        )}
+
+        {/* Revealed answer (no DeepSeek call) */}
+        {phase === 'revealed' && question && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] tracking-[0.1em] text-[#4a5d4a] border border-[#d4d0c8] px-2 py-0.5">
+                {question.conceptName}
+              </span>
+            </div>
+
+            <p className="text-sm text-[#7a7a6e] leading-relaxed">{question.questionText}</p>
+
+            <div className="border border-[#e8e6e0] p-3 bg-white">
+              <p className="font-mono text-[9px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+                {t('review.expectedAnswer', language)}
+              </p>
+              <p className="text-sm text-[#2c2c2c] leading-relaxed">{question.expectedAnswer}</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={fetchQuestion}
+                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+              >
+                {t('quiz.another', language)}
+              </button>
+              <button
+                onClick={onClose}
+                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+              >
+                {t('quiz.done', language)}
+              </button>
+            </div>
           </div>
         )}
 
@@ -217,7 +250,7 @@ export function QuickQuiz({ language }: QuickQuizProps) {
                 {t('quiz.another', language)}
               </button>
               <button
-                onClick={handleClose}
+                onClick={onClose}
                 className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
               >
                 {t('quiz.done', language)}

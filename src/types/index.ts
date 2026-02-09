@@ -40,7 +40,7 @@ export type QuestionBankType =
 
 export type ReviewRating = 'wrong' | 'hard' | 'easy';
 
-export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay';
+export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay' | 'micro_test';
 
 // ============================================================================
 // CORE ENTITIES

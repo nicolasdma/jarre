@@ -1329,6 +1329,585 @@ const questions: SeedQuestion[] = [
     expected_answer: 'Un signature define input/output de un módulo (ej: "question -> answer"). La compilación usa un optimizador (ej: BootstrapFewShot) que genera y evalúa ejemplos, seleccionando los que mejor funcionan como few-shot demos. El resultado es un prompt optimizado para la tarea.',
     difficulty: 3,
   },
+
+  // ==========================================================================
+  // ADDITIONAL QUESTIONS — Concepts with < 3 questions
+  // ==========================================================================
+
+  // --- batching-inference ---
+  {
+    concept_id: 'batching-inference',
+    type: 'definition',
+    question_text: '¿Qué es batching en inferencia LLM y por qué mejora el throughput en GPU?',
+    expected_answer: 'Batching agrupa múltiples requests de inferencia en un solo forward pass por la GPU. Mejora el throughput porque las GPUs están diseñadas para operaciones paralelas sobre matrices: procesar un batch de 8 secuencias cuesta casi lo mismo que procesar 1, ya que la latencia está dominada por memory bandwidth, no por cómputo aritmético.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'batching-inference',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre static batching y continuous batching (iteration-level batching), y por qué continuous batching es superior para LLMs?',
+    expected_answer: 'Static batching espera a acumular N requests y las procesa juntas, pero todas deben esperar a que termine la secuencia más larga del batch. Continuous batching (usado por vLLM, TGI) inserta y retira requests del batch a nivel de cada iteración de decode, así un request corto libera su slot inmediatamente sin esperar al más largo. Esto reduce latencia de cola y aumenta utilización de GPU significativamente.',
+    difficulty: 3,
+  },
+
+  // --- compound-ai-systems ---
+  {
+    concept_id: 'compound-ai-systems',
+    type: 'definition',
+    question_text: '¿Qué es un compound AI system y en qué se diferencia de usar un solo modelo LLM?',
+    expected_answer: 'Un compound AI system combina múltiples componentes: LLMs, retrievers, herramientas externas, bases de datos, verificadores y orquestadores. A diferencia de un solo LLM, permite descomponer tareas complejas en pasos especializados, mejorar precisión con retrieval, verificar outputs con validadores, y usar modelos más baratos para subtareas simples. Ejemplos: RAG, agentes con tools, pipelines de verificación.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'compound-ai-systems',
+    type: 'property',
+    question_text: '¿Cuáles son los principales desafíos de diseño al construir compound AI systems comparado con un solo LLM endpoint?',
+    expected_answer: 'Los desafíos principales son: 1) Observabilidad end-to-end (tracing distribuido entre componentes), 2) Gestión de errores en cascada (si el retriever falla, el LLM alucina), 3) Optimización conjunta (mejorar un componente puede degradar otro), 4) Latencia acumulada (cada componente añade latencia), 5) Testing y evaluación del sistema completo vs componentes individuales. La complejidad operacional crece significativamente.',
+    difficulty: 2,
+  },
+
+  // --- compute-optimal-training ---
+  {
+    concept_id: 'compute-optimal-training',
+    type: 'fact',
+    question_text: '¿Qué establecen las Chinchilla scaling laws sobre la relación óptima entre parámetros del modelo y tokens de entrenamiento?',
+    expected_answer: 'Las Chinchilla scaling laws (Hoffmann et al., 2022) establecen que para un presupuesto de cómputo fijo, el número de parámetros y el número de tokens de entrenamiento deben escalarse en proporción aproximadamente igual. Concretamente, un modelo óptimo debe entrenarse con ~20 tokens por parámetro. Esto demostró que GPT-3 (175B params, 300B tokens) estaba sub-entrenado: un modelo más pequeño con más datos habría sido mejor.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'compute-optimal-training',
+    type: 'comparison',
+    question_text: '¿Cómo cambiaron las Chinchilla scaling laws la estrategia de entrenamiento respecto a las scaling laws de Kaplan et al. (2020), y por qué modelos como LLaMA 2 violan Chinchilla deliberadamente?',
+    expected_answer: 'Kaplan et al. sugerían que era más eficiente escalar parámetros que datos, llevando a modelos enormes sub-entrenados. Chinchilla corrigió esto mostrando que ambos deben escalarse proporcionalmente. Sin embargo, LLaMA 2 (70B params, 2T tokens, ~29 tokens/param) entrena con más datos de lo óptimo en cómputo porque optimiza para eficiencia en inferencia: un modelo más pequeño pero mejor entrenado es más barato de servir en producción, aunque el entrenamiento cueste más.',
+    difficulty: 3,
+  },
+
+  // --- constitutional-ai ---
+  {
+    concept_id: 'constitutional-ai',
+    type: 'definition',
+    question_text: '¿Qué es Constitutional AI (CAI) y cuáles son sus dos fases principales de entrenamiento?',
+    expected_answer: 'Constitutional AI es un método de Anthropic para alinear LLMs usando un conjunto de principios (constitución) en lugar de feedback humano para cada output. Fase 1 (SL-CAI): el modelo genera respuestas, se le pide que las critique y revise según la constitución, y se hace fine-tuning supervisado con las revisiones. Fase 2 (RL-CAI): se usa RLHF pero el feedback viene de un modelo entrenado en la constitución (AI feedback) en vez de humanos.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'constitutional-ai',
+    type: 'property',
+    question_text: '¿Qué ventajas tiene Constitutional AI sobre RLHF puro con anotadores humanos para la alineación de modelos?',
+    expected_answer: 'Las ventajas son: 1) Escalabilidad: no necesita miles de anotadores humanos para cada iteración, 2) Transparencia: los principios son explícitos y auditables, a diferencia de los criterios implícitos de anotadores, 3) Consistencia: elimina la varianza entre anotadores humanos, 4) Iterabilidad: modificar la constitución es más rápido que reentrenar anotadores, 5) Reduce la exposición de humanos a contenido dañino durante el proceso de alineación.',
+    difficulty: 2,
+  },
+
+  // --- context-window-limits ---
+  {
+    concept_id: 'context-window-limits',
+    type: 'fact',
+    question_text: '¿Por qué la atención estándar del Transformer tiene complejidad O(n²) respecto a la longitud de contexto y qué consecuencia práctica tiene esto?',
+    expected_answer: 'En self-attention, cada token atiende a todos los demás, generando una matriz de atención de n×n. Esto significa que duplicar el contexto cuadruplica la memoria y el cómputo. Prácticamente, un contexto de 128K tokens requiere ~16 veces más recursos que uno de 32K. Por eso se usan técnicas como sliding window attention, sparse attention, o Flash Attention (que optimiza el acceso a memoria sin cambiar la complejidad teórica).',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'context-window-limits',
+    type: 'property',
+    question_text: '¿Qué es el "lost in the middle" problem y qué estrategias existen para mitigarlo al trabajar con contextos largos?',
+    expected_answer: 'Lost in the middle (Liu et al., 2023) muestra que los LLMs tienen un sesgo de posición: recuerdan mejor la información al inicio y al final del contexto, pero degradan significativamente para información en el medio. Estrategias de mitigación: 1) Reordenar chunks poniendo los más relevantes al inicio/final, 2) Usar summarization jerárquica en vez de concatenar todo, 3) Recursive retrieval con contextos más cortos, 4) Instruction repetition (repetir la instrucción al final).',
+    difficulty: 3,
+  },
+
+  // --- dpo ---
+  {
+    concept_id: 'dpo',
+    type: 'definition',
+    question_text: '¿Qué es Direct Preference Optimization (DPO) y cómo simplifica el pipeline de RLHF?',
+    expected_answer: 'DPO (Rafailov et al., 2023) es un método de alineación que elimina la necesidad de entrenar un reward model separado y usar PPO. En vez de RL, DPO reformula el objetivo como una clasificación directa sobre pares de preferencia (respuesta ganadora vs perdedora), derivando un loss function cerrado que optimiza la misma política óptima que RLHF pero con supervised learning estándar. Esto reduce complejidad, inestabilidad de entrenamiento y costo computacional.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'dpo',
+    type: 'comparison',
+    question_text: '¿Cuáles son las ventajas y limitaciones de DPO frente a RLHF con PPO para alinear LLMs?',
+    expected_answer: 'Ventajas de DPO: 1) No necesita reward model separado, 2) Entrenamiento más estable (sin RL), 3) Menor costo computacional, 4) Implementación más simple. Limitaciones: 1) Asume un modelo de reward implícito Bradley-Terry que puede no capturar preferencias complejas, 2) Sensible a la calidad de los pares de preferencia (necesita que las diferencias sean claras), 3) No explora nuevas respuestas durante el entrenamiento (solo optimiza sobre datos existentes), 4) Puede sufrir overfitting a los pares de entrenamiento.',
+    difficulty: 3,
+  },
+
+  // --- embracing-risk ---
+  {
+    concept_id: 'embracing-risk',
+    type: 'definition',
+    question_text: '¿Qué es un error budget en el contexto de SRE y cómo se calcula a partir de un SLO?',
+    expected_answer: 'Un error budget es la cantidad máxima de indisponibilidad o errores permitidos en un período, derivado del SLO. Si el SLO es 99.9% de availability mensual, el error budget es 0.1% del tiempo = ~43 minutos/mes. Mientras quede error budget, los equipos pueden deployar features y tomar riesgos. Si se agota, se congela el desarrollo y se prioriza fiabilidad. Es la herramienta que alinea incentivos entre producto (velocidad) e ingeniería (estabilidad).',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'embracing-risk',
+    type: 'property',
+    question_text: '¿Por qué perseguir 100% de reliability es contraproducente según el modelo de embracing risk de Google SRE?',
+    expected_answer: 'Es contraproducente por tres razones: 1) Costo marginal exponencial: pasar de 99.99% a 99.999% puede costar 100x más que de 99% a 99.9%, 2) Los usuarios no distinguen la diferencia porque otros componentes del path (red, ISP, dispositivo) tienen menor reliability, 3) Congela la innovación: cada deploy es riesgo, así que 100% reliability implica cero cambios. El nivel correcto de reliability es el mínimo que mantiene a los usuarios satisfechos, ni más ni menos.',
+    difficulty: 2,
+  },
+
+  // --- external-memory ---
+  {
+    concept_id: 'external-memory',
+    type: 'definition',
+    question_text: '¿Qué es external memory para LLMs y qué tipos de almacenamiento externo se usan comúnmente?',
+    expected_answer: 'External memory son sistemas de almacenamiento fuera del modelo que le permiten acceder a información más allá de sus parámetros y ventana de contexto. Tipos principales: 1) Vector databases (Pinecone, Weaviate, Qdrant) para búsqueda semántica, 2) Knowledge graphs para relaciones estructuradas, 3) Key-value stores para memoria episódica de conversaciones, 4) Bases de datos SQL/NoSQL para datos factuales actualizados. Se accede mediante retrieval en tiempo de inferencia.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'external-memory',
+    type: 'property',
+    question_text: '¿Cuáles son los trade-offs entre almacenar conocimiento en los parámetros del modelo (parametric memory) vs en external memory (non-parametric)?',
+    expected_answer: 'Parametric memory (pesos del modelo): ventajas son velocidad de acceso (un forward pass), razonamiento más fluido; desventajas son que requiere reentrenamiento para actualizar, sufre de alucinaciones, no es auditable. Non-parametric (external): ventajas son actualización en tiempo real, trazabilidad (puedes citar fuentes), escalabilidad de conocimiento sin reentrenar; desventajas son latencia adicional por retrieval, dependencia de la calidad del retriever, fragmentación del razonamiento entre chunks. Lo óptimo es combinar ambos (RAG).',
+    difficulty: 3,
+  },
+
+  // --- fine-tuning-efficiency ---
+  {
+    concept_id: 'fine-tuning-efficiency',
+    type: 'definition',
+    question_text: '¿Qué es LoRA (Low-Rank Adaptation) y por qué reduce drásticamente el costo de fine-tuning?',
+    expected_answer: 'LoRA congela los pesos originales del modelo e inyecta matrices de bajo rango descomponibles (A y B donde A es d×r y B es r×d, con r << d) en las capas de atención. En vez de actualizar los millones de parámetros originales, solo entrena estas matrices pequeñas. Para un LLM de 7B parámetros con rank r=16, LoRA puede reducir los parámetros entrenables a ~0.1% del total, reduciendo memoria GPU, tiempo de entrenamiento y almacenamiento del adaptador a unos pocos MB.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'fine-tuning-efficiency',
+    type: 'comparison',
+    question_text: '¿Qué diferencia a QLoRA de LoRA estándar y cuáles son los trade-offs de cuantización durante fine-tuning?',
+    expected_answer: 'QLoRA (Dettmers et al., 2023) cuantiza el modelo base a 4-bit NormalFloat (NF4) y aplica LoRA sobre ese modelo cuantizado, usando double quantization y paged optimizers para manejar memory spikes. Esto permite fine-tunear un modelo de 65B en una sola GPU de 48GB. Trade-offs: ventajas son reducción de memoria ~4x vs LoRA estándar sin pérdida significativa de calidad; desventajas son velocidad de entrenamiento ~30% más lenta por la de-cuantización on-the-fly, y mayor complejidad de implementación. La calidad final es sorprendentemente comparable al fine-tuning completo en 16-bit.',
+    difficulty: 3,
+  },
+  // --- foundation-models ---
+  {
+    concept_id: 'foundation-models',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre fine-tuning y prompting como métodos de adaptación de foundation models a tareas específicas?',
+    expected_answer: 'Fine-tuning ajusta los pesos del modelo con datos específicos de la tarea, logrando mejor performance pero requiriendo GPU, datos etiquetados y riesgo de catastrophic forgetting. Prompting (zero-shot, few-shot, instruction) no modifica pesos: es más barato y flexible pero depende de que la capacidad ya exista en el modelo base. Fine-tuning es preferible cuando hay datos abundantes y requisitos estrictos; prompting cuando se necesita generalidad y rapidez.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'foundation-models',
+    type: 'fact',
+    question_text: '¿Qué predicen las scaling laws de Kaplan/Chinchilla sobre el entrenamiento de foundation models?',
+    expected_answer: 'Kaplan (OpenAI) mostró que la performance escala como power law con compute, datos y parámetros. Chinchilla (DeepMind) refinó esto: el tamaño óptimo del dataset debe escalar proporcionalmente al número de parámetros. Un modelo de 70B necesita ~1.4T tokens. Entrenar modelos más pequeños con más datos (como Llama) puede ser más eficiente en inference que modelos grandes sub-entrenados.',
+    difficulty: 3,
+  },
+
+  // --- kv-cache ---
+  {
+    concept_id: 'kv-cache',
+    type: 'comparison',
+    question_text: '¿Qué diferencia hay entre la fase de prefill y la fase de decode en relación al KV cache?',
+    expected_answer: 'En prefill, se procesan todos los tokens del prompt en paralelo y se llenan los KV caches de todas las capas de una vez. Es compute-bound (mucha computación matricial). En decode, se genera un token a la vez, se consulta el KV cache existente y se añade la nueva entrada K/V. Es memory-bound (el cuello de botella es leer el KV cache de memoria). Por eso prefill tiene alta utilización de GPU y decode es menos eficiente.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'kv-cache',
+    type: 'fact',
+    question_text: '¿Qué es PagedAttention (vLLM) y qué problema del KV cache resuelve?',
+    expected_answer: 'PagedAttention gestiona el KV cache como páginas de memoria virtual en lugar de bloques contiguos. Resuelve la fragmentación de memoria: sin él, cada request necesita reservar memoria contigua para el máximo de tokens posible, desperdiciando hasta un 60-80%. Con PagedAttention, el KV cache se asigna en bloques pequeños on-demand, permitiendo mayor batch size y mejor utilización de memoria GPU.',
+    difficulty: 3,
+  },
+
+  // --- llamaindex-architecture ---
+  {
+    concept_id: 'llamaindex-architecture',
+    type: 'fact',
+    question_text: '¿Qué es un NodeParser en LlamaIndex y por qué es crítico para la calidad del retrieval?',
+    expected_answer: 'Un NodeParser toma Documents y los divide en Nodes (chunks). Es crítico porque la granularidad del chunking determina la calidad del retrieval: chunks muy grandes incluyen ruido, chunks muy pequeños pierden contexto. LlamaIndex ofrece SentenceSplitter, TokenTextSplitter, y SemanticSplitter. La elección afecta directamente precision y recall del sistema RAG.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'llamaindex-architecture',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre un QueryEngine y un ChatEngine en LlamaIndex?',
+    expected_answer: 'QueryEngine es stateless: recibe una query, busca en el índice, y genera una respuesta. Cada query es independiente. ChatEngine es stateful: mantiene historial de conversación, puede hacer follow-up queries usando contexto previo. Internamente, ChatEngine usa un QueryEngine pero añade memory management y condensación de queries (reformula la pregunta del usuario usando el historial).',
+    difficulty: 2,
+  },
+
+  // --- lost-in-middle ---
+  {
+    concept_id: 'lost-in-middle',
+    type: 'fact',
+    question_text: '¿Qué relación tiene el efecto "lost in the middle" con el mecanismo de attention en transformers?',
+    expected_answer: 'El attention tiende a asignar más peso a tokens recientes (recency bias por la posición) y a tokens iniciales (por el patrón de "attention sink" donde los primeros tokens acumulan attention desproporcionada). Los tokens en posiciones intermedias reciben menos attention, lo que explica la curva en U del rendimiento. Esto es un artefacto del entrenamiento con positional encodings y patrones de attention aprendidos.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'lost-in-middle',
+    type: 'comparison',
+    question_text: '¿Cómo afecta el "lost in the middle" de manera diferente a tareas de question answering vs summarización?',
+    expected_answer: 'En question answering, el efecto es severo: si el fragmento con la respuesta está en el medio, la accuracy baja significativamente. En summarización, el impacto es menor pero diferente: los modelos tienden a sobre-representar información del inicio y final del documento. Para QA se mitiga reordenando documentos; para summarización se usan técnicas de map-reduce o chunking con resúmenes parciales.',
+    difficulty: 3,
+  },
+
+  // --- maintainability ---
+  {
+    concept_id: 'maintainability',
+    type: 'guarantee',
+    question_text: '¿Qué garantiza la operability como pilar de la maintainability y qué prácticas concretas la soportan?',
+    expected_answer: 'Operability garantiza que el equipo de operaciones pueda mantener el sistema corriendo de manera eficiente. Prácticas concretas: buen monitoring con visibilidad del estado interno, soporte para automatización (evitar procesos manuales), documentación operacional, comportamiento predecible ante fallos, buenas herramientas de deploy y rollback, y evitar dependencia en individuos específicos.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'maintainability',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre complejidad esencial y complejidad accidental en el contexto de maintainability?',
+    expected_answer: 'Complejidad esencial es inherente al problema que se resuelve y no se puede eliminar. Complejidad accidental es introducida por la implementación: malas abstracciones, code duplication, coupling innecesario, estado global. La meta de la maintainability es minimizar la complejidad accidental sin simplificar la esencial. Moseley y Marks (Out of the Tar Pit) argumentan que la mayoría de la complejidad en software real es accidental.',
+    difficulty: 3,
+  },
+
+  // --- memory-management ---
+  {
+    concept_id: 'memory-management',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre sliding window memory y summarization memory para conversaciones con LLMs?',
+    expected_answer: 'Sliding window mantiene los últimos N mensajes literales y descarta los anteriores. Es simple pero pierde contexto importante de turnos antiguos. Summarization condensa mensajes antiguos en un resumen que se prepend al contexto. Preserva información clave pero introduce distorsión del resumen y costo de la llamada al LLM para resumir. Sliding window es O(1) en tokens; summarization es variable pero más eficiente en retención de información.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'memory-management',
+    type: 'fact',
+    question_text: '¿Qué es retrieval-augmented memory y cómo difiere de las estrategias de ventana?',
+    expected_answer: 'Retrieval-augmented memory almacena todos los turnos de conversación en un vector store y, ante cada nueva query, recupera los K turnos más relevantes semánticamente. A diferencia de sliding window (recencia) o summarization (compresión), selecciona por relevancia. Ventaja: puede recuperar contexto de hace muchos turnos si es relevante. Desventaja: requiere embeddings, vector store, y la calidad depende del retrieval. Ideal para conversaciones largas donde la información relevante no es necesariamente la más reciente.',
+    difficulty: 3,
+  },
+
+  // --- monitoring ---
+  {
+    concept_id: 'monitoring',
+    type: 'property',
+    question_text: '¿Qué es distributed tracing y por qué es esencial en arquitecturas de microservicios?',
+    expected_answer: 'Distributed tracing sigue un request a través de múltiples servicios asignándole un trace ID único. Cada servicio genera spans (unidades de trabajo) que forman un árbol de llamadas. Es esencial porque en microservicios un request toca 5-20 servicios: sin tracing, diagnosticar latencia o errores requeriría correlacionar logs manualmente. Herramientas: Jaeger, Zipkin, OpenTelemetry. Permite identificar exactamente qué servicio introduce latencia o errores.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'monitoring',
+    type: 'guarantee',
+    question_text: '¿Qué garantiza un sistema de alerting bien diseñado y qué problemas tiene el alerting mal configurado?',
+    expected_answer: 'Un buen alerting garantiza que los operadores se enteren de problemas reales a tiempo para actuar. Debe tener: alta signal-to-noise ratio (pocas falsas alarmas), actionable alerts (cada alerta tiene un runbook), severidad escalonada (page solo para críticos). Alerting mal configurado causa alert fatigue: demasiadas alertas falsas hacen que se ignoren las reales. Regla clave: si una alerta no requiere acción humana inmediata, no debería despertar a nadie.',
+    difficulty: 2,
+  },
+
+  // --- multimodal-embeddings ---
+  {
+    concept_id: 'multimodal-embeddings',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre CLIP e ImageBind en cuanto a modalidades y arquitectura?',
+    expected_answer: 'CLIP alinea dos modalidades (texto e imagen) usando contrastive learning con pares imagen-texto. ImageBind (Meta) alinea seis modalidades (imagen, texto, audio, profundidad, térmico, IMU) usando imagen como ancla: cada modalidad se alinea con imagen, y por transitividad se alinean entre sí. ImageBind no necesita pares de todas las combinaciones, solo pares con imagen. Esto permite búsqueda cross-modal entre modalidades que nunca se entrenaron juntas directamente.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'multimodal-embeddings',
+    type: 'property',
+    question_text: '¿Qué es el modality gap en embeddings multimodales y cómo afecta la calidad del retrieval?',
+    expected_answer: 'El modality gap es la separación sistemática entre embeddings de diferentes modalidades en el espacio compartido: los embeddings de texto e imágenes forman clusters separados incluso para conceptos equivalentes. Esto reduce la efectividad del retrieval cross-modal porque la distancia inter-modalidad es mayor que la intra-modalidad. Se mitiga con normalización, fine-tuning contrastivo más agresivo, o proyecciones adicionales que cierran el gap.',
+    difficulty: 3,
+  },
+
+  // --- offline-evaluation ---
+  {
+    concept_id: 'offline-evaluation',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre métricas de referencia (BLEU, ROUGE) y métricas sin referencia (LLM-as-judge) para evaluar LLMs?',
+    expected_answer: 'Métricas de referencia comparan el output contra un gold standard: BLEU mide n-gram overlap (traducción), ROUGE mide recall de n-gramas (resumen). Son baratas y determinísticas pero penalizan paráfrasis válidas y no capturan corrección semántica. Métricas sin referencia como LLM-as-judge evalúan calidad directamente sin gold standard: capturan semántica pero son estocásticas, tienen bias (verbosity bias, position bias) y cuestan tokens. Lo ideal es combinar ambas.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'offline-evaluation',
+    type: 'fact',
+    question_text: '¿Qué es benchmark contamination y por qué amenaza la validez de la evaluación offline?',
+    expected_answer: 'Benchmark contamination ocurre cuando los datos de un benchmark de evaluación aparecen en el training set del modelo. El modelo "memoriza" las respuestas en lugar de razonar. Amenaza la validez porque infla artificialmente los scores: un modelo puede obtener 90% en MMLU no por comprensión sino por memorización. Se mitiga con held-out test sets, benchmarks dinámicos (nuevos cada ciclo), y canary strings para detectar contaminación. Es un problema creciente con datasets de entrenamiento cada vez más grandes.',
+    difficulty: 3,
+  },
+  // --- online-evaluation (batch 3) ---
+  {
+    concept_id: 'online-evaluation',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre un A/B test y un canary deployment para evaluar un nuevo modelo LLM en producción?',
+    expected_answer: 'A/B test divide el tráfico en dos grupos estables para medir diferencias estadísticas entre modelos (requiere tamaño de muestra y duración). Canary deployment expone el nuevo modelo a un porcentaje pequeño (1-5%) y se escala gradualmente, priorizando detectar fallos graves rápidamente antes de hacer rollout completo. A/B test optimiza para significancia estadística, canary para mitigación de riesgo.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'online-evaluation',
+    type: 'property',
+    question_text: '¿Qué es el guardrail hit rate como métrica de online evaluation y por qué su tendencia importa más que su valor absoluto?',
+    expected_answer: 'Guardrail hit rate es el porcentaje de requests que activan un guardrail (safety filter, output validator, etc.). Un valor absoluto alto puede ser esperado (usuarios adversariales). Lo importante es la tendencia: si sube repentinamente tras un deploy, indica regresión del modelo. Si baja tras ajustes de prompt, confirma mejora. Se debe desglosar por tipo de guardrail para identificar la causa raíz.',
+    difficulty: 3,
+  },
+
+  // --- paged-attention (batch 3) ---
+  {
+    concept_id: 'paged-attention',
+    type: 'property',
+    question_text: '¿Cómo funciona el memory sharing en PagedAttention y en qué escenarios es especialmente útil?',
+    expected_answer: 'PagedAttention permite que múltiples secuencias compartan bloques de KV cache mediante copy-on-write: las páginas se comparten hasta que una secuencia diverge. Es especialmente útil en beam search (todas las beams comparten el prefijo), parallel sampling (múltiples completions del mismo prompt), y prefix sharing (requests con el mismo system prompt). Reduce uso de memoria hasta 55% en beam search.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'paged-attention',
+    type: 'comparison',
+    question_text: '¿Qué analogía existe entre PagedAttention y la memoria virtual de un sistema operativo?',
+    expected_answer: 'PagedAttention mapea bloques lógicos (posiciones en la secuencia) a bloques físicos (memoria GPU) mediante una page table, igual que un OS mapea páginas virtuales a frames físicos. Los bloques no necesitan ser contiguos en memoria física. Permite asignación dinámica (no pre-allocar el máximo), eliminación de fragmentación externa, y técnicas como copy-on-write. La diferencia es que opera sobre KV cache en GPU en lugar de RAM.',
+    difficulty: 2,
+  },
+
+  // --- plan-and-execute (batch 3) ---
+  {
+    concept_id: 'plan-and-execute',
+    type: 'fact',
+    question_text: '¿Cuáles son las estrategias de re-planning en Plan-and-Execute y cuáles son sus trade-offs?',
+    expected_answer: 'Re-plan completo: regenera todo el plan desde cero con los resultados obtenidos (costoso pero robusto). Re-plan parcial: solo ajusta los pasos restantes manteniendo los completados (más eficiente, riesgo de plan inconsistente). Re-plan condicional: solo re-planifica si el resultado de un paso difiere significativamente de lo esperado (requiere criterios de divergencia). El trade-off principal es costo en tokens/latencia vs robustez ante cambios.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'plan-and-execute',
+    type: 'comparison',
+    question_text: '¿En qué se diferencia Plan-and-Execute de un sistema DAG-based (como un workflow engine)?',
+    expected_answer: 'Plan-and-Execute genera el plan dinámicamente con un LLM y puede re-planificar ante resultados inesperados: el plan es flexible. Un DAG-based workflow tiene pasos y dependencias predefinidos: es más predecible y auditable pero rígido. Plan-and-Execute es mejor para tareas abiertas y ambiguas. DAG es mejor para pipelines conocidos con steps determinísticos. Se pueden combinar: Plan-and-Execute para decidir qué workflow ejecutar.',
+    difficulty: 3,
+    related_concept_id: 'react-pattern',
+  },
+
+  // --- positional-encoding (batch 3) ---
+  {
+    concept_id: 'positional-encoding',
+    type: 'property',
+    question_text: '¿Cómo funciona RoPE (Rotary Position Embeddings) y por qué facilita la extrapolación a secuencias largas?',
+    expected_answer: 'RoPE codifica la posición rotando los vectores de query y key en pares de dimensiones, usando ángulos proporcionales a la posición. La atención entre dos tokens depende solo de su distancia relativa (no absoluta) porque el dot product de vectores rotados cancela las posiciones absolutas y deja solo la diferencia. Esto facilita la extrapolación porque el modelo aprende relaciones de distancia relativa que se generalizan a posiciones no vistas en training.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'positional-encoding',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre ALiBi y RoPE como métodos de positional encoding?',
+    expected_answer: 'ALiBi (Attention with Linear Biases) no modifica los embeddings: añade un bias lineal negativo a los attention scores proporcional a la distancia entre tokens (-m * |i-j|), penalizando posiciones lejanas. RoPE modifica los vectores Q y K mediante rotación. ALiBi es más simple, no tiene parámetros aprendibles, y extrapola bien sin fine-tuning. RoPE es más expresivo pero requiere técnicas como NTK-aware scaling para extrapolar. ALiBi tiende a favorecer localidad; RoPE es más flexible con dependencias largas.',
+    difficulty: 3,
+    related_concept_id: 'transformer-architecture',
+  },
+
+  // --- prompt-caching (batch 3) ---
+  {
+    concept_id: 'prompt-caching',
+    type: 'property',
+    question_text: '¿Qué condiciones deben cumplirse para que un cache hit ocurra en prompt caching y qué lo invalida?',
+    expected_answer: 'El prefijo debe ser idéntico byte a byte (mismo system prompt, mismos ejemplos few-shot, mismo orden). Cualquier cambio en un carácter invalida el cache desde ese punto. También debe usarse el mismo modelo y, en algunos providers, los mismos parámetros (temperature no afecta, pero el modelo sí). El cache tiene TTL (típicamente 5-60 min en Anthropic/OpenAI) y se invalida si expira o si el proveedor lo evicta por presión de memoria.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'prompt-caching',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre prompt caching (prefix caching) y KV cache reutilización dentro de una misma request?',
+    expected_answer: 'KV cache intra-request es la reutilización estándar durante autoregressive generation: cada nuevo token reutiliza los KV states ya computados de tokens anteriores en la misma secuencia. Prompt caching (prefix caching) es inter-request: reutiliza KV states computados en requests anteriores que comparten el mismo prefijo. KV cache es automático y siempre ocurre. Prompt caching requiere diseño intencional del prompt y depende del proveedor.',
+    difficulty: 3,
+  },
+
+  // --- prompt-engineering (batch 3) ---
+  {
+    concept_id: 'prompt-engineering',
+    type: 'property',
+    question_text: '¿Qué es chain-of-thought prompting y cuándo NO es beneficioso usarlo?',
+    expected_answer: 'Chain-of-thought (CoT) pide al modelo que razone paso a paso antes de dar la respuesta final. No es beneficioso cuando: la tarea es simple y no requiere razonamiento (clasificación binaria trivial), cuando la latencia es crítica (CoT genera muchos más tokens), cuando el costo por token importa, o cuando el modelo puede confundirse con su propio razonamiento en tareas que domina bien sin CoT. También puede empeorar en tareas puramente de retrieval o lookup.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'prompt-engineering',
+    type: 'guarantee',
+    question_text: '¿Por qué los few-shot examples pueden causar un sesgo negativo y cómo se mitiga?',
+    expected_answer: 'Los ejemplos few-shot pueden introducir: sesgo de distribución (si todos los ejemplos son de una categoría, el modelo favorece esa categoría), sesgo de formato (el modelo copia el estilo exacto incluso cuando no aplica), y anchoring (el modelo se ancla a los valores numéricos de los ejemplos). Se mitiga con: ejemplos diversos que cubran el espacio de posibilidades, variación en longitud y estilo de respuesta, e incluir contraejemplos. El orden de los ejemplos también importa por recency bias.',
+    difficulty: 3,
+  },
+
+  // --- quantization (batch 3) ---
+  {
+    concept_id: 'quantization',
+    type: 'property',
+    question_text: '¿Qué son los outlier features y por qué dificultan la quantización de LLMs?',
+    expected_answer: 'Los outlier features son activaciones con magnitudes 10-100x mayores que el promedio, presentes en pocas dimensiones pero en casi todas las capas de LLMs grandes (>6.7B parámetros). Dificultan la quantización porque comprimen el rango de representación: si un INT8 debe cubrir valores de -100 a 100 por un outlier, los valores normales (-1 a 1) pierden resolución. Soluciones: LLM.int8() separa outliers en FP16 y cuantiza el resto, SmoothQuant redistribuye la dificultad entre pesos y activaciones.',
+    difficulty: 3,
+  },
+  {
+    concept_id: 'quantization',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre GPTQ y AWQ como métodos de post-training quantization?',
+    expected_answer: 'GPTQ (Generative Pre-trained Transformer Quantization) cuantiza los pesos capa por capa minimizando el error de reconstrucción del output de cada capa usando un set de calibración. AWQ (Activation-aware Weight Quantization) observa que un pequeño porcentaje de pesos (1%) son críticos porque corresponden a canales con activaciones grandes, y los protege escalándolos antes de cuantizar. AWQ es más rápido de aplicar y suele preservar mejor la calidad en INT4 que GPTQ.',
+    difficulty: 3,
+  },
+
+  // --- rate-limiting (batch 3) ---
+  {
+    concept_id: 'rate-limiting',
+    type: 'fact',
+    question_text: '¿Cómo funciona el algoritmo token bucket y por qué es preferido sobre fixed window para rate limiting?',
+    expected_answer: 'Token bucket tiene un bucket con capacidad máxima B que se llena a tasa R tokens/segundo. Cada request consume un token; si el bucket está vacío, se rechaza. Permite bursts (hasta B requests instantáneos) mientras mantiene el rate promedio en R. Fixed window tiene el problema del boundary burst: un usuario puede hacer 2x requests en la frontera entre dos ventanas. Token bucket suaviza el tráfico naturalmente y es más justo.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'rate-limiting',
+    type: 'comparison',
+    question_text: '¿Cómo se implementa rate limiting dual (por requests y por tokens) para LLM APIs y por qué se necesitan ambos?',
+    expected_answer: 'Se necesitan dos rate limiters independientes porque una request corta y una de 100K tokens tienen costos muy diferentes. Rate limit por requests previene sobrecarga de conexiones y overhead de procesamiento. Rate limit por tokens previene abuso de compute y controla costos. Se implementa con dos token buckets separados: uno para request count y otro para token count (estimado pre-request o medido post-request). Ambos deben pasar para que la request proceda.',
+    difficulty: 3,
+  },
+
+  // --- reasoning-models (batch 3) ---
+  {
+    concept_id: 'reasoning-models',
+    type: 'property',
+    question_text: '¿Qué es el "thinking budget" en reasoning models y cómo afecta el trade-off entre calidad y costo?',
+    expected_answer: 'El thinking budget limita cuántos tokens puede usar el modelo en su cadena de razonamiento interna antes de dar la respuesta. Más tokens de razonamiento generalmente mejoran la calidad en tareas complejas pero aumentan latencia y costo proporcionalmente. Algunas tareas simples no se benefician de razonamiento extenso. El control del thinking budget permite ajustar el trade-off por query: razonamiento corto para preguntas fáciles, largo para problemas complejos.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'reasoning-models',
+    type: 'comparison',
+    question_text: '¿Cuándo conviene usar un reasoning model (o1/R1) vs un modelo estándar con chain-of-thought prompting?',
+    expected_answer: 'Reasoning models son superiores en: math compleja, code generation con lógica intrincada, problemas multi-paso con dependencias. Un modelo estándar con CoT es preferible cuando: la tarea es moderadamente simple (CoT basta), se necesita control sobre el formato de razonamiento, el costo es crítico (reasoning models cuestan 3-10x más por los tokens de thinking), o se requiere baja latencia. Reasoning models también pueden sobre-pensar tareas simples, empeorando el output.',
+    difficulty: 3,
+  },
+  // --- red-teaming ---
+  {
+    concept_id: 'red-teaming',
+    type: 'definition',
+    question_text: '¿Qué es red teaming en el contexto de sistemas de IA y cuál es su objetivo principal?',
+    expected_answer: 'Red teaming es un proceso de prueba adversarial donde evaluadores intentan provocar comportamientos no deseados en un modelo: jailbreaks, outputs tóxicos, filtraciones de datos del sistema prompt, o sesgos. El objetivo es encontrar modos de falla antes del deployment, no solo validar el happy path.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'red-teaming',
+    type: 'comparison',
+    question_text: '¿Cuál es la diferencia entre red teaming manual y red teaming automatizado (automated red teaming)? ¿Cuándo es preferible cada uno?',
+    expected_answer: 'Manual usa humanos creativos que prueban ataques novedosos (jailbreaks lingüísticos, context manipulation), es mejor para encontrar vulnerabilidades inesperadas. Automatizado usa otro LLM para generar adversarial prompts a escala (e.g., Perez et al. 2022), es mejor para cobertura amplia y regresión. Lo ideal es combinar ambos: automatizado para superficie amplia, manual para profundidad y ataques multi-turno sofisticados.',
+    difficulty: 2,
+  },
+
+  // --- reflexion ---
+  {
+    concept_id: 'reflexion',
+    type: 'definition',
+    question_text: '¿Qué es el patrón Reflexion en agentes y cómo difiere de un simple retry?',
+    expected_answer: 'Reflexion (Shinn et al. 2023) es un patrón donde el agente, tras fallar una tarea, genera una reflexión verbal sobre qué salió mal y la almacena en una memoria episódica. En intentos futuros, consulta esas reflexiones para evitar los mismos errores. A diferencia de un retry simple, Reflexion mantiene estado entre intentos y aprende explícitamente de los fracasos sin actualizar pesos del modelo.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'reflexion',
+    type: 'property',
+    question_text: '¿Cuáles son los tres componentes principales del loop de Reflexion y qué rol cumple cada uno?',
+    expected_answer: 'Actor: ejecuta la acción y produce un output. Evaluator: determina si el output es correcto o genera una señal de feedback (puede ser heurístico o LLM-based). Self-Reflection: el agente analiza el feedback y genera un resumen textual del error que se almacena en la memoria episódica para futuros intentos. Este ciclo se repite hasta éxito o límite de intentos.',
+    difficulty: 2,
+  },
+
+  // --- scaling-laws ---
+  {
+    concept_id: 'scaling-laws',
+    type: 'fact',
+    question_text: '¿Qué descubrieron Kaplan et al. (2020) sobre la relación entre performance y tamaño del modelo?',
+    expected_answer: 'Descubrieron power laws: la loss del modelo decrece como función potencial del número de parámetros (N), tamaño del dataset (D), y compute (C). Las relaciones son L ∝ N^(-αN), L ∝ D^(-αD), L ∝ C^(-αC). Además, el cuello de botella suele ser parámetros antes que datos, sugiriendo modelos grandes entrenados menos tiempo.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'scaling-laws',
+    type: 'comparison',
+    question_text: '¿En qué difiere la recomendación de Chinchilla (Hoffmann et al. 2022) respecto a las scaling laws originales de Kaplan?',
+    expected_answer: 'Kaplan sugería que escalar parámetros era más eficiente que escalar datos, llevando a modelos grandes entrenados poco. Chinchilla demostró que parámetros y datos deben escalarse proporcionalmente: un modelo compute-optimal tiene ~20 tokens por parámetro. Chinchilla (70B params, 1.4T tokens) superó a Gopher (280B params, 300B tokens) con 4x menos parámetros, probando que muchos modelos grandes estaban sub-entrenados.',
+    difficulty: 3,
+  },
+
+  // --- self-consistency ---
+  {
+    concept_id: 'self-consistency',
+    type: 'definition',
+    question_text: '¿Qué es self-consistency y cómo mejora sobre chain-of-thought estándar?',
+    expected_answer: 'Self-consistency (Wang et al. 2022) samplea múltiples cadenas de razonamiento (con temperature > 0) para la misma pregunta y toma la respuesta final por voto mayoritario. Mejora sobre CoT estándar (greedy decoding) porque un solo path puede tener errores de razonamiento, pero es improbable que la mayoría de paths independientes cometan el mismo error. Típicamente mejora 5-15% en benchmarks de razonamiento.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'self-consistency',
+    type: 'property',
+    question_text: '¿Cuáles son las limitaciones principales de self-consistency y cuándo no funciona bien?',
+    expected_answer: 'Costo: requiere N llamadas al modelo (típicamente 5-40 samples), multiplicando latencia y costo. No funciona bien en tareas abiertas sin respuesta discreta (escritura creativa, resumen) porque el voto mayoritario necesita respuestas comparables. Tampoco ayuda si el modelo tiene un sesgo sistemático: si todos los paths cometen el mismo error por falta de conocimiento, la mayoría sigue siendo incorrecta.',
+    difficulty: 2,
+  },
+
+  // --- speculative-decoding ---
+  {
+    concept_id: 'speculative-decoding',
+    type: 'definition',
+    question_text: '¿Cómo funciona speculative decoding y por qué acelera la inferencia sin cambiar la distribución de salida?',
+    expected_answer: 'Un modelo draft pequeño y rápido genera K tokens candidatos autorregressivamente. El modelo target grande verifica todos los K tokens en un solo forward pass (paralelo). Los tokens que el target acepta se conservan; al primer rechazo se re-samplea desde la distribución del target. Esto funciona porque la verificación paralela de K tokens cuesta lo mismo que generar 1 token en el modelo grande. La distribución final es idéntica a la del target porque se usa rejection sampling.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'speculative-decoding',
+    type: 'property',
+    question_text: '¿Qué factores determinan el speedup de speculative decoding y cuál es la tasa de aceptación típica?',
+    expected_answer: 'El speedup depende de: (1) la tasa de aceptación α (qué tan bien el draft approxima al target), típicamente 70-90% en tokens fáciles; (2) el ratio de velocidad entre draft y target; (3) el número K de tokens especulados por paso. El speedup teórico es ~1/(1-α) × (costo_target/costo_draft). En la práctica se logra 2-3x speedup. Funciona peor en dominios donde el draft diverge mucho del target (código especializado, idiomas raros).',
+    difficulty: 3,
+  },
+
+  // --- test-time-compute ---
+  {
+    concept_id: 'test-time-compute',
+    type: 'definition',
+    question_text: '¿Qué es test-time compute y cuáles son las principales estrategias para utilizarlo?',
+    expected_answer: 'Test-time compute es invertir más cómputo durante la inferencia (no el entrenamiento) para mejorar la calidad del output. Estrategias principales: (1) cadenas de razonamiento más largas (CoT extendido), (2) sampling múltiple con selección (best-of-N, self-consistency), (3) verificación y refinamiento iterativo, (4) búsqueda en árbol (tree-of-thoughts). OpenAI o1 es el ejemplo canónico: usa chain-of-thought interno extenso con RL para aprender a pensar más.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'test-time-compute',
+    type: 'comparison',
+    question_text: '¿Cuándo es más eficiente invertir en test-time compute versus en train-time compute (modelos más grandes)?',
+    expected_answer: 'Test-time compute es más eficiente cuando: (1) el problema requiere razonamiento multi-paso donde errores se propagan, (2) se necesita precisión alta en un dominio estrecho, (3) el costo por query es tolerable. Train-time compute es mejor cuando: (1) se necesita baja latencia, (2) el volumen de queries es masivo, (3) el conocimiento requerido es broad y factual. Snell et al. (2024) mostraron que en problemas difíciles, un modelo pequeño con test-time compute puede superar a un modelo 14x más grande.',
+    difficulty: 3,
+  },
+
+  // --- tree-of-thoughts ---
+  {
+    concept_id: 'tree-of-thoughts',
+    type: 'definition',
+    question_text: '¿Qué es Tree of Thoughts (ToT) y cómo generaliza chain-of-thought?',
+    expected_answer: 'Tree of Thoughts (Yao et al. 2023) extiende CoT explorando múltiples ramas de razonamiento en estructura de árbol. En cada nodo, el LLM genera varios "pensamientos" candidatos. Un evaluador (el mismo LLM o heurística) valora cada rama. Se usa BFS o DFS con backtracking para explorar el espacio. Generaliza CoT (una sola cadena) y self-consistency (múltiples cadenas independientes) permitiendo exploración deliberada con retroceso.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'tree-of-thoughts',
+    type: 'property',
+    question_text: '¿Cuáles son las limitaciones prácticas de Tree of Thoughts y en qué tipos de problemas se justifica usarlo?',
+    expected_answer: 'Limitaciones: (1) costo computacional explosivo: cada nodo requiere múltiples llamadas al LLM para generar y evaluar, puede ser 10-100x más caro que CoT simple; (2) la calidad depende críticamente del evaluador de estados intermedios; (3) la descomposición en pasos discretos no es natural para todos los problemas. Se justifica en problemas con: espacio de búsqueda combinatorio (puzzles, planificación), donde el backtracking es esencial, y donde una respuesta correcta tiene alto valor (código, matemáticas).',
+    difficulty: 3,
+  },
+
+  // --- vision-language-models ---
+  {
+    concept_id: 'vision-language-models',
+    type: 'definition',
+    question_text: '¿Cuáles son las dos arquitecturas principales para vision-language models y cómo procesan las imágenes?',
+    expected_answer: 'Encoder-fusión: un vision encoder (típicamente ViT) procesa la imagen en patch embeddings, un adaptador/projector los mapea al espacio del LLM, y se concatenan con los text tokens (e.g., LLaVA usa linear projection, Flamingo usa perceiver resampler). Nativo multimodal: la imagen se tokeniza directamente en tokens discretos que el transformer procesa junto con texto (e.g., Gemini, Fuyu). La primera es más modular; la segunda permite generación de imágenes también.',
+    difficulty: 2,
+  },
+  {
+    concept_id: 'vision-language-models',
+    type: 'fact',
+    question_text: '¿Qué es el problema de hallucination en VLMs y cómo difiere de la hallucination en LLMs de solo texto?',
+    expected_answer: 'En VLMs, hallucination se refiere a describir objetos, atributos o relaciones que no existen en la imagen. A diferencia de LLMs texto-only (donde hallucinan hechos), los VLMs tienen un ground truth visual verificable. Tipos comunes: objetos inventados, conteos incorrectos, relaciones espaciales erróneas, y atributos falsos. Es particularmente grave porque da falsa confianza al usuario. Se evalúa con benchmarks como POPE y CHAIR.',
+    difficulty: 2,
+  },
+
+  // --- dspy-programming ---
+  {
+    concept_id: 'dspy-programming',
+    type: 'definition',
+    question_text: '¿Qué es DSPy y cuáles son sus tres abstracciones fundamentales?',
+    expected_answer: 'DSPy (Khattab et al.) es un framework que reemplaza prompt engineering manual con optimización programática. Tres abstracciones: (1) Signatures: declaran input/output fields de un paso LLM (e.g., "question -> answer"); (2) Modules: componentes reutilizables que implementan un patrón (ChainOfThought, ReAct, ProgramOfThought); (3) Optimizers (compiladores): ajustan automáticamente los prompts/few-shot examples para maximizar una métrica sobre un dataset de desarrollo. El pipeline se escribe como código Python normal.',
+    difficulty: 1,
+  },
+  {
+    concept_id: 'dspy-programming',
+    type: 'property',
+    question_text: '¿Cómo funciona el optimizer BootstrapFewShot de DSPy y por qué es preferible a escribir few-shot examples manualmente?',
+    expected_answer: 'BootstrapFewShot ejecuta el pipeline sobre ejemplos del dataset de desarrollo, recolecta las trazas intermedias (inputs/outputs de cada módulo) que pasan la métrica de validación, y las usa como few-shot examples en el prompt final. Es preferible al manual porque: (1) selecciona ejemplos que realmente mejoran la métrica, no los que "parecen buenos"; (2) genera examples para pasos intermedios que un humano no podría escribir fácilmente; (3) se re-optimiza automáticamente al cambiar el modelo o la tarea. El resultado es un prompt optimizado, no pesos entrenados.',
+    difficulty: 3,
+  },
 ];
 
 // ============================================================================

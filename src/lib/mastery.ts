@@ -94,6 +94,24 @@ export function computeNewLevelFromProject(currentLevel: number): MasteryLevel {
 }
 
 // ============================================================================
+// MICRO-TEST MASTERY (from PostTest in LEARN step)
+// ============================================================================
+
+/** Minimum correct answers (≥60% score) for micro-test mastery advancement */
+export const MICRO_TEST_THRESHOLD = 3;
+
+/**
+ * Check if a concept should advance 0→1 based on accumulated micro-test results.
+ * Requires: 3+ correct answers (score ≥ 60%) for the concept.
+ */
+export function canAdvanceFromMicroTests(
+  currentLevel: number,
+  correctCount: number
+): boolean {
+  return currentLevel < 1 && correctCount >= MICRO_TEST_THRESHOLD;
+}
+
+// ============================================================================
 // MASTERY HISTORY HELPERS
 // ============================================================================
 

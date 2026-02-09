@@ -34,7 +34,7 @@ export async function GET() {
           question_text,
           type,
           difficulty,
-          concepts!inner (
+          concepts!concept_id (
             name
           )
         )

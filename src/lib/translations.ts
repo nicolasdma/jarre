@@ -202,12 +202,35 @@ const translations = {
   'project.concepts': { es: 'Conceptos que avanza', en: 'Concepts advanced' },
   'project.milestone': { es: 'Proyecto de Fase', en: 'Phase Project' },
 
+  // Learn Flow
+  'learn.step.activate': { es: 'Activar', en: 'Activate' },
+  'learn.step.learn': { es: 'Aprender', en: 'Learn' },
+  'learn.step.apply': { es: 'Aplicar', en: 'Apply' },
+  'learn.step.evaluate': { es: 'Evaluar', en: 'Evaluate' },
+  'learn.preQuestion.title': { es: 'Antes de leer', en: 'Before reading' },
+  'learn.preQuestion.instruction': { es: 'Intenta responder antes de leer la sección. Está bien equivocarse — eso mejora tu aprendizaje.', en: 'Try to answer before reading the section. It\'s okay to be wrong — that improves your learning.' },
+  'learn.preQuestion.submit': { es: 'Intentar', en: 'Try' },
+  'learn.preQuestion.skip': { es: 'Ir al contenido', en: 'Go to content' },
+  'learn.preQuestion.attempted': { es: 'Intento registrado', en: 'Attempt recorded' },
+  'learn.postTest.title': { es: 'Comprueba tu comprensión', en: 'Check your understanding' },
+  'learn.section.of': { es: 'de', en: 'of' },
+  'learn.section.next': { es: 'Siguiente sección', en: 'Next section' },
+  'learn.section.previous': { es: 'Sección anterior', en: 'Previous section' },
+  'learn.section.complete': { es: 'Sección completada', en: 'Section complete' },
+  'learn.continueToApply': { es: 'Continuar a Aplicar', en: 'Continue to Apply' },
+  'learn.continueToEvaluate': { es: 'Continuar a Evaluar', en: 'Continue to Evaluate' },
+  'learn.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
+  'learn.guidedQuestions': { es: 'Preguntas Guía', en: 'Guided Questions' },
+  'learn.guidedQuestionsDesc': { es: 'Reflexiona sobre lo que aprendiste con estas preguntas', en: 'Reflect on what you learned with these questions' },
+
   // Quick Quiz
   'quiz.start': { es: 'Probar Conocimiento', en: 'Test Knowledge' },
   'quiz.another': { es: 'Otra Pregunta', en: 'Another Question' },
   'quiz.done': { es: 'Listo', en: 'Done' },
   'quiz.title': { es: 'Quiz Rápido', en: 'Quick Quiz' },
   'quiz.description': { es: 'Pon a prueba tu conocimiento con una pregunta aleatoria', en: 'Test your knowledge with a random question' },
+  'quiz.review': { es: 'Repasar', en: 'Review' },
+  'quiz.showAnswer': { es: 'Ver Respuesta', en: 'Show Answer' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

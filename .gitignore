@@ -43,6 +43,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# pipeline outputs (PDFs, extracted text, translated JSON)
+/scripts/output/
+
+# supabase temp
+supabase/.temp/
+
 # storage engine runtime data
 /engine/data/*
 !/engine/data/.gitkeep

@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
+import { QuickQuiz } from '@/components/quick-quiz';
 
 // Resources that have learn pages (deep explanations or playgrounds)
 const RESOURCES_WITH_LEARN_PAGES = ['ddia-ch1', 'ddia-ch2', 'ddia-ch3', 'ddia-ch5', 'ddia-ch6', 'ddia-ch8', 'ddia-ch9'];
@@ -28,6 +30,7 @@ interface ResourceCardProps {
     estimated_hours?: number;
     isUnlocked: boolean;
     missingPrerequisites: string[];
+    conceptsTaught: string[];
     evalStats: EvalStats | null;
   };
   isLoggedIn: boolean;
@@ -69,6 +72,7 @@ function CornerBrackets({ className = '' }: { className?: string }) {
 
 export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardProps) {
   const router = useRouter();
+  const [showQuiz, setShowQuiz] = useState(false);
   const isLocked = isLoggedIn && !resource.isUnlocked;
   const hasEvaluation = resource.evalStats !== null;
 
@@ -212,6 +216,19 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 {t('common.open', language)}
               </button>
             )}
+            {resource.conceptsTaught.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowQuiz(true);
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-1.5 uppercase hover:border-[#4a5d4a] hover:text-[#4a5d4a] transition-colors"
+              >
+                {t('quiz.review', language)}
+              </button>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -226,6 +243,15 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           </div>
         )}
       </div>
+
+      {/* Quiz panel */}
+      {showQuiz && (
+        <QuickQuiz
+          language={language}
+          conceptIds={resource.conceptsTaught}
+          onClose={() => setShowQuiz(false)}
+        />
+      )}
     </div>
   );
 }
