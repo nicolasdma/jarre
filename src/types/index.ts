@@ -185,6 +185,24 @@ export interface ProjectConcept {
 }
 
 // ============================================================================
+// INLINE QUIZZES
+// ============================================================================
+
+export type InlineQuizFormat = 'mc' | 'tf';
+
+export interface InlineQuiz {
+  id: string;
+  sectionId: string;
+  positionAfterHeading: string;
+  sortOrder: number;
+  format: InlineQuizFormat;
+  questionText: string;
+  options: { label: string; text: string }[] | null;
+  correctAnswer: string;
+  explanation: string;
+}
+
+// ============================================================================
 // EVALUATION
 // ============================================================================
 

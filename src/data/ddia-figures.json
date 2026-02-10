@@ -1,0 +1,270 @@
+{
+  "1-1": {
+    "path": "/figures/ddia/fig-1-1.png",
+    "caption": "Figura 1-1. One possible architecture for a data system that combines several"
+  },
+  "1-2": {
+    "path": "/figures/ddia/fig-1-2.png",
+    "caption": "Figura 1-2. Simple relational schema for implementing a Twitter home timeline."
+  },
+  "1-3": {
+    "path": "/figures/ddia/fig-1-3.png",
+    "caption": "Figura 1-3. Twitter’s data pipeline for delivering tweets to followers, with load parame‐"
+  },
+  "1-4": {
+    "path": "/figures/ddia/fig-1-4.png",
+    "caption": "Figura 1-4. Illustrating mean and percentiles: response times for a sample of 100"
+  },
+  "1-5": {
+    "path": "/figures/ddia/fig-1-5.png",
+    "caption": "Figura 1-5. When several backend calls are needed to serve a request, it takes just a sin‐"
+  },
+  "2-1": {
+    "path": "/figures/ddia/fig-2-1.png",
+    "caption": "Figura 2-1. Representing a LinkedIn profile using a relational schema. Photo of Bill"
+  },
+  "2-2": {
+    "path": "/figures/ddia/fig-2-2.png",
+    "caption": "Figura 2-2. One-to-many relationships forming a tree structure."
+  },
+  "2-3": {
+    "path": "/figures/ddia/fig-2-3.png",
+    "caption": "Figura 2-3. The company name is not just a string, but a link to a company entity."
+  },
+  "2-4": {
+    "path": "/figures/ddia/fig-2-4.png",
+    "caption": "Figura 2-4. Extending résumés with many-to-many relationships."
+  },
+  "2-5": {
+    "path": "/figures/ddia/fig-2-5.png",
+    "caption": "Figura 2-5. Example of graph-structured data (boxes represent vertices, arrows repre‐"
+  },
+  "2-6": {
+    "path": "/figures/ddia/fig-2-6.png",
+    "caption": "Figura 2-6. Determining that Idaho is in North America, using the Datalog rules from"
+  },
+  "3-1": {
+    "path": "/figures/ddia/fig-3-1.png",
+    "caption": "Figura 3-1. Storing a log of key-value pairs in a CSV-like format, indexed with an in-"
+  },
+  "3-2": {
+    "path": "/figures/ddia/fig-3-2.png",
+    "caption": "Figura 3-2. Compaction of a key-value update log (counting the number of times each"
+  },
+  "3-3": {
+    "path": "/figures/ddia/fig-3-3.png",
+    "caption": "Figura 3-3. Performing compaction and segment merging simultaneously."
+  },
+  "3-4": {
+    "path": "/figures/ddia/fig-3-4.png",
+    "caption": "Figura 3-4. Merging several SSTable segments, retaining only the most recent value"
+  },
+  "3-5": {
+    "path": "/figures/ddia/fig-3-5.png",
+    "caption": "Figura 3-5. An SSTable with an in-memory index."
+  },
+  "3-6": {
+    "path": "/figures/ddia/fig-3-6.png",
+    "caption": "Figura 3-6. Looking up a key using a B-tree index."
+  },
+  "3-7": {
+    "path": "/figures/ddia/fig-3-7.png",
+    "caption": "Figura 3-7. Growing a B-tree by splitting a page."
+  },
+  "3-8": {
+    "path": "/figures/ddia/fig-3-8.png",
+    "caption": "Figura 3-8. Simplified outline of ETL into a data warehouse."
+  },
+  "3-9": {
+    "path": "/figures/ddia/fig-3-9.png",
+    "caption": "Figura 3-9. Example of a star schema for use in a data warehouse."
+  },
+  "3-10": {
+    "path": "/figures/ddia/fig-3-10.png",
+    "caption": "Figura 3-10. Storing relational data by column, rather than by row."
+  },
+  "3-11": {
+    "path": "/figures/ddia/fig-3-11.png",
+    "caption": "Figura 3-11. Compressed, bitmap-indexed storage of a single column."
+  },
+  "3-12": {
+    "path": "/figures/ddia/fig-3-12.png",
+    "caption": "Figura 3-12. Two dimensions of a data cube, aggregating data by summing."
+  },
+  "5-1": {
+    "path": "/figures/ddia/fig-5-1.png",
+    "caption": "Figura 5-1. Leader-based (master–slave) replication."
+  },
+  "5-2": {
+    "path": "/figures/ddia/fig-5-2.png",
+    "caption": "Figura 5-2. Leader-based replication with one synchronous and one asynchronous fol‐"
+  },
+  "5-3": {
+    "path": "/figures/ddia/fig-5-3.png",
+    "caption": "Figura 5-3. A user makes a write, followed by a read from a stale replica. To prevent"
+  },
+  "5-4": {
+    "path": "/figures/ddia/fig-5-4.png",
+    "caption": "Figura 5-4. A user first reads from a fresh replica, then from a stale replica. Time"
+  },
+  "5-5": {
+    "path": "/figures/ddia/fig-5-5.png",
+    "caption": "Figura 5-5. If some partitions are replicated slower than others, an observer may see the"
+  },
+  "5-6": {
+    "path": "/figures/ddia/fig-5-6.png",
+    "caption": "Figura 5-6. Multi-leader replication across multiple datacenters."
+  },
+  "5-7": {
+    "path": "/figures/ddia/fig-5-7.png",
+    "caption": "Figura 5-7. A write conflict caused by two leaders concurrently updating the same"
+  },
+  "5-8": {
+    "path": "/figures/ddia/fig-5-8.png",
+    "caption": "Figura 5-8. Three example topologies in which multi-leader replication can be set up."
+  },
+  "5-9": {
+    "path": "/figures/ddia/fig-5-9.png",
+    "caption": "Figura 5-9. With multi-leader replication, writes may arrive in the wrong order at some"
+  },
+  "5-10": {
+    "path": "/figures/ddia/fig-5-10.png",
+    "caption": "Figura 5-10. A quorum write, quorum read, and read repair after a node outage."
+  },
+  "5-11": {
+    "path": "/figures/ddia/fig-5-11.png",
+    "caption": "Figura 5-11. If w + r > n, at least one of the r replicas you read from must have seen the"
+  },
+  "5-12": {
+    "path": "/figures/ddia/fig-5-12.png",
+    "caption": "Figura 5-12. Concurrent writes in a Dynamo-style datastore: there is no well-defined"
+  },
+  "5-13": {
+    "path": "/figures/ddia/fig-5-13.png",
+    "caption": "Figura 5-13. Capturing causal dependencies between two clients concurrently editing a"
+  },
+  "5-14": {
+    "path": "/figures/ddia/fig-5-14.png",
+    "caption": "Figura 5-14. Graph of causal dependencies in Figure 5-13."
+  },
+  "6-1": {
+    "path": "/figures/ddia/fig-6-1.png",
+    "caption": "Figura 6-1. Combining replication and partitioning: each node acts as leader for some"
+  },
+  "6-2": {
+    "path": "/figures/ddia/fig-6-2.png",
+    "caption": "Figura 6-2. A print encyclopedia is partitioned by key range."
+  },
+  "6-3": {
+    "path": "/figures/ddia/fig-6-3.png",
+    "caption": "Figura 6-3. Partitioning by hash of key."
+  },
+  "6-4": {
+    "path": "/figures/ddia/fig-6-4.png",
+    "caption": "Figura 6-4. Partitioning secondary indexes by document."
+  },
+  "6-5": {
+    "path": "/figures/ddia/fig-6-5.png",
+    "caption": "Figura 6-5. Partitioning secondary indexes by term."
+  },
+  "6-6": {
+    "path": "/figures/ddia/fig-6-6.png",
+    "caption": "Figura 6-6. Adding a new node to a database cluster with multiple partitions per node."
+  },
+  "6-7": {
+    "path": "/figures/ddia/fig-6-7.png",
+    "caption": "Figura 6-7. Three different ways of routing a request to the right node."
+  },
+  "6-8": {
+    "path": "/figures/ddia/fig-6-8.png",
+    "caption": "Figura 6-8. Using ZooKeeper to keep track of assignment of partitions to nodes."
+  },
+  "8-1": {
+    "path": "/figures/ddia/fig-8-1.png",
+    "caption": "Figura 8-1. If you send a request and don’t get a response, it’s not possible to distinguish"
+  },
+  "8-2": {
+    "path": "/figures/ddia/fig-8-2.png",
+    "caption": "Figura 8-2. If several machines send network traffic to the same destination, its switch"
+  },
+  "8-3": {
+    "path": "/figures/ddia/fig-8-3.png",
+    "caption": "Figura 8-3. The write by client B is causally later than the write by client A, but B’s"
+  },
+  "8-4": {
+    "path": "/figures/ddia/fig-8-4.png",
+    "caption": "Figura 8-4. Incorrect implementation of a distributed lock: client 1 believes that it still"
+  },
+  "8-5": {
+    "path": "/figures/ddia/fig-8-5.png",
+    "caption": "Figura 8-5. Making access to storage safe by allowing writes only in the order of increas‐"
+  },
+  "9-1": {
+    "path": "/figures/ddia/fig-9-1.png",
+    "caption": "Figura 9-1. This system is not linearizable, causing football fans to be confused."
+  },
+  "9-2": {
+    "path": "/figures/ddia/fig-9-2.png",
+    "caption": "Figura 9-2. If a read request is concurrent with a write request, it may return either the"
+  },
+  "9-3": {
+    "path": "/figures/ddia/fig-9-3.png",
+    "caption": "Figura 9-3. After any one read has returned the new value, all following reads (on the"
+  },
+  "9-4": {
+    "path": "/figures/ddia/fig-9-4.png",
+    "caption": "Figura 9-4. Visualizing the points in time at which the reads and writes appear to have"
+  },
+  "9-5": {
+    "path": "/figures/ddia/fig-9-5.png",
+    "caption": "Figura 9-5. The web server and image resizer communicate both through file storage"
+  },
+  "9-6": {
+    "path": "/figures/ddia/fig-9-6.png",
+    "caption": "Figura 9-6. A nonlinearizable execution, despite using a strict quorum."
+  },
+  "9-7": {
+    "path": "/figures/ddia/fig-9-7.png",
+    "caption": "Figura 9-7. A network interruption forcing a choice between linearizability and availa‐"
+  },
+  "9-8": {
+    "path": "/figures/ddia/fig-9-8.png",
+    "caption": "Figura 9-8. Lamport timestamps provide a total ordering consistent with causality."
+  },
+  "9-9": {
+    "path": "/figures/ddia/fig-9-9.png",
+    "caption": "Figura 9-9. A successful execution of two-phase commit (2PC)."
+  },
+  "9-10": {
+    "path": "/figures/ddia/fig-9-10.png",
+    "caption": "Figura 9-10. The coordinator crashes after participants vote “yes.” Database 1 does not"
+  },
+  "11-1": {
+    "path": "/figures/ddia/fig-11-1.png",
+    "caption": "Figura 11-1. (a) Load balancing: sharing the work of consuming a topic among con‐"
+  },
+  "11-2": {
+    "path": "/figures/ddia/fig-11-2.png",
+    "caption": "Figura 11-2. Consumer 2 crashes while processing m3, so it is redelivered to consumer 1"
+  },
+  "11-3": {
+    "path": "/figures/ddia/fig-11-3.png",
+    "caption": "Figura 11-3. Producers send messages by appending them to a topic-partition file, and"
+  },
+  "11-4": {
+    "path": "/figures/ddia/fig-11-4.png",
+    "caption": "Figura 11-4. In the database, X is first set to A and then to B, while at the search index"
+  },
+  "11-5": {
+    "path": "/figures/ddia/fig-11-5.png",
+    "caption": "Figura 11-5. Taking data in the order it was written to one database, and applying the"
+  },
+  "11-6": {
+    "path": "/figures/ddia/fig-11-6.png",
+    "caption": "Figura 11-6. The relationship between the current application state and an event"
+  },
+  "11-7": {
+    "path": "/figures/ddia/fig-11-7.png",
+    "caption": "Figura 11-7. Windowing by processing time introduces artifacts due to variations in"
+  }
+}

@@ -129,8 +129,16 @@
 - [x] `[P1]` Create glossary system (`scripts/glossaries/`) + refactor translate-chapter.py - 2026-02-09
 - [ ] `[P1]` Translate and seed first arXiv paper (RAG: 2005.11401)
 - [ ] `[P1]` Translate and seed first YouTube transcript
-- [ ] `[P2]` Section completion persistence per user (currently client-state only)
+- [x] `[P1]` Learn progress persistence in Supabase (cross-device) - 2026-02-09
+- [x] `[P1]` ConceptVisual system: registry + 5 Framer Motion visuals - 2026-02-09
+- [x] `[P1]` Re-segment DDIA Ch5 into 5 sub-sections (was 16K words single blob) - 2026-02-09
+- [x] `[P1]` Extract DDIA figures from PDF (67 figures, 4.4 MB, all 8 chapters) - 2026-02-09
+- [x] `[P1]` Figure injection at render time (registry + injector + img/figcaption components) - 2026-02-09
+- [x] `[P1]` Inline micro-quizzes: MC/TF after sub-headings (migration + component + 22 Ch5 quizzes seeded) - 2026-02-09
+- [ ] `[P1]` Seed inline quizzes for remaining DDIA chapters (Ch1, Ch2, Ch3, Ch6, Ch8, Ch9, Ch11)
 - [ ] `[P2]` Pre-question evaluation via DeepSeek (currently just records attempt)
+- [ ] `[P2]` Re-segment remaining long chapters (Ch2: 12K, Ch3: 13K, Ch8: 17K, Ch9: 23K, Ch11: 19K)
+- [ ] `[P2]` Create ConceptVisuals for other chapters (partitioning, consistency, consensus)
 - [ ] `[P3]` Auto advance organizer for chapters without hand-written component
 - See: `plan/2026-02-08/session-10-learn-flow.md`
 
@@ -242,3 +250,11 @@
 - [x] `[S1]` clima-cli — CLI + curso práctico (HTTP, APIs, JSON, argparse, .env) - 2026-02-07
 - [x] `[P1]` Translate all 8 DDIA chapters (120K+ EN words → 130K+ ES words) - 2026-02-09
 - [x] `[P1]` Build multi-source ingestion pipeline (arXiv + YouTube + glossaries) - 2026-02-09
+- [x] `[P1]` Learn progress persistence (learn_progress table + API + save on transitions) - 2026-02-09
+- [x] `[P1]` ConceptVisual system (registry, 5 animated visuals, section-level lookup) - 2026-02-09
+- [x] `[P1]` Re-segment DDIA Ch5 into 5 digestible sections (16,598 words preserved) - 2026-02-09
+- [x] `[P1]` DDIA figure extraction pipeline (67 PNGs from PDF, JSON registry) - 2026-02-09
+- [x] `[P1]` Figure injection system (render-time injection at caption positions) - 2026-02-09
+- [x] `[P1]` Inline micro-quizzes (MC/TF, client-side grading, interleaved in content) - 2026-02-09
+- [x] `[P1]` Migration 009: inline_quizzes table + RLS + index - 2026-02-09
+- [x] `[P1]` Seed 22 inline quizzes for DDIA Ch5 (5 sections, MC+TF mix) - 2026-02-09

@@ -10,7 +10,10 @@ import { DDIAChapter8 } from './ddia-ch8';
 import { DDIAChapter9 } from './ddia-ch9';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
+import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
+import type { LearnProgress } from '@/lib/learn-progress';
+import type { InlineQuiz } from '@/types';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -52,8 +55,8 @@ export default async function LearnPage({ params }: PageProps) {
     redirect(`/login?redirect=/learn/${resourceId}`);
   }
 
-  // Get resource + user language + resource sections in parallel
-  const [resourceResult, profileResult, sectionsResult] = await Promise.all([
+  // Get resource + user language + resource sections + learn progress in parallel
+  const [resourceResult, profileResult, sectionsResult, progressResult] = await Promise.all([
     supabase.from('resources').select('*').eq('id', resourceId).single(),
     supabase.from('user_profiles').select('language').eq('id', user.id).single(),
     supabase
@@ -61,11 +64,26 @@ export default async function LearnPage({ params }: PageProps) {
       .select('id, resource_id, concept_id, section_title, content_markdown, sort_order')
       .eq('resource_id', resourceId)
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('learn_progress')
+      .select('current_step, active_section, completed_sections, section_state')
+      .eq('user_id', user.id)
+      .eq('resource_id', resourceId)
+      .single(),
   ]);
 
   const resource = resourceResult.data;
   const language = (profileResult.data?.language || 'es') as Language;
   const sections = sectionsResult.data || [];
+
+  const initialProgress: LearnProgress | undefined = progressResult.data
+    ? {
+        currentStep: progressResult.data.current_step as LearnProgress['currentStep'],
+        activeSection: progressResult.data.active_section,
+        completedSections: progressResult.data.completed_sections ?? [],
+        sectionState: (progressResult.data.section_state as LearnProgress['sectionState']) ?? {},
+      }
+    : undefined;
 
   if (!resource) {
     return (
@@ -92,6 +110,37 @@ export default async function LearnPage({ params }: PageProps) {
 
   // NEW FLOW: If resource has sections, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
   if (sections.length > 0) {
+    const sectionIds = sections.map((s) => s.id);
+
+    // Fetch inline quizzes for all sections in this resource
+    const { data: quizzesRaw } = await supabase
+      .from('inline_quizzes')
+      .select('*')
+      .in('section_id', sectionIds)
+      .eq('is_active', true)
+      .order('sort_order');
+
+    // Group quizzes by section_id
+    const quizzesBySectionId: Record<string, InlineQuiz[]> = {};
+    if (quizzesRaw) {
+      for (const q of quizzesRaw) {
+        const quiz: InlineQuiz = {
+          id: q.id,
+          sectionId: q.section_id,
+          positionAfterHeading: q.position_after_heading,
+          sortOrder: q.sort_order,
+          format: q.format,
+          questionText: q.question_text,
+          options: q.options,
+          correctAnswer: q.correct_answer,
+          explanation: q.explanation,
+        };
+        const arr = quizzesBySectionId[q.section_id] ?? [];
+        arr.push(quiz);
+        quizzesBySectionId[q.section_id] = arr;
+      }
+    }
+
     const flowSections = sections.map((s) => ({
       id: s.id,
       conceptId: s.concept_id,
@@ -110,6 +159,9 @@ export default async function LearnPage({ params }: PageProps) {
         playgroundLabel={practical?.label}
         evaluateHref={`/evaluate/${resourceId}`}
         guidedQuestions={guidedQuestions}
+        initialProgress={initialProgress}
+        figureRegistry={FIGURE_REGISTRY}
+        quizzesBySectionId={quizzesBySectionId}
       />
     );
   }

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { ConceptSection } from './concept-section';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
+import { saveLearnProgress, type LearnProgress, type SectionState } from '@/lib/learn-progress';
+import type { FigureRegistry } from '@/lib/figure-registry';
+import type { InlineQuiz } from '@/types';
 
 // ============================================================================
 // Types
@@ -29,6 +32,9 @@ interface LearnFlowProps {
   playgroundLabel?: string;
   evaluateHref: string;
   guidedQuestions?: ReadingQuestion[];
+  initialProgress?: LearnProgress;
+  figureRegistry?: FigureRegistry;
+  quizzesBySectionId?: Record<string, InlineQuiz[]>;
 }
 
 // ============================================================================
@@ -74,11 +80,21 @@ export function LearnFlow({
   playgroundLabel,
   evaluateHref,
   guidedQuestions,
+  initialProgress,
+  figureRegistry,
+  quizzesBySectionId,
 }: LearnFlowProps) {
-  const [currentStep, setCurrentStep] = useState<Step>('activate');
-  const [activeSection, setActiveSection] = useState(0);
+  const [currentStep, setCurrentStep] = useState<Step>(
+    (initialProgress?.currentStep as Step) ?? 'activate'
+  );
+  const [activeSection, setActiveSection] = useState(
+    initialProgress?.activeSection ?? 0
+  );
   const [completedSections, setCompletedSections] = useState<Set<number>>(
-    new Set()
+    new Set(initialProgress?.completedSections ?? [])
+  );
+  const [sectionState, setSectionState] = useState<Record<string, SectionState>>(
+    initialProgress?.sectionState ?? {}
   );
 
   const allSectionsComplete = useMemo(
@@ -86,17 +102,59 @@ export function LearnFlow({
     [completedSections, sections]
   );
 
+  /** Build the current progress snapshot for persistence */
+  const buildProgress = useCallback(
+    (overrides?: Partial<{
+      step: Step;
+      section: number;
+      completed: Set<number>;
+      state: Record<string, SectionState>;
+    }>): LearnProgress => ({
+      currentStep: overrides?.step ?? currentStep,
+      activeSection: overrides?.section ?? activeSection,
+      completedSections: Array.from(overrides?.completed ?? completedSections),
+      sectionState: overrides?.state ?? sectionState,
+    }),
+    [currentStep, activeSection, completedSections, sectionState]
+  );
+
+  /** Persist + update step */
+  const changeStep = useCallback(
+    (step: Step) => {
+      setCurrentStep(step);
+      saveLearnProgress(resourceId, buildProgress({ step }));
+    },
+    [resourceId, buildProgress]
+  );
+
+  /** Called by ConceptSection when its state changes */
+  const handleSectionStateChange = useCallback(
+    (conceptId: string, state: SectionState) => {
+      setSectionState((prev) => {
+        const next = { ...prev, [conceptId]: state };
+        // Fire-and-forget save with the new section state
+        saveLearnProgress(resourceId, buildProgress({ state: next }));
+        return next;
+      });
+    },
+    [resourceId, buildProgress]
+  );
+
   const handleSectionComplete = (index: number) => {
     setCompletedSections((prev) => {
       const next = new Set(prev);
       next.add(index);
+
+      const nextActiveSection =
+        index < sections.length - 1 ? index + 1 : activeSection;
+      setActiveSection(nextActiveSection);
+
+      saveLearnProgress(
+        resourceId,
+        buildProgress({ completed: next, section: nextActiveSection })
+      );
       return next;
     });
-
-    // Advance to next section or mark learn step complete
-    if (index < sections.length - 1) {
-      setActiveSection(index + 1);
-    }
   };
 
   return (
@@ -126,10 +184,10 @@ export function LearnFlow({
                   <button
                     onClick={() => {
                       // Only allow going back or to already-reached steps
-                      if (isPast || isActive) setCurrentStep(step);
+                      if (isPast || isActive) changeStep(step);
                       // Allow jumping to apply if all learn sections done
                       if (step === 'apply' && allSectionsComplete)
-                        setCurrentStep(step);
+                        changeStep(step);
                     }}
                     className={`font-mono text-[10px] tracking-[0.15em] uppercase transition-colors ${
                       isActive
@@ -164,7 +222,7 @@ export function LearnFlow({
                   {language === 'es' ? 'Siguiente paso' : 'Next step'}
                 </p>
                 <button
-                  onClick={() => setCurrentStep('learn')}
+                  onClick={() => changeStep('learn')}
                   className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-6 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
                 >
                   {t('learn.step.learn', language)} →
@@ -215,6 +273,12 @@ export function LearnFlow({
                   language={language}
                   isActive={i === activeSection}
                   onComplete={() => handleSectionComplete(i)}
+                  initialState={sectionState[section.conceptId]}
+                  onStateChange={(state) =>
+                    handleSectionStateChange(section.conceptId, state)
+                  }
+                  figureRegistry={figureRegistry}
+                  inlineQuizzes={quizzesBySectionId?.[section.id]}
                 />
               ))}
             </div>
@@ -231,7 +295,7 @@ export function LearnFlow({
                     : 'You have completed all sections in this chapter.'}
                 </p>
                 <button
-                  onClick={() => setCurrentStep('apply')}
+                  onClick={() => changeStep('apply')}
                   className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-6 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
                 >
                   {t('learn.continueToApply', language)} →
@@ -321,7 +385,7 @@ export function LearnFlow({
             {/* CTA to Evaluate */}
             <div className="mt-12 pt-12 border-t border-[#e8e6e0] text-center">
               <button
-                onClick={() => setCurrentStep('evaluate')}
+                onClick={() => changeStep('evaluate')}
                 className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-6 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
               >
                 {t('learn.continueToEvaluate', language)} →

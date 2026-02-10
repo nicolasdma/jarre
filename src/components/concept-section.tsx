@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SectionContent } from './section-content';
 import { t, type Language } from '@/lib/translations';
-import type { ReviewSubmitResponse } from '@/types';
+import type { ReviewSubmitResponse, InlineQuiz } from '@/types';
+import type { FigureRegistry } from '@/lib/figure-registry';
+import type { SectionState } from '@/lib/learn-progress';
 
 // ============================================================================
 // Types
@@ -22,6 +24,10 @@ interface ConceptSectionProps {
   language: Language;
   isActive: boolean;
   onComplete: () => void;
+  initialState?: SectionState;
+  onStateChange?: (state: SectionState) => void;
+  figureRegistry?: FigureRegistry;
+  inlineQuizzes?: InlineQuiz[];
 }
 
 type Phase = 'pre-question' | 'content' | 'post-test' | 'completed';
@@ -43,18 +49,35 @@ export function ConceptSection({
   language,
   isActive,
   onComplete,
+  initialState,
+  onStateChange,
+  figureRegistry,
+  inlineQuizzes,
 }: ConceptSectionProps) {
-  const [phase, setPhase] = useState<Phase>('pre-question');
+  const [phase, setPhase] = useState<Phase>(initialState?.phase ?? 'pre-question');
   const [preQuestion, setPreQuestion] = useState<QuestionData | null>(null);
-  const [preAnswer, setPreAnswer] = useState('');
+  const [preAnswer, setPreAnswer] = useState(initialState?.preAnswer ?? '');
   const [preLoading, setPreLoading] = useState(false);
-  const [preAttempted, setPreAttempted] = useState(false);
+  const [preAttempted, setPreAttempted] = useState(initialState?.preAttempted ?? false);
 
   const [postQuestion, setPostQuestion] = useState<QuestionData | null>(null);
   const [postAnswer, setPostAnswer] = useState('');
   const [postLoading, setPostLoading] = useState<'fetching' | 'evaluating' | null>(null);
-  const [postResult, setPostResult] = useState<ReviewSubmitResponse | null>(null);
+  const [postResult, setPostResult] = useState<ReviewSubmitResponse | null>(
+    initialState?.postScore != null
+      ? { score: initialState.postScore, isCorrect: initialState.postIsCorrect ?? false, feedback: '', expectedAnswer: '', rating: 'easy', nextReviewAt: '', intervalDays: 0 }
+      : null
+  );
   const [postError, setPostError] = useState<string | null>(null);
+
+  // Restore completed sections on mount: if saved as 'completed', notify parent
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (initialState?.phase === 'completed' && !restoredRef.current) {
+      restoredRef.current = true;
+      onComplete();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch a question for the concept
   const fetchQuestion = useCallback(
@@ -88,21 +111,24 @@ export function ConceptSection({
   const handlePreSubmit = () => {
     setPreAttempted(true);
     setPhase('content');
+    onStateChange?.({ phase: 'content', preAnswer, preAttempted: true });
   };
 
   const skipToContent = () => {
     setPreAttempted(true);
     setPhase('content');
+    onStateChange?.({ phase: 'content', preAnswer: '', preAttempted: true });
   };
 
   // Move to post-test
   const handleContentDone = useCallback(async () => {
     setPhase('post-test');
+    onStateChange?.({ phase: 'post-test', preAnswer, preAttempted });
     setPostLoading('fetching');
     const q = await fetchQuestion(preQuestion?.questionId);
     setPostQuestion(q);
     setPostLoading(null);
-  }, [fetchQuestion, preQuestion?.questionId]);
+  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted]);
 
   // Submit post-test answer (evaluated via DeepSeek)
   const handlePostSubmit = useCallback(async () => {
@@ -125,15 +151,29 @@ export function ConceptSection({
       const data: ReviewSubmitResponse = await res.json();
       setPostResult(data);
       setPostLoading(null);
+      onStateChange?.({
+        phase: 'post-test',
+        preAnswer,
+        preAttempted,
+        postScore: data.score,
+        postIsCorrect: data.isCorrect,
+      });
     } catch (err) {
       setPostError((err as Error).message);
       setPostLoading(null);
     }
-  }, [postAnswer, postQuestion]);
+  }, [postAnswer, postQuestion, onStateChange, preAnswer, preAttempted]);
 
   // Complete section
   const handleComplete = () => {
     setPhase('completed');
+    onStateChange?.({
+      phase: 'completed',
+      preAnswer,
+      preAttempted,
+      postScore: postResult?.score,
+      postIsCorrect: postResult?.isCorrect,
+    });
     onComplete();
   };
 
@@ -260,7 +300,13 @@ export function ConceptSection({
             </div>
           )}
 
-          <SectionContent markdown={section.contentMarkdown} />
+          <SectionContent
+            markdown={section.contentMarkdown}
+            conceptId={section.conceptId}
+            sectionIndex={section.sortOrder}
+            figures={figureRegistry}
+            inlineQuizzes={inlineQuizzes}
+          />
 
           {phase === 'content' && (
             <div className="mt-8 pt-6 border-t border-[#e8e6e0]">
