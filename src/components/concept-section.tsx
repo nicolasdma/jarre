@@ -87,6 +87,9 @@ export function ConceptSection({
     (initialState?.postConfidence as ConfidenceLevel) ?? null
   );
   const [selfExplanation, setSelfExplanation] = useState(initialState?.selfExplanation ?? '');
+  const [selfExplanationValid, setSelfExplanationValid] = useState(
+    !!(initialState?.selfExplanation && initialState.selfExplanation.length >= 30)
+  );
 
   // Restore completed sections on mount: if saved as 'completed', notify parent
   const restoredRef = useRef(false);
@@ -549,17 +552,23 @@ export function ConceptSection({
                 selected={postConfidence}
               />
 
-              {/* Self-explanation — after confidence */}
+              {/* Self-explanation — required gate for advancing */}
               <SelfExplanation
                 language={language}
                 conceptName={section.sectionTitle}
                 initialValue={selfExplanation}
                 onSave={handleSelfExplanation}
+                required
+                minLength={postResult && postResult.score < 80 ? 50 : 30}
+                onValidChange={setSelfExplanationValid}
+                postTestScore={postResult?.score}
+                postTestCorrect={postResult?.isCorrect}
               />
 
               <button
                 onClick={handleComplete}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
+                disabled={!selfExplanationValid}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {t('learn.section.next', language)} →
               </button>

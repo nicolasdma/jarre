@@ -27,7 +27,7 @@ export interface SectionState {
 }
 
 export interface ReviewStepState {
-  inlineAnswers: Record<string, { selectedOption: string; isCorrect: boolean }>;
+  inlineAnswers: Record<string, { selectedOption: string; isCorrect: boolean; justification?: string }>;
   bankAnswers: Record<string, {
     userAnswer: string;
     score?: number;
@@ -37,8 +37,23 @@ export interface ReviewStepState {
   }>;
 }
 
+export interface PracticeEvalAnswer {
+  questionId: string;
+  userAnswer: string;
+  score?: number;
+  isCorrect?: boolean;
+  feedback?: string;
+  dimensionScores?: Record<string, number>;
+  scaffoldLevel: 1 | 2 | 3;
+}
+
+export interface PracticeEvalState {
+  answers: Record<string, PracticeEvalAnswer>;
+  currentScaffoldLevel: 1 | 2 | 3;
+}
+
 export interface LearnProgress {
-  currentStep: 'activate' | 'learn' | 'review' | 'apply' | 'evaluate';
+  currentStep: 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
   activeSection: number;
   completedSections: number[];
   /** Steps the user has visited at least once — persists even when navigating back */
@@ -46,6 +61,7 @@ export interface LearnProgress {
   /** Keyed by section UUID (resource_sections.id) */
   sectionState: Record<string, SectionState>;
   reviewState?: ReviewStepState;
+  practiceEvalState?: PracticeEvalState;
 }
 
 // ============================================================================

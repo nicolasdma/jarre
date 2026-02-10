@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const language = (profile?.language || 'es') as SupportedLanguage;
 
     const body = await request.json();
-    const { resourceId, resourceTitle, questions, userId } = body;
+    const { resourceId, resourceTitle, questions, userId, predictedScore } = body;
 
     if (!resourceId || !questions?.length || !userId) {
       return NextResponse.json(
@@ -83,6 +83,7 @@ export async function POST(request: Request) {
         resource_id: resourceId,
         status: 'completed',
         overall_score: Math.round(parsed.overallScore),
+        predicted_score: predictedScore ?? null,
         prompt_version: PROMPT_VERSIONS.EVALUATE_ANSWERS,
         completed_at: new Date().toISOString(),
       })

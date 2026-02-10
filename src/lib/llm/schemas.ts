@@ -49,7 +49,7 @@ export type EvaluateAnswersResponse = z.infer<typeof EvaluateAnswersResponseSche
  */
 export const BankQuestionSchema = z.object({
   conceptName: z.string().min(1),
-  type: z.enum(['definition', 'fact', 'property', 'guarantee', 'complexity', 'comparison']),
+  type: z.enum(['definition', 'fact', 'property', 'guarantee', 'complexity', 'comparison', 'scenario', 'limitation', 'error_spot']),
   questionText: z.string().min(10),
   expectedAnswer: z.string().min(10),
   difficulty: z.number().int().min(1).max(3),

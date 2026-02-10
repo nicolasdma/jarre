@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ReviewPrediction } from '@/components/review-prediction';
 
 type Language = 'es' | 'en';
 
@@ -83,6 +84,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
     summary: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [predictedScore, setPredictedScore] = useState<number | null>(null);
 
   const handleStartEvaluation = async () => {
     setPhase('loading');
@@ -135,6 +137,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
             userAnswer: answers[i.toString()] || '',
           })),
           userId,
+          predictedScore,
         }),
       });
 
@@ -187,6 +190,19 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
         <p className="text-sm text-j-text-secondary leading-relaxed mb-8">
           {t('eval.aiWillGenerate', language)}
         </p>
+
+        {/* Confidence calibration: predict score before starting */}
+        <div className="mb-8">
+          <ReviewPrediction
+            language={language}
+            totalQuestions={5}
+            onPredict={(predicted) => {
+              // Convert from count (0-5) to percentage (0-100)
+              setPredictedScore(Math.round((predicted / 5) * 100));
+            }}
+            initialPrediction={predictedScore != null ? Math.round((predictedScore / 100) * 5) : undefined}
+          />
+        </div>
 
         {error && (
           <p className="text-sm text-j-error mb-4">{error}</p>
@@ -306,7 +322,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
         </div>
 
         {/* Score summary */}
-        <div className="border border-j-border p-8 mb-10">
+        <div className="border border-j-border p-8 mb-6">
           <div className="flex items-center gap-8">
             <div className="text-center">
               <p className={`text-4xl font-light ${
@@ -323,6 +339,19 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
             </div>
           </div>
         </div>
+
+        {/* Confidence calibration comparison */}
+        {predictedScore != null && (
+          <div className="mb-10">
+            <ReviewPrediction
+              language={language}
+              totalQuestions={100}
+              onPredict={() => {}}
+              initialPrediction={predictedScore}
+              actualCorrect={results.overallScore}
+            />
+          </div>
+        )}
 
         {/* Individual results */}
         <div className="space-y-6">

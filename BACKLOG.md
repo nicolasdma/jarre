@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-09
+> Last updated: 2026-02-10
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -18,6 +18,10 @@
 - [ ] `[P1]` Test learn flow end-to-end (login → library → learn/ddia-ch1 → complete sections)
 - [x] `[P1]` Run PDF pipeline on remaining DDIA chapters (Ch2, Ch3, Ch5, Ch6, Ch8, Ch9, Ch11) - 2026-02-09
 - [x] `[P1]` Seed all 8 DDIA chapters to Supabase (11 concept sections) - 2026-02-09
+- [ ] `[P0]` Run 3 new migrations against Supabase (question_bank_new_types, mc2_format, predicted_score)
+- [ ] `[P0]` Run `npx tsx scripts/seed-high-order-questions.ts` to seed ~35 Bloom 4-5 questions
+- [ ] `[P1]` Seed mc2 inline quizzes for Ch5 (convert some existing MC to mc2)
+- [ ] `[P1]` End-to-end test new learn flow (activate → learn → apply → review → practice-eval → evaluate)
 
 ---
 
@@ -63,9 +67,9 @@
 - [ ] `[P2]` Admin/debug route for reviewing evaluations
 
 ### Features
-- [ ] `[P2]` Spaced repetition for weak concepts
+- [x] `[P2]` Spaced repetition for weak concepts - 2026-02-08
 - [ ] `[P2]` Export progress report
-- [ ] `[P3]` Dark mode
+- [x] `[P3]` Dark mode - 2026-02-10
 - [ ] `[P3]` Mobile PWA
 
 ### Integrations
@@ -144,6 +148,18 @@
 
 ---
 
+## Scaffolding Cognitivo — Bloom Gap Bridge
+
+- [x] `[P0]` FASE 1: New question types (scenario/limitation/error_spot) in question_bank - 2026-02-10
+- [x] `[P0]` FASE 2: MC Two-Tier (mc2) — MC + justification format - 2026-02-10
+- [x] `[P0]` FASE 3: Obligatory self-explanation as gate to advance - 2026-02-10
+- [x] `[P1]` FASE 4: Practice evaluation step with progressive scaffolding - 2026-02-10
+- [x] `[P2]` FASE 5: Confidence calibration (predicted_score in evaluations) - 2026-02-10
+- [x] `[P2]` FASE 6: Review interleaved (flat shuffled, no consecutive same-concept) - 2026-02-10
+- See: `plan/2026-02-10/session-15-scaffolding-cognitivo.md`
+
+---
+
 ## Ideas / Someday
 
 - [ ] Community challenges
@@ -205,7 +221,7 @@
 
 ## Known Issues
 
-(none yet)
+- [ ] `[P2]` Evaluación LLM no 100% determinística — temperature=0 mejora pero no elimina varianza. Probar `seed` param (hash de questionId+userAnswer) para forzar determinismo en misma pregunta+respuesta. Ver: DeepSeek API `seed` es "best effort".
 
 ---
 
@@ -258,3 +274,5 @@
 - [x] `[P1]` Inline micro-quizzes (MC/TF, client-side grading, interleaved in content) - 2026-02-09
 - [x] `[P1]` Migration 009: inline_quizzes table + RLS + index - 2026-02-09
 - [x] `[P1]` Seed 22 inline quizzes for DDIA Ch5 (5 sections, MC+TF mix) - 2026-02-09
+- [x] `[P1]` UI/UX redesign: design tokens, TOC sidebar, confidence, dark mode, growth vocabulary - 2026-02-10
+- [x] `[P0]` Scaffolding cognitivo: 6 phases bridging Bloom 2→5 gap (new qtypes, mc2, self-explanation, practice-eval, calibration, interleaving) - 2026-02-10

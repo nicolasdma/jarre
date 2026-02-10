@@ -36,7 +36,10 @@ export type QuestionBankType =
   | 'property'
   | 'guarantee'
   | 'complexity'
-  | 'comparison';
+  | 'comparison'
+  | 'scenario'
+  | 'limitation'
+  | 'error_spot';
 
 export type ReviewRating = 'wrong' | 'hard' | 'easy';
 
@@ -188,7 +191,7 @@ export interface ProjectConcept {
 // INLINE QUIZZES
 // ============================================================================
 
-export type InlineQuizFormat = 'mc' | 'tf';
+export type InlineQuizFormat = 'mc' | 'tf' | 'mc2';
 
 export interface InlineQuiz {
   id: string;
@@ -200,6 +203,7 @@ export interface InlineQuiz {
   options: { label: string; text: string }[] | null;
   correctAnswer: string;
   explanation: string;
+  justificationHint?: string;
 }
 
 // ============================================================================

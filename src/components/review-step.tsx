@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InlineQuiz } from './inline-quiz';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
 import { t, type Language } from '@/lib/translations';
@@ -37,6 +37,86 @@ interface ReviewStepProps {
   initialState?: ReviewStepState;
   onStateChange: (state: ReviewStepState) => void;
   onComplete: () => void;
+}
+
+// ============================================================================
+// Interleaving helper
+// ============================================================================
+
+/**
+ * Shuffles items so no two consecutive share the same conceptId.
+ * Uses a greedy approach: pick from a different concept than the last item.
+ * Deterministic for same input (no Math.random).
+ */
+function interleaveByConcept<T extends { conceptId: string }>(items: T[]): T[] {
+  if (items.length <= 1) return items;
+
+  // Group by concept
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const arr = groups.get(item.conceptId) ?? [];
+    arr.push(item);
+    groups.set(item.conceptId, arr);
+  }
+
+  const result: T[] = [];
+  let lastConcept = '';
+
+  while (result.length < items.length) {
+    // Find a group that doesn't match the last concept
+    let picked = false;
+    const conceptKeys = [...groups.keys()];
+
+    // Prefer different concept, fall back to same if no alternative
+    for (const key of conceptKeys) {
+      if (key !== lastConcept) {
+        const arr = groups.get(key)!;
+        if (arr.length > 0) {
+          result.push(arr.shift()!);
+          lastConcept = key;
+          if (arr.length === 0) groups.delete(key);
+          picked = true;
+          break;
+        }
+      }
+    }
+
+    // If only one concept group remains, append remaining items
+    if (!picked) {
+      for (const key of conceptKeys) {
+        const arr = groups.get(key);
+        if (arr && arr.length > 0) {
+          result.push(arr.shift()!);
+          lastConcept = key;
+          if (arr.length === 0) groups.delete(key);
+          break;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Question Type Badge
+// ============================================================================
+
+const QUESTION_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
+  scenario: { label: 'Escenario', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800' },
+  limitation: { label: 'Limitación', className: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800' },
+  error_spot: { label: 'Error sutil', className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800' },
+  comparison: { label: 'Comparación', className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800' },
+};
+
+function QuestionTypeBadge({ type }: { type: string }) {
+  const config = QUESTION_TYPE_CONFIG[type];
+  if (!config) return null;
+  return (
+    <span className={`font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border ${config.className}`}>
+      {config.label}
+    </span>
+  );
 }
 
 // ============================================================================
@@ -85,10 +165,9 @@ export function ReviewStep({
     fetchQuestions();
   }, [resourceId]);
 
-  // Group bank questions by sectionId
+  // Group bank questions by sectionId (used for concept name lookup)
   const bankBySectionId: Record<string, BankQuestion[]> = {};
   for (const q of bankQuestions) {
-    // Match by sectionId directly, or fall back to matching concept → section
     const sectionId = q.sectionId
       ?? sections.find((s) => s.conceptId === q.conceptId)?.id
       ?? null;
@@ -98,6 +177,30 @@ export function ReviewStep({
       bankBySectionId[sectionId] = arr;
     }
   }
+
+  // Build interleaved flat list: inline quizzes + bank questions, shuffled
+  // Constraint: never 2 consecutive items from the same concept
+  type ReviewItem =
+    | { kind: 'inline'; quiz: InlineQuizType; conceptId: string; sectionTitle: string }
+    | { kind: 'bank'; question: BankQuestion; conceptId: string; sectionTitle: string };
+
+  const allItems: ReviewItem[] = useMemo(() => {
+    const items: ReviewItem[] = [];
+
+    for (const section of sections) {
+      const inlineQuizzes = quizzesBySectionId[section.id] || [];
+      for (const quiz of inlineQuizzes) {
+        items.push({ kind: 'inline', quiz, conceptId: section.conceptId, sectionTitle: section.sectionTitle });
+      }
+      const sectionBank = bankBySectionId[section.id] || [];
+      for (const q of sectionBank) {
+        items.push({ kind: 'bank', question: q, conceptId: q.conceptId, sectionTitle: section.sectionTitle });
+      }
+    }
+
+    // Deterministic shuffle with interleaving constraint
+    return interleaveByConcept(items);
+  }, [sections, quizzesBySectionId, bankBySectionId]);
 
   // Count total and answered questions
   const totalInline = Object.values(quizzesBySectionId).flat().length;
@@ -118,12 +221,12 @@ export function ReviewStep({
 
   // Handle inline quiz answer (override mode)
   const handleInlineAnswer = useCallback(
-    (quizId: string, selectedOption: string, isCorrect: boolean) => {
+    (quizId: string, selectedOption: string, isCorrect: boolean, justification?: string) => {
       const next: ReviewStepState = {
         ...reviewState,
         inlineAnswers: {
           ...reviewState.inlineAnswers,
-          [quizId]: { selectedOption, isCorrect },
+          [quizId]: { selectedOption, isCorrect, justification },
         },
       };
       updateState(next);
@@ -247,182 +350,173 @@ export function ReviewStep({
         </div>
       </header>
 
-      {/* Sections with questions */}
-      <div className="space-y-12">
-        {sections.map((section) => {
-          const inlineQuizzes = quizzesBySectionId[section.id] || [];
-          const sectionBankQuestions = bankBySectionId[section.id] || [];
-
-          if (inlineQuizzes.length === 0 && sectionBankQuestions.length === 0) {
-            return null;
+      {/* Interleaved questions — flat shuffled list, no 2 consecutive from same concept */}
+      <div className="space-y-6">
+        {allItems.map((item, index) => {
+          if (item.kind === 'inline') {
+            const quiz = item.quiz;
+            return (
+              <div key={`inline-${quiz.id}`}>
+                {/* Concept origin badge */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-j-border text-j-text-tertiary">
+                    {item.sectionTitle}
+                  </span>
+                  <span className="inline-block font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase">
+                    {t('learn.review.inline', language)}
+                  </span>
+                  <span className="font-mono text-[9px] text-j-text-tertiary">
+                    {index + 1}/{allItems.length}
+                  </span>
+                </div>
+                <InlineQuiz
+                  quiz={{
+                    id: quiz.id,
+                    format: quiz.format,
+                    questionText: quiz.questionText,
+                    options: quiz.options,
+                    correctAnswer: quiz.correctAnswer,
+                    explanation: quiz.explanation,
+                    justificationHint: quiz.justificationHint,
+                  }}
+                  overrideState={reviewState.inlineAnswers[quiz.id] ?? null}
+                  onAnswer={handleInlineAnswer}
+                />
+              </div>
+            );
           }
 
+          // Bank question
+          const q = item.question;
+          const savedAnswer = reviewState.bankAnswers[q.questionId];
+          const isEvaluating = evaluating.has(q.questionId);
+          const isRetryMode = retrying.has(q.questionId);
+          const showResult = savedAnswer && !isRetryMode;
+
           return (
-            <div key={section.id}>
-              {/* Section title */}
-              <div className="flex items-center gap-3 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase font-medium">
-                  {String(section.sortOrder + 1).padStart(2, '0')}
+            <div
+              key={`bank-${q.questionId}`}
+              className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-accent p-6"
+            >
+              {/* Concept origin + tag + type badge */}
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-j-border text-j-text-tertiary">
+                  {item.sectionTitle}
                 </span>
-                <span className="text-sm font-medium text-j-text">
-                  {section.sectionTitle}
+                <span className="font-mono text-[9px] tracking-[0.15em] text-j-accent uppercase">
+                  {t('learn.review.openEnded', language)}
+                </span>
+                <QuestionTypeBadge type={q.type} />
+                <span className="font-mono text-[9px] text-j-text-tertiary">
+                  {language === 'es' ? 'Dif' : 'Diff'}: {q.difficulty}
+                </span>
+                <span className="font-mono text-[9px] text-j-text-tertiary ml-auto">
+                  {index + 1}/{allItems.length}
                 </span>
               </div>
 
-              {/* Inline quizzes (MC/TF) — reset for review */}
-              {inlineQuizzes.length > 0 && (
-                <div className="space-y-4 mb-6">
-                  {inlineQuizzes.map((quiz) => (
-                    <div key={quiz.id}>
-                      <span className="inline-block font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase mb-2">
-                        {t('learn.review.inline', language)}
-                      </span>
-                      <InlineQuiz
-                        quiz={{
-                          id: quiz.id,
-                          format: quiz.format,
-                          questionText: quiz.questionText,
-                          options: quiz.options,
-                          correctAnswer: quiz.correctAnswer,
-                          explanation: quiz.explanation,
-                        }}
-                        overrideState={reviewState.inlineAnswers[quiz.id] ?? null}
-                        onAnswer={handleInlineAnswer}
-                      />
+              {/* Question */}
+              <p className="text-sm text-j-text leading-relaxed mb-4">
+                {q.questionText}
+              </p>
+
+              {/* Show previous result */}
+              {showResult && (
+                <div className="space-y-3">
+                  {savedAnswer.dimensionScores && (
+                    <div className="flex gap-3">
+                      {Object.entries(savedAnswer.dimensionScores).map(([key, value]) => (
+                        <div key={key} className="flex items-center gap-1">
+                          <span className="font-mono text-[9px] text-j-text-tertiary uppercase">{key}</span>
+                          <span className="text-[10px]">
+                            {[0, 1].map((dotIndex) => (
+                              <span
+                                key={dotIndex}
+                                className={dotIndex < value ? 'text-j-accent' : 'text-j-border-input'}
+                              >
+                                {dotIndex < value ? '●' : '○'}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+                        savedAnswer.isCorrect ? 'text-j-accent' : 'text-j-error'
+                      }`}
+                    >
+                      {savedAnswer.isCorrect
+                        ? t('review.correct', language)
+                        : t('review.incorrect', language)}
+                    </span>
+                  </div>
+
+                  {savedAnswer.feedback && (
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {savedAnswer.feedback}
+                    </p>
+                  )}
+
+                  <div className="border border-j-border p-3 bg-white">
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                      {language === 'es' ? 'Tu respuesta' : 'Your answer'}
+                    </p>
+                    <p className="text-sm text-j-text">{savedAnswer.userAnswer}</p>
+                  </div>
+
+                  <ConfidenceIndicator
+                    language={language}
+                    onSelect={(level) => handleBankConfidence(q.questionId, level)}
+                    selected={bankConfidence[q.questionId] ?? null}
+                  />
+
+                  <button
+                    onClick={() => handleRetry(q.questionId)}
+                    className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
+                  >
+                    {t('learn.review.retry', language)}
+                  </button>
                 </div>
               )}
 
-              {/* Bank questions (open-ended, DeepSeek evaluated) */}
-              {sectionBankQuestions.map((q) => {
-                const savedAnswer = reviewState.bankAnswers[q.questionId];
-                const isEvaluating = evaluating.has(q.questionId);
-                const isRetryMode = retrying.has(q.questionId);
-                const showResult = savedAnswer && !isRetryMode;
+              {/* Input area (initial or retry) */}
+              {!showResult && (
+                <div className="space-y-3">
+                  <textarea
+                    value={bankInputs[q.questionId] ?? ''}
+                    onChange={(e) =>
+                      setBankInputs((prev) => ({
+                        ...prev,
+                        [q.questionId]: e.target.value,
+                      }))
+                    }
+                    placeholder={
+                      language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
+                    }
+                    rows={3}
+                    className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.metaKey) {
+                        handleBankSubmit(q.questionId);
+                      }
+                    }}
+                  />
 
-                return (
-                  <div
-                    key={q.questionId}
-                    className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-accent p-6 mb-4"
+                  <button
+                    onClick={() => handleBankSubmit(q.questionId)}
+                    disabled={!bankInputs[q.questionId]?.trim() || isEvaluating}
+                    className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
                   >
-                    {/* Tag */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="font-mono text-[9px] tracking-[0.15em] text-j-accent uppercase">
-                        {t('learn.review.openEnded', language)}
-                      </span>
-                      <span className="font-mono text-[9px] text-j-text-tertiary">
-                        {language === 'es' ? 'Dif' : 'Diff'}: {q.difficulty}
-                      </span>
-                    </div>
-
-                    {/* Question */}
-                    <p className="text-sm text-j-text leading-relaxed mb-4">
-                      {q.questionText}
-                    </p>
-
-                    {/* Show previous result */}
-                    {showResult && (
-                      <div className="space-y-3">
-                        {/* Dimension dots */}
-                        {savedAnswer.dimensionScores && (
-                          <div className="flex gap-3">
-                            {Object.entries(savedAnswer.dimensionScores).map(([key, value]) => (
-                              <div key={key} className="flex items-center gap-1">
-                                <span className="font-mono text-[9px] text-j-text-tertiary uppercase">{key}</span>
-                                <span className="text-[10px]">
-                                  {[0, 1].map((dotIndex) => (
-                                    <span
-                                      key={dotIndex}
-                                      className={dotIndex < value ? 'text-j-accent' : 'text-j-border-input'}
-                                    >
-                                      {dotIndex < value ? '●' : '○'}
-                                    </span>
-                                  ))}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
-                              savedAnswer.isCorrect ? 'text-j-accent' : 'text-j-error'
-                            }`}
-                          >
-                            {savedAnswer.isCorrect
-                              ? t('review.correct', language)
-                              : t('review.incorrect', language)}
-                          </span>
-                        </div>
-
-                        {savedAnswer.feedback && (
-                          <p className="text-sm text-j-text-secondary leading-relaxed">
-                            {savedAnswer.feedback}
-                          </p>
-                        )}
-
-                        <div className="border border-j-border p-3 bg-white">
-                          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
-                            {language === 'es' ? 'Tu respuesta' : 'Your answer'}
-                          </p>
-                          <p className="text-sm text-j-text">{savedAnswer.userAnswer}</p>
-                        </div>
-
-                        {/* Confidence indicator */}
-                        <ConfidenceIndicator
-                          language={language}
-                          onSelect={(level) => handleBankConfidence(q.questionId, level)}
-                          selected={bankConfidence[q.questionId] ?? null}
-                        />
-
-                        <button
-                          onClick={() => handleRetry(q.questionId)}
-                          className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
-                        >
-                          {t('learn.review.retry', language)}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Input area (initial or retry) */}
-                    {!showResult && (
-                      <div className="space-y-3">
-                        <textarea
-                          value={bankInputs[q.questionId] ?? ''}
-                          onChange={(e) =>
-                            setBankInputs((prev) => ({
-                              ...prev,
-                              [q.questionId]: e.target.value,
-                            }))
-                          }
-                          placeholder={
-                            language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
-                          }
-                          rows={3}
-                          className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && e.metaKey) {
-                              handleBankSubmit(q.questionId);
-                            }
-                          }}
-                        />
-
-                        <button
-                          onClick={() => handleBankSubmit(q.questionId)}
-                          disabled={!bankInputs[q.questionId]?.trim() || isEvaluating}
-                          className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
-                        >
-                          {isEvaluating
-                            ? (language === 'es' ? 'Evaluando...' : 'Evaluating...')
-                            : (language === 'es' ? 'Verificar' : 'Verify')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    {isEvaluating
+                      ? (language === 'es' ? 'Evaluando...' : 'Evaluating...')
+                      : (language === 'es' ? 'Verificar' : 'Verify')}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
