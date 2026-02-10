@@ -24,6 +24,7 @@ interface ConceptSectionProps {
   language: Language;
   isActive: boolean;
   onComplete: () => void;
+  onActivate?: () => void;
   initialState?: SectionState;
   onStateChange?: (state: SectionState) => void;
   figureRegistry?: FigureRegistry;
@@ -49,6 +50,7 @@ export function ConceptSection({
   language,
   isActive,
   onComplete,
+  onActivate,
   initialState,
   onStateChange,
   figureRegistry,
@@ -79,18 +81,19 @@ export function ConceptSection({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch a question for the concept
+  // Fetch a question scoped to this section (falls back to concept-level)
   const fetchQuestion = useCallback(
     async (exclude?: string): Promise<QuestionData | null> => {
       const params = new URLSearchParams();
       params.set('concepts', section.conceptId);
+      params.set('sectionId', section.id);
       if (exclude) params.set('exclude', exclude);
 
       const res = await fetch(`/api/review/random?${params.toString()}`);
       if (!res.ok) return null;
       return res.json();
     },
-    [section.conceptId]
+    [section.conceptId, section.id]
   );
 
   // Load pre-question on first render (if active)
@@ -178,22 +181,30 @@ export function ConceptSection({
   };
 
   if (!isActive && phase !== 'completed') {
-    // Collapsed view
+    // Collapsed view — clickable to navigate
     return (
-      <div className="border-l-2 border-[#e8e6e0] pl-6 py-4 opacity-50">
+      <button
+        type="button"
+        onClick={onActivate}
+        className="w-full text-left border-l-2 border-[#e8e6e0] pl-6 py-4 opacity-50 hover:opacity-80 hover:border-[#c4a07a] transition-all cursor-pointer"
+      >
         <div className="flex items-center gap-3">
           <span className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
             {String(section.sortOrder + 1).padStart(2, '0')}
           </span>
           <span className="text-sm text-[#7a7a6e]">{section.sectionTitle}</span>
         </div>
-      </div>
+      </button>
     );
   }
 
   if (phase === 'completed') {
     return (
-      <div className="border-l-2 border-[#4a5d4a] pl-6 py-4">
+      <button
+        type="button"
+        onClick={onActivate}
+        className="w-full text-left border-l-2 border-[#4a5d4a] pl-6 py-4 hover:bg-[#f5f4f0] transition-all cursor-pointer"
+      >
         <div className="flex items-center gap-3">
           <span className="font-mono text-[10px] tracking-[0.15em] text-[#4a5d4a] uppercase">
             ✓ {section.sectionTitle}
@@ -206,7 +217,7 @@ export function ConceptSection({
             </span>
           )}
         </div>
-      </div>
+      </button>
     );
   }
 

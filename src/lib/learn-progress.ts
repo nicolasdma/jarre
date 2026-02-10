@@ -21,7 +21,7 @@ export interface LearnProgress {
   currentStep: 'activate' | 'learn' | 'apply' | 'evaluate';
   activeSection: number;
   completedSections: number[];
-  /** Keyed by conceptId */
+  /** Keyed by section UUID (resource_sections.id) */
   sectionState: Record<string, SectionState>;
 }
 

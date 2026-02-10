@@ -187,6 +187,14 @@ function InterleavedContent({
 
         return (
           <div key={i}>
+            {segment.heading && (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+              >
+                {`**${segment.heading}**`}
+              </ReactMarkdown>
+            )}
             {segment.content && (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
