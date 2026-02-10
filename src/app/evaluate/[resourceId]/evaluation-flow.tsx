@@ -2,19 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 
 type Language = 'es' | 'en';
 
-// Client-side translations for the evaluation flow
 const translations = {
   'eval.testUnderstanding': { es: 'Evalúa tu comprensión de este', en: 'Test your understanding of this' },
-  'eval.conceptsToEvaluate': { es: 'Conceptos a evaluar:', en: 'Concepts to be evaluated:' },
+  'eval.conceptsToEvaluate': { es: 'Conceptos a evaluar', en: 'Concepts to evaluate' },
   'eval.aiWillGenerate': {
-    es: 'La IA generará 5 preguntas para evaluar tu comprensión. Respondé honestamente - esto ayuda a identificar vacíos en tu conocimiento.',
-    en: 'AI will generate 5 questions to test your understanding. Answer honestly - this helps identify gaps in your knowledge.'
+    es: 'La IA generará 5 preguntas para evaluar tu comprensión. Respondé honestamente — esto ayuda a identificar vacíos en tu conocimiento.',
+    en: 'AI will generate 5 questions to test your understanding. Answer honestly — this helps identify gaps in your knowledge.'
   },
   'eval.start': { es: 'Comenzar Evaluación', en: 'Start Evaluation' },
   'eval.generating': { es: 'Generando preguntas...', en: 'Generating questions...' },
@@ -31,10 +27,10 @@ const translations = {
   'eval.aiReviewing': { es: 'La IA está revisando tus respuestas', en: 'AI is reviewing your responses' },
   'eval.complete': { es: 'Evaluación Completada', en: 'Evaluation Complete' },
   'eval.overallScore': { es: 'Puntuación General', en: 'Overall Score' },
-  'eval.yourAnswer': { es: 'Tu respuesta:', en: 'Your answer:' },
-  'eval.feedback': { es: 'Retroalimentación:', en: 'Feedback:' },
+  'eval.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
+  'eval.feedback': { es: 'Retroalimentación', en: 'Feedback' },
   'eval.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
-  'eval.viewDashboard': { es: 'Ver Panel', en: 'View Dashboard' },
+  'eval.backToChapter': { es: 'Volver al capítulo', en: 'Back to chapter' },
 } as const;
 
 function t(key: keyof typeof translations, lang: Language): string {
@@ -161,77 +157,99 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   // INTRO PHASE
   if (phase === 'intro') {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{language === 'es' ? 'Evaluar' : 'Evaluate'}: {resource.title}</CardTitle>
-          <CardDescription>
-            {t('eval.testUnderstanding', language)} {resource.type}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-medium text-stone-900">{t('eval.conceptsToEvaluate', language)}</h3>
-            <ul className="mt-2 space-y-1">
-              {concepts.map((concept) => (
-                <li key={concept.id} className="text-sm text-stone-600">
-                  • {concept.name}
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div>
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-8 h-px bg-j-accent" />
+          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+            {language === 'es' ? 'Evaluar' : 'Evaluate'}
+          </span>
+        </div>
 
-          <p className="text-sm text-stone-600">
-            {t('eval.aiWillGenerate', language)}
+        <h2 className="text-xl font-light text-j-text mb-2">{resource.title}</h2>
+        <p className="text-sm text-j-text-secondary mb-8">
+          {t('eval.testUnderstanding', language)} {resource.type}
+        </p>
+
+        <div className="mb-8">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-3">
+            {t('eval.conceptsToEvaluate', language)}
           </p>
+          <ul className="space-y-1.5">
+            {concepts.map((concept) => (
+              <li key={concept.id} className="text-sm text-j-text-secondary flex items-center gap-2">
+                <span className="w-1 h-1 bg-j-accent rounded-full" />
+                {concept.name}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        <p className="text-sm text-j-text-secondary leading-relaxed mb-8">
+          {t('eval.aiWillGenerate', language)}
+        </p>
 
-          <Button onClick={handleStartEvaluation}>{t('eval.start', language)}</Button>
-        </CardContent>
-      </Card>
+        {error && (
+          <p className="text-sm text-j-error mb-4">{error}</p>
+        )}
+
+        <button
+          onClick={handleStartEvaluation}
+          className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
+        >
+          {t('eval.start', language)}
+        </button>
+      </div>
     );
   }
 
   // LOADING PHASE
   if (phase === 'loading') {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-stone-600">{t('eval.generating', language)}</p>
-          <p className="mt-2 text-sm text-stone-500">{t('eval.mayTakeSeconds', language)}</p>
-        </CardContent>
-      </Card>
+      <div className="py-16 text-center">
+        <p className="text-sm text-j-text-secondary">{t('eval.generating', language)}</p>
+        <p className="mt-2 text-xs text-j-text-tertiary">{t('eval.mayTakeSeconds', language)}</p>
+      </div>
     );
   }
 
   // QUESTIONS PHASE
   if (phase === 'questions') {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">{resource.title}</h1>
-          <p className="text-stone-600">{t('eval.answerAll', language)}</p>
+      <div>
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-8 h-px bg-j-accent" />
+          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+            {language === 'es' ? 'Evaluar' : 'Evaluate'}
+          </span>
         </div>
 
-        {questions.map((question, index) => (
-          <Card key={question.id || index}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardDescription>
+        <h2 className="text-xl font-light text-j-text mb-2">{resource.title}</h2>
+        <p className="text-sm text-j-text-secondary mb-10">
+          {t('eval.answerAll', language)}
+        </p>
+
+        <div className="space-y-8">
+          {questions.map((question, index) => (
+            <div key={question.id || index} className="border-l-2 border-j-border pl-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="font-mono text-[10px] text-j-text-tertiary">
                   {t('eval.question', language)} {index + 1} {t('eval.of', language)} {questions.length}
-                </CardDescription>
-                <span className="text-xs text-stone-500 capitalize">{question.type}</span>
+                </span>
+                <span className="font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase">
+                  {question.type}
+                </span>
               </div>
-              <CardTitle className="text-lg">{question.question}</CardTitle>
-              <p className="text-sm text-stone-500">{t('eval.concept', language)}: {question.conceptName}</p>
-            </CardHeader>
-            <CardContent>
-              <Label htmlFor={`answer-${index}`} className="sr-only">
-                {t('eval.yourAnswer', language)}
-              </Label>
+
+              <p className="text-sm text-j-text leading-relaxed mb-2">
+                {question.question}
+              </p>
+
+              <p className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase mb-3">
+                {t('eval.concept', language)}: {question.conceptName}
+              </p>
+
               <textarea
-                id={`answer-${index}`}
-                className="w-full rounded-md border border-stone-200 p-3 text-sm focus:border-stone-400 focus:outline-none"
+                className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                 rows={4}
                 placeholder={t('eval.placeholder', language)}
                 value={answers[index.toString()] || ''}
@@ -239,19 +257,28 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
                   setAnswers((prev) => ({ ...prev, [index.toString()]: e.target.value }))
                 }
               />
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+        </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-j-error mt-4">{error}</p>}
 
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => router.push('/library')}>
+        <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
+          <button
+            onClick={() => router.push(`/learn/${resource.id}`)}
+            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+          >
             {t('eval.cancel', language)}
-          </Button>
-          <Button onClick={handleSubmitAnswers} disabled={!allAnswered}>
-            {allAnswered ? t('eval.submit', language) : `${t('eval.answerAllCount', language)} (${Object.keys(answers).length}/${questions.length})`}
-          </Button>
+          </button>
+          <button
+            onClick={handleSubmitAnswers}
+            disabled={!allAnswered}
+            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+          >
+            {allAnswered
+              ? t('eval.submit', language)
+              : `${t('eval.answerAllCount', language)} (${Object.keys(answers).length}/${questions.length})`}
+          </button>
         </div>
       </div>
     );
@@ -260,78 +287,102 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   // SUBMITTING PHASE
   if (phase === 'submitting') {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-stone-600">{t('eval.evaluating', language)}</p>
-          <p className="mt-2 text-sm text-stone-500">{t('eval.aiReviewing', language)}</p>
-        </CardContent>
-      </Card>
+      <div className="py-16 text-center">
+        <p className="text-sm text-j-text-secondary">{t('eval.evaluating', language)}</p>
+        <p className="mt-2 text-xs text-j-text-tertiary">{t('eval.aiReviewing', language)}</p>
+      </div>
     );
   }
 
   // RESULTS PHASE
   if (phase === 'results' && results) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('eval.complete', language)}</CardTitle>
-            <CardDescription>{resource.title}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-8">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-stone-900">{results.overallScore}%</p>
-                <p className="text-sm text-stone-500">{t('eval.overallScore', language)}</p>
-              </div>
-              <div className="flex-1">
-                <p className="text-stone-600">{results.summary}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-8 h-px bg-j-accent" />
+          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+            {t('eval.complete', language)}
+          </span>
+        </div>
 
-        {results.responses.map((result, index) => {
-          const question = questions[index];
-          return (
-            <Card
-              key={index}
-              className={result.isCorrect ? 'border-green-200' : 'border-amber-200'}
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardDescription>{t('eval.question', language)} {index + 1}</CardDescription>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      result.isCorrect
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
+        {/* Score summary */}
+        <div className="border border-j-border p-8 mb-10">
+          <div className="flex items-center gap-8">
+            <div className="text-center">
+              <p className={`text-4xl font-light ${
+                results.overallScore >= 60 ? 'text-j-accent' : 'text-j-error'
+              }`}>
+                {results.overallScore}%
+              </p>
+              <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
+                {t('eval.overallScore', language)}
+              </p>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-j-text-secondary leading-relaxed">{results.summary}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Individual results */}
+        <div className="space-y-6">
+          {results.responses.map((result, index) => {
+            const question = questions[index];
+            return (
+              <div
+                key={index}
+                className={`border-l-2 pl-6 ${
+                  result.isCorrect ? 'border-j-accent' : 'border-j-error'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-mono text-[10px] text-j-text-tertiary">
+                    {t('eval.question', language)} {index + 1}
+                  </span>
+                  <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+                    result.isCorrect ? 'text-j-accent' : 'text-j-error'
+                  }`}>
                     {result.score}%
                   </span>
                 </div>
-                <CardTitle className="text-base">{question?.question}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs font-medium text-stone-500">{t('eval.yourAnswer', language)}</p>
-                  <p className="text-sm text-stone-700">{answers[index.toString()]}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-stone-500">{t('eval.feedback', language)}</p>
-                  <p className="text-sm text-stone-700">{result.feedback}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
 
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => router.push('/library')}>
+                <p className="text-sm text-j-text leading-relaxed mb-3">
+                  {question?.question}
+                </p>
+
+                <div className="space-y-2">
+                  <div className="bg-j-bg-alt border border-j-border p-3">
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                      {t('eval.yourAnswer', language)}
+                    </p>
+                    <p className="text-sm text-j-text">{answers[index.toString()]}</p>
+                  </div>
+
+                  <div className="p-3">
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                      {t('eval.feedback', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">{result.feedback}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
+          <button
+            onClick={() => router.push(`/learn/${resource.id}`)}
+            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+          >
+            {t('eval.backToChapter', language)}
+          </button>
+          <button
+            onClick={() => router.push('/library')}
+            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+          >
             {t('eval.backToLibrary', language)}
-          </Button>
-          <Button onClick={() => router.push('/')}>{t('eval.viewDashboard', language)}</Button>
+          </button>
         </div>
       </div>
     );

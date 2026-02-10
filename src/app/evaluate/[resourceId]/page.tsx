@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { Header } from '@/components/header';
+import Link from 'next/link';
 import { EvaluationFlow } from './evaluation-flow';
 import { type Language } from '@/lib/translations';
 
@@ -50,10 +50,16 @@ export default async function EvaluatePage({ params }: PageProps) {
 
   if (resourceError || !resource) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <Header />
-        <main className="mx-auto max-w-3xl px-6 py-8">
-          <p className="text-red-600">
+      <div className="min-h-screen bg-j-bg">
+        <div className="sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-8 py-4">
+            <Link href="/library" className="text-sm text-j-text-tertiary hover:text-j-text">
+              ← {lang === 'es' ? 'Volver a la Biblioteca' : 'Back to Library'}
+            </Link>
+          </div>
+        </div>
+        <main className="mx-auto max-w-3xl px-8 py-16">
+          <p className="text-j-error">
             {lang === 'es' ? 'Recurso no encontrado' : 'Resource not found'}
           </p>
         </main>
@@ -67,9 +73,26 @@ export default async function EvaluatePage({ params }: PageProps) {
     .map((rc: { concepts: { id: string; name: string; canonical_definition: string } }) => rc.concepts);
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Header />
-      <main className="mx-auto max-w-3xl px-6 py-8">
+    <div className="min-h-screen bg-j-bg">
+      {/* Top bar — matches learn flow */}
+      <div className="sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-8 py-4">
+          <Link href={`/learn/${resourceId}`} className="text-sm text-j-text-tertiary hover:text-j-text">
+            ← {lang === 'es' ? 'Volver al capítulo' : 'Back to chapter'}
+          </Link>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
+              {resource.title}
+            </span>
+            <span className="text-j-border">·</span>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              {lang === 'es' ? 'Evaluar' : 'Evaluate'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-3xl px-8 py-16">
         <EvaluationFlow
           resource={{
             id: resource.id,
