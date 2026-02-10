@@ -20,10 +20,10 @@ export function StateInspector({ state, status }: StateInspectorProps) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <div className="text-center">
-          <div className="w-12 h-12 border border-[#e8e6e0] flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 border border-j-border flex items-center justify-center mx-auto mb-4">
             <span className="font-mono text-[#a0a090] text-lg">/</span>
           </div>
-          <p className="font-mono text-xs text-[#7a7a6e] mb-2">Engine offline</p>
+          <p className="font-mono text-xs text-j-text-secondary mb-2">Engine offline</p>
           <code className="font-mono text-[10px] text-[#a0a090] bg-[#f0efe8] px-2 py-1">
             npm run engine
           </code>
@@ -51,7 +51,7 @@ export function StateInspector({ state, status }: StateInspectorProps) {
     : isLSM
       ? 'bg-[#eee8f5] text-[#6b4f8a]'
       : isHashIndex
-        ? 'bg-[#eef3ee] text-[#4a5d4a]'
+        ? 'bg-[#eef3ee] text-j-accent'
         : 'bg-[#f5f0e8] text-[#a08050]';
 
   const diagramBg = isBTree
@@ -65,7 +65,7 @@ export function StateInspector({ state, status }: StateInspectorProps) {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header with backend name */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           State Inspector
         </span>
@@ -88,7 +88,7 @@ export function StateInspector({ state, status }: StateInspectorProps) {
       </div>
 
       {/* Stats */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+      <div className="px-5 py-4 border-b border-j-border">
         {isBTree ? (
           <BTreeStats details={details} uptimeMs={state.uptimeMs} />
         ) : isLSM ? (
@@ -151,7 +151,7 @@ function AppendLogDiagram() {
           <div className="space-y-0.5">
             <div className="bg-[#f5f0e8] px-1.5 py-0.5 font-mono text-[9px] text-[#888]">SET ciudad Madrid</div>
             <div className="bg-[#f5f0e8] px-1.5 py-0.5 font-mono text-[9px] text-[#888]">SET pais Peru</div>
-            <div className="bg-[#fdf8f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#c4a07a]">SET ciudad Barcelona</div>
+            <div className="bg-[#fdf8f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-j-warm">SET ciudad Barcelona</div>
           </div>
         </div>
       </div>
@@ -170,21 +170,21 @@ function AppendLogDiagram() {
 function HashIndexDiagram() {
   return (
     <div>
-      <p className="font-mono text-[10px] text-[#4a5d4a] uppercase tracking-wider mb-3">
+      <p className="font-mono text-[10px] text-j-accent uppercase tracking-wider mb-3">
         Donde viven los datos
       </p>
       <div className="flex gap-2 mb-3">
         {/* RAM */}
         <div className="flex-1 border border-[#dde5dd] bg-white px-2 py-2">
-          <p className="font-mono text-[9px] text-[#4a5d4a] uppercase tracking-wider mb-2">RAM (indice)</p>
+          <p className="font-mono text-[9px] text-j-accent uppercase tracking-wider mb-2">RAM (indice)</p>
           <div className="space-y-0.5">
             <div className="flex justify-between bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px]">
-              <span className="text-[#2c2c2c]">ciudad</span>
-              <span className="text-[#4a5d4a]">→ byte 39</span>
+              <span className="text-j-text">ciudad</span>
+              <span className="text-j-accent">→ byte 39</span>
             </div>
             <div className="flex justify-between bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px]">
-              <span className="text-[#2c2c2c]">pais</span>
-              <span className="text-[#4a5d4a]">→ byte 21</span>
+              <span className="text-j-text">pais</span>
+              <span className="text-j-accent">→ byte 21</span>
             </div>
           </div>
         </div>
@@ -193,8 +193,8 @@ function HashIndexDiagram() {
           <p className="font-mono text-[9px] text-[#888] uppercase tracking-wider mb-2">SSD (archivo)</p>
           <div className="space-y-0.5">
             <div className="bg-[#f5f5f0] px-1.5 py-0.5 font-mono text-[9px] text-[#ccc]">SET ciudad Madrid</div>
-            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#4a5d4a]">SET pais Peru</div>
-            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-[#4a5d4a]">SET ciudad Barcelona</div>
+            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-j-accent">SET pais Peru</div>
+            <div className="bg-[#f0f4f0] px-1.5 py-0.5 font-mono text-[9px] text-[#666] border-l-2 border-j-accent">SET ciudad Barcelona</div>
           </div>
         </div>
       </div>
@@ -208,10 +208,10 @@ function HashIndexDiagram() {
       </div>
       {/* GET explanation */}
       <div className="bg-white border border-[#dde5dd] px-2 py-2">
-        <p className="font-mono text-[10px] text-[#4a5d4a] mb-1">GET ciudad →</p>
+        <p className="font-mono text-[10px] text-j-accent mb-1">GET ciudad →</p>
         <p className="font-mono text-[9px] text-[#999] leading-relaxed">
           RAM dice "byte 39" → lee SOLO ese byte del disco.
-          <span className="text-[#4a5d4a]"> Siempre 1 lectura, sin importar el tamaño.</span>
+          <span className="text-j-accent"> Siempre 1 lectura, sin importar el tamaño.</span>
         </p>
       </div>
     </div>
@@ -299,7 +299,7 @@ function AppendLogViz({ details }: { details: Record<string, unknown> }) {
                   </span>
                   <span className="text-[#ddd]">|</span>
                   <span className={`text-[10px] w-7 shrink-0 ${
-                    isDeleted ? 'text-[#c07070]' : 'text-[#4a5d4a]'
+                    isDeleted ? 'text-[#c07070]' : 'text-j-accent'
                   }`}>
                     {record.type}
                   </span>
@@ -383,7 +383,7 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
           <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
             Index en RAM
           </span>
-          <span className="font-mono text-[10px] text-[#4a5d4a]">
+          <span className="font-mono text-[10px] text-j-accent">
             Map&lt;key, offset&gt;
           </span>
         </div>
@@ -407,11 +407,11 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
                 key={i}
                 className="flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eef3ee] last:border-0"
               >
-                <span className="w-20 shrink-0 text-[#2c2c2c] truncate font-medium">
+                <span className="w-20 shrink-0 text-j-text truncate font-medium">
                   {entry.key}
                 </span>
-                <span className="text-[#4a5d4a] text-center flex-1">→</span>
-                <span className="w-14 shrink-0 text-right text-[#4a5d4a] tabular-nums">
+                <span className="text-j-accent text-center flex-1">→</span>
+                <span className="w-14 shrink-0 text-right text-j-accent tabular-nums">
                   byte {entry.offset}
                 </span>
                 <span className="w-14 shrink-0 text-right text-[#a0a090] tabular-nums">
@@ -433,7 +433,7 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
       {totalDiskRecords > 0 && totalDiskRecords > indexSize && (
         <div className="bg-[#f8faf8] border border-[#dde5dd] px-3 py-2">
           <p className="font-mono text-[10px] text-[#666]">
-            <span className="text-[#2c2c2c] font-medium">{indexSize}</span> keys en RAM,{' '}
+            <span className="text-j-text font-medium">{indexSize}</span> keys en RAM,{' '}
             <span className="text-[#a08050]">{totalDiskRecords}</span> records en disco.{' '}
             <span className="text-[#999]">
               Los {totalDiskRecords - indexSize} extra son versiones viejas.
@@ -635,7 +635,7 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
                   entry.deleted ? 'bg-[#fdf5f5]' : ''
                 }`}
               >
-                <span className="w-20 shrink-0 text-[#2c2c2c] truncate font-medium">
+                <span className="w-20 shrink-0 text-j-text truncate font-medium">
                   {entry.key}
                 </span>
                 <span className={`flex-1 truncate ${entry.deleted ? 'text-[#c07070] line-through' : 'text-[#666]'}`}>
@@ -682,7 +682,7 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
                       ? 'border-[#d0d8e8] bg-[#f8faff]'
                       : isNewest
                         ? 'border-[#d5d0e8] bg-[#fafaff]'
-                        : 'border-[#e8e6e0] bg-[#fcfcfa]'
+                        : 'border-j-border bg-[#fcfcfa]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -716,7 +716,7 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
                       <span className="text-[#999]">
                         {sst.bloom.bitsSet}/{sst.bloom.numBits} set
                       </span>
-                      <span className="text-[#c4a07a]">
+                      <span className="text-j-warm">
                         FP: {(sst.bloom.falsePositiveRate * 100).toFixed(1)}%
                       </span>
                       {(sst.bloomNegatives > 0 || sst.bloomPositives > 0) && (
@@ -736,7 +736,7 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
             })}
           </div>
         ) : (
-          <div className="border border-dashed border-[#e8e6e0] px-4 py-4 text-center">
+          <div className="border border-dashed border-j-border px-4 py-4 text-center">
             <p className="font-mono text-[10px] text-[#aaa]">Sin SSTables todavia</p>
             <p className="font-mono text-[9px] text-[#ccc] mt-1">
               Cuando la memtable se llene, se escribe un SSTable
@@ -825,7 +825,7 @@ function WALViz({ walState, lastRecoveryCount }: {
                 {entry.key}{entry.type === 'SET' ? ` = ${entry.value}` : ''}
               </span>
               <span className={`w-10 shrink-0 text-right text-[9px] ${
-                entry.checksumValid ? 'text-[#4a5d4a]' : 'text-[#c07070]'
+                entry.checksumValid ? 'text-j-accent' : 'text-[#c07070]'
               }`}>
                 {entry.checksumValid ? 'OK' : 'FAIL'}
               </span>
@@ -1058,7 +1058,7 @@ function BTreeNodeBox({ node, maxKeys }: {
         <div className="space-y-0.5 mb-1.5">
           {node.keys.map((key, i) => (
             <div key={i} className="flex items-center gap-1.5 font-mono text-[10px]">
-              <span className="text-[#2c2c2c] font-medium">{key}</span>
+              <span className="text-j-text font-medium">{key}</span>
               {isLeaf && node.values && (
                 <>
                   <span className="text-[#ccc]">=</span>
@@ -1114,7 +1114,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
         {label}
       </p>
-      <p className="font-mono text-sm text-[#2c2c2c] mt-0.5">{value}</p>
+      <p className="font-mono text-sm text-j-text mt-0.5">{value}</p>
     </div>
   );
 }

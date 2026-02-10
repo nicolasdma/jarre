@@ -170,8 +170,10 @@ const translations = {
   'review.verify': { es: 'Verificar', en: 'Verify' },
   'review.next': { es: 'Siguiente', en: 'Next' },
   'review.finish': { es: 'Finalizar', en: 'Finish' },
-  'review.correct': { es: 'Correcto', en: 'Correct' },
-  'review.incorrect': { es: 'Incorrecto', en: 'Incorrect' },
+  'review.correct': { es: 'Bien hecho', en: 'Well done' },
+  'review.incorrect': { es: 'Aún no', en: 'Not yet' },
+  'review.almostThere': { es: '¡Casi!', en: 'Almost!' },
+  'review.letsReview': { es: 'Veamos...', en: "Let's see..." },
   'review.expectedAnswer': { es: 'Respuesta esperada', en: 'Expected answer' },
   'review.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
   'review.answerPlaceholder': { es: 'Escribe tu respuesta...', en: 'Write your answer...' },
@@ -185,6 +187,8 @@ const translations = {
   'review.concept': { es: 'Concepto', en: 'Concept' },
   'review.cardOf': { es: 'de', en: 'of' },
   'review.backToDashboard': { es: 'Volver al Inicio', en: 'Back to Home' },
+  'review.showAnalysis': { es: 'Ver análisis', en: 'Show analysis' },
+  'review.hideAnalysis': { es: 'Ocultar análisis', en: 'Hide analysis' },
 
   // Dashboard review section
   'dashboard.reviewPending': { es: 'Repaso Pendiente', en: 'Review Pending' },
@@ -205,7 +209,8 @@ const translations = {
   // Learn Flow
   'learn.step.activate': { es: 'Activar', en: 'Activate' },
   'learn.step.learn': { es: 'Aprender', en: 'Learn' },
-  'learn.step.apply': { es: 'Aplicar', en: 'Apply' },
+  'learn.step.review': { es: 'Repasar', en: 'Review' },
+  'learn.step.apply': { es: 'Playground', en: 'Playground' },
   'learn.step.evaluate': { es: 'Evaluar', en: 'Evaluate' },
   'learn.preQuestion.title': { es: 'Antes de leer', en: 'Before reading' },
   'learn.preQuestion.instruction': { es: 'Intenta responder antes de leer la sección. Está bien equivocarse — eso mejora tu aprendizaje.', en: 'Try to answer before reading the section. It\'s okay to be wrong — that improves your learning.' },
@@ -217,7 +222,13 @@ const translations = {
   'learn.section.next': { es: 'Siguiente sección', en: 'Next section' },
   'learn.section.previous': { es: 'Sección anterior', en: 'Previous section' },
   'learn.section.complete': { es: 'Sección completada', en: 'Section complete' },
-  'learn.continueToApply': { es: 'Continuar a Aplicar', en: 'Continue to Apply' },
+  'learn.review.subtitle': { es: 'Todas las preguntas de este capítulo', en: 'All questions from this chapter' },
+  'learn.review.progress': { es: 'respondidas', en: 'answered' },
+  'learn.review.inline': { es: 'Comprensión', en: 'Comprehension' },
+  'learn.review.openEnded': { es: 'Repaso', en: 'Review' },
+  'learn.review.retry': { es: 'Reintentar', en: 'Retry' },
+  'learn.continueToReview': { es: 'Continuar a Repasar', en: 'Continue to Review' },
+  'learn.continueToApply': { es: 'Continuar a Playground', en: 'Continue to Playground' },
   'learn.continueToEvaluate': { es: 'Continuar a Evaluar', en: 'Continue to Evaluate' },
   'learn.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
   'learn.guidedQuestions': { es: 'Preguntas Guía', en: 'Guided Questions' },
@@ -231,6 +242,29 @@ const translations = {
   'quiz.description': { es: 'Pon a prueba tu conocimiento con una pregunta aleatoria', en: 'Test your knowledge with a random question' },
   'quiz.review': { es: 'Repasar', en: 'Review' },
   'quiz.showAnswer': { es: 'Ver Respuesta', en: 'Show Answer' },
+
+  // Confidence indicator
+  'confidence.prompt': { es: '¿Qué tan seguro estás?', en: 'How confident are you?' },
+  'confidence.low': { es: 'No muy seguro', en: 'Not sure' },
+  'confidence.medium': { es: 'Bastante seguro', en: 'Fairly sure' },
+  'confidence.high': { es: 'Muy seguro', en: 'Very sure' },
+
+  // Theme
+  'theme.light': { es: 'Claro', en: 'Light' },
+  'theme.dark': { es: 'Oscuro', en: 'Dark' },
+
+  // Self-explanation
+  'selfExplanation.title': { es: 'Auto-explicación', en: 'Self-explanation' },
+  'selfExplanation.save': { es: 'Guardar', en: 'Save' },
+  'selfExplanation.saved': { es: 'Guardado', en: 'Saved' },
+
+  // Review prediction
+  'prediction.title': { es: 'Predicción', en: 'Prediction' },
+  'prediction.confirm': { es: 'Confirmar', en: 'Confirm' },
+  'prediction.yourPrediction': { es: 'Tu predicción', en: 'Your prediction' },
+  'prediction.comparison': { es: 'Predicción vs Realidad', en: 'Prediction vs Reality' },
+  'prediction.predicted': { es: 'Predicho', en: 'Predicted' },
+  'prediction.actual': { es: 'Real', en: 'Actual' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

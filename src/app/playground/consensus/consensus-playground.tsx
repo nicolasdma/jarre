@@ -178,7 +178,7 @@ export function ConsensusPlayground() {
       {/* Top: Lesson Guide + Cluster Viz + Controls */}
       <div className="flex-1 min-h-0 flex">
         {/* Lesson Guide sidebar */}
-        <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
+        <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
           <TabbedSidebar
             lessons={
               <LessonGuide
@@ -192,16 +192,7 @@ export function ConsensusPlayground() {
                 onHeal={handleHeal}
               />
             }
-            tutor={
-              <TutorPanel
-                playground="consensus"
-                getState={() => snapshot}
-                accentColor="#991b1b"
-                proactiveQuestion={proactiveQuestion}
-                onDismissProactive={() => setProactiveQuestion(null)}
-              />
-            }
-            hasNotification={!!proactiveQuestion}
+            disableTutor
             accentColor="#991b1b"
           />
         </div>
@@ -221,7 +212,7 @@ export function ConsensusPlayground() {
           </div>
 
           {/* Controls */}
-          <div className="shrink-0 border-t border-[#e8e6e0]">
+          <div className="shrink-0 border-t border-j-border">
             <ControlsPanel
               mode={mode}
               speed={speed}
@@ -245,7 +236,7 @@ export function ConsensusPlayground() {
       </div>
 
       {/* Bottom: Log Visualizer */}
-      <div className="h-48 shrink-0 border-t border-[#e8e6e0]">
+      <div className="h-48 shrink-0 border-t border-j-border">
         <LogVisualizer nodes={snapshot.nodes} />
       </div>
     </div>

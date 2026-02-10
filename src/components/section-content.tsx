@@ -22,12 +22,12 @@ interface SectionContentProps {
  */
 const markdownComponents = {
   h2: ({ children }: { children?: React.ReactNode }) => (
-    <h2 className="text-2xl font-light text-[#2c2c2c] mt-10 mb-4">
+    <h2 className="text-2xl font-light text-j-text mt-10 mb-4">
       {children}
     </h2>
   ),
   h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className="text-xl font-medium text-[#2c2c2c] mt-8 mb-3">
+    <h3 className="text-xl font-medium text-j-text mt-8 mb-3">
       {children}
     </h3>
   ),
@@ -38,19 +38,19 @@ const markdownComponents = {
     );
     if (hasImage) return <>{children}</>;
     return (
-      <p className="text-[#3d3d3a] leading-[1.6] mb-6 text-lg">
+      <p className="text-j-text-body leading-[1.6] mb-6 text-lg">
         {children}
       </p>
     );
   },
   strong: ({ children }: { children?: React.ReactNode }) => (
-    <strong className="text-[#2c2c2c] font-medium">{children}</strong>
+    <strong className="text-j-text font-medium">{children}</strong>
   ),
   em: ({ children }: { children?: React.ReactNode }) => {
     const text = String(children);
     // Hide figure caption text — it's rendered as <figcaption> by the img component
     if (/^Figura \d+-\d+\./.test(text)) return null;
-    return <em className="text-[#6b6b62] italic">{children}</em>;
+    return <em className="text-j-text-em italic">{children}</em>;
   },
   ul: ({ children }: { children?: React.ReactNode }) => (
     <ul className="space-y-2 mb-6 ml-4">{children}</ul>
@@ -59,23 +59,23 @@ const markdownComponents = {
     <ol className="space-y-2 mb-6 ml-4 list-decimal">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => (
-    <li className="text-[#3d3d3a] leading-[1.6] text-lg pl-1">
-      <span className="text-[#c4a07a] mr-2">—</span>
+    <li className="text-j-text-body leading-[1.6] text-lg pl-1">
+      <span className="text-j-warm mr-2">—</span>
       {children}
     </li>
   ),
   pre: ({ children }: { children?: React.ReactNode }) => (
-    <pre className="overflow-x-auto bg-[#f5f4f0] border border-[#e8e6e0] rounded-lg p-4 mb-6 text-sm whitespace-pre [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0 [&_code]:rounded-none [&_code]:text-[#2c2c2c]">
+    <pre className="overflow-x-auto bg-j-bg-alt border border-j-border rounded-lg p-4 mb-6 text-sm whitespace-pre [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0 [&_code]:rounded-none [&_code]:text-j-text">
       {children}
     </pre>
   ),
   code: ({ children }: { children?: React.ReactNode }) => (
-    <code className="bg-[#f5f4f0] border border-[#e8e6e0] px-1.5 py-0.5 rounded font-mono text-sm text-[#4a5d4a]">
+    <code className="bg-j-bg-alt border border-j-border px-1.5 py-0.5 rounded font-mono text-sm text-j-accent">
       {children}
     </code>
   ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
-    <blockquote className="border-l-2 border-[#c4a07a] pl-4 my-4 text-[#9c9a8e] italic">
+    <blockquote className="border-l-2 border-j-warm pl-4 my-4 text-j-text-tertiary italic">
       {children}
     </blockquote>
   ),
@@ -85,26 +85,26 @@ const markdownComponents = {
     </div>
   ),
   th: ({ children }: { children?: React.ReactNode }) => (
-    <th className="border-b border-[#e8e6e0] py-2 px-3 text-left font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+    <th className="border-b border-j-border py-2 px-3 text-left font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
       {children}
     </th>
   ),
   td: ({ children }: { children?: React.ReactNode }) => (
-    <td className="border-b border-[#f5f4f0] py-2 px-3 text-[#3d3d3a] text-lg">
+    <td className="border-b border-j-border-light py-2 px-3 text-j-text-body text-lg">
       {children}
     </td>
   ),
-  hr: () => <div className="h-px bg-[#e8e6e0] my-8" />,
+  hr: () => <div className="h-px bg-j-border my-8" />,
   img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <figure className="my-8 -mx-4">
       <img
         src={typeof props.src === 'string' ? props.src : undefined}
         alt={props.alt || ''}
-        className="w-full border border-[#e8e6e0] bg-white p-3"
+        className="w-full border border-j-border bg-white p-3"
         loading="lazy"
       />
       {props.alt && (
-        <figcaption className="mt-2 text-center font-mono text-[10px] tracking-[0.1em] text-[#9c9a8e]">
+        <figcaption className="mt-2 text-center font-mono text-[10px] tracking-[0.1em] text-j-text-tertiary">
           {props.alt}
         </figcaption>
       )}

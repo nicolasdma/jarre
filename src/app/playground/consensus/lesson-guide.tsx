@@ -131,9 +131,9 @@ export function LessonGuide(props: LessonGuideProps) {
   const action = LESSON_ACTIONS[currentStep]?.(props);
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Guia
         </span>
@@ -145,7 +145,7 @@ export function LessonGuide(props: LessonGuideProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
         {/* Step title */}
-        <h2 className="font-mono text-sm text-[#2c2c2c] font-medium mb-4">
+        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
           {step.title}
         </h2>
 
@@ -188,11 +188,11 @@ export function LessonGuide(props: LessonGuideProps) {
       </div>
 
       {/* Navigation */}
-      <div className="px-5 py-3 border-t border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
         <button
           onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
           disabled={currentStep === 0}
-          className="font-mono text-[11px] text-[#7a7a6e] hover:text-[#2c2c2c] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Anterior
         </button>
@@ -219,7 +219,7 @@ export function LessonGuide(props: LessonGuideProps) {
             setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
           }
           disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-[#7a7a6e] hover:text-[#2c2c2c] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Siguiente
         </button>

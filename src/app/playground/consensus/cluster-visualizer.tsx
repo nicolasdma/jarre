@@ -57,7 +57,7 @@ export function ClusterVisualizer({
   onSelectNode,
 }: ClusterVisualizerProps) {
   return (
-    <div className="h-full w-full flex items-center justify-center bg-[#faf9f6]">
+    <div className="h-full w-full flex items-center justify-center bg-j-bg">
       <svg viewBox="0 0 700 500" className="w-full h-full max-h-full">
         {/* Partition divider */}
         {partition && (

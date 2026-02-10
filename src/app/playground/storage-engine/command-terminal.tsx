@@ -90,8 +90,8 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
   };
 
   const statusColor = {
-    connecting: 'text-[#c4a07a]',
-    connected: 'text-[#4a5d4a]',
+    connecting: 'text-j-warm',
+    connected: 'text-j-accent',
     disconnected: 'text-[#a05050]',
   }[status];
 
@@ -113,7 +113,7 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
         </span>
         <div className="flex items-center gap-2">
           <span className={`inline-block w-1.5 h-1.5 rounded-full ${
-            status === 'connected' ? 'bg-[#4a5d4a]' :
+            status === 'connected' ? 'bg-j-accent' :
             status === 'disconnected' ? 'bg-[#a05050]' :
             'bg-[#c4a07a]'
           }`} />
@@ -129,9 +129,9 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
           <div className="text-[#555] font-mono text-xs leading-relaxed">
             <p>Jarre Storage Engine — DDIA Ch.3 playground</p>
             <p className="mt-1">
-              Try: <span className="text-[#c4a07a]">SET name nicolas</span>
+              Try: <span className="text-j-warm">SET name nicolas</span>
               {' '}then{' '}
-              <span className="text-[#c4a07a]">GET name</span>
+              <span className="text-j-warm">GET name</span>
             </p>
             <p className="mt-1 text-[#444]">
               Commands: SET, GET, DEL, PING, DBSIZE, INFO, INSPECT, DEBUG BACKEND
@@ -143,11 +143,11 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
           <div key={i} className="font-mono text-xs leading-relaxed">
             {line.type === 'input' ? (
               <span>
-                <span className="text-[#4a5d4a]">{'> '}</span>
+                <span className="text-j-accent">{'> '}</span>
                 <span className="text-[#e0e0d0]">{line.text}</span>
               </span>
             ) : line.type === 'success' ? (
-              <span className="text-[#4a5d4a]">{line.text}</span>
+              <span className="text-j-accent">{line.text}</span>
             ) : line.type === 'error' ? (
               <span className="text-[#c07070]">{line.text}</span>
             ) : line.type === 'info' ? (
@@ -161,7 +161,7 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
 
       {/* Input line */}
       <div className="px-4 py-2 border-t border-[#333] flex items-center gap-2 shrink-0">
-        <span className="text-[#4a5d4a] font-mono text-xs">{'>'}</span>
+        <span className="text-j-accent font-mono text-xs">{'>'}</span>
         <input
           ref={inputRef}
           type="text"

@@ -19,6 +19,10 @@ interface InlineQuizData {
 
 interface InlineQuizProps {
   quiz: InlineQuizData;
+  /** When defined (even null), overrides localStorage state for review mode */
+  overrideState?: { selectedOption: string; isCorrect: boolean } | null;
+  /** Called instead of localStorage save when in review mode */
+  onAnswer?: (quizId: string, selectedOption: string, isCorrect: boolean) => void;
 }
 
 type QuizState = 'unanswered' | 'answered';
@@ -49,27 +53,44 @@ function saveAnswer(quizId: string, selectedOption: string, isCorrect: boolean):
   }
 }
 
-export function InlineQuiz({ quiz }: InlineQuizProps) {
+export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
+  const isOverrideMode = overrideState !== undefined;
   const [state, setState] = useState<QuizState>('unanswered');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
 
-  // Restore saved answer after hydration (localStorage is client-only)
+  // Restore state: override mode uses overrideState prop, normal mode uses localStorage
   useEffect(() => {
-    const saved = loadSavedAnswer(quiz.id);
-    if (saved) {
-      setSelectedOption(saved.selectedOption);
-      setIsCorrect(saved.isCorrect);
-      setState('answered');
+    if (isOverrideMode) {
+      if (overrideState) {
+        setSelectedOption(overrideState.selectedOption);
+        setIsCorrect(overrideState.isCorrect);
+        setState('answered');
+      } else {
+        setSelectedOption(null);
+        setIsCorrect(false);
+        setState('unanswered');
+      }
+    } else {
+      const saved = loadSavedAnswer(quiz.id);
+      if (saved) {
+        setSelectedOption(saved.selectedOption);
+        setIsCorrect(saved.isCorrect);
+        setState('answered');
+      }
     }
-  }, [quiz.id]);
+  }, [quiz.id, isOverrideMode, overrideState]);
 
   const handleSubmit = () => {
     if (!selectedOption) return;
     const correct = selectedOption === quiz.correctAnswer;
     setIsCorrect(correct);
     setState('answered');
-    saveAnswer(quiz.id, selectedOption, correct);
+    if (onAnswer) {
+      onAnswer(quiz.id, selectedOption, correct);
+    } else {
+      saveAnswer(quiz.id, selectedOption, correct);
+    }
   };
 
   const handleTrueFalse = (value: 'true' | 'false') => {
@@ -77,7 +98,11 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
     const correct = value === quiz.correctAnswer;
     setIsCorrect(correct);
     setState('answered');
-    saveAnswer(quiz.id, value, correct);
+    if (onAnswer) {
+      onAnswer(quiz.id, value, correct);
+    } else {
+      saveAnswer(quiz.id, value, correct);
+    }
   };
 
   const getOptionClasses = (label: string): string => {
@@ -86,19 +111,19 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
 
     if (state === 'unanswered') {
       if (selectedOption === label) {
-        return `${base} border-[#4a5d4a] bg-white`;
+        return `${base} border-j-accent bg-white`;
       }
-      return `${base} border-[#e8e6e0] bg-white hover:border-[#c4a07a] cursor-pointer`;
+      return `${base} border-j-border bg-white hover:border-j-warm cursor-pointer`;
     }
 
     // Answered state
     if (label === quiz.correctAnswer) {
-      return `${base} bg-[#e8f0e8] border-[#4a5d4a]`;
+      return `${base} bg-j-accent-light border-j-accent`;
     }
     if (selectedOption === label && label !== quiz.correctAnswer) {
-      return `${base} bg-[#f0e8e8] border-[#7d6b6b]`;
+      return `${base} bg-j-error-bg border-j-error`;
     }
-    return `${base} border-[#e8e6e0] bg-white opacity-50`;
+    return `${base} border-j-border bg-white opacity-50`;
   };
 
   const getRadioClasses = (label: string): string => {
@@ -107,19 +132,19 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
 
     if (state === 'unanswered') {
       if (selectedOption === label) {
-        return `${base} border-[#4a5d4a]`;
+        return `${base} border-j-accent`;
       }
-      return `${base} border-[#d4d0c8]`;
+      return `${base} border-j-border-input`;
     }
 
     // Answered state
     if (label === quiz.correctAnswer) {
-      return `${base} border-[#4a5d4a] bg-[#4a5d4a]`;
+      return `${base} border-j-accent bg-j-accent`;
     }
     if (selectedOption === label && label !== quiz.correctAnswer) {
-      return `${base} border-[#7d6b6b] bg-[#7d6b6b]`;
+      return `${base} border-j-error bg-j-error`;
     }
-    return `${base} border-[#d4d0c8]`;
+    return `${base} border-j-border-input`;
   };
 
   const getTfButtonClasses = (value: 'true' | 'false'): string => {
@@ -127,28 +152,28 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
       'flex-1 py-3 px-4 font-mono text-[11px] tracking-[0.15em] uppercase border transition-all duration-200';
 
     if (state === 'unanswered') {
-      return `${base} border-[#e8e6e0] bg-white text-[#2c2c2c] hover:border-[#c4a07a] cursor-pointer`;
+      return `${base} border-j-border bg-white text-j-text hover:border-j-warm cursor-pointer`;
     }
 
     // Answered state
     if (value === quiz.correctAnswer) {
-      return `${base} bg-[#e8f0e8] border-[#4a5d4a] text-[#4a5d4a]`;
+      return `${base} bg-j-accent-light border-j-accent text-j-accent`;
     }
     if (selectedOption === value && value !== quiz.correctAnswer) {
-      return `${base} bg-[#f0e8e8] border-[#7d6b6b] text-[#7d6b6b]`;
+      return `${base} bg-j-error-bg border-j-error text-j-error`;
     }
-    return `${base} border-[#e8e6e0] bg-white text-[#9c9a8e] opacity-50`;
+    return `${base} border-j-border bg-white text-j-text-tertiary opacity-50`;
   };
 
   return (
-    <div className="bg-[#f5f4f0] border border-[#e8e6e0] border-l-2 border-l-[#c4a07a] p-6 my-8">
+    <div className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-warm p-6 my-8">
       {/* Header */}
-      <p className="font-mono text-[10px] tracking-[0.2em] text-[#c4a07a] uppercase mb-4">
+      <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-4">
         Verifica tu comprensión
       </p>
 
       {/* Question */}
-      <p className="text-sm text-[#2c2c2c] leading-relaxed mb-5">
+      <p className="text-sm text-j-text leading-relaxed mb-5">
         {quiz.questionText}
       </p>
 
@@ -175,13 +200,13 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
                     <span className="block w-1.5 h-1.5 rounded-full bg-white" />
                   )}
                 {state === 'unanswered' && selectedOption === option.label && (
-                  <span className="block w-1.5 h-1.5 rounded-full bg-[#4a5d4a]" />
+                  <span className="block w-1.5 h-1.5 rounded-full bg-j-accent" />
                 )}
               </span>
-              <span className="font-mono text-[11px] tracking-[0.1em] text-[#9c9a8e] flex-shrink-0">
+              <span className="font-mono text-[11px] tracking-[0.1em] text-j-text-tertiary flex-shrink-0">
                 {option.label}.
               </span>
-              <span className="text-sm text-[#2c2c2c]">{option.text}</span>
+              <span className="text-sm text-j-text">{option.text}</span>
             </button>
           ))}
         </div>
@@ -219,7 +244,7 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
           type="button"
           onClick={handleSubmit}
           disabled={!selectedOption}
-          className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Verificar
         </button>
@@ -235,18 +260,22 @@ export function InlineQuiz({ quiz }: InlineQuizProps) {
       >
         <div className="overflow-hidden">
           <div className="mt-4">
-            {/* Correct / Incorrect indicator */}
-            <p
-              className={`font-mono text-[11px] tracking-[0.15em] uppercase mb-2 ${
-                isCorrect ? 'text-[#4a5d4a]' : 'text-[#7d6b6b]'
+            {/* Result indicator — growth-oriented vocabulary */}
+            <div
+              className={`p-4 border ${
+                isCorrect
+                  ? 'bg-j-success-bg border-j-accent'
+                  : 'bg-j-error-bg border-j-error'
               }`}
             >
-              {isCorrect ? '\u2713 Correcto' : '\u2717 Incorrecto'}
-            </p>
-
-            {/* Explanation panel */}
-            <div className="p-4 bg-white border border-[#e8e6e0]">
-              <p className="text-sm text-[#7a7a6e] leading-relaxed">
+              <p
+                className={`font-mono text-[11px] tracking-[0.15em] uppercase mb-2 ${
+                  isCorrect ? 'text-j-accent' : 'text-j-error'
+                }`}
+              >
+                {isCorrect ? '\u2713 Bien hecho' : '\u26A0 \u00a1Casi!'}
+              </p>
+              <p className="text-sm text-j-text-secondary leading-relaxed">
                 {quiz.explanation}
               </p>
             </div>

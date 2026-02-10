@@ -40,21 +40,21 @@ export default async function ReviewPage() {
     .eq('user_id', user.id);
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-j-bg">
       <Header currentPage="review" />
 
       <main className="mx-auto max-w-3xl px-8 py-12">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-[#4a5d4a]"></div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+            <div className="w-8 h-px bg-j-accent"></div>
+            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
               SM-2
             </span>
           </div>
-          <h1 className="text-4xl font-bold text-[#2c2c2c] mb-2">
+          <h1 className="text-4xl font-bold text-j-text mb-2">
             {t('review.title', lang)}
           </h1>
-          <p className="text-[#7a7a6e]">
+          <p className="text-j-text-secondary">
             {t('review.subtitle', lang)}
           </p>
         </div>

@@ -337,7 +337,7 @@ function RangeBarView({ state }: { state: PartitionState }) {
               width: `${seg.widthPct}%`,
             }}
           >
-            <span className="font-mono text-[10px] text-[#7a7a6e]">
+            <span className="font-mono text-[10px] text-j-text-secondary">
               {seg.node.label}
             </span>
           </div>
@@ -345,7 +345,7 @@ function RangeBarView({ state }: { state: PartitionState }) {
       </div>
 
       {/* The bar */}
-      <div className="relative h-10 flex rounded overflow-hidden border border-[#e8e6e0]">
+      <div className="relative h-10 flex rounded overflow-hidden border border-j-border">
         {segments.map((seg, i) => (
           <div
             key={`bar-${i}`}
@@ -389,7 +389,7 @@ function RangeBarView({ state }: { state: PartitionState }) {
                 }}
               />
               {isHighlighted && (
-                <span className="font-mono text-[9px] text-[#2c2c2c] whitespace-nowrap absolute top-6 -translate-x-1/2">
+                <span className="font-mono text-[9px] text-j-text whitespace-nowrap absolute top-6 -translate-x-1/2">
                   {entry.key}
                 </span>
               )}
@@ -418,9 +418,9 @@ function RangeBarView({ state }: { state: PartitionState }) {
 
       {/* Center info */}
       <div className="text-center mt-4">
-        <span className="font-mono text-[11px] text-[#7a7a6e]">Range Partitioning</span>
+        <span className="font-mono text-[11px] text-j-text-secondary">Range Partitioning</span>
         <span className="mx-2 text-[#e8e6e0]">|</span>
-        <span className="font-mono text-[13px] text-[#2c2c2c] font-bold">{keys.length} keys</span>
+        <span className="font-mono text-[13px] text-j-text font-bold">{keys.length} keys</span>
       </div>
     </div>
   );
@@ -449,7 +449,7 @@ function ControlsBar({
   ];
 
   return (
-    <div className="px-4 py-3 border-t border-[#e8e6e0] bg-[#faf9f6] space-y-3">
+    <div className="px-4 py-3 border-t border-j-border bg-j-bg space-y-3">
       {/* Mode selector */}
       <div className="flex items-center gap-1.5">
         <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mr-2 shrink-0">
@@ -462,7 +462,7 @@ function ControlsBar({
             className={`px-3 py-1 font-mono text-[11px] border transition-colors ${
               state.mode === m.value
                 ? 'bg-[#059669] text-white border-[#059669]'
-                : 'bg-white text-[#7a7a6e] border-[#e8e6e0] hover:border-[#059669] hover:text-[#059669]'
+                : 'bg-white text-j-text-secondary border-j-border hover:border-[#059669] hover:text-[#059669]'
             }`}
           >
             {m.label}
@@ -482,11 +482,11 @@ function ControlsBar({
         <button
           onClick={onRemoveNode}
           disabled={state.nodes.length <= 1}
-          className="px-3 py-1 font-mono text-[11px] bg-white text-[#7a7a6e] border border-[#e8e6e0] hover:border-[#dc2626] hover:text-[#dc2626] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1 font-mono text-[11px] bg-white text-j-text-secondary border border-j-border hover:border-[#dc2626] hover:text-[#dc2626] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           - Nodo
         </button>
-        <div className="w-px h-4 bg-[#e8e6e0]" />
+        <div className="w-px h-4 bg-j-border" />
         <button
           onClick={() => onAddKeys(10)}
           disabled={state.nodes.length === 0}
@@ -501,7 +501,7 @@ function ControlsBar({
         >
           +50 Keys
         </button>
-        <div className="w-px h-4 bg-[#e8e6e0]" />
+        <div className="w-px h-4 bg-j-border" />
 
         {/* Search */}
         <div className="flex items-center gap-1">
@@ -513,20 +513,20 @@ function ControlsBar({
               if (e.key === 'Enter') onSearchKey(searchInput);
             }}
             placeholder="Buscar key..."
-            className="px-2 py-1 w-32 font-mono text-[11px] border border-[#e8e6e0] bg-white text-[#2c2c2c] placeholder:text-[#c0c0b0] focus:outline-none focus:border-[#059669]"
+            className="px-2 py-1 w-32 font-mono text-[11px] border border-j-border bg-white text-j-text placeholder:text-[#c0c0b0] focus:outline-none focus:border-[#059669]"
           />
           <button
             onClick={() => onSearchKey(searchInput)}
-            className="px-2 py-1 font-mono text-[11px] bg-white text-[#7a7a6e] border border-[#e8e6e0] hover:border-[#059669] hover:text-[#059669] transition-colors"
+            className="px-2 py-1 font-mono text-[11px] bg-white text-j-text-secondary border border-j-border hover:border-[#059669] hover:text-[#059669] transition-colors"
           >
             Buscar
           </button>
         </div>
 
-        <div className="w-px h-4 bg-[#e8e6e0]" />
+        <div className="w-px h-4 bg-j-border" />
         <button
           onClick={onClear}
-          className="px-3 py-1 font-mono text-[11px] text-[#dc2626] bg-white border border-[#e8e6e0] hover:border-[#dc2626] transition-colors"
+          className="px-3 py-1 font-mono text-[11px] text-[#dc2626] bg-white border border-j-border hover:border-[#dc2626] transition-colors"
         >
           Limpiar todo
         </button>
@@ -546,7 +546,7 @@ function ControlsBar({
             onChange={e => onSetVirtualNodes(parseInt(e.target.value, 10))}
             className="flex-1 max-w-[200px] accent-[#059669]"
           />
-          <span className="font-mono text-[12px] text-[#2c2c2c] w-8 text-right">
+          <span className="font-mono text-[12px] text-j-text w-8 text-right">
             {state.virtualNodesPerNode}
           </span>
           <span className="font-mono text-[10px] text-[#a0a090]">
@@ -572,9 +572,9 @@ export function RingVisualizer(props: RingVisualizerProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Visualizacion
         </span>
@@ -587,7 +587,7 @@ export function RingVisualizer(props: RingVisualizerProps) {
       <div className="flex-1 min-h-0 flex items-center justify-center px-4 py-2 overflow-hidden">
         {state.nodes.length === 0 ? (
           <div className="text-center">
-            <p className="font-mono text-[13px] text-[#7a7a6e] mb-2">
+            <p className="font-mono text-[13px] text-j-text-secondary mb-2">
               Sin nodos
             </p>
             <p className="font-mono text-[11px] text-[#a0a090]">

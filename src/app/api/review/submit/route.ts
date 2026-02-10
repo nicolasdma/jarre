@@ -1,18 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
-import { ReviewEvaluationSchema } from '@/lib/llm/schemas';
-import { buildReviewEvaluationPrompt, getReviewSystemPrompt } from '@/lib/llm/review-prompts';
-import { calculateNextReview, scoreToRating } from '@/lib/spaced-repetition';
+import { ReviewEvaluationSchema, RubricEvaluationSchema } from '@/lib/llm/schemas';
+import {
+  buildReviewEvaluationPrompt,
+  getReviewSystemPrompt,
+  buildRubricReviewPrompt,
+  getRubricSystemPrompt,
+  getDomainForPhase,
+} from '@/lib/llm/review-prompts';
+import { calculateNextReview, scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
 import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
+import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import type { SupportedLanguage } from '@/lib/llm/prompts';
+import type { QuestionBankType } from '@/types';
 
 /**
  * POST /api/review/submit
- * Evaluates user answer via DeepSeek, applies SM-2, updates review_schedule.
+ * Evaluates user answer via DeepSeek with rubric-based multi-dimensional scoring.
+ * Falls back to legacy v1 prompt if rubric parse fails.
  *
  * Body: { questionId: string, userAnswer: string }
- * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays }
+ * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays,
+ *            dimensionScores?, reasoning?, masteryAdvanced? }
  */
 export async function POST(request: Request) {
   try {
@@ -26,11 +36,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { questionId, userAnswer } = body;
+    const { questionId, userAnswer, confidence } = body;
 
     if (!questionId || !userAnswer?.trim()) {
       return NextResponse.json({ error: 'Missing questionId or userAnswer' }, { status: 400 });
     }
+
+    // Validate optional confidence (1-3)
+    const confidenceLevel: number | null =
+      confidence != null && [1, 2, 3].includes(confidence) ? confidence : null;
 
     // Get user language
     const { data: profile } = await supabase
@@ -41,10 +55,10 @@ export async function POST(request: Request) {
 
     const language = (profile?.language || 'es') as SupportedLanguage;
 
-    // Fetch the question from question_bank
+    // Fetch the question with type and concept name for rubric selection
     const { data: question, error: qError } = await supabase
       .from('question_bank')
-      .select('id, question_text, expected_answer, concept_id')
+      .select('id, question_text, expected_answer, concept_id, type, concepts!concept_id(name, phase)')
       .eq('id', questionId)
       .single();
 
@@ -52,26 +66,93 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
-    // Call DeepSeek to evaluate the answer
-    const prompt = buildReviewEvaluationPrompt({
+    // Supabase join: concepts is object (single FK) but TS may infer array
+    const conceptsData = question.concepts as unknown as
+      | { name: string; phase: number }
+      | { name: string; phase: number }[]
+      | null;
+    const conceptObj = Array.isArray(conceptsData) ? conceptsData[0] : conceptsData;
+    const conceptName = conceptObj?.name || question.concept_id;
+    const conceptPhase = conceptObj?.phase ?? 1;
+    const questionType = question.type as QuestionBankType;
+
+    // Try rubric-based evaluation (v2), fall back to legacy (v1) on parse failure
+    let score: number;
+    let feedback: string;
+    let isCorrect: boolean;
+    let rating: ReturnType<typeof scoreToRating>;
+    let dimensionScores: Record<string, number> | undefined;
+    let reasoning: string | undefined;
+    let tokensUsed: number;
+
+    const rubric = getRubricForQuestionType(questionType);
+    const rubricPrompt = buildRubricReviewPrompt({
+      conceptName,
       questionText: question.question_text,
       expectedAnswer: question.expected_answer,
       userAnswer,
+      rubric,
       language,
     });
 
-    const { content, tokensUsed } = await callDeepSeek({
+    const { content: rubricContent, tokensUsed: rubricTokens } = await callDeepSeek({
       messages: [
-        { role: 'system', content: getReviewSystemPrompt(language) },
-        { role: 'user', content: prompt },
+        { role: 'system', content: getRubricSystemPrompt({ language, domain: getDomainForPhase(conceptPhase, language) }) },
+        { role: 'user', content: rubricPrompt },
       ],
-      temperature: 0.1,
-      maxTokens: 300,
+      temperature: 0,
+      maxTokens: 500,
       responseFormat: 'json',
     });
+    tokensUsed = rubricTokens;
 
-    const evaluation = parseJsonResponse(content, ReviewEvaluationSchema);
-    const rating = scoreToRating(evaluation.score);
+    try {
+      const rubricResult = parseJsonResponse(rubricContent, RubricEvaluationSchema);
+      const derived = deriveFromRubric(rubricResult.scores);
+
+      score = derived.normalizedScore;
+      feedback = rubricResult.feedback;
+      isCorrect = derived.isCorrect;
+      rating = derived.rating;
+      dimensionScores = rubricResult.scores;
+      reasoning = rubricResult.reasoning;
+
+      console.log(
+        `[Review/Submit] Rubric eval: question=${questionId}, type=${questionType}, ` +
+        `scores=${JSON.stringify(rubricResult.scores)}, total=${derived.total}, rating=${rating}`
+      );
+    } catch (rubricParseError) {
+      // Fallback to legacy v1 prompt
+      console.warn(
+        '[Review/Submit] Rubric parse failed, falling back to legacy prompt:',
+        rubricParseError
+      );
+
+      const legacyPrompt = buildReviewEvaluationPrompt({
+        questionText: question.question_text,
+        expectedAnswer: question.expected_answer,
+        userAnswer,
+        language,
+      });
+
+      const { content: legacyContent, tokensUsed: legacyTokens } = await callDeepSeek({
+        messages: [
+          { role: 'system', content: getReviewSystemPrompt(language) },
+          { role: 'user', content: legacyPrompt },
+        ],
+        temperature: 0.1,
+        maxTokens: 300,
+        responseFormat: 'json',
+      });
+
+      const legacyResult = parseJsonResponse(legacyContent, ReviewEvaluationSchema);
+      tokensUsed += legacyTokens;
+
+      score = legacyResult.score;
+      feedback = legacyResult.feedback;
+      isCorrect = legacyResult.isCorrect;
+      rating = scoreToRating(legacyResult.score);
+    }
 
     // Fetch or create review_schedule state
     const { data: schedule } = await supabase
@@ -105,29 +186,34 @@ export async function POST(request: Request) {
     );
 
     // Upsert review_schedule (create if not exists, update if exists)
+    const upsertData: Record<string, unknown> = {
+      user_id: user.id,
+      question_id: questionId,
+      ease_factor: result.easeFactor,
+      interval_days: result.intervalDays,
+      repetition_count: result.repetitionCount,
+      streak: result.streak,
+      correct_count: result.correctCount,
+      incorrect_count: result.incorrectCount,
+      next_review_at: result.nextReviewAt.toISOString(),
+      last_reviewed_at: new Date().toISOString(),
+      last_rating: rating,
+    };
+    if (confidenceLevel !== null) {
+      upsertData.confidence_level = confidenceLevel;
+    }
+
     const { error: upsertError } = await supabase
       .from('review_schedule')
-      .upsert({
-        user_id: user.id,
-        question_id: questionId,
-        ease_factor: result.easeFactor,
-        interval_days: result.intervalDays,
-        repetition_count: result.repetitionCount,
-        streak: result.streak,
-        correct_count: result.correctCount,
-        incorrect_count: result.incorrectCount,
-        next_review_at: result.nextReviewAt.toISOString(),
-        last_reviewed_at: new Date().toISOString(),
-        last_rating: rating,
-      }, { onConflict: 'user_id,question_id' });
+      .upsert(upsertData, { onConflict: 'user_id,question_id' });
 
     if (upsertError) {
       console.error('[Review/Submit] Error upserting schedule:', upsertError);
     }
 
-    // Check micro-test mastery advancement (0→1) if answer was correct
+    // Check micro-test mastery advancement (0->1) if answer was correct
     let masteryAdvanced = false;
-    if (evaluation.isCorrect) {
+    if (isCorrect) {
       // Count correct answers for this concept across all questions
       const { count: correctCount } = await supabase
         .from('review_schedule')
@@ -185,25 +271,27 @@ export async function POST(request: Request) {
           );
 
           console.log(
-            `[Review/Submit] Mastery advanced: ${question.concept_id} 0→1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
+            `[Review/Submit] Mastery advanced: ${question.concept_id} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
           );
         }
       }
     }
 
     console.log(
-      `[Review/Submit] Question ${questionId}: score=${evaluation.score}, rating=${rating}, interval=${result.intervalDays}d, tokens=${tokensUsed}`
+      `[Review/Submit] Question ${questionId}: score=${score}, rating=${rating}, interval=${result.intervalDays}d, tokens=${tokensUsed}`
     );
 
     return NextResponse.json({
-      score: evaluation.score,
-      feedback: evaluation.feedback,
-      isCorrect: evaluation.isCorrect,
+      score,
+      feedback,
+      isCorrect,
       expectedAnswer: question.expected_answer,
       rating,
       nextReviewAt: result.nextReviewAt.toISOString(),
       intervalDays: result.intervalDays,
       masteryAdvanced,
+      dimensionScores,
+      reasoning,
     });
   } catch (error) {
     console.error('[Review/Submit] Unexpected error:', error);

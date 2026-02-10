@@ -401,9 +401,9 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
   const step = LESSONS[currentStep];
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Guia
         </span>
@@ -415,7 +415,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
         {/* Step title */}
-        <h2 className="font-mono text-sm text-[#2c2c2c] font-medium mb-4">
+        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
           {step.title}
         </h2>
 
@@ -441,7 +441,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
                 className="w-full text-left group"
               >
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] transition-colors">
-                  <span className="text-[#4a5d4a] font-mono text-[11px] shrink-0">{'>'}</span>
+                  <span className="text-j-accent font-mono text-[11px] shrink-0">{'>'}</span>
                   <span className="text-[#e0e0d0] font-mono text-[11px]">{c.cmd}</span>
                   <span className="ml-auto text-[#555] font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     click
@@ -456,7 +456,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
         </div>
 
         {/* What to observe */}
-        <div className="bg-[#f0efe8] px-4 py-3 border-l-2 border-[#c4a07a]">
+        <div className="bg-[#f0efe8] px-4 py-3 border-l-2 border-j-warm">
           <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
             Que observar
           </p>
@@ -467,11 +467,11 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
       </div>
 
       {/* Navigation */}
-      <div className="px-5 py-3 border-t border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
         <button
           onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
           disabled={currentStep === 0}
-          className="font-mono text-[11px] text-[#7a7a6e] hover:text-[#2c2c2c] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Anterior
         </button>
@@ -484,7 +484,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
               onClick={() => setCurrentStep(i)}
               className={`w-1.5 h-1.5 rounded-full transition-colors ${
                 i === currentStep
-                  ? 'bg-[#4a5d4a]'
+                  ? 'bg-j-accent'
                   : i < currentStep
                     ? 'bg-[#c4a07a]'
                     : 'bg-[#ddd]'
@@ -496,7 +496,7 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
         <button
           onClick={() => setCurrentStep(s => Math.min(LESSONS.length - 1, s + 1))}
           disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-[#7a7a6e] hover:text-[#2c2c2c] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Siguiente
         </button>

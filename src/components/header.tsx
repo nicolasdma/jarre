@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/logout-button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { t, type Language } from '@/lib/translations';
 
 interface HeaderProps {
@@ -34,27 +35,27 @@ export async function Header({ currentPage }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-[#e8e6e0] bg-[#faf9f6]">
+    <header className="border-b border-j-border bg-j-bg">
       <div className="mx-auto max-w-6xl px-8 py-5">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 border border-[#4a5d4a] flex items-center justify-center">
-              <span className="text-[#4a5d4a] font-mono text-xs">J</span>
+            <div className="w-8 h-8 border border-j-accent flex items-center justify-center">
+              <span className="text-j-accent font-mono text-xs">J</span>
             </div>
-            <span className="font-mono text-sm tracking-[0.1em] text-[#2c2c2c] uppercase group-hover:text-[#4a5d4a] transition-colors">
+            <span className="font-mono text-sm tracking-[0.1em] text-j-text uppercase group-hover:text-j-accent transition-colors">
               Jarre
             </span>
           </Link>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-8">
+          <nav className="flex items-center gap-6">
             <Link
               href="/library"
               className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
                 currentPage === 'library'
-                  ? 'text-[#4a5d4a]'
-                  : 'text-[#7a7a6e] hover:text-[#2c2c2c]'
+                  ? 'text-j-accent'
+                  : 'text-j-text-secondary hover:text-j-text'
               }`}
             >
               01. {t('nav.library', lang)}
@@ -66,33 +67,35 @@ export async function Header({ currentPage }: HeaderProps) {
                   href="/review"
                   className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors flex items-center gap-2 ${
                     currentPage === 'review'
-                      ? 'text-[#4a5d4a]'
-                      : 'text-[#7a7a6e] hover:text-[#2c2c2c]'
+                      ? 'text-j-accent'
+                      : 'text-j-text-secondary hover:text-j-text'
                   }`}
                 >
                   02. {t('nav.review', lang)}
                   {dueCount > 0 && (
-                    <span className="bg-[#4a5d4a] text-[#f5f4f0] text-[9px] font-mono px-1.5 py-0.5 min-w-[18px] text-center">
+                    <span className="bg-j-accent text-j-text-on-accent text-[9px] font-mono px-1.5 py-0.5 min-w-[18px] text-center">
                       {dueCount > 99 ? '99+' : dueCount}
                     </span>
                   )}
                 </Link>
+                <ThemeToggle />
                 <LogoutButton label={t('nav.logout', lang)} />
               </>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="font-mono text-[11px] tracking-[0.15em] text-[#7a7a6e] uppercase hover:text-[#2c2c2c] transition-colors"
+                  className="font-mono text-[11px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-text transition-colors"
                 >
                   {t('common.login', lang)}
                 </Link>
                 <Link
                   href="/signup"
-                  className="font-mono text-[11px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                  className="font-mono text-[11px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
                 >
                   {t('common.signup', lang)}
                 </Link>
+                <ThemeToggle />
               </>
             )}
           </nav>

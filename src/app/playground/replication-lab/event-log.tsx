@@ -98,9 +98,9 @@ export function EventLog({ events }: EventLogProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] shrink-0">
+      <div className="px-5 py-3 border-b border-j-border shrink-0">
         <div className="flex items-center justify-between mb-2">
           <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
             Event Log
@@ -121,7 +121,7 @@ export function EventLog({ events }: EventLogProps) {
                   ? f.key === 'violations'
                     ? 'bg-[#991b1b] text-white'
                     : 'bg-[#2d4a6a] text-white'
-                  : 'bg-[#f0efe8] text-[#7a7a6e] hover:bg-[#e8e6e0]'
+                  : 'bg-[#f0efe8] text-j-text-secondary hover:bg-j-border'
               }`}
             >
               {f.label}
@@ -185,7 +185,7 @@ export function EventLog({ events }: EventLogProps) {
 
       {/* Summary footer */}
       {violationCount > 0 && (
-        <div className="px-4 py-2 border-t border-[#e8e6e0] bg-[#fef2f2] shrink-0">
+        <div className="px-4 py-2 border-t border-j-border bg-[#fef2f2] shrink-0">
           <p className="font-mono text-[10px] text-[#991b1b]">
             {violationCount} violacion{violationCount !== 1 ? 'es' : ''} de consistencia detectada{violationCount !== 1 ? 's' : ''}
           </p>

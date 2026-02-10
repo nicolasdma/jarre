@@ -38,11 +38,11 @@ export default async function QuestionsPage({ params }: PageProps) {
 
   if (!questions) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#faf9f6] p-8">
-        <p className="mb-4 text-[#7a7a6e]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
+        <p className="mb-4 text-j-text-secondary">
           Preguntas guía no disponibles para este recurso.
         </p>
-        <Link href="/library" className="text-[#4a5d4a] hover:underline">
+        <Link href="/library" className="text-j-accent hover:underline">
           ← Volver a la biblioteca
         </Link>
       </div>
@@ -52,13 +52,13 @@ export default async function QuestionsPage({ params }: PageProps) {
   const nextStep = NEXT_STEP[resourceId];
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-j-bg">
       {/* Sticky header with step navigation */}
-      <div className="sticky top-0 z-50 border-b border-[#e8e6e0] bg-[#faf9f6]/90 backdrop-blur-sm">
+      <div className="sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-8 py-4">
           <Link
             href={`/learn/${resourceId}`}
-            className="text-sm text-[#9c9a8e] hover:text-[#2c2c2c] transition-colors"
+            className="text-sm text-j-text-tertiary hover:text-j-text transition-colors"
           >
             ← Resumen
           </Link>
@@ -67,19 +67,19 @@ export default async function QuestionsPage({ params }: PageProps) {
           <div className="flex items-center gap-3">
             <Link
               href={`/learn/${resourceId}`}
-              className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase hover:text-[#2c2c2c] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase hover:text-j-text transition-colors"
             >
               Resumen
             </Link>
-            <span className="text-[#d4d2cc]">·</span>
-            <span className="font-mono text-[10px] tracking-[0.15em] text-[#2c2c2c] uppercase font-medium">
+            <span className="text-j-border-dot">·</span>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text uppercase font-medium">
               Preguntas
             </span>
-            <span className="text-[#d4d2cc]">·</span>
+            <span className="text-j-border-dot">·</span>
             {nextStep && (
               <Link
                 href={nextStep.href}
-                className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase hover:text-[#2c2c2c] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase hover:text-j-text transition-colors"
               >
                 {nextStep.label}
               </Link>
@@ -89,7 +89,7 @@ export default async function QuestionsPage({ params }: PageProps) {
           {nextStep && (
             <Link
               href={nextStep.href}
-              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-3 py-1.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               {nextStep.label} →
             </Link>
@@ -102,17 +102,17 @@ export default async function QuestionsPage({ params }: PageProps) {
         {/* Hero */}
         <header className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-px bg-[#4a5d4a]" />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+            <div className="w-8 h-px bg-j-accent" />
+            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
               Preguntas Guía
             </span>
           </div>
 
-          <h1 className="text-3xl font-light text-[#2c2c2c] mb-4">
+          <h1 className="text-3xl font-light text-j-text mb-4">
             Focos de Lectura
           </h1>
 
-          <p className="text-[#7a7a6e] leading-relaxed max-w-xl">
+          <p className="text-j-text-secondary leading-relaxed max-w-xl">
             Estas preguntas no son un cuestionario. Son focos que orientan tu
             lectura. Tenlas presentes mientras lees el capítulo — te obligan a
             pensar en lo que importa, no solo a subrayar.
@@ -124,10 +124,10 @@ export default async function QuestionsPage({ params }: PageProps) {
           {questions.map((q, i) => (
             <section
               key={i}
-              className="border-l-2 border-[#e8e6e0] pl-6 py-1"
+              className="border-l-2 border-j-border pl-6 py-1"
             >
               <div className="flex items-center gap-3 mb-3">
-                <span className="font-mono text-xs text-[#9c9a8e]">
+                <span className="font-mono text-xs text-j-text-tertiary">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span
@@ -137,12 +137,12 @@ export default async function QuestionsPage({ params }: PageProps) {
                 </span>
               </div>
 
-              <p className="text-[#2c2c2c] leading-relaxed mb-3">
+              <p className="text-j-text leading-relaxed mb-3">
                 {q.question}
               </p>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="font-mono text-[10px] tracking-[0.1em] text-[#9c9a8e] uppercase">
+                <span className="font-mono text-[10px] tracking-[0.1em] text-j-text-tertiary uppercase">
                   Concepto: {q.concept}
                 </span>
                 {q.hint && (
@@ -157,13 +157,13 @@ export default async function QuestionsPage({ params }: PageProps) {
 
         {/* Footer CTA */}
         {nextStep && (
-          <div className="mt-16 pt-12 border-t border-[#e8e6e0] text-center">
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">
+          <div className="mt-16 pt-12 border-t border-j-border text-center">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
               Siguiente paso
             </p>
             <Link
               href={nextStep.href}
-              className="inline-block font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-6 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="inline-block font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               {nextStep.label} →
             </Link>

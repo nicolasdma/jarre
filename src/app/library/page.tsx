@@ -51,10 +51,10 @@ export default async function LibraryPage() {
   if (error) {
     console.error('Error fetching resources:', error);
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-j-bg">
         <Header currentPage="library" />
         <main className="mx-auto max-w-6xl px-8 py-12">
-          <p className="font-mono text-sm text-[#7d6b6b]">{t('common.error', lang)}: {error.message}</p>
+          <p className="font-mono text-sm text-j-error">{t('common.error', lang)}: {error.message}</p>
         </main>
       </div>
     );
@@ -240,35 +240,35 @@ export default async function LibraryPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-j-bg">
       <Header currentPage="library" />
 
       <main className="mx-auto max-w-6xl px-8 py-12">
         {/* Hero Section */}
         <div className="mb-16">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-[#4a5d4a]"></div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+            <div className="w-8 h-px bg-j-accent"></div>
+            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
               {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
             </span>
           </div>
 
-          <h1 className="text-5xl font-bold text-[#2c2c2c] mb-2">
+          <h1 className="text-5xl font-bold text-j-text mb-2">
             {t('library.title', lang)}
           </h1>
-          <p className="text-3xl font-light text-[#9c9a8e]">
+          <p className="text-3xl font-light text-j-text-tertiary">
             {lang === 'es' ? 'para dominar sistemas de IA' : 'for AI systems mastery'}
           </p>
 
-          <p className="mt-6 text-[#7a7a6e] max-w-xl leading-relaxed">
+          <p className="mt-6 text-j-text-secondary max-w-xl leading-relaxed">
             {lang === 'es'
               ? 'Cuando la comprensión superficial no es suficiente. Valida tu conocimiento real de papers, libros y conceptos complejos.'
               : 'When surface-level understanding isn\'t enough. Validate real comprehension of papers, books, and complex concepts.'}
           </p>
 
           {!user && (
-            <p className="mt-6 text-sm text-[#8b7355]">
-              <Link href="/login" className="underline hover:text-[#4a5d4a] transition-colors">
+            <p className="mt-6 text-sm text-j-warm-dark">
+              <Link href="/login" className="underline hover:text-j-accent transition-colors">
                 {t('common.signin', lang)}
               </Link>{' '}
               {t('library.signInPrompt', lang)}
@@ -279,26 +279,26 @@ export default async function LibraryPage() {
         {/* Stats Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           <div className="text-center">
-            <p className="text-4xl font-light text-[#2c2c2c]">{totalResources}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+            <p className="text-4xl font-light text-j-text">{totalResources}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.resources', lang)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-light text-[#4a5d4a]">{totalUnlocked}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+            <p className="text-4xl font-light text-j-accent">{totalUnlocked}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.unlocked', lang)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-light text-[#4a5d4a]">{totalEvaluated}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+            <p className="text-4xl font-light text-j-accent">{totalEvaluated}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.evaluated', lang)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-light text-[#8b7355]">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mt-2">
+            <p className="text-4xl font-light text-j-warm-dark">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {lang === 'es' ? 'Promedio' : 'Average'}
             </p>
           </div>
@@ -307,10 +307,10 @@ export default async function LibraryPage() {
         {/* Phase Progress - Only when logged in */}
         {user && (
           <div className="relative mb-16 p-8 bg-white/50">
-            <CornerBrackets className="border-[#d4d0c8]" />
+            <CornerBrackets className="border-j-border-input" />
 
             <div className="flex items-center gap-2 mb-6">
-              <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+              <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                 {lang === 'es' ? 'Progreso por Fase' : 'Phase Progress'}
               </span>
             </div>
@@ -323,17 +323,17 @@ export default async function LibraryPage() {
 
                 return (
                   <div key={phase} className="text-center">
-                    <div className="relative h-1 bg-[#e8e6e0] mb-3">
+                    <div className="relative h-1 bg-j-border mb-3">
                       <div
-                        className="absolute left-0 top-0 h-full bg-[#4a5d4a] transition-all duration-500"
+                        className="absolute left-0 top-0 h-full bg-j-accent transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+                    <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                       {t('resource.phase', lang)} {phase}
                     </p>
-                    <p className="text-lg font-light text-[#2c2c2c]">
-                      {evaluated}<span className="text-[#9c9a8e]">/{total}</span>
+                    <p className="text-lg font-light text-j-text">
+                      {evaluated}<span className="text-j-text-tertiary">/{total}</span>
                     </p>
                   </div>
                 );
@@ -347,14 +347,14 @@ export default async function LibraryPage() {
           <section key={phase} className="mb-16">
             {/* Phase Header */}
             <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-5xl font-light text-[#e8e6e0]">
+              <span className="font-mono text-5xl font-light text-j-border">
                 {phase.toString().padStart(2, '0')}
               </span>
               <div>
-                <h2 className="text-xl font-medium text-[#2c2c2c]">
+                <h2 className="text-xl font-medium text-j-text">
                   {phaseNames[phase] || `${t('resource.phase', lang)} ${phase}`}
                 </h2>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase mt-1">
+                <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
                   {phaseResources.length} {phaseResources.length === 1 ? t('library.resource', lang) : t('library.resources', lang)}
                   {user && (
                     <span className="ml-3">
@@ -392,20 +392,20 @@ export default async function LibraryPage() {
         {supplementaryResources.length > 0 && (
           <details className="mb-16 group">
             <summary className="cursor-pointer list-none">
-              <div className="flex items-center gap-4 py-4 border-t border-b border-[#e8e6e0] hover:bg-[#f8f7f4] transition-colors">
-                <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+              <div className="flex items-center gap-4 py-4 border-t border-b border-j-border hover:bg-j-bg-hover transition-colors">
+                <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                   {lang === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
                 </span>
-                <span className="text-xs text-[#9c9a8e]">
+                <span className="text-xs text-j-text-tertiary">
                   ({supplementaryResources.length} {lang === 'es' ? 'videos' : 'videos'})
                 </span>
-                <span className="ml-auto text-[#9c9a8e] group-open:rotate-180 transition-transform">
+                <span className="ml-auto text-j-text-tertiary group-open:rotate-180 transition-transform">
                   ▼
                 </span>
               </div>
             </summary>
             <div className="pt-8">
-              <p className="text-sm text-[#7a7a6e] mb-6">
+              <p className="text-sm text-j-text-secondary mb-6">
                 {lang === 'es'
                   ? 'Videos y materiales adicionales para profundizar en los temas.'
                   : 'Videos and additional materials to dive deeper into topics.'}
@@ -417,15 +417,15 @@ export default async function LibraryPage() {
                     href={resource.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group/item flex items-start gap-3 p-4 border border-[#e8e6e0] hover:border-[#4a5d4a] transition-colors"
+                    className="group/item flex items-start gap-3 p-4 border border-j-border hover:border-j-accent transition-colors"
                   >
                     <span className="text-lg">▶</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#2c2c2c] group-hover/item:text-[#4a5d4a] transition-colors line-clamp-2">
+                      <p className="text-sm text-j-text group-hover/item:text-j-accent transition-colors line-clamp-2">
                         {resource.title}
                       </p>
                       {resource.author && (
-                        <p className="text-xs text-[#9c9a8e] mt-1">{resource.author}</p>
+                        <p className="text-xs text-j-text-tertiary mt-1">{resource.author}</p>
                       )}
                     </div>
                   </a>
@@ -437,9 +437,9 @@ export default async function LibraryPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#e8e6e0] py-8 mt-8">
+      <footer className="border-t border-j-border py-8 mt-8">
         <div className="mx-auto max-w-6xl px-8">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase text-center">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
             Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
           </p>
         </div>
