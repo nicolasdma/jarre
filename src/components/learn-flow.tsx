@@ -273,9 +273,13 @@ export function LearnFlow({
                   language={language}
                   isActive={i === activeSection}
                   onComplete={() => handleSectionComplete(i)}
-                  initialState={sectionState[section.conceptId]}
+                  onActivate={() => {
+                    setActiveSection(i);
+                    saveLearnProgress(resourceId, buildProgress({ section: i }));
+                  }}
+                  initialState={sectionState[section.id]}
                   onStateChange={(state) =>
-                    handleSectionStateChange(section.conceptId, state)
+                    handleSectionStateChange(section.id, state)
                   }
                   figureRegistry={figureRegistry}
                   inlineQuizzes={quizzesBySectionId?.[section.id]}

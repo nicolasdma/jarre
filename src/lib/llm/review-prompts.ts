@@ -22,28 +22,28 @@ export function buildReviewEvaluationPrompt(params: {
   const { questionText, expectedAnswer, userAnswer, language = 'es' } = params;
 
   if (language === 'en') {
-    return `Compare the user's answer with the expected answer for this question.
+    return `Compare my answer with the expected answer for this question.
 
 Question: "${questionText}"
 Expected answer: "${expectedAnswer}"
-User's answer: "${userAnswer}"
+My answer: "${userAnswer}"
 
-Score 0-100 based on accuracy and completeness. Provide brief feedback (1 sentence).
+Score 0-100 based on accuracy and completeness. Address me directly using "you/your" in the feedback (1 sentence).
 
 Respond in JSON:
-{"score": 0-100, "feedback": "brief feedback", "isCorrect": true|false}`;
+{"score": 0-100, "feedback": "brief feedback addressing the user directly", "isCorrect": true|false}`;
   }
 
-  return `Compará la respuesta del usuario con la respuesta esperada para esta pregunta.
+  return `Compará mi respuesta con la respuesta esperada para esta pregunta.
 
 Pregunta: "${questionText}"
 Respuesta esperada: "${expectedAnswer}"
-Respuesta del usuario: "${userAnswer}"
+Mi respuesta: "${userAnswer}"
 
-Puntuá de 0-100 según precisión y completitud. Feedback breve (1 oración).
+Puntuá de 0-100 según precisión y completitud. Dirigite a mí directamente usando "tu/vos" en el feedback (1 oración).
 
 Respondé en JSON:
-{"score": 0-100, "feedback": "feedback breve en español", "isCorrect": true|false}`;
+{"score": 0-100, "feedback": "feedback breve dirigido al usuario con vos/tu", "isCorrect": true|false}`;
 }
 
 /**
@@ -51,7 +51,7 @@ Respondé en JSON:
  */
 export function getReviewSystemPrompt(language: SupportedLanguage = 'es'): string {
   if (language === 'en') {
-    return 'You are a technical evaluator. Compare answers precisely. Be fair but rigorous. Accept non-standard phrasing if the understanding is correct. Respond only in JSON.';
+    return 'You are a technical tutor giving direct feedback. Address the student as "you". Be fair but rigorous. Accept non-standard phrasing if the understanding is correct. Respond only in JSON.';
   }
-  return 'Sos un evaluador técnico. Compará respuestas con precisión. Sé justo pero riguroso. Aceptá frases no estándar si la comprensión es correcta. Respondé solo en JSON.';
+  return 'Sos un tutor técnico que da feedback directo. Dirigite al estudiante como "vos". Sé justo pero riguroso. Aceptá frases no estándar si la comprensión es correcta. Respondé solo en JSON.';
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // ============================================================================
 // Types
@@ -27,21 +27,57 @@ type QuizState = 'unanswered' | 'answered';
 // Component
 // ============================================================================
 
+function loadSavedAnswer(quizId: string): { selectedOption: string; isCorrect: boolean } | null {
+  try {
+    const raw = localStorage.getItem(`jarre-quiz-${quizId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.selectedOption === 'string' && typeof parsed.isCorrect === 'boolean') {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAnswer(quizId: string, selectedOption: string, isCorrect: boolean): void {
+  try {
+    localStorage.setItem(`jarre-quiz-${quizId}`, JSON.stringify({ selectedOption, isCorrect }));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
 export function InlineQuiz({ quiz }: InlineQuizProps) {
   const [state, setState] = useState<QuizState>('unanswered');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
 
+  // Restore saved answer after hydration (localStorage is client-only)
+  useEffect(() => {
+    const saved = loadSavedAnswer(quiz.id);
+    if (saved) {
+      setSelectedOption(saved.selectedOption);
+      setIsCorrect(saved.isCorrect);
+      setState('answered');
+    }
+  }, [quiz.id]);
+
   const handleSubmit = () => {
     if (!selectedOption) return;
-    setIsCorrect(selectedOption === quiz.correctAnswer);
+    const correct = selectedOption === quiz.correctAnswer;
+    setIsCorrect(correct);
     setState('answered');
+    saveAnswer(quiz.id, selectedOption, correct);
   };
 
   const handleTrueFalse = (value: 'true' | 'false') => {
     setSelectedOption(value);
-    setIsCorrect(value === quiz.correctAnswer);
+    const correct = value === quiz.correctAnswer;
+    setIsCorrect(correct);
     setState('answered');
+    saveAnswer(quiz.id, value, correct);
   };
 
   const getOptionClasses = (label: string): string => {
