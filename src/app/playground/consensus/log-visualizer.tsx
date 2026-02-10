@@ -22,9 +22,9 @@ export function LogVisualizer({ nodes }: LogVisualizerProps) {
   const maxLogLength = Math.max(...nodes.map((n) => n.log.length), 0);
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-4 py-2 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[10px] text-[#888] tracking-wider uppercase">
           Logs Replicados
         </span>
@@ -38,17 +38,17 @@ export function LogVisualizer({ nodes }: LogVisualizerProps) {
         {nodes.map((node) => (
           <div
             key={node.id}
-            className={`flex-1 border-r border-[#e8e6e0] last:border-r-0 flex flex-col min-w-0 ${
+            className={`flex-1 border-r border-j-border last:border-r-0 flex flex-col min-w-0 ${
               node.status === 'dead' ? 'opacity-40' : ''
             }`}
           >
             {/* Column header */}
             <div
-              className={`px-2 py-1.5 border-b border-[#e8e6e0] flex items-center justify-between shrink-0 ${
+              className={`px-2 py-1.5 border-b border-j-border flex items-center justify-between shrink-0 ${
                 STATE_BG[node.state]
               }`}
             >
-              <span className="font-mono text-[10px] text-[#2c2c2c] font-medium truncate">
+              <span className="font-mono text-[10px] text-j-text font-medium truncate">
                 {node.id}
               </span>
               <span
@@ -116,7 +116,7 @@ export function LogVisualizer({ nodes }: LogVisualizerProps) {
             </div>
 
             {/* Commit index footer */}
-            <div className="px-2 py-1 border-t border-[#e8e6e0] shrink-0">
+            <div className="px-2 py-1 border-t border-j-border shrink-0">
               <span className="font-mono text-[8px] text-[#999]">
                 commit: {node.commitIndex}
               </span>

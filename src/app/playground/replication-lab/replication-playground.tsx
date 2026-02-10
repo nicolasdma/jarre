@@ -858,25 +858,16 @@ export function ReplicationPlayground() {
   return (
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
+      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
         <TabbedSidebar
+          disableTutor
           lessons={<LessonGuide actions={actions} config={config} isPartitioned={isPartitioned} />}
-          tutor={
-            <TutorPanel
-              playground="replication"
-              getState={() => ({ nodes, events: events.slice(-10), config, isPartitioned, violations })}
-              accentColor="#2d4a6a"
-              proactiveQuestion={proactiveQuestion}
-              onDismissProactive={() => setProactiveQuestion(null)}
-            />
-          }
-          hasNotification={!!proactiveQuestion}
           accentColor="#2d4a6a"
         />
       </div>
 
       {/* Center: Node Diagram */}
-      <div className="flex-[4] min-w-0 border-r border-[#e8e6e0]">
+      <div className="flex-[4] min-w-0 border-r border-j-border">
         <NodeDiagram
           nodes={nodes}
           messages={messages}

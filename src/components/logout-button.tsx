@@ -16,7 +16,7 @@ export function LogoutButton({ label = 'Logout' }: { label?: string }) {
   return (
     <button
       onClick={handleLogout}
-      className="font-mono text-[11px] tracking-[0.15em] text-[#7a7a6e] uppercase hover:text-[#7d6b6b] transition-colors"
+      className="font-mono text-[11px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-error transition-colors"
     >
       {label}
     </button>

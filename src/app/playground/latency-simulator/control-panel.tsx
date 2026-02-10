@@ -23,14 +23,14 @@ export function ControlPanel({
   return (
     <div className="h-full flex flex-col overflow-y-auto">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Controles
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={onReset}
-            className="font-mono text-[10px] text-[#7a7a6e] hover:text-[#2c2c2c] px-2 py-1 border border-[#e8e6e0] hover:border-[#ccc] transition-colors"
+            className="font-mono text-[10px] text-j-text-secondary hover:text-j-text px-2 py-1 border border-j-border hover:border-[#ccc] transition-colors"
           >
             Reset
           </button>
@@ -48,7 +48,7 @@ export function ControlPanel({
       </div>
 
       {/* Controls area */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0] shrink-0">
+      <div className="px-5 py-4 border-b border-j-border shrink-0">
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           {/* Request Rate */}
           <SliderControl
@@ -114,7 +114,7 @@ export function ControlPanel({
                 className={`flex-1 font-mono text-[11px] px-3 py-1.5 transition-colors ${
                   config.distribution === dist
                     ? 'bg-[#d97706] text-white'
-                    : 'bg-[#f0efe8] text-[#7a7a6e] hover:bg-[#e8e6e0]'
+                    : 'bg-[#f0efe8] text-j-text-secondary hover:bg-j-border'
                 }`}
               >
                 {dist === 'normal' ? 'Normal' : dist === 'lognormal' ? 'Log-normal' : 'Bimodal'}
@@ -125,7 +125,7 @@ export function ControlPanel({
 
         {/* Bimodal-specific controls */}
         {config.distribution === 'bimodal' && (
-          <div className="mt-3 pt-3 border-t border-[#e8e6e0] grid grid-cols-2 gap-x-6 gap-y-3">
+          <div className="mt-3 pt-3 border-t border-j-border grid grid-cols-2 gap-x-6 gap-y-3">
             <SliderControl
               label="Slow request %"
               value={config.slowRequestRate}
@@ -185,7 +185,7 @@ function SliderControl({
         <span className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
           {label}
         </span>
-        <span className="font-mono text-[11px] text-[#2c2c2c] tabular-nums">
+        <span className="font-mono text-[11px] text-j-text tabular-nums">
           {value} <span className="text-[#a0a090] text-[10px]">{unit}</span>
         </span>
       </div>
@@ -195,7 +195,7 @@ function SliderControl({
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
-        className="w-full h-1 appearance-none bg-[#e8e6e0] cursor-pointer
+        className="w-full h-1 appearance-none bg-j-border cursor-pointer
           [&::-webkit-slider-thumb]:appearance-none
           [&::-webkit-slider-thumb]:w-3
           [&::-webkit-slider-thumb]:h-3
@@ -599,7 +599,7 @@ function PercentileTimeline({
           {lines.map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1">
               <div className="w-3 h-[2px]" style={{ backgroundColor: color }} />
-              <span className="font-mono text-[9px] text-[#7a7a6e]">{label}</span>
+              <span className="font-mono text-[9px] text-j-text-secondary">{label}</span>
             </div>
           ))}
           <div className="flex items-center gap-1">

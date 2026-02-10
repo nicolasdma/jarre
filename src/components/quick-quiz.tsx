@@ -85,18 +85,18 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[70vh] bg-[#faf9f6] border border-[#d4d0c8] shadow-xl flex flex-col"
+      className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[70vh] bg-j-bg border border-j-border-input shadow-xl flex flex-col"
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8e6e0]">
-        <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-j-border">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
           {t('quiz.title', language)}
         </span>
         <button
           onClick={onClose}
-          className="text-[#9c9a8e] hover:text-[#2c2c2c] transition-colors text-lg leading-none"
+          className="text-j-text-tertiary hover:text-j-text transition-colors text-lg leading-none"
         >
           ×
         </button>
@@ -106,16 +106,16 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
       <div className="p-4 overflow-y-auto flex-1">
         {/* Loading */}
         {phase === 'loading' && (
-          <p className="text-sm text-[#9c9a8e]">{t('common.loading', language)}</p>
+          <p className="text-sm text-j-text-tertiary">{t('common.loading', language)}</p>
         )}
 
         {/* Error without question */}
         {phase === 'question' && !question && error && (
           <div>
-            <p className="text-xs text-[#7d6b6b] mb-3">{error}</p>
+            <p className="text-xs text-j-error mb-3">{error}</p>
             <button
               onClick={onClose}
-              className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
             >
               {t('quiz.done', language)}
             </button>
@@ -126,22 +126,22 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
         {phase === 'question' && question && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] tracking-[0.1em] text-[#4a5d4a] border border-[#d4d0c8] px-2 py-0.5">
+              <span className="font-mono text-[10px] tracking-[0.1em] text-j-accent border border-j-border-input px-2 py-0.5">
                 {question.conceptName}
               </span>
-              <span className="text-[10px] text-[#9c9a8e]">
+              <span className="text-[10px] text-j-text-tertiary">
                 {'●'.repeat(question.difficulty)}
               </span>
             </div>
 
-            <p className="text-sm text-[#2c2c2c] leading-relaxed">{question.questionText}</p>
+            <p className="text-sm text-j-text leading-relaxed">{question.questionText}</p>
 
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               placeholder={t('review.answerPlaceholder', language)}
               rows={3}
-              className="w-full border border-[#d4d0c8] bg-white p-3 text-sm text-[#2c2c2c] placeholder-[#9c9a8e] focus:outline-none focus:border-[#4a5d4a] resize-none"
+              className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.metaKey && answer.trim()) {
@@ -154,25 +154,25 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
               <button
                 onClick={submitAnswer}
                 disabled={!answer.trim()}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors disabled:opacity-50"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
               >
                 {t('review.verify', language)}
               </button>
               <button
                 onClick={() => setPhase('revealed')}
-                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
               >
                 {t('quiz.showAnswer', language)}
               </button>
               <button
                 onClick={fetchQuestion}
-                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
               >
                 {language === 'es' ? 'Saltar' : 'Skip'}
               </button>
             </div>
 
-            {error && <p className="text-xs text-[#7d6b6b]">{error}</p>}
+            {error && <p className="text-xs text-j-error">{error}</p>}
           </div>
         )}
 
@@ -180,30 +180,30 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
         {phase === 'revealed' && question && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] tracking-[0.1em] text-[#4a5d4a] border border-[#d4d0c8] px-2 py-0.5">
+              <span className="font-mono text-[10px] tracking-[0.1em] text-j-accent border border-j-border-input px-2 py-0.5">
                 {question.conceptName}
               </span>
             </div>
 
-            <p className="text-sm text-[#7a7a6e] leading-relaxed">{question.questionText}</p>
+            <p className="text-sm text-j-text-secondary leading-relaxed">{question.questionText}</p>
 
-            <div className="border border-[#e8e6e0] p-3 bg-white">
-              <p className="font-mono text-[9px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+            <div className="border border-j-border p-3 bg-white">
+              <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                 {t('review.expectedAnswer', language)}
               </p>
-              <p className="text-sm text-[#2c2c2c] leading-relaxed">{question.expectedAnswer}</p>
+              <p className="text-sm text-j-text leading-relaxed">{question.expectedAnswer}</p>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={fetchQuestion}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('quiz.another', language)}
               </button>
               <button
                 onClick={onClose}
-                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
               >
                 {t('quiz.done', language)}
               </button>
@@ -214,8 +214,8 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
         {/* Evaluating */}
         {phase === 'evaluating' && (
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 border border-[#4a5d4a] animate-spin" />
-            <p className="text-sm text-[#9c9a8e]">{t('review.evaluating', language)}</p>
+            <div className="w-3 h-3 border border-j-accent animate-spin" />
+            <p className="text-sm text-j-text-tertiary">{t('review.evaluating', language)}</p>
           </div>
         )}
 
@@ -223,35 +223,35 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
         {phase === 'result' && result && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <span className={`text-2xl font-light ${result.isCorrect ? 'text-[#4a5d4a]' : 'text-[#7d6b6b]'}`}>
+              <span className={`text-2xl font-light ${result.isCorrect ? 'text-j-accent' : 'text-j-error'}`}>
                 {result.score}%
               </span>
-              <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${result.isCorrect ? 'text-[#4a5d4a]' : 'text-[#7d6b6b]'}`}>
+              <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${result.isCorrect ? 'text-j-accent' : 'text-j-error'}`}>
                 {result.isCorrect ? t('review.correct', language) : t('review.incorrect', language)}
               </span>
             </div>
 
-            <p className="text-sm text-[#7a7a6e] leading-relaxed">{result.feedback}</p>
+            <p className="text-sm text-j-text-secondary leading-relaxed">{result.feedback}</p>
 
             {!result.isCorrect && (
-              <div className="border border-[#e8e6e0] p-3 bg-white">
-                <p className="font-mono text-[9px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+              <div className="border border-j-border p-3 bg-white">
+                <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                   {t('review.expectedAnswer', language)}
                 </p>
-                <p className="text-sm text-[#2c2c2c]">{result.expectedAnswer}</p>
+                <p className="text-sm text-j-text">{result.expectedAnswer}</p>
               </div>
             )}
 
             <div className="flex gap-2">
               <button
                 onClick={fetchQuestion}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('quiz.another', language)}
               </button>
               <button
                 onClick={onClose}
-                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
               >
                 {t('quiz.done', language)}
               </button>

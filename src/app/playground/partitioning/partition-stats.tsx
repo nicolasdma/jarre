@@ -43,9 +43,9 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
   const maxBarWidth = Math.max(...stats.counts, 1);
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Estadisticas
         </span>
@@ -89,7 +89,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
                         className="w-3 h-3 rounded-sm"
                         style={{ backgroundColor: node.color }}
                       />
-                      <span className="font-mono text-[11px] text-[#2c2c2c] font-medium">
+                      <span className="font-mono text-[11px] text-j-text font-medium">
                         {node.label}
                       </span>
                     </div>
@@ -107,7 +107,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
                     </div>
 
                     {/* Count */}
-                    <span className="font-mono text-[11px] text-[#2c2c2c] w-8 text-right tabular-nums">
+                    <span className="font-mono text-[11px] text-j-text w-8 text-right tabular-nums">
                       {count}
                     </span>
                   </div>
@@ -125,7 +125,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
             </p>
             <div className="flex items-center gap-2">
               <SkewBar skew={stats.skew} />
-              <span className="font-mono text-[11px] text-[#2c2c2c]">
+              <span className="font-mono text-[11px] text-j-text">
                 {stats.skew <= 1.2
                   ? 'Excelente'
                   : stats.skew <= 1.5
@@ -135,7 +135,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
                       : 'Muy desbalanceada'}
               </span>
             </div>
-            <p className="font-mono text-[10px] text-[#7a7a6e] mt-1">
+            <p className="font-mono text-[10px] text-j-text-secondary mt-1">
               Skew = max/avg. Ideal: 1.0 (todos iguales).
               {stats.skew > 1.5 && ' El nodo mas cargado tiene mucho mas que el promedio.'}
             </p>
@@ -148,7 +148,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
               Ultimo Rebalance
             </p>
-            <p className="font-mono text-[13px] text-[#2c2c2c] font-medium">
+            <p className="font-mono text-[13px] text-j-text font-medium">
               {lastRebalance.moved} de {lastRebalance.total} keys movidas
             </p>
             <div className="mt-1.5 h-2 bg-white rounded-full overflow-hidden">
@@ -164,7 +164,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
                 }}
               />
             </div>
-            <p className="font-mono text-[10px] text-[#7a7a6e] mt-1">
+            <p className="font-mono text-[10px] text-j-text-secondary mt-1">
               {lastRebalance.total > 0
                 ? `${((lastRebalance.moved / lastRebalance.total) * 100).toFixed(1)}% de las keys se movieron.`
                 : 'Sin keys.'}
@@ -192,7 +192,7 @@ export function PartitionStats({ nodes, lastRebalance, mode }: PartitionStatsPro
                         className="w-2 h-2 rounded-sm"
                         style={{ backgroundColor: node.color }}
                       />
-                      <span className="font-mono text-[10px] text-[#7a7a6e]">
+                      <span className="font-mono text-[10px] text-j-text-secondary">
                         Nodo {node.label} ({node.keys.length})
                       </span>
                     </div>
@@ -236,11 +236,11 @@ function MetricCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`p-3 border ${highlight ? 'border-[#dc2626] bg-red-50' : 'border-[#e8e6e0] bg-white'}`}>
+    <div className={`p-3 border ${highlight ? 'border-[#dc2626] bg-red-50' : 'border-j-border bg-white'}`}>
       <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider">
         {label}
       </p>
-      <p className={`font-mono text-[18px] font-bold tabular-nums ${highlight ? 'text-[#dc2626]' : 'text-[#2c2c2c]'}`}>
+      <p className={`font-mono text-[18px] font-bold tabular-nums ${highlight ? 'text-[#dc2626]' : 'text-j-text'}`}>
         {value}
       </p>
     </div>

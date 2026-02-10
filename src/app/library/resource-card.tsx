@@ -89,9 +89,9 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
   const getScoreDisplay = () => {
     if (!hasEvaluation) return null;
     const score = resource.evalStats!.bestScore;
-    if (score >= 70) return { color: 'text-[#4a5d4a]', label: 'MASTERED' };
-    if (score >= 50) return { color: 'text-[#8b7355]', label: 'PROGRESS' };
-    return { color: 'text-[#7d6b6b]', label: 'LEARNING' };
+    if (score >= 70) return { color: 'text-j-accent', label: 'MASTERED' };
+    if (score >= 50) return { color: 'text-j-warm-dark', label: 'PROGRESS' };
+    return { color: 'text-j-error', label: 'LEARNING' };
   };
 
   const scoreDisplay = getScoreDisplay();
@@ -110,52 +110,52 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
       className={`group relative p-6 transition-all duration-300 ${
         isLocked
           ? 'cursor-not-allowed opacity-50'
-          : 'cursor-pointer hover:bg-[#f8f7f4]'
+          : 'cursor-pointer hover:bg-j-bg-hover'
       }`}
     >
       {/* Corner brackets */}
-      <CornerBrackets className={`border-[#d4d0c8] transition-colors duration-300 ${!isLocked ? 'group-hover:border-[#4a5d4a]' : ''}`} />
+      <CornerBrackets className={`border-j-border-input transition-colors duration-300 ${!isLocked ? 'group-hover:border-j-accent' : ''}`} />
 
       {/* Type label */}
       <div className="mb-4">
-        <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
           {resource.type}
         </span>
       </div>
 
       {/* Title */}
       <h3 className={`text-lg font-medium leading-tight mb-1 ${
-        isLocked ? 'text-[#9c9a8e]' : 'text-[#2c2c2c]'
+        isLocked ? 'text-j-text-tertiary' : 'text-j-text'
       }`}>
         {resource.title}
       </h3>
 
       {/* Author */}
       {resource.author && (
-        <p className="text-sm text-[#7a7a6e] mb-3">{resource.author}</p>
+        <p className="text-sm text-j-text-secondary mb-3">{resource.author}</p>
       )}
 
       {/* Description */}
       {resource.description && (
-        <p className="text-sm text-[#7a7a6e] leading-relaxed line-clamp-2 mb-4">
+        <p className="text-sm text-j-text-secondary leading-relaxed line-clamp-2 mb-4">
           {resource.description}
         </p>
       )}
 
       {/* Evaluation Stats */}
       {hasEvaluation && scoreDisplay && (
-        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-[#e8e6e0]">
+        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-j-border">
           <div>
             <span className={`text-2xl font-light ${scoreDisplay.color}`}>
               {resource.evalStats!.bestScore}
             </span>
-            <span className="text-[#9c9a8e] text-sm">%</span>
+            <span className="text-j-text-tertiary text-sm">%</span>
           </div>
           <div className="flex-1">
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               {scoreDisplay.label}
             </p>
-            <p className="text-xs text-[#7a7a6e]">
+            <p className="text-xs text-j-text-secondary">
               {resource.evalStats!.evalCount} {resource.evalStats!.evalCount === 1
                 ? t('library.attempt', language)
                 : t('library.attempts', language)} · {formatRelativeDate(resource.evalStats!.lastEvaluatedAt, language)}
@@ -167,10 +167,10 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
       {/* Locked message */}
       {isLocked && resource.missingPrerequisites.length > 0 && (
         <div className="mb-4 py-2">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[#b5a48b] uppercase">
+          <p className="font-mono text-[10px] tracking-[0.15em] text-j-warm-muted uppercase">
             {t('library.requires', language)}
           </p>
-          <p className="text-xs text-[#8b7355] mt-1">
+          <p className="text-xs text-j-warm-dark mt-1">
             {resource.missingPrerequisites.slice(0, 2).join(', ')}
             {resource.missingPrerequisites.length > 2 && (
               <span> +{resource.missingPrerequisites.length - 2} {t('common.more', language)}</span>
@@ -183,17 +183,17 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-4">
           {resource.estimated_hours && (
-            <span className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               {resource.estimated_hours}h
             </span>
           )}
           {isLoggedIn && (
             <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
               isLocked
-                ? 'text-[#b5a48b]'
+                ? 'text-j-warm-muted'
                 : hasEvaluation
-                  ? 'text-[#4a5d4a]'
-                  : 'text-[#6b7c6b]'
+                  ? 'text-j-accent'
+                  : 'text-j-accent-muted'
             }`}>
               {isLocked ? t('library.locked', language) : hasEvaluation ? t('library.evaluated', language) : t('library.unlocked', language)}
             </span>
@@ -211,7 +211,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                   e.stopPropagation();
                   window.open(resource.url, '_blank');
                 }}
-                className="font-mono text-[10px] tracking-[0.15em] text-[#7a7a6e] uppercase hover:text-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors"
               >
                 {t('common.open', language)}
               </button>
@@ -224,7 +224,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                   e.stopPropagation();
                   setShowQuiz(true);
                 }}
-                className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-1.5 uppercase hover:border-[#4a5d4a] hover:text-[#4a5d4a] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors"
               >
                 {t('quiz.review', language)}
               </button>
@@ -236,7 +236,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 e.stopPropagation();
                 router.push(`/evaluate/${resource.id}`);
               }}
-              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-3 py-1.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               {t('common.evaluate', language)}
             </button>

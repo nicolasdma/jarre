@@ -5,19 +5,19 @@ export function DDIAChapter6() {
       <header className="mb-20">
         <div className="flex items-center gap-2 mb-6">
           <div className="w-8 h-px bg-[#059669]" />
-          <span className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase">
+          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
             DDIA · Capitulo 6
           </span>
         </div>
 
-        <h1 className="text-4xl font-light text-[#2c2c2c] mb-2">
+        <h1 className="text-4xl font-light text-j-text mb-2">
           Particionamiento
         </h1>
-        <p className="text-2xl font-light text-[#9c9a8e]">
+        <p className="text-2xl font-light text-j-text-tertiary">
           Dividir Datos entre Nodos
         </p>
 
-        <p className="mt-8 text-[#7a7a6e] leading-relaxed max-w-xl">
+        <p className="mt-8 text-j-text-secondary leading-relaxed max-w-xl">
           Cuando los datos no caben en un solo nodo, los divides en particiones (shards).
           La pregunta clave: como decides que dato va a que nodo?
         </p>
@@ -25,7 +25,7 @@ export function DDIAChapter6() {
 
       {/* Why partition */}
       <section className="mb-20">
-        <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-6">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-6">
           Particionamiento vs Replicacion
         </p>
 
@@ -44,7 +44,7 @@ export function DDIAChapter6() {
 
         <div className="border-l-2 border-[#059669] pl-6 py-2">
           <p className="font-mono text-[10px] tracking-[0.2em] text-[#059669] uppercase mb-2">Insight clave</p>
-          <p className="text-[#2c2c2c]">
+          <p className="text-j-text">
             Son complementarios. Cada particion se replica en multiples nodos para tolerancia a fallas.
           </p>
         </div>
@@ -55,22 +55,22 @@ export function DDIAChapter6() {
         <div className="flex items-center gap-3 mb-8">
           <span className="font-mono text-4xl font-light text-[#e8e6e0]">01</span>
           <div>
-            <h2 className="text-xl text-[#2c2c2c]">Particionamiento por Hash</h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <h2 className="text-xl text-j-text">Particionamiento por Hash</h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               Distribucion uniforme
             </p>
           </div>
         </div>
 
         <div className="relative p-6 bg-white/50 mb-8">
-          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-[#d4d0c8]" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-[#d4d0c8]" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-[#d4d0c8]" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-[#d4d0c8]" />
+          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-j-border-input" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-j-border-input" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-j-border-input" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-j-border-input" />
 
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">Mecanismo</p>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">Mecanismo</p>
 
-          <pre className="text-xs font-mono text-[#5a5a52] bg-[#f5f4f0] p-4 overflow-x-auto text-center">
+          <pre className="text-xs font-mono text-[#5a5a52] bg-j-bg-alt p-4 overflow-x-auto text-center">
 {`  key = "user-42"
     |
     v
@@ -83,7 +83,7 @@ export function DDIAChapter6() {
   Particion 2`}
           </pre>
 
-          <p className="text-xs text-[#7a7a6e] mt-4 text-center">
+          <p className="text-xs text-j-text-secondary mt-4 text-center">
             La funcion hash distribuye las keys <span className="font-mono text-[#059669]">uniformemente</span> entre particiones
           </p>
         </div>
@@ -98,7 +98,7 @@ export function DDIAChapter6() {
             </ul>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#c4a07a] uppercase mb-3">Debilidades</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-3">Debilidades</p>
             <ul className="space-y-2 text-sm text-[#5a5a52]">
               <li>- Range queries imposibles</li>
               <li>- Keys adyacentes terminan en particiones distintas</li>
@@ -113,20 +113,20 @@ export function DDIAChapter6() {
         <div className="flex items-center gap-3 mb-8">
           <span className="font-mono text-4xl font-light text-[#e8e6e0]">02</span>
           <div>
-            <h2 className="text-xl text-[#2c2c2c]">Particionamiento por Rango</h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <h2 className="text-xl text-j-text">Particionamiento por Rango</h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               Datos ordenados por key
             </p>
           </div>
         </div>
 
         <div className="relative p-6 bg-white/50 mb-8">
-          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-[#d4d0c8]" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-[#d4d0c8]" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-[#d4d0c8]" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-[#d4d0c8]" />
+          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-j-border-input" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-j-border-input" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-j-border-input" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-j-border-input" />
 
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">Distribucion por rangos</p>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">Distribucion por rangos</p>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-3 border border-[#059669] bg-[#059669]/5">
@@ -143,7 +143,7 @@ export function DDIAChapter6() {
             </div>
           </div>
 
-          <p className="text-xs text-[#7a7a6e] mt-4 text-center">
+          <p className="text-xs text-j-text-secondary mt-4 text-center">
             Como una enciclopedia: volumen 1 (A-G), volumen 2 (H-P), volumen 3 (Q-Z)
           </p>
         </div>
@@ -158,7 +158,7 @@ export function DDIAChapter6() {
             </ul>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#c4a07a] uppercase mb-3">Debilidades</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-3">Debilidades</p>
             <ul className="space-y-2 text-sm text-[#5a5a52]">
               <li>- Hotspots si las keys no se distribuyen bien</li>
               <li>- Timestamps como key = toda la carga en una particion</li>
@@ -173,30 +173,30 @@ export function DDIAChapter6() {
         <div className="flex items-center gap-3 mb-8">
           <span className="font-mono text-4xl font-light text-[#e8e6e0]">03</span>
           <div>
-            <h2 className="text-xl text-[#2c2c2c]">Hotspots</h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <h2 className="text-xl text-j-text">Hotspots</h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               La particion sobrecargada
             </p>
           </div>
         </div>
 
         <div className="relative p-6 bg-white/50 mb-8">
-          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-[#d4d0c8]" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-[#d4d0c8]" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-[#d4d0c8]" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-[#d4d0c8]" />
+          <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-j-border-input" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r border-t border-j-border-input" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l border-b border-j-border-input" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-j-border-input" />
 
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-3">Analogia</p>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-3">Analogia</p>
           <p className="text-[#5a5a52]">
             Una celebridad con 100M de seguidores publica un tweet.
-            <span className="text-[#2c2c2c]"> Toda esa carga cae en la particion que tiene su user ID.</span>
+            <span className="text-j-text"> Toda esa carga cae en la particion que tiene su user ID.</span>
             Las otras 99 particiones estan tranquilas.
           </p>
         </div>
 
-        <div className="border-l-2 border-[#c4a07a] pl-6 py-2">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#c4a07a] uppercase mb-2">Pregunta clave</p>
-          <p className="text-lg text-[#2c2c2c]">"Tu particionamiento asume distribucion uniforme. La realidad casi nunca lo es."</p>
+        <div className="border-l-2 border-j-warm pl-6 py-2">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-2">Pregunta clave</p>
+          <p className="text-lg text-j-text">"Tu particionamiento asume distribucion uniforme. La realidad casi nunca lo es."</p>
         </div>
       </section>
 
@@ -205,44 +205,44 @@ export function DDIAChapter6() {
         <div className="flex items-center gap-3 mb-8">
           <span className="font-mono text-4xl font-light text-[#e8e6e0]">04</span>
           <div>
-            <h2 className="text-xl text-[#2c2c2c]">Rebalanceo</h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <h2 className="text-xl text-j-text">Rebalanceo</h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               Mover datos entre nodos
             </p>
           </div>
         </div>
 
-        <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
           Estrategias de rebalanceo
         </p>
 
         <div className="space-y-4 mb-8">
-          <div className="flex items-center justify-between py-3 border-b border-[#e8e6e0]">
+          <div className="flex items-center justify-between py-3 border-b border-j-border">
             <div>
-              <p className="text-[#2c2c2c]">Particiones fijas</p>
-              <p className="text-sm text-[#9c9a8e]">Crear 1000 particiones desde el inicio, asignar a nodos</p>
+              <p className="text-j-text">Particiones fijas</p>
+              <p className="text-sm text-j-text-tertiary">Crear 1000 particiones desde el inicio, asignar a nodos</p>
             </div>
             <p className="font-mono text-xs text-[#059669]">Riak, Elasticsearch</p>
           </div>
-          <div className="flex items-center justify-between py-3 border-b border-[#e8e6e0]">
+          <div className="flex items-center justify-between py-3 border-b border-j-border">
             <div>
-              <p className="text-[#2c2c2c]">Particiones dinamicas</p>
-              <p className="text-sm text-[#9c9a8e]">Se dividen cuando crecen demasiado</p>
+              <p className="text-j-text">Particiones dinamicas</p>
+              <p className="text-sm text-j-text-tertiary">Se dividen cuando crecen demasiado</p>
             </div>
             <p className="font-mono text-xs text-[#059669]">HBase, MongoDB</p>
           </div>
-          <div className="flex items-center justify-between py-3 border-b border-[#e8e6e0]">
+          <div className="flex items-center justify-between py-3 border-b border-j-border">
             <div>
-              <p className="text-[#c4a07a]">hash(key) mod N</p>
-              <p className="text-sm text-[#9c9a8e]">Agregar un nodo mueve casi todos los datos</p>
+              <p className="text-j-warm">hash(key) mod N</p>
+              <p className="text-sm text-j-text-tertiary">Agregar un nodo mueve casi todos los datos</p>
             </div>
-            <p className="font-mono text-xs text-[#c4a07a]">Evitar</p>
+            <p className="font-mono text-xs text-j-warm">Evitar</p>
           </div>
         </div>
 
         <div className="border-l-2 border-[#059669] pl-6 py-2">
           <p className="font-mono text-[10px] tracking-[0.2em] text-[#059669] uppercase mb-2">Consistent hashing</p>
-          <p className="text-[#2c2c2c]">
+          <p className="text-j-text">
             Con consistent hashing, agregar un nodo solo mueve 1/N de los datos en promedio, no todos.
             Es la base de Dynamo, Cassandra, y la mayoria de sistemas modernos.
           </p>
@@ -254,8 +254,8 @@ export function DDIAChapter6() {
         <div className="flex items-center gap-3 mb-8">
           <span className="font-mono text-4xl font-light text-[#e8e6e0]">05</span>
           <div>
-            <h2 className="text-xl text-[#2c2c2c]">Indices Secundarios</h2>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+            <h2 className="text-xl text-j-text">Indices Secundarios</h2>
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
               Buscar por algo que no es la key
             </p>
           </div>
@@ -264,39 +264,39 @@ export function DDIAChapter6() {
         <div className="grid grid-cols-2 gap-6 mb-8">
           <div className="p-5 border border-[#059669] bg-[#059669]/5">
             <p className="font-mono text-[10px] tracking-[0.2em] text-[#059669] uppercase mb-3">Local index</p>
-            <p className="text-sm text-[#2c2c2c] mb-2">"Cada particion mantiene su propio indice"</p>
-            <p className="text-xs text-[#7a7a6e]">Escritura rapida, lectura requiere scatter-gather (consultar todas las particiones).</p>
+            <p className="text-sm text-j-text mb-2">"Cada particion mantiene su propio indice"</p>
+            <p className="text-xs text-j-text-secondary">Escritura rapida, lectura requiere scatter-gather (consultar todas las particiones).</p>
           </div>
-          <div className="p-5 border border-[#8b7355] bg-[#8b7355]/5">
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#8b7355] uppercase mb-3">Global index</p>
-            <p className="text-sm text-[#2c2c2c] mb-2">"Un indice que cubre todas las particiones"</p>
-            <p className="text-xs text-[#7a7a6e]">Lectura rapida (una particion), escritura requiere transaccion distribuida.</p>
+          <div className="p-5 border border-j-warm-dark bg-[#8b7355]/5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm-dark uppercase mb-3">Global index</p>
+            <p className="text-sm text-j-text mb-2">"Un indice que cubre todas las particiones"</p>
+            <p className="text-xs text-j-text-secondary">Lectura rapida (una particion), escritura requiere transaccion distribuida.</p>
           </div>
         </div>
       </section>
 
       {/* Mnemonic */}
       <section className="mb-20 text-center">
-        <p className="font-mono text-[10px] tracking-[0.3em] text-[#9c9a8e] uppercase mb-6">Mnemotecnico</p>
+        <p className="font-mono text-[10px] tracking-[0.3em] text-j-text-tertiary uppercase mb-6">Mnemotecnico</p>
 
-        <p className="text-6xl font-light text-[#2c2c2c] mb-2">HRR</p>
-        <p className="text-sm text-[#9c9a8e] mb-8">Las tres operaciones del particionamiento</p>
+        <p className="text-6xl font-light text-j-text mb-2">HRR</p>
+        <p className="text-sm text-j-text-tertiary mb-8">Las tres operaciones del particionamiento</p>
 
         <div className="inline-block text-left space-y-1">
-          <p><span className="text-[#059669] font-medium">H</span><span className="text-[#9c9a8e]">ash distribuye</span> <span className="text-[#2c2c2c]">— Uniforme pero sin rangos</span></p>
-          <p><span className="text-[#059669] font-medium">R</span><span className="text-[#9c9a8e]">ange ordena</span> <span className="text-[#2c2c2c]">— Rangos posibles pero riesgo de hotspots</span></p>
-          <p><span className="text-[#059669] font-medium">R</span><span className="text-[#9c9a8e]">ebalance mueve</span> <span className="text-[#2c2c2c]">— Agregar nodos sin mover todo</span></p>
+          <p><span className="text-[#059669] font-medium">H</span><span className="text-j-text-tertiary">ash distribuye</span> <span className="text-j-text">— Uniforme pero sin rangos</span></p>
+          <p><span className="text-[#059669] font-medium">R</span><span className="text-j-text-tertiary">ange ordena</span> <span className="text-j-text">— Rangos posibles pero riesgo de hotspots</span></p>
+          <p><span className="text-[#059669] font-medium">R</span><span className="text-j-text-tertiary">ebalance mueve</span> <span className="text-j-text">— Agregar nodos sin mover todo</span></p>
         </div>
       </section>
 
       {/* Final question */}
-      <section className="text-center py-12 border-t border-[#e8e6e0]">
-        <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">
+      <section className="text-center py-12 border-t border-j-border">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
           Pregunta para reflexionar
         </p>
         <p className="text-xl text-[#5a5a52] max-w-md mx-auto">
           Si tu base de datos crece 100x y necesitas 50 nodos,
-          <span className="text-[#2c2c2c]"> como decides que key va a que nodo sin mover todo al agregar el nodo 51?</span>
+          <span className="text-j-text"> como decides que key va a que nodo sin mover todo al agregar el nodo 51?</span>
         </p>
       </section>
     </article>

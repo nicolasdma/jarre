@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from('learn_progress')
-      .select('current_step, active_section, completed_sections, section_state')
+      .select('current_step, active_section, completed_sections, section_state, review_state')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
       .single();
@@ -45,6 +45,7 @@ export async function GET(request: Request) {
       activeSection: data.active_section,
       completedSections: data.completed_sections,
       sectionState: data.section_state,
+      reviewState: data.review_state,
     });
   } catch (error) {
     console.error('[Learn/Progress] GET unexpected error:', error);
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { resourceId, currentStep, activeSection, completedSections, sectionState } = body;
+    const { resourceId, currentStep, activeSection, completedSections, sectionState, reviewState } = body;
 
     if (!resourceId || !currentStep) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
           active_section: activeSection ?? 0,
           completed_sections: completedSections ?? [],
           section_state: sectionState ?? {},
+          review_state: reviewState ?? null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,resource_id' }

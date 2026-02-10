@@ -15,14 +15,37 @@ export interface SectionState {
   preAttempted: boolean;
   postScore?: number;
   postIsCorrect?: boolean;
+  // v2: full post-test result for display on refresh
+  postFeedback?: string;
+  postExpectedAnswer?: string;
+  postDimensionScores?: Record<string, number>;
+  postReasoning?: string;
+  // v3: confidence-based assessment
+  postConfidence?: 1 | 2 | 3;
+  // v4: self-explanation (pure text, no LLM)
+  selfExplanation?: string;
+}
+
+export interface ReviewStepState {
+  inlineAnswers: Record<string, { selectedOption: string; isCorrect: boolean }>;
+  bankAnswers: Record<string, {
+    userAnswer: string;
+    score?: number;
+    isCorrect?: boolean;
+    feedback?: string;
+    dimensionScores?: Record<string, number>;
+  }>;
 }
 
 export interface LearnProgress {
-  currentStep: 'activate' | 'learn' | 'apply' | 'evaluate';
+  currentStep: 'activate' | 'learn' | 'review' | 'apply' | 'evaluate';
   activeSection: number;
   completedSections: number[];
+  /** Steps the user has visited at least once — persists even when navigating back */
+  visitedSteps?: string[];
   /** Keyed by section UUID (resource_sections.id) */
   sectionState: Record<string, SectionState>;
+  reviewState?: ReviewStepState;
 }
 
 // ============================================================================

@@ -358,13 +358,17 @@ export interface ReviewSubmitRequest {
  * Response from the review submit endpoint
  */
 export interface ReviewSubmitResponse {
-  score: number;
+  score: number;            // 0-100 (backward compat, derived from dimensions in v2)
   feedback: string;
   isCorrect: boolean;
   expectedAnswer: string;
   rating: ReviewRating;
   nextReviewAt: string;
   intervalDays: number;
+  masteryAdvanced?: boolean;
+  // v2: rubric evaluation
+  dimensionScores?: Record<string, number>;  // e.g. {precision: 2, completeness: 1, depth: 2}
+  reasoning?: string;                         // CoT from evaluator
 }
 
 /**

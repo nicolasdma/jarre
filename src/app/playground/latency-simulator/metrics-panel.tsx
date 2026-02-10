@@ -39,7 +39,7 @@ export function MetricsPanel({
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Metricas
         </span>
@@ -53,7 +53,7 @@ export function MetricsPanel({
       </div>
 
       {/* Percentile cards */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+      <div className="px-5 py-4 border-b border-j-border">
         <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-3">
           Percentiles
         </p>
@@ -95,18 +95,18 @@ export function MetricsPanel({
             <p className="font-mono text-[9px] text-[#a0a090] uppercase tracking-wider">
               Promedio
             </p>
-            <p className="font-mono text-[10px] text-[#7a7a6e] mt-0.5">
+            <p className="font-mono text-[10px] text-j-text-secondary mt-0.5">
               (puede mentir)
             </p>
           </div>
-          <span className="font-mono text-lg text-[#7a7a6e] tabular-nums">
+          <span className="font-mono text-lg text-j-text-secondary tabular-nums">
             {totalRequests > 0 ? `${percentiles.avg.toFixed(1)}ms` : '--'}
           </span>
         </div>
       </div>
 
       {/* SLO Status */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+      <div className="px-5 py-4 border-b border-j-border">
         <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-3">
           Estado del SLO
         </p>
@@ -119,19 +119,19 @@ export function MetricsPanel({
         }`}>
           <div className="flex items-center justify-between">
             <span className={`font-mono text-[12px] font-medium ${
-              isWithinSLO ? 'text-[#4a5d4a]' : 'text-[#991b1b]'
+              isWithinSLO ? 'text-j-accent' : 'text-[#991b1b]'
             }`}>
               {isWithinSLO ? 'DENTRO DEL SLO' : 'VIOLANDO SLO'}
             </span>
             <span className={`font-mono text-[10px] ${
-              isWithinSLO ? 'text-[#4a5d4a]' : 'text-[#991b1b]'
+              isWithinSLO ? 'text-j-accent' : 'text-[#991b1b]'
             }`}>
               p95 {'<'} {sloTarget}ms
             </span>
           </div>
           {totalRequests > 0 && (
             <p className={`font-mono text-[10px] mt-1 ${
-              isWithinSLO ? 'text-[#7a7a6e]' : 'text-[#991b1b]'
+              isWithinSLO ? 'text-j-text-secondary' : 'text-[#991b1b]'
             }`}>
               p95 actual: {percentiles.p95.toFixed(1)}ms
             </p>
@@ -144,7 +144,7 @@ export function MetricsPanel({
             <p className="font-mono text-[9px] text-[#a0a090] uppercase tracking-wider">
               Violaciones
             </p>
-            <p className="font-mono text-sm text-[#2c2c2c] mt-0.5 tabular-nums">
+            <p className="font-mono text-sm text-j-text mt-0.5 tabular-nums">
               {sloViolations.toLocaleString()}
             </p>
           </div>
@@ -153,7 +153,7 @@ export function MetricsPanel({
               Tasa de violacion
             </p>
             <p className={`font-mono text-sm mt-0.5 tabular-nums ${
-              violationRate > 5 ? 'text-[#991b1b]' : 'text-[#2c2c2c]'
+              violationRate > 5 ? 'text-[#991b1b]' : 'text-j-text'
             }`}>
               {totalRequests > 0 ? `${violationRate.toFixed(1)}%` : '--'}
             </p>
@@ -162,14 +162,14 @@ export function MetricsPanel({
       </div>
 
       {/* Error Budget */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+      <div className="px-5 py-4 border-b border-j-border">
         <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-3">
           Error Budget
         </p>
 
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-mono text-[9px] text-[#7a7a6e]">
+            <span className="font-mono text-[9px] text-j-text-secondary">
               Budget consumido
             </span>
             <span className={`font-mono text-[11px] tabular-nums ${
@@ -177,7 +177,7 @@ export function MetricsPanel({
                 ? 'text-[#991b1b]'
                 : errorBudgetConsumed > 50
                   ? 'text-[#d97706]'
-                  : 'text-[#4a5d4a]'
+                  : 'text-j-accent'
             }`}>
               {totalRequests > 0 ? `${errorBudgetConsumed.toFixed(1)}%` : '--'}
             </span>
@@ -189,7 +189,7 @@ export function MetricsPanel({
                   ? 'bg-[#991b1b]'
                   : errorBudgetConsumed > 50
                     ? 'bg-[#d97706]'
-                    : 'bg-[#4a5d4a]'
+                    : 'bg-j-accent'
               }`}
               style={{ width: `${Math.min(100, errorBudgetConsumed)}%` }}
             />
@@ -212,7 +212,7 @@ export function MetricsPanel({
       </div>
 
       {/* Stats */}
-      <div className="px-5 py-4 border-b border-[#e8e6e0]">
+      <div className="px-5 py-4 border-b border-j-border">
         <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-3">
           Estadisticas
         </p>
@@ -306,7 +306,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-[9px] text-[#a0a090] uppercase tracking-wider">
         {label}
       </p>
-      <p className="font-mono text-[11px] text-[#2c2c2c] mt-0.5">
+      <p className="font-mono text-[11px] text-j-text mt-0.5">
         {value}
       </p>
     </div>

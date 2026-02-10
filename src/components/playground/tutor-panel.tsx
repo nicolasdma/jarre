@@ -151,7 +151,7 @@ export function TutorPanel({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {isEmpty ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs font-mono text-[#8a8780] text-center px-6">
+            <p className="text-xs font-mono text-j-text-tertiary text-center px-6">
               Interactua con la simulacion y preguntame lo que quieras
             </p>
           </div>
@@ -159,8 +159,8 @@ export function TutorPanel({
           <div className="flex flex-col gap-2 p-3">
             {/* Proactive question banner */}
             {proactiveQuestion && (
-              <div className="bg-[#f5f3ee] border border-[#e8e6e0] rounded mx-3 mt-3 p-2.5">
-                <p className="text-xs font-mono text-[#3a3935] mb-2">
+              <div className="bg-j-bg-alt border border-j-border rounded mx-3 mt-3 p-2.5">
+                <p className="text-xs font-mono text-j-text mb-2">
                   {proactiveQuestion}
                 </p>
                 <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function TutorPanel({
                   </button>
                   <button
                     onClick={onDismissProactive}
-                    className="text-xs font-mono text-[#8a8780] hover:text-[#3a3935]"
+                    className="text-xs font-mono text-j-text-tertiary hover:text-j-text"
                   >
                     &times;
                   </button>
@@ -190,7 +190,7 @@ export function TutorPanel({
               >
                 <div
                   className={`max-w-[85%] rounded px-3 py-2 text-xs font-mono ${
-                    msg.role === 'assistant' ? 'bg-[#f5f3ee] text-[#3a3935]' : 'text-[#3a3935]'
+                    msg.role === 'assistant' ? 'bg-j-bg-alt text-j-text' : 'text-j-text'
                   }`}
                   style={
                     msg.role === 'user'
@@ -209,7 +209,7 @@ export function TutorPanel({
       </div>
 
       {/* Input area */}
-      <div className="shrink-0 border-t border-[#e8e6e0] p-3">
+      <div className="shrink-0 border-t border-j-border p-3">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -218,7 +218,7 @@ export function TutorPanel({
             onKeyDown={handleKeyDown}
             placeholder="Pregunta sobre la simulacion..."
             disabled={isStreaming}
-            className={`flex-1 bg-[#f5f3ee] border border-[#e8e6e0] rounded px-3 py-2 text-xs font-mono text-[#3a3935] placeholder-[#8a8780] outline-none ${
+            className={`flex-1 bg-j-bg-alt border border-j-border rounded px-3 py-2 text-xs font-mono text-j-text placeholder-j-text-tertiary outline-none ${
               isStreaming ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           />
@@ -235,7 +235,7 @@ export function TutorPanel({
           <button
             onClick={handleClear}
             disabled={isStreaming}
-            className="text-[#8a8780] hover:text-[#3a3935] text-xs font-mono"
+            className="text-j-text-tertiary hover:text-j-text text-xs font-mono"
           >
             Limpiar
           </button>

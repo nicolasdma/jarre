@@ -471,25 +471,16 @@ export function PartitionPlayground() {
   return (
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
+      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
         <TabbedSidebar
+          disableTutor
           lessons={<LessonGuide onAction={handleLessonAction} />}
-          tutor={
-            <TutorPanel
-              playground="partitioning"
-              getState={() => state}
-              accentColor="#059669"
-              proactiveQuestion={proactiveQuestion}
-              onDismissProactive={() => setProactiveQuestion(null)}
-            />
-          }
-          hasNotification={!!proactiveQuestion}
           accentColor="#059669"
         />
       </div>
 
       {/* Center: Ring Visualizer */}
-      <div className="flex-[4] min-w-0 border-r border-[#e8e6e0]">
+      <div className="flex-[4] min-w-0 border-r border-j-border">
         <RingVisualizer
           state={state}
           onAddNode={addNode}

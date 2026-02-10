@@ -66,7 +66,7 @@ export default async function LearnPage({ params }: PageProps) {
       .order('sort_order', { ascending: true }),
     supabase
       .from('learn_progress')
-      .select('current_step, active_section, completed_sections, section_state')
+      .select('current_step, active_section, completed_sections, section_state, review_state')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
       .single(),
@@ -82,22 +82,23 @@ export default async function LearnPage({ params }: PageProps) {
         activeSection: progressResult.data.active_section,
         completedSections: progressResult.data.completed_sections ?? [],
         sectionState: (progressResult.data.section_state as LearnProgress['sectionState']) ?? {},
+        reviewState: (progressResult.data.review_state as LearnProgress['reviewState']) ?? undefined,
       }
     : undefined;
 
   if (!resource) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#faf9f6]">
-        <p className="text-[#c4a07a]">Recurso no encontrado</p>
+      <div className="flex min-h-screen items-center justify-center bg-j-bg">
+        <p className="text-j-warm">Recurso no encontrado</p>
       </div>
     );
   }
 
   if (!AVAILABLE_RESOURCES.has(resourceId)) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#faf9f6] p-8">
-        <p className="mb-4 text-[#7a7a6e]">Explicacion no disponible aun para este recurso.</p>
-        <Link href="/library" className="text-[#4a5d4a] hover:underline">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
+        <p className="mb-4 text-j-text-secondary">Explicacion no disponible aun para este recurso.</p>
+        <Link href="/library" className="text-j-accent hover:underline">
           ← Volver a la biblioteca
         </Link>
       </div>
@@ -153,6 +154,7 @@ export default async function LearnPage({ params }: PageProps) {
       <LearnFlow
         language={language}
         resourceId={resourceId}
+        resourceTitle={resource.title}
         sections={flowSections}
         activateComponent={renderContent?.()}
         playgroundHref={practical?.href}
@@ -170,28 +172,28 @@ export default async function LearnPage({ params }: PageProps) {
   const hasQuestions = !!guidedQuestions;
 
   return (
-    <div className="min-h-screen bg-[#faf9f6]">
+    <div className="min-h-screen bg-j-bg">
       {/* Sticky header with step navigation */}
-      <div className="sticky top-0 z-50 border-b border-[#e8e6e0] bg-[#faf9f6]/90 backdrop-blur-sm">
+      <div className="sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-8 py-4">
           <Link
             href="/library"
-            className="text-sm text-[#9c9a8e] hover:text-[#2c2c2c] transition-colors"
+            className="text-sm text-j-text-tertiary hover:text-j-text transition-colors"
           >
             ← Biblioteca
           </Link>
 
           {/* Step indicators */}
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[10px] tracking-[0.15em] text-[#2c2c2c] uppercase font-medium">
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text uppercase font-medium">
               Resumen
             </span>
             {hasQuestions && (
               <>
-                <span className="text-[#d4d2cc]">·</span>
+                <span className="text-j-border-dot">·</span>
                 <Link
                   href={`/learn/${resourceId}/questions`}
-                  className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase hover:text-[#2c2c2c] transition-colors"
+                  className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase hover:text-j-text transition-colors"
                 >
                   Preguntas
                 </Link>
@@ -199,10 +201,10 @@ export default async function LearnPage({ params }: PageProps) {
             )}
             {practical && (
               <>
-                <span className="text-[#d4d2cc]">·</span>
+                <span className="text-j-border-dot">·</span>
                 <Link
                   href={practical.href}
-                  className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase hover:text-[#2c2c2c] transition-colors"
+                  className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase hover:text-j-text transition-colors"
                 >
                   {practical.label}
                 </Link>
@@ -213,14 +215,14 @@ export default async function LearnPage({ params }: PageProps) {
           {hasQuestions ? (
             <Link
               href={`/learn/${resourceId}/questions`}
-              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-3 py-1.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               Preguntas →
             </Link>
           ) : practical ? (
             <Link
               href={practical.href}
-              className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-3 py-1.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               {practical.label} →
             </Link>
@@ -236,13 +238,13 @@ export default async function LearnPage({ params }: PageProps) {
       {/* Bottom CTA: go to questions */}
       {hasQuestions && (
         <div className="mx-auto max-w-3xl px-8 pb-16">
-          <div className="border-t border-[#e8e6e0] pt-12 text-center">
-            <p className="font-mono text-[10px] tracking-[0.2em] text-[#9c9a8e] uppercase mb-4">
+          <div className="border-t border-j-border pt-12 text-center">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
               Siguiente paso
             </p>
             <Link
               href={`/learn/${resourceId}/questions`}
-              className="inline-block font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-6 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+              className="inline-block font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
             >
               Preguntas Guía →
             </Link>

@@ -68,3 +68,17 @@ export const ReviewEvaluationSchema = z.object({
 });
 
 export type ReviewEvaluation = z.infer<typeof ReviewEvaluationSchema>;
+
+/**
+ * Schema for rubric-based review evaluation (v2).
+ * reasoning: CoT analysis before scoring (forces better calibration).
+ * scores: dimension_key → 0|1|2 (exactly 3 dimensions per rubric).
+ * feedback: structured feed-up/feed-back/feed-forward.
+ */
+export const RubricEvaluationSchema = z.object({
+  reasoning: z.string().min(1),
+  scores: z.record(z.string(), z.number().int().min(0).max(2)),
+  feedback: z.string().min(1),
+});
+
+export type RubricEvaluation = z.infer<typeof RubricEvaluationSchema>;

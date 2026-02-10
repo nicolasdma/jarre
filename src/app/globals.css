@@ -44,10 +44,83 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Jarre design system — Tailwind color utilities */
+  --color-j-bg: var(--j-bg);
+  --color-j-bg-alt: var(--j-bg-alt);
+  --color-j-bg-hover: var(--j-bg-hover);
+  --color-j-bg-white: var(--j-bg-white);
+  --color-j-text: var(--j-text);
+  --color-j-text-secondary: var(--j-text-secondary);
+  --color-j-text-tertiary: var(--j-text-tertiary);
+  --color-j-text-body: var(--j-text-body);
+  --color-j-text-em: var(--j-text-em);
+  --color-j-text-on-accent: var(--j-text-on-accent);
+  --color-j-accent: var(--j-accent);
+  --color-j-accent-hover: var(--j-accent-hover);
+  --color-j-accent-light: var(--j-accent-light);
+  --color-j-accent-muted: var(--j-accent-muted);
+  --color-j-warm: var(--j-warm);
+  --color-j-warm-light: var(--j-warm-light);
+  --color-j-warm-dark: var(--j-warm-dark);
+  --color-j-warm-muted: var(--j-warm-muted);
+  --color-j-border: var(--j-border);
+  --color-j-border-input: var(--j-border-input);
+  --color-j-border-light: var(--j-border-light);
+  --color-j-border-dot: var(--j-border-dot);
+  --color-j-success: var(--j-success);
+  --color-j-success-bg: var(--j-success-bg);
+  --color-j-error: var(--j-error);
+  --color-j-error-bg: var(--j-error-bg);
+  --color-j-info: var(--j-info);
+  --color-j-info-bg: var(--j-info-bg);
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Jarre semantic tokens — Learning UI */
+  --j-bg: #faf9f6;
+  --j-bg-alt: #f5f4f0;
+  --j-bg-hover: #f8f7f4;
+  --j-bg-white: #ffffff;
+
+  --j-text: #1E293B;
+  --j-text-secondary: #64748B;
+  --j-text-tertiary: #9c9a8e;
+  --j-text-body: #3d3d3a;
+  --j-text-em: #6b6b62;
+  --j-text-on-accent: #f5f4f0;
+
+  --j-accent: #4a5d4a;
+  --j-accent-hover: #3d4d3d;
+  --j-accent-light: #e8f0e8;
+  --j-accent-muted: #6b7c6b;
+
+  --j-warm: #c4a07a;
+  --j-warm-light: #f5f0e8;
+  --j-warm-dark: #8b7355;
+  --j-warm-muted: #b5a48b;
+
+  --j-border: #e8e6e0;
+  --j-border-input: #d4d0c8;
+  --j-border-light: #f5f4f0;
+  --j-border-dot: #d4d2cc;
+
+  /* Feedback — amber for errors, not red (Deci & Ryan) */
+  --j-success: #16A34A;
+  --j-success-bg: #f0fdf4;
+  --j-error: #92400E;
+  --j-error-bg: #fffbeb;
+  --j-info: #2563EB;
+  --j-info-bg: #eff6ff;
+
+  /* Typography */
+  --j-font-body: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+  --j-font-mono: var(--font-geist-mono), monospace;
+  --j-text-base: 1.125rem;
+  --j-leading: 1.7;
+  --j-content-width: 680px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -82,6 +155,36 @@
 }
 
 .dark {
+  /* Jarre dark mode tokens */
+  --j-bg: #0F172A;
+  --j-bg-alt: #1E293B;
+  --j-bg-hover: #253348;
+  --j-bg-white: #1E293B;
+  --j-text: #E2E8F0;
+  --j-text-secondary: #94A3B8;
+  --j-text-tertiary: #64748B;
+  --j-text-body: #CBD5E1;
+  --j-text-em: #94A3B8;
+  --j-text-on-accent: #E2E8F0;
+  --j-accent: #6B8E6B;
+  --j-accent-hover: #7DA07D;
+  --j-accent-light: #1a2e1a;
+  --j-accent-muted: #4a6b4a;
+  --j-warm: #D4B896;
+  --j-warm-light: #2E2518;
+  --j-warm-dark: #D4B896;
+  --j-warm-muted: #8B7355;
+  --j-border: #334155;
+  --j-border-input: #475569;
+  --j-border-light: #1E293B;
+  --j-border-dot: #475569;
+  --j-success: #4ADE80;
+  --j-success-bg: #052e16;
+  --j-error: #FCD34D;
+  --j-error-bg: #451a03;
+  --j-info: #60A5FA;
+  --j-info-bg: #172554;
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

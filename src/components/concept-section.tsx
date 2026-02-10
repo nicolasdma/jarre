@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { SectionContent } from './section-content';
+import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
+import { SelfExplanation } from './self-explanation';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewSubmitResponse, InlineQuiz } from '@/types';
 import type { FigureRegistry } from '@/lib/figure-registry';
@@ -67,10 +69,24 @@ export function ConceptSection({
   const [postLoading, setPostLoading] = useState<'fetching' | 'evaluating' | null>(null);
   const [postResult, setPostResult] = useState<ReviewSubmitResponse | null>(
     initialState?.postScore != null
-      ? { score: initialState.postScore, isCorrect: initialState.postIsCorrect ?? false, feedback: '', expectedAnswer: '', rating: 'easy', nextReviewAt: '', intervalDays: 0 }
+      ? {
+          score: initialState.postScore,
+          isCorrect: initialState.postIsCorrect ?? false,
+          feedback: initialState.postFeedback ?? '',
+          expectedAnswer: initialState.postExpectedAnswer ?? '',
+          rating: 'easy',
+          nextReviewAt: '',
+          intervalDays: 0,
+          dimensionScores: initialState.postDimensionScores,
+          reasoning: initialState.postReasoning,
+        }
       : null
   );
   const [postError, setPostError] = useState<string | null>(null);
+  const [postConfidence, setPostConfidence] = useState<ConfidenceLevel | null>(
+    (initialState?.postConfidence as ConfidenceLevel) ?? null
+  );
+  const [selfExplanation, setSelfExplanation] = useState(initialState?.selfExplanation ?? '');
 
   // Restore completed sections on mount: if saved as 'completed', notify parent
   const restoredRef = useRef(false);
@@ -160,12 +176,69 @@ export function ConceptSection({
         preAttempted,
         postScore: data.score,
         postIsCorrect: data.isCorrect,
+        postFeedback: data.feedback,
+        postExpectedAnswer: data.expectedAnswer,
+        postDimensionScores: data.dimensionScores,
+        postReasoning: data.reasoning,
       });
     } catch (err) {
       setPostError((err as Error).message);
       setPostLoading(null);
     }
   }, [postAnswer, postQuestion, onStateChange, preAnswer, preAttempted]);
+
+  // Handle confidence selection
+  const handleConfidence = useCallback(
+    (level: ConfidenceLevel) => {
+      setPostConfidence(level);
+      // Send confidence to backend (fire-and-forget)
+      if (postQuestion) {
+        fetch('/api/review/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            questionId: postQuestion.questionId,
+            userAnswer: postAnswer.trim(),
+            confidence: level,
+          }),
+        }).catch(() => {});
+      }
+      onStateChange?.({
+        phase: 'post-test',
+        preAnswer,
+        preAttempted,
+        postScore: postResult?.score,
+        postIsCorrect: postResult?.isCorrect,
+        postFeedback: postResult?.feedback,
+        postExpectedAnswer: postResult?.expectedAnswer,
+        postDimensionScores: postResult?.dimensionScores,
+        postReasoning: postResult?.reasoning,
+        postConfidence: level,
+      });
+    },
+    [postQuestion, postAnswer, postResult, onStateChange, preAnswer, preAttempted]
+  );
+
+  // Handle self-explanation save
+  const handleSelfExplanation = useCallback(
+    (text: string) => {
+      setSelfExplanation(text);
+      onStateChange?.({
+        phase: 'post-test',
+        preAnswer,
+        preAttempted,
+        postScore: postResult?.score,
+        postIsCorrect: postResult?.isCorrect,
+        postFeedback: postResult?.feedback,
+        postExpectedAnswer: postResult?.expectedAnswer,
+        postDimensionScores: postResult?.dimensionScores,
+        postReasoning: postResult?.reasoning,
+        postConfidence: postConfidence ?? undefined,
+        selfExplanation: text,
+      });
+    },
+    [postResult, postConfidence, onStateChange, preAnswer, preAttempted]
+  );
 
   // Complete section
   const handleComplete = () => {
@@ -176,6 +249,12 @@ export function ConceptSection({
       preAttempted,
       postScore: postResult?.score,
       postIsCorrect: postResult?.isCorrect,
+      postFeedback: postResult?.feedback,
+      postExpectedAnswer: postResult?.expectedAnswer,
+      postDimensionScores: postResult?.dimensionScores,
+      postReasoning: postResult?.reasoning,
+      postConfidence: postConfidence ?? undefined,
+      selfExplanation: selfExplanation || undefined,
     });
     onComplete();
   };
@@ -186,32 +265,32 @@ export function ConceptSection({
       <button
         type="button"
         onClick={onActivate}
-        className="w-full text-left border-l-2 border-[#e8e6e0] pl-6 py-4 opacity-50 hover:opacity-80 hover:border-[#c4a07a] transition-all cursor-pointer"
+        className="w-full text-left border-l-2 border-j-border pl-6 py-4 opacity-50 hover:opacity-80 hover:border-j-warm transition-all cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-[#9c9a8e] uppercase">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
             {String(section.sortOrder + 1).padStart(2, '0')}
           </span>
-          <span className="text-sm text-[#7a7a6e]">{section.sectionTitle}</span>
+          <span className="text-sm text-j-text-secondary">{section.sectionTitle}</span>
         </div>
       </button>
     );
   }
 
-  if (phase === 'completed') {
+  if (phase === 'completed' && !isActive) {
     return (
       <button
         type="button"
         onClick={onActivate}
-        className="w-full text-left border-l-2 border-[#4a5d4a] pl-6 py-4 hover:bg-[#f5f4f0] transition-all cursor-pointer"
+        className="w-full text-left border-l-2 border-j-accent pl-6 py-4 hover:bg-j-bg-alt transition-all cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-[#4a5d4a] uppercase">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase">
             ✓ {section.sectionTitle}
           </span>
           {postResult && (
             <span
-              className={`font-mono text-[10px] ${postResult.isCorrect ? 'text-[#4a5d4a]' : 'text-[#9c9a8e]'}`}
+              className={`font-mono text-[10px] ${postResult.isCorrect ? 'text-j-accent' : 'text-j-text-tertiary'}`}
             >
               {postResult.score}%
             </span>
@@ -222,34 +301,34 @@ export function ConceptSection({
   }
 
   return (
-    <div className="border-l-2 border-[#4a5d4a] pl-6 py-6">
+    <div className="border-l-2 border-j-accent pl-6 py-6">
       {/* Section header */}
       <div className="flex items-center gap-3 mb-6">
-        <span className="font-mono text-[10px] tracking-[0.15em] text-[#4a5d4a] uppercase font-medium">
+        <span className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase font-medium">
           {String(section.sortOrder + 1).padStart(2, '0')}
         </span>
-        <span className="text-sm font-medium text-[#2c2c2c]">
+        <span className="text-sm font-medium text-j-text">
           {section.sectionTitle}
         </span>
       </div>
 
       {/* Phase: Pre-question (productive failure) */}
       {phase === 'pre-question' && (
-        <div className="bg-[#f5f4f0] border border-[#e8e6e0] p-6 mb-6">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#c4a07a] uppercase mb-3">
+        <div className="bg-j-bg-alt border border-j-border p-6 mb-6">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-3">
             {t('learn.preQuestion.title', language)}
           </p>
-          <p className="text-xs text-[#9c9a8e] mb-4">
+          <p className="text-xs text-j-text-tertiary mb-4">
             {t('learn.preQuestion.instruction', language)}
           </p>
 
           {preLoading && (
-            <p className="text-sm text-[#9c9a8e]">{t('common.loading', language)}</p>
+            <p className="text-sm text-j-text-tertiary">{t('common.loading', language)}</p>
           )}
 
           {preQuestion && (
             <div className="space-y-3">
-              <p className="text-sm text-[#2c2c2c] leading-relaxed">
+              <p className="text-sm text-j-text leading-relaxed">
                 {preQuestion.questionText}
               </p>
 
@@ -258,7 +337,7 @@ export function ConceptSection({
                 onChange={(e) => setPreAnswer(e.target.value)}
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
-                className="w-full border border-[#d4d0c8] bg-white p-3 text-sm text-[#2c2c2c] placeholder-[#9c9a8e] focus:outline-none focus:border-[#4a5d4a] resize-none"
+                className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey) handlePreSubmit();
@@ -269,13 +348,13 @@ export function ConceptSection({
                 <button
                   onClick={handlePreSubmit}
                   disabled={!preAnswer.trim()}
-                  className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors disabled:opacity-50"
+                  className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
                 >
                   {t('learn.preQuestion.submit', language)}
                 </button>
                 <button
                   onClick={skipToContent}
-                  className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                  className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
                 >
                   {t('learn.preQuestion.skip', language)}
                 </button>
@@ -285,12 +364,12 @@ export function ConceptSection({
 
           {!preLoading && !preQuestion && (
             <div>
-              <p className="text-xs text-[#9c9a8e] mb-3">
+              <p className="text-xs text-j-text-tertiary mb-3">
                 No hay preguntas disponibles para este concepto.
               </p>
               <button
                 onClick={skipToContent}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('learn.preQuestion.skip', language)}
               </button>
@@ -299,12 +378,12 @@ export function ConceptSection({
         </div>
       )}
 
-      {/* Phase: Content (reading) */}
-      {(phase === 'content' || phase === 'post-test') && (
+      {/* Phase: Content (reading) — also shown in review mode for completed sections */}
+      {(phase === 'content' || phase === 'post-test' || phase === 'completed') && (
         <div className="mb-6">
           {preAttempted && preAnswer.trim() && (
-            <div className="bg-[#f5f4f0] border border-[#e8e6e0] p-3 mb-6 text-xs text-[#9c9a8e]">
-              <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#c4a07a]">
+            <div className="bg-j-bg-alt border border-j-border p-3 mb-6 text-xs text-j-text-tertiary">
+              <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-warm">
                 {t('learn.preQuestion.attempted', language)}
               </span>
               <span className="ml-2">— lee la sección y compara con tu respuesta.</span>
@@ -320,10 +399,10 @@ export function ConceptSection({
           />
 
           {phase === 'content' && (
-            <div className="mt-8 pt-6 border-t border-[#e8e6e0]">
+            <div className="mt-8 pt-6 border-t border-j-border">
               <button
                 onClick={handleContentDone}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-5 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('learn.postTest.title', language)} →
               </button>
@@ -334,18 +413,18 @@ export function ConceptSection({
 
       {/* Phase: Post-test (retrieval practice) */}
       {phase === 'post-test' && (
-        <div className="bg-[#f5f4f0] border border-[#e8e6e0] p-6">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#4a5d4a] uppercase mb-4">
+        <div className="bg-j-bg-alt border border-j-border p-6">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-accent uppercase mb-4">
             {t('learn.postTest.title', language)}
           </p>
 
           {postLoading === 'fetching' && (
-            <p className="text-sm text-[#9c9a8e]">{t('common.loading', language)}</p>
+            <p className="text-sm text-j-text-tertiary">{t('common.loading', language)}</p>
           )}
 
           {postQuestion && !postResult && (
             <div className="space-y-3">
-              <p className="text-sm text-[#2c2c2c] leading-relaxed">
+              <p className="text-sm text-j-text leading-relaxed">
                 {postQuestion.questionText}
               </p>
 
@@ -354,7 +433,7 @@ export function ConceptSection({
                 onChange={(e) => setPostAnswer(e.target.value)}
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
-                className="w-full border border-[#d4d0c8] bg-white p-3 text-sm text-[#2c2c2c] placeholder-[#9c9a8e] focus:outline-none focus:border-[#4a5d4a] resize-none"
+                className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey && postAnswer.trim()) {
@@ -367,7 +446,7 @@ export function ConceptSection({
                 <button
                   onClick={handlePostSubmit}
                   disabled={!postAnswer.trim() || postLoading === 'evaluating'}
-                  className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors disabled:opacity-50"
+                  className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
                 >
                   {postLoading === 'evaluating'
                     ? t('review.evaluating', language)
@@ -375,24 +454,24 @@ export function ConceptSection({
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="font-mono text-[10px] tracking-[0.15em] border border-[#d4d0c8] text-[#7a7a6e] px-3 py-2 uppercase hover:border-[#4a5d4a] transition-colors"
+                  className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
                 >
                   {language === 'es' ? 'Saltar' : 'Skip'}
                 </button>
               </div>
 
-              {postError && <p className="text-xs text-[#7d6b6b]">{postError}</p>}
+              {postError && <p className="text-xs text-j-error">{postError}</p>}
             </div>
           )}
 
           {!postLoading && !postQuestion && (
             <div>
-              <p className="text-xs text-[#9c9a8e] mb-3">
+              <p className="text-xs text-j-text-tertiary mb-3">
                 No hay preguntas disponibles para este concepto.
               </p>
               <button
                 onClick={handleComplete}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-4 py-2 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('learn.section.next', language)} →
               </button>
@@ -403,38 +482,84 @@ export function ConceptSection({
           {postResult && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <span
-                  className={`text-2xl font-light ${postResult.isCorrect ? 'text-[#4a5d4a]' : 'text-[#7d6b6b]'}`}
-                >
-                  {postResult.score}%
-                </span>
-                <span
-                  className={`font-mono text-[10px] tracking-[0.15em] uppercase ${postResult.isCorrect ? 'text-[#4a5d4a]' : 'text-[#7d6b6b]'}`}
-                >
-                  {postResult.isCorrect
-                    ? t('review.correct', language)
-                    : t('review.incorrect', language)}
-                </span>
+                {postResult.dimensionScores ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-2">
+                      {Object.entries(postResult.dimensionScores).map(([key, value]) => (
+                        <div key={key} className="flex items-center gap-1">
+                          <span className="font-mono text-[9px] text-j-text-tertiary uppercase">{key}</span>
+                          <span className="text-[10px]">
+                            {[0, 1].map((dotIndex) => (
+                              <span
+                                key={dotIndex}
+                                className={dotIndex < value ? 'text-j-accent' : 'text-j-border-input'}
+                              >
+                                {dotIndex < value ? '●' : '○'}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <span
+                      className={`font-mono text-[10px] tracking-[0.15em] uppercase ${postResult.isCorrect ? 'text-j-accent' : 'text-j-error'}`}
+                    >
+                      {postResult.score}% · {postResult.isCorrect
+                        ? t('review.correct', language)
+                        : t('review.incorrect', language)}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <span
+                      className={`text-2xl font-light ${postResult.isCorrect ? 'text-j-accent' : 'text-j-error'}`}
+                    >
+                      {postResult.score}%
+                    </span>
+                    <span
+                      className={`font-mono text-[10px] tracking-[0.15em] uppercase ${postResult.isCorrect ? 'text-j-accent' : 'text-j-error'}`}
+                    >
+                      {postResult.isCorrect
+                        ? t('review.correct', language)
+                        : t('review.incorrect', language)}
+                    </span>
+                  </>
+                )}
               </div>
 
-              <p className="text-sm text-[#7a7a6e] leading-relaxed">
+              <p className="text-sm text-j-text-secondary leading-relaxed">
                 {postResult.feedback}
               </p>
 
               {!postResult.isCorrect && (
-                <div className="border border-[#e8e6e0] p-3 bg-white">
-                  <p className="font-mono text-[9px] tracking-[0.15em] text-[#9c9a8e] uppercase mb-1">
+                <div className="border border-j-border p-3 bg-white">
+                  <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                     {t('review.expectedAnswer', language)}
                   </p>
-                  <p className="text-sm text-[#2c2c2c]">
+                  <p className="text-sm text-j-text">
                     {postResult.expectedAnswer}
                   </p>
                 </div>
               )}
 
+              {/* Confidence indicator — appears after result */}
+              <ConfidenceIndicator
+                language={language}
+                onSelect={handleConfidence}
+                selected={postConfidence}
+              />
+
+              {/* Self-explanation — after confidence */}
+              <SelfExplanation
+                language={language}
+                conceptName={section.sectionTitle}
+                initialValue={selfExplanation}
+                onSave={handleSelfExplanation}
+              />
+
               <button
                 onClick={handleComplete}
-                className="font-mono text-[10px] tracking-[0.15em] bg-[#4a5d4a] text-[#f5f4f0] px-5 py-2.5 uppercase hover:bg-[#3d4d3d] transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('learn.section.next', language)} →
               </button>

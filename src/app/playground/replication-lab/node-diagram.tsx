@@ -135,9 +135,9 @@ export function NodeDiagram({
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#faf9f6]">
+    <div className="h-full flex flex-col bg-j-bg">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#e8e6e0] flex items-center justify-between shrink-0">
+      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
         <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
           Cluster
         </span>
@@ -388,7 +388,7 @@ export function NodeDiagram({
       </div>
 
       {/* Control bar */}
-      <div className="px-4 py-3 border-t border-[#e8e6e0] shrink-0">
+      <div className="px-4 py-3 border-t border-j-border shrink-0">
         {/* Row 1: Main actions */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <button
@@ -400,39 +400,39 @@ export function NodeDiagram({
 
           <button
             onClick={() => onReadFromNode('follower-1')}
-            className="px-3 py-1.5 bg-[#f0efe8] text-[#2c2c2c] font-mono text-[11px] hover:bg-[#e8e6e0] transition-colors border border-[#e8e6e0] rounded"
+            className="px-3 py-1.5 bg-[#f0efe8] text-j-text font-mono text-[11px] hover:bg-j-border transition-colors border border-j-border rounded"
           >
             Leer F1
           </button>
 
           <button
             onClick={() => onReadFromNode('follower-2')}
-            className="px-3 py-1.5 bg-[#f0efe8] text-[#2c2c2c] font-mono text-[11px] hover:bg-[#e8e6e0] transition-colors border border-[#e8e6e0] rounded"
+            className="px-3 py-1.5 bg-[#f0efe8] text-j-text font-mono text-[11px] hover:bg-j-border transition-colors border border-j-border rounded"
           >
             Leer F2
           </button>
 
-          <div className="w-px h-5 bg-[#e8e6e0]" />
+          <div className="w-px h-5 bg-j-border" />
 
           <button
             onClick={isPartitioned ? onHeal : onPartition}
             className={`px-3 py-1.5 font-mono text-[11px] transition-colors border rounded ${
               isPartitioned
                 ? 'bg-[#d97706] text-white border-[#d97706] hover:bg-[#b45309]'
-                : 'bg-[#f0efe8] text-[#2c2c2c] border-[#e8e6e0] hover:bg-[#e8e6e0]'
+                : 'bg-[#f0efe8] text-j-text border-j-border hover:bg-j-border'
             }`}
           >
             {isPartitioned ? 'Curar red' : 'Particionar'}
           </button>
 
-          <div className="w-px h-5 bg-[#e8e6e0]" />
+          <div className="w-px h-5 bg-j-border" />
 
           <button
             onClick={onToggleMode}
             className={`px-3 py-1.5 font-mono text-[11px] transition-colors border rounded ${
               config.mode === 'sync'
                 ? 'bg-[#2d4a6a] text-white border-[#2d4a6a]'
-                : 'bg-[#f0efe8] text-[#2c2c2c] border-[#e8e6e0] hover:bg-[#e8e6e0]'
+                : 'bg-[#f0efe8] text-j-text border-j-border hover:bg-j-border'
             }`}
           >
             {config.mode === 'sync' ? 'SYNC' : 'ASYNC'}
@@ -441,7 +441,7 @@ export function NodeDiagram({
 
         {/* Row 2: Delay slider */}
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[10px] text-[#7a7a6e] shrink-0">DELAY</span>
+          <span className="font-mono text-[10px] text-j-text-secondary shrink-0">DELAY</span>
           <input
             type="range"
             min={100}

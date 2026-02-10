@@ -379,7 +379,7 @@ export function LatencyPlayground() {
   return (
     <div className="h-full flex">
       {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-[#e8e6e0] overflow-hidden">
+      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
         <TabbedSidebar
           lessons={
             <LessonGuide
@@ -387,22 +387,13 @@ export function LatencyPlayground() {
               currentConfig={config}
             />
           }
-          tutor={
-            <TutorPanel
-              playground="latency"
-              getState={() => ({ config, percentiles, totalRequests, sloViolations })}
-              accentColor="#d97706"
-              proactiveQuestion={proactiveQuestion}
-              onDismissProactive={() => setProactiveQuestion(null)}
-            />
-          }
-          hasNotification={!!proactiveQuestion}
+          disableTutor
           accentColor="#d97706"
         />
       </div>
 
       {/* Center: Control Panel */}
-      <div className="flex-[4] min-w-0 border-r border-[#e8e6e0]">
+      <div className="flex-[4] min-w-0 border-r border-j-border">
         <ControlPanel
           config={config}
           onConfigChange={handleConfigChange}

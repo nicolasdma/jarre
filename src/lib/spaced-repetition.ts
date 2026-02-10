@@ -106,6 +106,42 @@ export function scoreToRating(score: number): ReviewRating {
 }
 
 /**
+ * Derive a ReviewRating from rubric dimension total (0-6).
+ *
+ * Score mapping:
+ * - total >= 5 → easy  (83-100% — excellent)
+ * - total >= 3 → hard  (50-67% — partial understanding)
+ * - total < 3  → wrong (0-33% — major gaps)
+ */
+export function rubricTotalToRating(total: number): ReviewRating {
+  if (total >= 5) return 'easy';
+  if (total >= 3) return 'hard';
+  return 'wrong';
+}
+
+/**
+ * Derive backward-compatible fields from rubric dimension scores.
+ *
+ * Normalization: 20% floor + 80% scaled range.
+ * This maps total 0→20%, 3→60%, 6→100%.
+ * A "correct but shallow" answer (all 1s = 3/6) gets ~60%, not 50%.
+ */
+export function deriveFromRubric(scores: Record<string, number>): {
+  total: number;
+  normalizedScore: number; // 0-100 for backward compat
+  isCorrect: boolean;
+  rating: ReviewRating;
+} {
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+  return {
+    total,
+    normalizedScore: Math.round(20 + (total / 6) * 80),
+    isCorrect: total >= 3,
+    rating: rubricTotalToRating(total),
+  };
+}
+
+/**
  * Maximum number of cards per review session.
  */
 export const REVIEW_SESSION_CAP = SESSION_CAP;
