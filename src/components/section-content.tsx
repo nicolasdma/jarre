@@ -214,6 +214,7 @@ function InterleavedContent({
                   options: quiz.options,
                   correctAnswer: quiz.correctAnswer,
                   explanation: quiz.explanation,
+                  justificationHint: quiz.justificationHint,
                 }}
               />
             ))}

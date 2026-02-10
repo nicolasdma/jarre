@@ -312,7 +312,7 @@ const TRADEOFF_RUBRIC: Rubric = {
 // ============================================================================
 
 const QUESTION_TYPE_RUBRIC_MAP: Record<QuestionBankType | EvaluationType, Rubric> = {
-  // QuestionBankType (Grupo A)
+  // QuestionBankType (Grupo A — Bloom 1-2)
   definition: KNOWLEDGE_RUBRIC,
   fact: KNOWLEDGE_RUBRIC,
   property: KNOWLEDGE_RUBRIC,
@@ -320,9 +320,12 @@ const QUESTION_TYPE_RUBRIC_MAP: Record<QuestionBankType | EvaluationType, Rubric
   comparison: COMPARISON_RUBRIC,
   guarantee: GUARANTEE_RUBRIC,
   complexity: COMPLEXITY_RUBRIC,
+  // QuestionBankType (Bloom 4-5)
+  scenario: SCENARIO_RUBRIC,
+  limitation: TRADEOFF_RUBRIC,
+  error_spot: ERROR_DETECTION_RUBRIC,
   // EvaluationType
   explanation: KNOWLEDGE_RUBRIC,
-  scenario: SCENARIO_RUBRIC,
   error_detection: ERROR_DETECTION_RUBRIC,
   connection: CONNECTION_RUBRIC,
   tradeoff: TRADEOFF_RUBRIC,

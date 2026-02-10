@@ -8,7 +8,8 @@ import { ScrollProgress } from './scroll-progress';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
-import { saveLearnProgress, type LearnProgress, type SectionState, type ReviewStepState } from '@/lib/learn-progress';
+import { PracticeEvalStep } from './practice-eval-step';
+import { saveLearnProgress, type LearnProgress, type SectionState, type ReviewStepState, type PracticeEvalState } from '@/lib/learn-progress';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz } from '@/types';
 
@@ -24,7 +25,7 @@ interface Section {
   sortOrder: number;
 }
 
-type Step = 'activate' | 'learn' | 'review' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
 
 interface LearnFlowProps {
   language: Language;
@@ -45,12 +46,13 @@ interface LearnFlowProps {
 // Step indicator labels
 // ============================================================================
 
-const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'review', 'evaluate'];
+const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'review', 'practice-eval', 'evaluate'];
 
 const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   activate: { key: 'learn.step.activate' },
   learn: { key: 'learn.step.learn' },
   review: { key: 'learn.step.review' },
+  'practice-eval': { key: 'learn.step.practiceEval' },
   apply: { key: 'learn.step.apply' },
   evaluate: { key: 'learn.step.evaluate' },
 };
@@ -105,6 +107,9 @@ export function LearnFlow({
   const [reviewState, setReviewState] = useState<ReviewStepState>(
     initialProgress?.reviewState ?? { inlineAnswers: {}, bankAnswers: {} }
   );
+  const [practiceEvalState, setPracticeEvalState] = useState<PracticeEvalState>(
+    initialProgress?.practiceEvalState ?? { answers: {}, currentScaffoldLevel: 1 }
+  );
   const [visitedSteps, setVisitedSteps] = useState<Set<Step>>(
     new Set((initialProgress?.visitedSteps as Step[]) ?? [(initialProgress?.currentStep as Step) ?? 'activate'])
   );
@@ -136,6 +141,7 @@ export function LearnFlow({
       completed: Set<number>;
       state: Record<string, SectionState>;
       review: ReviewStepState;
+      practiceEval: PracticeEvalState;
       visited: Set<Step>;
     }>): LearnProgress => ({
       currentStep: overrides?.step ?? currentStep,
@@ -144,8 +150,9 @@ export function LearnFlow({
       visitedSteps: Array.from(overrides?.visited ?? visitedSteps),
       sectionState: overrides?.state ?? sectionState,
       reviewState: overrides?.review ?? reviewState,
+      practiceEvalState: overrides?.practiceEval ?? practiceEvalState,
     }),
-    [currentStep, activeSection, completedSections, visitedSteps, sectionState, reviewState]
+    [currentStep, activeSection, completedSections, visitedSteps, sectionState, reviewState, practiceEvalState]
   );
 
   /** Persist + update step, marking current step as visited */
@@ -448,11 +455,26 @@ export function LearnFlow({
               setReviewState(next);
               saveLearnProgress(resourceId, buildProgress({ review: next }));
             }}
+            onComplete={() => changeStep('practice-eval')}
+          />
+        )}
+
+        {/* STEP 5: PRACTICE EVAL — Scaffolded evaluation preview */}
+        {currentStep === 'practice-eval' && (
+          <PracticeEvalStep
+            language={language}
+            resourceId={resourceId}
+            conceptIds={sections.map((s) => s.conceptId)}
+            initialState={practiceEvalState}
+            onStateChange={(next) => {
+              setPracticeEvalState(next);
+              saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
+            }}
             onComplete={() => changeStep('evaluate')}
           />
         )}
 
-        {/* STEP 5: EVALUATE — Link to full evaluation */}
+        {/* STEP 6: EVALUATE — Link to full evaluation */}
         {currentStep === 'evaluate' && (
           <div className="py-16">
             <header className="mb-12 lg:hidden">

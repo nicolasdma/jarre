@@ -135,6 +135,7 @@ export default async function LearnPage({ params }: PageProps) {
           options: q.options,
           correctAnswer: q.correct_answer,
           explanation: q.explanation,
+          justificationHint: q.justification_hint ?? undefined,
         };
         const arr = quizzesBySectionId[q.section_id] ?? [];
         arr.push(quiz);
