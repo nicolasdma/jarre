@@ -183,7 +183,7 @@ const questionsBySection: Record<string, Record<number, HighOrderQuestion[]>> = 
 
   // DDIA Ch6 — Partitioning
   'ddia-ch6': {
-    // Section 0: Particionamiento por clave primaria
+    // Section 0: Estrategias de Particionamiento (range, hash, consistent hashing)
     0: [
       {
         type: 'scenario',
@@ -205,8 +205,24 @@ const questionsBySection: Record<string, Record<number, HighOrderQuestion[]>> = 
       },
     ],
 
-    // Section 1: Particionamiento e índices secundarios
+    // Section 1: Cargas Sesgadas y Puntos Calientes
     1: [
+      {
+        type: 'scenario',
+        question_text: 'Una red social tiene un usuario con 30 millones de seguidores. Cuando publica algo, la clave user_id de ese usuario recibe miles de escrituras por segundo (comentarios, likes). El sistema usa hash partitioning. ¿Qué técnica usarías para aliviar este hot spot y cuáles son los trade-offs?',
+        expected_answer: 'Técnica: key splitting — agregar un sufijo aleatorio (ej: 2 dígitos = 00-99) al hot key. Así "user_123" se convierte en "user_123_42", "user_123_07", etc. Las escrituras se dispersan en ~100 particiones distintas. Trade-offs: (1) las lecturas se complican — para leer todos los datos del usuario, necesitas consultar las 100 variantes y combinar resultados, (2) necesitas bookkeeping para saber qué keys están siendo split — no quieres aplicar esto a los millones de usuarios con tráfico normal (overhead innecesario), (3) la decisión de split debería ser dinámica — un key puede convertirse en hot spot temporalmente (ej: un tweet viral) y dejar de serlo después.',
+        difficulty: 3,
+      },
+      {
+        type: 'error_spot',
+        question_text: 'Esta afirmación tiene un error sutil: "Los sistemas de datos modernos detectan automáticamente hot spots y redistribuyen la carga redirigiendo tráfico a otros nodos."',
+        expected_answer: 'El error es que la mayoría de los sistemas actuales NO detectan ni compensan automáticamente las cargas sesgadas. Es responsabilidad de la aplicación implementar técnicas como key splitting. El texto de Kleppmann dice explícitamente: "Today, most data systems are not able to automatically compensate for such a highly skewed workload, so it\'s the responsibility of the application to reduce the skew." Quizás en el futuro los sistemas lo hagan automáticamente, pero hoy no es el caso.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 2: Índices Secundarios Particionados
+    2: [
       {
         type: 'scenario',
         question_text: 'Un marketplace tiene productos particionados por product_id (hash). Los usuarios buscan por categoría ("electrónica") y por precio (< $50). ¿Cómo implementarías índices secundarios para estos queries y cuáles son los trade-offs entre índice local (document-partitioned) e índice global (term-partitioned)?',
@@ -221,8 +237,8 @@ const questionsBySection: Record<string, Record<number, HighOrderQuestion[]>> = 
       },
     ],
 
-    // Section 2: Rebalanceo de particiones
-    2: [
+    // Section 3: Rebalanceo de Particiones
+    3: [
       {
         type: 'scenario',
         question_text: 'Un cluster de 4 nodos está llegando al 80% de capacidad. Decides agregar 2 nodos más. El rebalanceo mueve un 30% de los datos para equilibrar la carga. Durante el rebalanceo, que toma 2 horas, algunos queries son lentos porque los datos están en tránsito. ¿Cómo minimizarías el impacto del rebalanceo en los usuarios?',
@@ -234,6 +250,22 @@ const questionsBySection: Record<string, Record<number, HighOrderQuestion[]>> = 
         question_text: 'Esta afirmación tiene un error sutil: "La mejor estrategia de particionamiento es usar hash(key) mod N, donde N es el número de nodos. Esto distribuye los datos uniformemente y es simple de implementar."',
         expected_answer: 'El error es que hash(key) mod N es terrible para rebalanceo. Si agregas o quitas un nodo (N cambia), casi todos los keys cambian de partición — la mayoría de los datos necesitan moverse. Por ejemplo, al pasar de 4 a 5 nodos, ~80% de los keys se re-asignan. Esto hace que agregar capacidad sea extremadamente costoso. Soluciones correctas: (1) consistent hashing — solo ~1/N de los keys se mueven al agregar un nodo, (2) particiones fijas — el número de particiones es fijo y mucho mayor que N; los nodos son dueños de un subconjunto de particiones que se redistribuyen sin re-hashear.',
         difficulty: 2,
+      },
+    ],
+
+    // Section 4: Enrutamiento de Solicitudes
+    4: [
+      {
+        type: 'scenario',
+        question_text: 'Tu sistema usa ZooKeeper para mantener el mapeo de particiones a nodos. Un día, ZooKeeper se cae por 10 minutos. ¿Qué pasa con el enrutamiento de solicitudes durante esa ventana? ¿Cómo diseñarías el sistema para tolerar esta falla?',
+        expected_answer: 'Durante la caída de ZooKeeper, el sistema no puede recibir actualizaciones sobre cambios en el mapeo de particiones. Si no hubo cambios recientes, los routing tiers/clientes pueden seguir usando el último mapeo conocido (cache). Pero si un nodo falló durante esa ventana, las solicitudes a ese nodo fallarán sin redirección automática. Diseño resiliente: (1) los componentes de routing deben cachear el último mapeo conocido y seguir usándolo, (2) implementar health checks directos a los nodos (independientes de ZooKeeper), (3) considerar un gossip protocol como fallback (como hacen Cassandra/Riak) que no depende de un servicio centralizado, (4) timeouts + retries con exponential backoff hacia otros nodos.',
+        difficulty: 3,
+      },
+      {
+        type: 'limitation',
+        question_text: '¿Por qué el enfoque de gossip protocol (como en Cassandra/Riak) puede ser problemático en clusters muy grandes?',
+        expected_answer: 'En clusters grandes, el gossip protocol tiene problemas de: (1) convergencia lenta — cada nodo necesita propagar información a todos los demás, y con N nodos el tiempo de convergencia crece, (2) ancho de banda — el tráfico de gossip crece con el número de nodos (cada nodo habla con varios otros periódicamente), (3) eventual consistency del metadata — durante la convergencia, diferentes nodos pueden tener visiones diferentes del estado del cluster, causando routing incorrecto temporal, (4) complejidad en los nodos — cada nodo necesita mantener el estado completo del cluster y lógica de routing, en vez de delegarlo a un servicio centralizado. Por eso, para clusters muy grandes, un servicio de coordinación como ZooKeeper puede ser más eficiente a pesar de ser un SPOF.',
+        difficulty: 3,
       },
     ],
   },
