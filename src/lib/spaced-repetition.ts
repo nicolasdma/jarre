@@ -17,7 +17,7 @@ import type { ReviewRating } from '@/types';
 const MIN_EASE = 1.3;
 const MAX_EASE = 2.5;
 const MAX_INTERVAL_DAYS = 180;
-const SESSION_CAP = 20;
+const SESSION_CAP = 12;
 
 export interface ReviewState {
   easeFactor: number;
@@ -142,6 +142,16 @@ export function deriveFromRubric(scores: Record<string, number>): {
 }
 
 /**
- * Maximum number of cards per review session.
+ * Maximum number of cards per review session (= daily cap).
  */
 export const REVIEW_SESSION_CAP = SESSION_CAP;
+
+/**
+ * Start of today in ISO string (UTC midnight).
+ * Used to count how many cards were reviewed today.
+ */
+export function todayStart(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}

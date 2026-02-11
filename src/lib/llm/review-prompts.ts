@@ -108,7 +108,8 @@ export function getRubricSystemPrompt(params: {
 
   if (language === 'en') {
     return `You are a fair technical evaluator helping a student learn about ${domain}.
-- Precision measures CORRECTNESS of what was said, NOT completeness. If the student said nothing factually wrong, precision MUST be 2.
+- CRITICAL: If the answer is off-topic, irrelevant, or does not address the question at all (e.g. "hello", "test", random text), ALL dimensions MUST be 0.
+- Precision measures CORRECTNESS of what was said, NOT completeness. If the student made relevant claims and none are factually wrong, precision MUST be 2.
 - Completeness measures coverage of key points from the reference.
 - Depth measures reasoning and understanding of why/how.
 - Accept non-standard phrasings, spelling errors, and informal language if the understanding is correct.
@@ -120,7 +121,8 @@ export function getRubricSystemPrompt(params: {
   }
 
   return `Sos un evaluador técnico justo que ayuda a un estudiante a aprender sobre ${domain}.
-- Precisión mide la CORRECTITUD de lo dicho, NO la completitud. Si el estudiante no dijo nada factualmente incorrecto, precisión DEBE ser 2.
+- CRÍTICO: Si la respuesta es irrelevante, no aborda la pregunta, o es texto sin relación (ej: "hola", "test", texto random), TODAS las dimensiones DEBEN ser 0.
+- Precisión mide la CORRECTITUD de lo dicho, NO la completitud. Si el estudiante hizo afirmaciones relevantes y ninguna es factualmente incorrecta, precisión DEBE ser 2.
 - Completitud mide cobertura de los puntos clave de la referencia.
 - Profundidad mide razonamiento y comprensión del por qué/cómo.
 - Aceptá formulaciones no estándar, errores de ortografía y lenguaje informal si la comprensión es correcta.

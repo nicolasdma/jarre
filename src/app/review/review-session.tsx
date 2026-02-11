@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { InlineQuiz } from '@/components/inline-quiz';
 import { ReviewPrediction } from '@/components/review-prediction';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewCard, ReviewSubmitResponse } from '@/types';
@@ -23,10 +24,6 @@ interface CompletedCard {
 // Dimension Dots Component
 // ============================================================================
 
-/**
- * Dimension score dots: 0=○○, 1=●○, 2=●●
- * Each dimension shows its key name + 2 dots representing 0-2 score.
- */
 function DimensionDots({ scores }: { scores: Record<string, number> }) {
   return (
     <div className="flex flex-col gap-2">
@@ -51,7 +48,6 @@ function DimensionDots({ scores }: { scores: Record<string, number> }) {
   );
 }
 
-/** Compact dots for summary rows: 2 dots per dimension */
 function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
   return (
     <div className="flex gap-1.5">
@@ -68,6 +64,20 @@ function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
         </span>
       ))}
     </div>
+  );
+}
+
+// ============================================================================
+// Format Badge
+// ============================================================================
+
+function FormatBadge({ format }: { format: string }) {
+  if (format === 'open') return null;
+  const label = format === 'mc' ? 'Opción múltiple' : 'Verdadero/Falso';
+  return (
+    <span className="font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-j-warm text-j-warm">
+      {label}
+    </span>
   );
 }
 
@@ -111,7 +121,8 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
     }
   }, [language]);
 
-  const submitAnswer = useCallback(async () => {
+  // Submit open-ended answer
+  const submitOpenAnswer = useCallback(async () => {
     if (!answer.trim() || !cards[currentIndex]) return;
 
     setIsLoading(true);
@@ -139,6 +150,44 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
       setIsLoading(false);
     }
   }, [answer, cards, currentIndex]);
+
+  // Submit MC/TF answer (called from InlineQuiz onAnswer)
+  const submitClosedAnswer = useCallback(async (
+    _quizId: string,
+    selectedOption: string,
+    isCorrect: boolean,
+  ) => {
+    const card = cards[currentIndex];
+    if (!card) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/review/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId: card.questionId,
+          selectedAnswer: selectedOption,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit answer');
+      const result: ReviewSubmitResponse = await response.json();
+
+      // Override isCorrect with client-side value (deterministic, should match server)
+      const finalResult = { ...result, isCorrect };
+
+      setCurrentResult(finalResult);
+      setCompleted((prev) => [...prev, { card, result: finalResult }]);
+      setShowReasoning(false);
+      setPhase('feedback');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cards, currentIndex]);
 
   const nextCard = useCallback(() => {
     setAnswer('');
@@ -170,7 +219,6 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
               {totalCards} total
             </p>
 
-            {/* Metacognitive prediction before starting */}
             <div className="max-w-md mx-auto mb-8">
               <ReviewPrediction
                 language={language}
@@ -208,6 +256,8 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
   // Card display
   if (phase === 'card') {
     const card = cards[currentIndex];
+    const isClosed = card.format === 'mc' || card.format === 'tf';
+
     return (
       <div>
         {/* Progress bar */}
@@ -221,9 +271,12 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
               style={{ width: `${((currentIndex) / cards.length) * 100}%` }}
             />
           </div>
-          <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary">
-            {difficultyLabel(card.difficulty)}
-          </span>
+          <div className="flex items-center gap-2">
+            <FormatBadge format={card.format} />
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary">
+              {difficultyLabel(card.difficulty)}
+            </span>
+          </div>
         </div>
 
         {/* Concept tag */}
@@ -238,35 +291,60 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
           )}
         </div>
 
-        {/* Question */}
-        <div className="mb-8 p-6 bg-white border border-j-border">
-          <p className="text-lg text-j-text leading-relaxed">{card.questionText}</p>
-        </div>
+        {/* MC/TF: render InlineQuiz */}
+        {isClosed && (
+          <div className="mb-4">
+            <InlineQuiz
+              quiz={{
+                id: card.questionId,
+                format: card.format as 'mc' | 'tf',
+                questionText: card.questionText,
+                options: card.options || null,
+                correctAnswer: card.correctAnswer || '',
+                explanation: card.explanation || '',
+              }}
+              onAnswer={submitClosedAnswer}
+            />
+            {isLoading && (
+              <p className="mt-2 text-sm text-j-text-tertiary font-mono animate-pulse">
+                {t('common.loading', language)}
+              </p>
+            )}
+          </div>
+        )}
 
-        {/* Answer input */}
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          placeholder={t('review.answerPlaceholder', language)}
-          rows={4}
-          className="w-full p-4 border border-j-border bg-white text-j-text placeholder-[#c4c2b8] font-mono text-sm focus:outline-none focus:border-j-accent transition-colors resize-none"
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && e.metaKey && answer.trim()) {
-              submitAnswer();
-            }
-          }}
-        />
+        {/* Open: textarea */}
+        {!isClosed && (
+          <>
+            <div className="mb-8 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
+              <p className="text-lg text-j-text leading-relaxed">{card.questionText}</p>
+            </div>
 
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={submitAnswer}
-            disabled={!answer.trim() || isLoading}
-            className="font-mono text-sm tracking-[0.1em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
-          >
-            {isLoading ? t('review.evaluating', language) : t('review.verify', language)}
-          </button>
-        </div>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder={t('review.answerPlaceholder', language)}
+              rows={4}
+              className="w-full p-4 border border-j-border bg-white dark:bg-j-bg-alt text-j-text placeholder-[#c4c2b8] font-mono text-sm focus:outline-none focus:border-j-accent transition-colors resize-none"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.metaKey && answer.trim()) {
+                  submitOpenAnswer();
+                }
+              }}
+            />
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={submitOpenAnswer}
+                disabled={!answer.trim() || isLoading}
+                className="font-mono text-sm tracking-[0.1em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+              >
+                {isLoading ? t('review.evaluating', language) : t('review.verify', language)}
+              </button>
+            </div>
+          </>
+        )}
 
         {error && <p className="mt-4 text-sm text-j-error">{error}</p>}
       </div>
@@ -275,7 +353,10 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
 
   // Feedback display
   if (phase === 'feedback' && currentResult) {
+    const card = cards[currentIndex];
     const isLast = currentIndex + 1 >= cards.length;
+    const isClosed = card.format === 'mc' || card.format === 'tf';
+
     return (
       <div>
         {/* Progress bar */}
@@ -291,7 +372,7 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
           </div>
         </div>
 
-        {/* Dimension scores or fallback score */}
+        {/* Score / Result */}
         <div className="text-center mb-8">
           {currentResult.dimensionScores ? (
             <div className="inline-flex flex-col items-center gap-4">
@@ -304,12 +385,22 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
             </div>
           ) : (
             <>
-              <span className={`text-5xl font-light ${
-                currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
-              }`}>
-                {currentResult.score}
-              </span>
-              <span className="text-j-text-tertiary text-lg">%</span>
+              {isClosed ? (
+                <p className={`text-3xl font-light ${
+                  currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
+                }`}>
+                  {currentResult.isCorrect ? '✓' : '✗'}
+                </p>
+              ) : (
+                <>
+                  <span className={`text-5xl font-light ${
+                    currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
+                  }`}>
+                    {currentResult.score}
+                  </span>
+                  <span className="text-j-text-tertiary text-lg">%</span>
+                </>
+              )}
               <p className={`mt-2 font-mono text-[10px] tracking-[0.2em] uppercase ${
                 currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
               }`}>
@@ -321,14 +412,16 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
 
         {/* Feedback */}
         <div className="space-y-4 mb-8">
-          <div className="p-4 bg-white border border-j-border">
-            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
-              Feedback
-            </p>
-            <p className="text-sm text-j-text leading-relaxed">{currentResult.feedback}</p>
-          </div>
+          {currentResult.feedback && (
+            <div className="p-4 bg-white dark:bg-j-bg-alt border border-j-border">
+              <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
+                {isClosed ? 'Explicación' : 'Feedback'}
+              </p>
+              <p className="text-sm text-j-text leading-relaxed">{currentResult.feedback}</p>
+            </div>
+          )}
 
-          {/* Collapsible reasoning */}
+          {/* Collapsible reasoning (open questions only) */}
           {currentResult.reasoning && (
             <div className="border border-j-border">
               <button
@@ -351,7 +444,7 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
             </div>
           )}
 
-          {!currentResult.isCorrect && (
+          {!currentResult.isCorrect && currentResult.expectedAnswer && (
             <div className="p-4 bg-j-bg-hover border border-j-border">
               <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
                 {t('review.expectedAnswer', language)}
@@ -429,11 +522,14 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
               <span className="text-sm text-j-text flex-1 truncate">
                 {c.card.conceptName}
               </span>
+              <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase">
+                {c.card.format}
+              </span>
               {c.result.dimensionScores ? (
                 <CompactDimensionDots scores={c.result.dimensionScores} />
               ) : (
                 <span className="font-mono text-xs text-j-text-tertiary">
-                  {c.result.score}%
+                  {c.card.format === 'open' ? `${c.result.score}%` : (c.result.isCorrect ? '✓' : '✗')}
                 </span>
               )}
               <span className="font-mono text-xs text-j-text-tertiary">

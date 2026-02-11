@@ -13,14 +13,15 @@ import { calculateNextReview, scoreToRating, deriveFromRubric } from '@/lib/spac
 import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import type { SupportedLanguage } from '@/lib/llm/prompts';
-import type { QuestionBankType } from '@/types';
+import type { QuestionBankType, ReviewRating } from '@/types';
 
 /**
  * POST /api/review/submit
- * Evaluates user answer via DeepSeek with rubric-based multi-dimensional scoring.
- * Falls back to legacy v1 prompt if rubric parse fails.
+ * Evaluates user answer. Two paths:
+ * - MC/TF: deterministic grading (no LLM call), instant feedback
+ * - Open: rubric-based DeepSeek evaluation with legacy fallback
  *
- * Body: { questionId: string, userAnswer: string }
+ * Body: { questionId: string, userAnswer?: string, selectedAnswer?: string, confidence?: number }
  * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays,
  *            dimensionScores?, reasoning?, masteryAdvanced? }
  */
@@ -36,15 +37,83 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { questionId, userAnswer, confidence } = body;
+    const { questionId, userAnswer, selectedAnswer, confidence } = body;
 
-    if (!questionId || !userAnswer?.trim()) {
-      return NextResponse.json({ error: 'Missing questionId or userAnswer' }, { status: 400 });
+    if (!questionId) {
+      return NextResponse.json({ error: 'Missing questionId' }, { status: 400 });
     }
 
     // Validate optional confidence (1-3)
     const confidenceLevel: number | null =
       confidence != null && [1, 2, 3].includes(confidence) ? confidence : null;
+
+    // Fetch the question with format + grading fields
+    const { data: question, error: qError } = await supabase
+      .from('question_bank')
+      .select('id, question_text, expected_answer, concept_id, type, format, correct_answer, explanation, options, concepts!concept_id(name, phase)')
+      .eq('id', questionId)
+      .single();
+
+    if (qError || !question) {
+      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+    }
+
+    const conceptsData = question.concepts as unknown as
+      | { name: string; phase: number }
+      | { name: string; phase: number }[]
+      | null;
+    const conceptObj = Array.isArray(conceptsData) ? conceptsData[0] : conceptsData;
+    const conceptName = conceptObj?.name || question.concept_id;
+    const conceptPhase = conceptObj?.phase ?? 1;
+    const questionType = question.type as QuestionBankType;
+    const format = (question.format as string) || 'open';
+
+    // ========================================================================
+    // MC/TF: Deterministic grading — no DeepSeek call
+    // ========================================================================
+    if (format === 'mc' || format === 'tf') {
+      if (!selectedAnswer) {
+        return NextResponse.json({ error: 'Missing selectedAnswer for MC/TF question' }, { status: 400 });
+      }
+
+      const isCorrect = selectedAnswer === question.correct_answer;
+      const rating: ReviewRating = isCorrect ? 'easy' : 'wrong';
+      const score = isCorrect ? 100 : 0;
+      const feedback = question.explanation || '';
+
+      // SM-2 update
+      const smResult = await applySM2AndMastery({
+        supabase,
+        userId: user.id,
+        questionId,
+        conceptId: question.concept_id,
+        rating,
+        isCorrect,
+        confidenceLevel,
+      });
+
+      console.log(
+        `[Review/Submit] MC/TF: question=${questionId}, format=${format}, correct=${isCorrect}, interval=${smResult.intervalDays}d`
+      );
+
+      return NextResponse.json({
+        score,
+        feedback,
+        isCorrect,
+        expectedAnswer: question.correct_answer,
+        rating,
+        nextReviewAt: smResult.nextReviewAt,
+        intervalDays: smResult.intervalDays,
+        masteryAdvanced: smResult.masteryAdvanced,
+      });
+    }
+
+    // ========================================================================
+    // Open: DeepSeek rubric evaluation (existing flow)
+    // ========================================================================
+    if (!userAnswer?.trim()) {
+      return NextResponse.json({ error: 'Missing userAnswer for open question' }, { status: 400 });
+    }
 
     // Get user language
     const { data: profile } = await supabase
@@ -55,32 +124,10 @@ export async function POST(request: Request) {
 
     const language = (profile?.language || 'es') as SupportedLanguage;
 
-    // Fetch the question with type and concept name for rubric selection
-    const { data: question, error: qError } = await supabase
-      .from('question_bank')
-      .select('id, question_text, expected_answer, concept_id, type, concepts!concept_id(name, phase)')
-      .eq('id', questionId)
-      .single();
-
-    if (qError || !question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
-    }
-
-    // Supabase join: concepts is object (single FK) but TS may infer array
-    const conceptsData = question.concepts as unknown as
-      | { name: string; phase: number }
-      | { name: string; phase: number }[]
-      | null;
-    const conceptObj = Array.isArray(conceptsData) ? conceptsData[0] : conceptsData;
-    const conceptName = conceptObj?.name || question.concept_id;
-    const conceptPhase = conceptObj?.phase ?? 1;
-    const questionType = question.type as QuestionBankType;
-
-    // Try rubric-based evaluation (v2), fall back to legacy (v1) on parse failure
     let score: number;
     let feedback: string;
     let isCorrect: boolean;
-    let rating: ReturnType<typeof scoreToRating>;
+    let rating: ReviewRating;
     let dimensionScores: Record<string, number> | undefined;
     let reasoning: string | undefined;
     let tokensUsed: number;
@@ -122,7 +169,6 @@ export async function POST(request: Request) {
         `scores=${JSON.stringify(rubricResult.scores)}, total=${derived.total}, rating=${rating}`
       );
     } catch (rubricParseError) {
-      // Fallback to legacy v1 prompt
       console.warn(
         '[Review/Submit] Rubric parse failed, falling back to legacy prompt:',
         rubricParseError
@@ -154,131 +200,19 @@ export async function POST(request: Request) {
       rating = scoreToRating(legacyResult.score);
     }
 
-    // Fetch or create review_schedule state
-    const { data: schedule } = await supabase
-      .from('review_schedule')
-      .select('ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count')
-      .eq('user_id', user.id)
-      .eq('question_id', questionId)
-      .single();
-
-    // Default state for questions not yet in review_schedule
-    const currentState = schedule || {
-      ease_factor: 2.5,
-      interval_days: 0,
-      repetition_count: 0,
-      streak: 0,
-      correct_count: 0,
-      incorrect_count: 0,
-    };
-
-    // Apply SM-2 algorithm
-    const result = calculateNextReview(
-      {
-        easeFactor: currentState.ease_factor,
-        intervalDays: currentState.interval_days,
-        repetitionCount: currentState.repetition_count,
-        streak: currentState.streak,
-        correctCount: currentState.correct_count,
-        incorrectCount: currentState.incorrect_count,
-      },
-      rating
-    );
-
-    // Upsert review_schedule (create if not exists, update if exists)
-    const upsertData: Record<string, unknown> = {
-      user_id: user.id,
-      question_id: questionId,
-      ease_factor: result.easeFactor,
-      interval_days: result.intervalDays,
-      repetition_count: result.repetitionCount,
-      streak: result.streak,
-      correct_count: result.correctCount,
-      incorrect_count: result.incorrectCount,
-      next_review_at: result.nextReviewAt.toISOString(),
-      last_reviewed_at: new Date().toISOString(),
-      last_rating: rating,
-    };
-    if (confidenceLevel !== null) {
-      upsertData.confidence_level = confidenceLevel;
-    }
-
-    const { error: upsertError } = await supabase
-      .from('review_schedule')
-      .upsert(upsertData, { onConflict: 'user_id,question_id' });
-
-    if (upsertError) {
-      console.error('[Review/Submit] Error upserting schedule:', upsertError);
-    }
-
-    // Check micro-test mastery advancement (0->1) if answer was correct
-    let masteryAdvanced = false;
-    if (isCorrect) {
-      // Count correct answers for this concept across all questions
-      const { count: correctCount } = await supabase
-        .from('review_schedule')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('correct_count', 1)
-        .in(
-          'question_id',
-          (
-            await supabase
-              .from('question_bank')
-              .select('id')
-              .eq('concept_id', question.concept_id)
-          ).data?.map((q) => q.id) || []
-        );
-
-      const totalCorrect = correctCount || 0;
-
-      // Check current mastery level
-      const { data: progress } = await supabase
-        .from('concept_progress')
-        .select('mastery_level')
-        .eq('user_id', user.id)
-        .eq('concept_id', question.concept_id)
-        .single();
-
-      const currentLevel = progress ? parseInt(progress.mastery_level, 10) : 0;
-
-      if (canAdvanceFromMicroTests(currentLevel, totalCorrect)) {
-        // Advance to level 1
-        const { error: advanceError } = await supabase
-          .from('concept_progress')
-          .upsert(
-            {
-              user_id: user.id,
-              concept_id: question.concept_id,
-              mastery_level: '1',
-            },
-            { onConflict: 'user_id,concept_id' }
-          );
-
-        if (!advanceError) {
-          masteryAdvanced = true;
-
-          // Record mastery history
-          await supabase.from('mastery_history').insert(
-            buildMasteryHistoryRecord({
-              userId: user.id,
-              conceptId: question.concept_id,
-              oldLevel: currentLevel,
-              newLevel: 1,
-              triggerType: 'micro_test',
-              triggerId: questionId,
-            })
-          );
-
-          console.log(
-            `[Review/Submit] Mastery advanced: ${question.concept_id} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
-          );
-        }
-      }
-    }
+    // SM-2 update + mastery check
+    const smResult = await applySM2AndMastery({
+      supabase,
+      userId: user.id,
+      questionId,
+      conceptId: question.concept_id,
+      rating,
+      isCorrect,
+      confidenceLevel,
+    });
 
     console.log(
-      `[Review/Submit] Question ${questionId}: score=${score}, rating=${rating}, interval=${result.intervalDays}d, tokens=${tokensUsed}`
+      `[Review/Submit] Open: question=${questionId}, score=${score}, rating=${rating}, interval=${smResult.intervalDays}d, tokens=${tokensUsed}`
     );
 
     return NextResponse.json({
@@ -287,9 +221,9 @@ export async function POST(request: Request) {
       isCorrect,
       expectedAnswer: question.expected_answer,
       rating,
-      nextReviewAt: result.nextReviewAt.toISOString(),
-      intervalDays: result.intervalDays,
-      masteryAdvanced,
+      nextReviewAt: smResult.nextReviewAt,
+      intervalDays: smResult.intervalDays,
+      masteryAdvanced: smResult.masteryAdvanced,
       dimensionScores,
       reasoning,
     });
@@ -300,4 +234,150 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// ============================================================================
+// Shared SM-2 + Mastery Logic (extracted to avoid duplication between paths)
+// ============================================================================
+
+interface SM2Params {
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>;
+  userId: string;
+  questionId: string;
+  conceptId: string;
+  rating: ReviewRating;
+  isCorrect: boolean;
+  confidenceLevel: number | null;
+}
+
+async function applySM2AndMastery({
+  supabase,
+  userId,
+  questionId,
+  conceptId,
+  rating,
+  isCorrect,
+  confidenceLevel,
+}: SM2Params) {
+  // Fetch or create review_schedule state
+  const { data: schedule } = await supabase
+    .from('review_schedule')
+    .select('ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count')
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .single();
+
+  const currentState = schedule || {
+    ease_factor: 2.5,
+    interval_days: 0,
+    repetition_count: 0,
+    streak: 0,
+    correct_count: 0,
+    incorrect_count: 0,
+  };
+
+  const result = calculateNextReview(
+    {
+      easeFactor: currentState.ease_factor,
+      intervalDays: currentState.interval_days,
+      repetitionCount: currentState.repetition_count,
+      streak: currentState.streak,
+      correctCount: currentState.correct_count,
+      incorrectCount: currentState.incorrect_count,
+    },
+    rating
+  );
+
+  const upsertData: Record<string, unknown> = {
+    user_id: userId,
+    question_id: questionId,
+    ease_factor: result.easeFactor,
+    interval_days: result.intervalDays,
+    repetition_count: result.repetitionCount,
+    streak: result.streak,
+    correct_count: result.correctCount,
+    incorrect_count: result.incorrectCount,
+    next_review_at: result.nextReviewAt.toISOString(),
+    last_reviewed_at: new Date().toISOString(),
+    last_rating: rating,
+  };
+  if (confidenceLevel !== null) {
+    upsertData.confidence_level = confidenceLevel;
+  }
+
+  const { error: upsertError } = await supabase
+    .from('review_schedule')
+    .upsert(upsertData, { onConflict: 'user_id,question_id' });
+
+  if (upsertError) {
+    console.error('[Review/Submit] Error upserting schedule:', upsertError);
+  }
+
+  // Check micro-test mastery advancement (0->1) if answer was correct
+  let masteryAdvanced = false;
+  if (isCorrect) {
+    const { count: correctCount } = await supabase
+      .from('review_schedule')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('correct_count', 1)
+      .in(
+        'question_id',
+        (
+          await supabase
+            .from('question_bank')
+            .select('id')
+            .eq('concept_id', conceptId)
+        ).data?.map((q) => q.id) || []
+      );
+
+    const totalCorrect = correctCount || 0;
+
+    const { data: progress } = await supabase
+      .from('concept_progress')
+      .select('mastery_level')
+      .eq('user_id', userId)
+      .eq('concept_id', conceptId)
+      .single();
+
+    const currentLevel = progress ? parseInt(progress.mastery_level, 10) : 0;
+
+    if (canAdvanceFromMicroTests(currentLevel, totalCorrect)) {
+      const { error: advanceError } = await supabase
+        .from('concept_progress')
+        .upsert(
+          {
+            user_id: userId,
+            concept_id: conceptId,
+            mastery_level: '1',
+          },
+          { onConflict: 'user_id,concept_id' }
+        );
+
+      if (!advanceError) {
+        masteryAdvanced = true;
+
+        await supabase.from('mastery_history').insert(
+          buildMasteryHistoryRecord({
+            userId,
+            conceptId,
+            oldLevel: currentLevel,
+            newLevel: 1,
+            triggerType: 'micro_test',
+            triggerId: questionId,
+          })
+        );
+
+        console.log(
+          `[Review/Submit] Mastery advanced: ${conceptId} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
+        );
+      }
+    }
+  }
+
+  return {
+    nextReviewAt: result.nextReviewAt.toISOString(),
+    intervalDays: result.intervalDays,
+    masteryAdvanced,
+  };
 }
