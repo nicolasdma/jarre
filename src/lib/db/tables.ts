@@ -1,0 +1,33 @@
+/**
+ * Jarre - Database Table Names
+ *
+ * Single source of truth for all Supabase table names.
+ * Prevents typos and enables type-safe refactoring.
+ */
+
+export const TABLES = {
+  // Content (public read)
+  concepts: 'concepts',
+  resources: 'resources',
+  resourceConcepts: 'resource_concepts',
+  resourceSections: 'resource_sections',
+  questionBank: 'question_bank',
+  inlineQuizzes: 'inline_quizzes',
+  projects: 'projects',
+  projectConcepts: 'project_concepts',
+
+  // User data (RLS: auth.uid() = user_id)
+  userProfiles: 'user_profiles',
+  conceptProgress: 'concept_progress',
+  masteryHistory: 'mastery_history',
+  reviewSchedule: 'review_schedule',
+  evaluations: 'evaluations',
+  evaluationQuestions: 'evaluation_questions',
+  evaluationResponses: 'evaluation_responses',
+  learnProgress: 'learn_progress',
+  projectProgress: 'project_progress',
+  sectionAnnotations: 'section_annotations',
+  resourceNotes: 'resource_notes',
+} as const;
+
+export type TableName = (typeof TABLES)[keyof typeof TABLES];

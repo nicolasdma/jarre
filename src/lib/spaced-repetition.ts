@@ -13,11 +13,21 @@
  */
 
 import type { ReviewRating } from '@/types';
+import {
+  SM2_MIN_EASE,
+  SM2_MAX_EASE,
+  SM2_MAX_INTERVAL_DAYS,
+  REVIEW_SESSION_CAP as SESSION_CAP_CONST,
+  SCORE_RATING_BOUNDARIES,
+  RUBRIC_RATING_BOUNDARIES,
+  RUBRIC_FLOOR_PERCENT,
+  RUBRIC_MAX_TOTAL,
+} from '@/lib/constants';
 
-const MIN_EASE = 1.3;
-const MAX_EASE = 2.5;
-const MAX_INTERVAL_DAYS = 180;
-const SESSION_CAP = 12;
+const MIN_EASE = SM2_MIN_EASE;
+const MAX_EASE = SM2_MAX_EASE;
+const MAX_INTERVAL_DAYS = SM2_MAX_INTERVAL_DAYS;
+const SESSION_CAP = SESSION_CAP_CONST;
 
 export interface ReviewState {
   easeFactor: number;
@@ -100,8 +110,8 @@ export function calculateNextReview(
  * - score < 50  → wrong
  */
 export function scoreToRating(score: number): ReviewRating {
-  if (score >= 80) return 'easy';
-  if (score >= 50) return 'hard';
+  if (score >= SCORE_RATING_BOUNDARIES.easy) return 'easy';
+  if (score >= SCORE_RATING_BOUNDARIES.hard) return 'hard';
   return 'wrong';
 }
 
@@ -114,8 +124,8 @@ export function scoreToRating(score: number): ReviewRating {
  * - total < 3  → wrong (0-33% — major gaps)
  */
 export function rubricTotalToRating(total: number): ReviewRating {
-  if (total >= 5) return 'easy';
-  if (total >= 3) return 'hard';
+  if (total >= RUBRIC_RATING_BOUNDARIES.easy) return 'easy';
+  if (total >= RUBRIC_RATING_BOUNDARIES.hard) return 'hard';
   return 'wrong';
 }
 
@@ -135,8 +145,8 @@ export function deriveFromRubric(scores: Record<string, number>): {
   const total = Object.values(scores).reduce((a, b) => a + b, 0);
   return {
     total,
-    normalizedScore: Math.round(20 + (total / 6) * 80),
-    isCorrect: total >= 3,
+    normalizedScore: Math.round(RUBRIC_FLOOR_PERCENT + (total / RUBRIC_MAX_TOTAL) * (100 - RUBRIC_FLOOR_PERCENT)),
+    isCorrect: total >= RUBRIC_RATING_BOUNDARIES.hard,
     rating: rubricTotalToRating(total),
   };
 }

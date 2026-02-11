@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import * as net from 'node:net';
+import { ENGINE_COMMAND_TIMEOUT_MS } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Engine/Command');
 
 const ENGINE_HOST = '127.0.0.1';
 const ENGINE_PORT = parseInt(process.env.ENGINE_PORT ?? '6380', 10);
-const TIMEOUT_MS = 5000;
+const TIMEOUT_MS = ENGINE_COMMAND_TIMEOUT_MS;
 
 /**
  * POST /api/playground/storage-engine/command
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error('[api/storage-engine/command] Error:', message);
+    log.error('Error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

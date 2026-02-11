@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { createLogger } from '@/lib/logger';
+import { getUserLanguage } from '@/lib/db/queries/user';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { RubricEvaluationSchema } from '@/lib/llm/schemas';
 import {
@@ -7,7 +9,8 @@ import {
   getRubricSystemPrompt,
 } from '@/lib/llm/review-prompts';
 import { JUSTIFICATION_RUBRIC } from '@/lib/llm/rubrics';
-import type { SupportedLanguage } from '@/lib/llm/prompts';
+
+const log = createLogger('Quiz/EvalJustification');
 
 /**
  * POST /api/quiz/evaluate-justification
@@ -21,17 +24,8 @@ import type { SupportedLanguage } from '@/lib/llm/prompts';
  * Body: { quizId, questionText, options, correctAnswer, selectedAnswer, explanation, justification }
  * Returns: { overallResult, justificationScore, dimensionScores, feedback, reasoning }
  */
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const {
       quizId,
@@ -57,13 +51,7 @@ export async function POST(request: Request) {
     }
 
     // Get user language
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('language')
-      .eq('id', user.id)
-      .single();
-
-    const language = (profile?.language || 'es') as SupportedLanguage;
+    const language = await getUserLanguage(supabase, user.id);
 
     // Build prompt
     const prompt = buildJustificationPrompt({
@@ -114,8 +102,8 @@ export async function POST(request: Request) {
       overallResult = 'incorrect';
     }
 
-    console.log(
-      `[Quiz/EvalJustification] quiz=${quizId}, mc=${mcCorrect}, justTotal=${justTotal}, ` +
+    log.info(
+      `quiz=${quizId}, mc=${mcCorrect}, justTotal=${justTotal}, ` +
         `overall=${overallResult}, scores=${JSON.stringify(scores)}, tokens=${tokensUsed}`
     );
 
@@ -127,10 +115,10 @@ export async function POST(request: Request) {
       reasoning: rubricResult.reasoning,
     });
   } catch (error) {
-    console.error('[Quiz/EvalJustification] Error:', error);
+    log.error('Error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to evaluate justification' },
       { status: 500 }
     );
   }
-}
+});

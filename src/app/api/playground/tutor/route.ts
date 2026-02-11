@@ -10,6 +10,9 @@ import { NextResponse } from 'next/server';
 import { callDeepSeekStream } from '@/lib/llm/streaming';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { buildTutorMessages } from '@/lib/llm/tutor-prompts';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Tutor');
 
 const VALID_PLAYGROUNDS = ['consensus', 'replication', 'partitioning', 'latency'] as const;
 type Playground = (typeof VALID_PLAYGROUNDS)[number];
@@ -64,7 +67,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ question: content });
   } catch (error) {
-    console.error('[tutor] Error processing request:', error);
+    log.error('Error processing request:', error);
     return NextResponse.json(
       { error: 'Error al procesar la solicitud del tutor' },
       { status: 500 }

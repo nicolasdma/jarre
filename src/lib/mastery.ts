@@ -14,14 +14,19 @@
  */
 
 import type { MasteryLevel, EvaluationType, MasteryTriggerType } from '@/types';
+import {
+  LEVEL_1_SCORE,
+  LEVEL_3_SCORE,
+  MICRO_TEST_THRESHOLD as MICRO_TEST_THRESHOLD_CONST,
+} from '@/lib/constants';
 
 // ============================================================================
-// THRESHOLDS
+// THRESHOLDS (re-exported from constants for backward compatibility)
 // ============================================================================
 
 export const MASTERY_THRESHOLDS = {
-  LEVEL_1_SCORE: 60,
-  LEVEL_3_SCORE: 80,
+  LEVEL_1_SCORE,
+  LEVEL_3_SCORE,
 } as const;
 
 /** Evaluation types that qualify for level 3 advancement */
@@ -98,7 +103,7 @@ export function computeNewLevelFromProject(currentLevel: number): MasteryLevel {
 // ============================================================================
 
 /** Minimum correct answers (≥60% score) for micro-test mastery advancement */
-export const MICRO_TEST_THRESHOLD = 3;
+export const MICRO_TEST_THRESHOLD = MICRO_TEST_THRESHOLD_CONST;
 
 /**
  * Check if a concept should advance 0→1 based on accumulated micro-test results.

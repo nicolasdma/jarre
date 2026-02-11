@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
 import { z } from 'zod';
 import type { NoteSection } from '@/types/notes';
+
+const log = createLogger('Notes');
 
 // Validation schema for sections
 const NoteSubsectionSchema = z.object({
@@ -22,29 +26,16 @@ const NotesBodySchema = z.object({
   sections: z.array(NoteSectionSchema),
 });
 
-interface RouteParams {
-  params: Promise<{ resourceId: string }>;
-}
-
 /**
  * GET /api/notes/[resourceId]
  * Fetch notes for the authenticated user and resource
  */
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withAuth<{ resourceId: string }>(async (request, { supabase, user, params }) => {
   try {
-    const { resourceId } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { resourceId } = params;
 
     const { data: notes, error } = await supabase
-      .from('resource_notes')
+      .from(TABLES.resourceNotes)
       .select('*')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
@@ -52,7 +43,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     if (error && error.code !== 'PGRST116') {
       // PGRST116 = no rows found (ok, return empty)
-      console.error('[Notes] Error fetching notes:', error);
+      log.error('Error fetching notes:', error);
       return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });
     }
 
@@ -60,30 +51,21 @@ export async function GET(request: Request, { params }: RouteParams) {
       sections: (notes?.sections as NoteSection[]) || [],
     });
   } catch (error) {
-    console.error('[Notes] Error fetching notes:', error);
+    log.error('Error fetching notes:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to fetch notes' },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * PUT /api/notes/[resourceId]
  * Upsert notes for the authenticated user and resource
  */
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withAuth<{ resourceId: string }>(async (request, { supabase, user, params }) => {
   try {
-    const { resourceId } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { resourceId } = params;
 
     const body = await request.json();
 
@@ -99,7 +81,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { sections } = parseResult.data;
 
     // Upsert notes
-    const { error } = await supabase.from('resource_notes').upsert(
+    const { error } = await supabase.from(TABLES.resourceNotes).upsert(
       {
         user_id: user.id,
         resource_id: resourceId,
@@ -110,16 +92,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
     );
 
     if (error) {
-      console.error('[Notes] Error saving notes:', error);
+      log.error('Error saving notes:', error);
       return NextResponse.json({ error: 'Failed to save notes' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, sections });
   } catch (error) {
-    console.error('[Notes] Error saving notes:', error);
+    log.error('Error saving notes:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to save notes' },
       { status: 500 }
     );
   }
-}
+});

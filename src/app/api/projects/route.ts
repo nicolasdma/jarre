@@ -1,47 +1,42 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Projects');
 
 /**
  * GET /api/projects
  * Returns all projects with their concept mappings and user progress.
  */
-export async function GET() {
+export const GET = withAuth(async (_request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Fetch all projects
     const { data: projects, error: projError } = await supabase
-      .from('projects')
+      .from(TABLES.projects)
       .select('*')
       .order('phase');
 
     if (projError) {
-      console.error('[Projects] Error fetching projects:', projError);
+      log.error('Error fetching projects:', projError);
       return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
     }
 
     // Fetch project-concept mappings
     const { data: projectConcepts } = await supabase
-      .from('project_concepts')
+      .from(TABLES.projectConcepts)
       .select('project_id, concept_id');
 
     // Fetch user's project progress
     const { data: progress } = await supabase
-      .from('project_progress')
+      .from(TABLES.projectProgress)
       .select('project_id, status, started_at, completed_at')
       .eq('user_id', user.id);
 
     // Fetch concept names for display
     const conceptIds = [...new Set((projectConcepts || []).map((pc) => pc.concept_id))];
     const { data: concepts } = await supabase
-      .from('concepts')
+      .from(TABLES.concepts)
       .select('id, name')
       .in('id', conceptIds.length > 0 ? conceptIds : ['__none__']);
 
@@ -87,10 +82,10 @@ export async function GET() {
 
     return NextResponse.json({ projects: result });
   } catch (error) {
-    console.error('[Projects] Unexpected error:', error);
+    log.error('Unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});

@@ -1,22 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { extractConceptName } from '@/lib/db/helpers';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Review/ByResource');
 
 /**
  * GET /api/review/by-resource?resourceId=ddia-ch5
  * Returns ALL active question_bank questions for concepts covered by a resource.
  * Questions are matched via resource_sections (concept_id) and ordered by concept + difficulty.
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const resourceId = searchParams.get('resourceId');
 
@@ -26,12 +22,12 @@ export async function GET(request: Request) {
 
     // Get concept IDs from resource_sections for this resource
     const { data: sections, error: secError } = await supabase
-      .from('resource_sections')
+      .from(TABLES.resourceSections)
       .select('id, concept_id')
       .eq('resource_id', resourceId);
 
     if (secError) {
-      console.error('[Review/ByResource] Error fetching sections:', secError);
+      log.error('Error fetching sections:', secError);
       return NextResponse.json({ error: 'Failed to fetch sections' }, { status: 500 });
     }
 
@@ -49,7 +45,7 @@ export async function GET(request: Request) {
 
     // Fetch all active questions for these concepts
     const { data: questions, error: qError } = await supabase
-      .from('question_bank')
+      .from(TABLES.questionBank)
       .select(`
         id,
         concept_id,
@@ -66,18 +62,15 @@ export async function GET(request: Request) {
       .order('difficulty');
 
     if (qError) {
-      console.error('[Review/ByResource] Error fetching questions:', qError);
+      log.error('Error fetching questions:', qError);
       return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
     }
 
     const mapped = (questions || []).map((q) => {
-      const conceptRow = q.concepts as unknown as { name: string } | { name: string }[];
-      const conceptName = Array.isArray(conceptRow) ? conceptRow[0]?.name : conceptRow?.name;
-
       return {
         questionId: q.id,
         conceptId: q.concept_id,
-        conceptName: conceptName || q.concept_id,
+        conceptName: extractConceptName(q.concepts, q.concept_id),
         sectionId: q.resource_section_id || conceptToSection[q.concept_id] || null,
         questionText: q.question_text,
         expectedAnswer: q.expected_answer,
@@ -88,10 +81,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ questions: mapped });
   } catch (error) {
-    console.error('[Review/ByResource] Unexpected error:', error);
+    log.error('Unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});
