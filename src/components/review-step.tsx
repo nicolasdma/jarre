@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { InlineQuiz } from './inline-quiz';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
+import { interleaveByConcept } from '@/lib/interleave';
 import { t, type Language } from '@/lib/translations';
 import type { InlineQuiz as InlineQuizType } from '@/types';
 import type { ReviewStepState } from '@/lib/learn-progress';
@@ -37,65 +38,6 @@ interface ReviewStepProps {
   initialState?: ReviewStepState;
   onStateChange: (state: ReviewStepState) => void;
   onComplete: () => void;
-}
-
-// ============================================================================
-// Interleaving helper
-// ============================================================================
-
-/**
- * Shuffles items so no two consecutive share the same conceptId.
- * Uses a greedy approach: pick from a different concept than the last item.
- * Deterministic for same input (no Math.random).
- */
-function interleaveByConcept<T extends { conceptId: string }>(items: T[]): T[] {
-  if (items.length <= 1) return items;
-
-  // Group by concept
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const arr = groups.get(item.conceptId) ?? [];
-    arr.push(item);
-    groups.set(item.conceptId, arr);
-  }
-
-  const result: T[] = [];
-  let lastConcept = '';
-
-  while (result.length < items.length) {
-    // Find a group that doesn't match the last concept
-    let picked = false;
-    const conceptKeys = [...groups.keys()];
-
-    // Prefer different concept, fall back to same if no alternative
-    for (const key of conceptKeys) {
-      if (key !== lastConcept) {
-        const arr = groups.get(key)!;
-        if (arr.length > 0) {
-          result.push(arr.shift()!);
-          lastConcept = key;
-          if (arr.length === 0) groups.delete(key);
-          picked = true;
-          break;
-        }
-      }
-    }
-
-    // If only one concept group remains, append remaining items
-    if (!picked) {
-      for (const key of conceptKeys) {
-        const arr = groups.get(key);
-        if (arr && arr.length > 0) {
-          result.push(arr.shift()!);
-          lastConcept = key;
-          if (arr.length === 0) groups.delete(key);
-          break;
-        }
-      }
-    }
-  }
-
-  return result;
 }
 
 // ============================================================================

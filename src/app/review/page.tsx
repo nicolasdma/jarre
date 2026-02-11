@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/header';
 import { t, type Language } from '@/lib/translations';
-import { REVIEW_SESSION_CAP } from '@/lib/spaced-repetition';
+import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { ReviewSession } from './review-session';
 
 export default async function ReviewPage() {
@@ -25,15 +25,29 @@ export default async function ReviewPage() {
 
   const lang = (profile?.language || 'es') as Language;
 
-  // Get count of due cards
   const now = new Date().toISOString();
-  const { count: dueCount } = await supabase
+
+  // Count cards reviewed today (daily cap)
+  const { count: reviewedToday } = await supabase
     .from('review_schedule')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
-    .lte('next_review_at', now);
+    .gte('last_reviewed_at', todayStart());
 
-  // Get total cards
+  const dailyRemaining = Math.max(0, REVIEW_SESSION_CAP - (reviewedToday || 0));
+
+  // Count actually due cards, capped by daily remaining
+  let dueCount = 0;
+  if (dailyRemaining > 0) {
+    const { count } = await supabase
+      .from('review_schedule')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .lte('next_review_at', now);
+    dueCount = Math.min(count || 0, dailyRemaining);
+  }
+
+  // Get total cards in the system
   const { count: totalCards } = await supabase
     .from('review_schedule')
     .select('*', { count: 'exact', head: true })
@@ -60,7 +74,7 @@ export default async function ReviewPage() {
         </div>
 
         <ReviewSession
-          dueCount={Math.min(dueCount || 0, REVIEW_SESSION_CAP)}
+          dueCount={dueCount}
           totalCards={totalCards || 0}
           language={lang}
         />

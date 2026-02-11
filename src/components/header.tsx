@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { t, type Language } from '@/lib/translations';
 
 interface HeaderProps {
@@ -25,13 +26,24 @@ export async function Header({ currentPage }: HeaderProps) {
       .single();
     lang = (profile?.language || 'es') as Language;
 
-    // Get due review count for badge
-    const { count } = await supabase
+    // Count cards reviewed today
+    const { count: reviewedToday } = await supabase
       .from('review_schedule')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .lte('next_review_at', new Date().toISOString());
-    dueCount = count || 0;
+      .gte('last_reviewed_at', todayStart());
+
+    const dailyRemaining = Math.max(0, REVIEW_SESSION_CAP - (reviewedToday || 0));
+
+    if (dailyRemaining > 0) {
+      // Count actually due cards, capped by daily remaining
+      const { count } = await supabase
+        .from('review_schedule')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .lte('next_review_at', new Date().toISOString());
+      dueCount = Math.min(count || 0, dailyRemaining);
+    }
   }
 
   return (

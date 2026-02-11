@@ -43,6 +43,8 @@ export type QuestionBankType =
 
 export type ReviewRating = 'wrong' | 'hard' | 'easy';
 
+export type QuestionFormat = 'open' | 'mc' | 'tf';
+
 export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay' | 'micro_test';
 
 // ============================================================================
@@ -136,10 +138,14 @@ export interface QuestionBankItem {
   id: string;
   conceptId: string;
   type: QuestionBankType;
+  format: QuestionFormat;
   questionText: string;
-  expectedAnswer: string;
+  expectedAnswer?: string;
   difficulty: 1 | 2 | 3;
   relatedConceptId?: string;
+  options?: { label: string; text: string }[];
+  correctAnswer?: string;
+  explanation?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -345,9 +351,13 @@ export interface ReviewCard {
   conceptName: string;
   questionText: string;
   type: QuestionBankType;
+  format: QuestionFormat;
   difficulty: 1 | 2 | 3;
   streak: number;
   repetitionCount: number;
+  options?: { label: string; text: string }[];
+  correctAnswer?: string;
+  explanation?: string;
 }
 
 /**
@@ -355,7 +365,8 @@ export interface ReviewCard {
  */
 export interface ReviewSubmitRequest {
   questionId: string;
-  userAnswer: string;
+  userAnswer?: string;
+  selectedAnswer?: string;
 }
 
 /**
