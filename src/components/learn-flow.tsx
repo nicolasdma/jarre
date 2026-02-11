@@ -10,6 +10,8 @@ import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
 import { PracticeEvalStep } from './practice-eval-step';
 import { saveLearnProgress, type LearnProgress, type SectionState, type ReviewStepState, type PracticeEvalState } from '@/lib/learn-progress';
+import { WhisperProvider } from '@/lib/whisper/whisper-context';
+import { WhisperToggle } from './whisper-toggle';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz } from '@/types';
 
@@ -209,6 +211,7 @@ export function LearnFlow({
   };
 
   return (
+    <WhisperProvider activeStep={currentStep}>
     <div className="min-h-screen bg-j-bg">
       <ScrollProgress />
 
@@ -256,6 +259,9 @@ export function LearnFlow({
               );
             })}
           </div>
+
+          {/* Whisper toggle */}
+          <WhisperToggle language={language} />
 
           {/* Right side: resource title + step info on desktop (lg+) */}
           <div className="hidden lg:flex items-center gap-3">
@@ -517,5 +523,6 @@ export function LearnFlow({
         )}
       </div>
     </div>
+    </WhisperProvider>
   );
 }

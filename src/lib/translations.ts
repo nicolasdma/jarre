@@ -259,6 +259,29 @@ const translations = {
   'selfExplanation.save': { es: 'Guardar', en: 'Save' },
   'selfExplanation.saved': { es: 'Guardado', en: 'Saved' },
 
+  // Whisper read-along
+  'whisper.enable': { es: 'Lectura en voz alta', en: 'Read aloud' },
+  'whisper.disable': { es: 'Desactivar lectura', en: 'Disable read-aloud' },
+  'whisper.loading': { es: 'Cargando voces...', en: 'Loading voices...' },
+  'whisper.hint': { es: 'Mantén Espacio', en: 'Hold Space' },
+  'whisper.setup.title': { es: 'Configurar lectura', en: 'Setup read-aloud' },
+  'whisper.setup.description': {
+    es: 'La lectura en voz alta usa las voces de tu sistema operativo. No necesita extensiones.',
+    en: 'Read-aloud uses your operating system\'s built-in voices. No extensions needed.',
+  },
+  'whisper.setup.step1': {
+    es: 'macOS: Ajustes > Accesibilidad > Contenido leído > Voces del sistema > descargar una voz en español',
+    en: 'macOS: Settings > Accessibility > Spoken Content > System Voices > download a Spanish voice',
+  },
+  'whisper.setup.step2': {
+    es: 'Windows: Configuración > Hora e idioma > Idioma > Agregar español > Descargar voz',
+    en: 'Windows: Settings > Time & Language > Language > Add Spanish > Download voice',
+  },
+  'whisper.setup.step3': {
+    es: 'Recarga la página después de instalar las voces',
+    en: 'Reload the page after installing voices',
+  },
+
   // Review prediction
   'prediction.title': { es: 'Predicción', en: 'Prediction' },
   'prediction.confirm': { es: 'Confirmar', en: 'Confirm' },
