@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWhisper } from '@/lib/whisper/whisper-context';
 import { t, type Language } from '@/lib/translations';
 
@@ -12,6 +12,7 @@ export function WhisperToggle({ language }: WhisperToggleProps) {
   const { isEnabled, isReady, isPlaying, toggle } = useWhisper();
   const [mounted, setMounted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const helpRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -29,6 +30,19 @@ export function WhisperToggle({ language }: WhisperToggleProps) {
     return () => clearTimeout(timer);
   }, [isReady]);
 
+  // P7: Click outside to close help panel
+  useEffect(() => {
+    if (!showHelp) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
+        setShowHelp(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [showHelp]);
 
   if (!mounted) {
     return <div className="w-8 h-8" />;
@@ -89,7 +103,7 @@ export function WhisperToggle({ language }: WhisperToggleProps) {
       )}
 
       {showHelp && !isReady && (
-        <div className="absolute top-full right-0 mt-2 z-50 w-72 bg-j-bg-white border border-j-border shadow-lg p-4">
+        <div ref={helpRef} className="absolute top-full right-0 mt-2 z-50 w-72 bg-j-bg-white border border-j-border shadow-lg p-4">
           <div className="flex items-start justify-between gap-2 mb-2">
             <p className="font-mono text-[10px] tracking-[0.15em] text-j-warm uppercase">
               {t('whisper.setup.title', language)}

@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// ============================================================================
+// Types
+// ============================================================================
+
 interface SpeechEngine {
   speak: (text: string, onEnd?: () => void) => void;
   pause: () => void;
@@ -12,10 +16,10 @@ interface SpeechEngine {
   isPaused: boolean;
 }
 
-/**
- * Scores a voice for quality. Higher = better.
- * Prefers: Premium/Enhanced Spanish > standard Spanish > any voice.
- */
+// ============================================================================
+// Voice scoring
+// ============================================================================
+
 // macOS novelty/character voices — low quality, should never be selected
 const NOVELTY_VOICES = new Set([
   'eddy', 'flo', 'grandma', 'grandpa', 'reed', 'rocko', 'sandy', 'shelley',
@@ -23,6 +27,17 @@ const NOVELTY_VOICES = new Set([
   'good news', 'jester', 'organ', 'superstar', 'trinoids', 'whisper', 'zarvox',
 ]);
 
+/**
+ * Minimum score to consider a voice usable.
+ * A Spanish voice scores >= 100, non-Spanish scores 0.
+ * Threshold of 50 ensures only Spanish voices are selected.
+ */
+const MIN_VOICE_SCORE = 50;
+
+/**
+ * Scores a voice for quality. Higher = better.
+ * Prefers: Premium/Enhanced Spanish > standard Spanish > any Spanish.
+ */
 function scoreVoice(voice: SpeechSynthesisVoice): number {
   let score = 0;
   if (voice.lang.startsWith('es')) score += 100;
@@ -48,14 +63,19 @@ function scoreVoice(voice: SpeechSynthesisVoice): number {
   return score;
 }
 
+// ============================================================================
+// Hook
+// ============================================================================
+
 /**
  * Low-level hook encapsulating Web Speech API.
  *
- * - Selects highest-quality Spanish voice (Premium > Enhanced > standard)
- * - Falls back to any voice if no Spanish available
- * - Chunks long text into sentences to avoid Chrome's ~15s timeout
- * - Rate 0.92 for more natural cadence
- * - Cleanup on unmount
+ * Hardened against known browser issues:
+ * - F1: Chunks text at ~60 words to avoid Chrome's ~15s utterance timeout
+ * - F2: Resume uses cancel + re-speak (Chrome's native resume is unreliable)
+ * - F3: Generation counter invalidates stale utterance callbacks
+ * - F5: Requires a Spanish voice (MIN_VOICE_SCORE) — won't activate otherwise
+ * - Rate 0.92 for natural cadence
  */
 export function useSpeechEngine(): SpeechEngine {
   const [isReady, setIsReady] = useState(false);
@@ -66,6 +86,11 @@ export function useSpeechEngine(): SpeechEngine {
   const queueRef = useRef<string[]>([]);
   const onEndCallbackRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
+  const genRef = useRef(0);
+  const currentChunkRef = useRef('');
+  const charIndexRef = useRef(0);
+
+  // ---- Voice selection ----
 
   const selectVoice = useCallback(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -76,6 +101,11 @@ export function useSpeechEngine(): SpeechEngine {
     const scored = voices
       .map((v) => ({ voice: v, score: scoreVoice(v) }))
       .sort((a, b) => b.score - a.score);
+
+    if (scored[0].score < MIN_VOICE_SCORE) {
+      voiceRef.current = null;
+      return;
+    }
 
     voiceRef.current = scored[0].voice;
     setIsReady(true);
@@ -93,15 +123,31 @@ export function useSpeechEngine(): SpeechEngine {
     };
   }, [selectVoice]);
 
+  // ---- Chunk-level speech with generation guard ----
+
   const speakChunk = useCallback(
     (text: string, onChunkEnd: () => void) => {
+      const gen = genRef.current;
+      currentChunkRef.current = text;
+      charIndexRef.current = 0;
+
       const utterance = new SpeechSynthesisUtterance(text);
       if (voiceRef.current) utterance.voice = voiceRef.current;
       utterance.lang = voiceRef.current?.lang ?? 'es';
-      utterance.rate = 0.92;
+      utterance.rate = 1.04;
 
-      utterance.onend = () => onChunkEnd();
+      // Track word-level position for sub-chunk resume
+      utterance.onboundary = (e) => {
+        if (gen !== genRef.current) return;
+        charIndexRef.current = e.charIndex;
+      };
+
+      utterance.onend = () => {
+        if (gen !== genRef.current) return;
+        onChunkEnd();
+      };
       utterance.onerror = (e) => {
+        if (gen !== genRef.current) return;
         if (e.error !== 'interrupted' && e.error !== 'canceled') {
           console.warn('[Whisper] Speech error:', e.error);
         }
@@ -113,9 +159,12 @@ export function useSpeechEngine(): SpeechEngine {
     []
   );
 
+  // ---- Queue processing ----
+
   const processQueue = useCallback(() => {
     if (cancelledRef.current) {
       queueRef.current = [];
+      currentChunkRef.current = '';
       setIsSpeaking(false);
       setIsPaused(false);
       return;
@@ -124,6 +173,7 @@ export function useSpeechEngine(): SpeechEngine {
     if (queueRef.current.length === 0) {
       setIsSpeaking(false);
       setIsPaused(false);
+      currentChunkRef.current = '';
       const cb = onEndCallbackRef.current;
       onEndCallbackRef.current = null;
       cb?.();
@@ -134,9 +184,17 @@ export function useSpeechEngine(): SpeechEngine {
     speakChunk(next, processQueue);
   }, [speakChunk]);
 
+  // ---- Text chunking ----
+
+  /**
+   * Splits text into chunks of ~50 words at sentence boundaries.
+   * Chrome silently kills utterances after ~15 seconds. At rate 0.92,
+   * 60 words takes ~12s — safe margin below the timeout.
+   * Threshold lowered from 150 to 60 words (F1).
+   */
   const chunkText = useCallback((text: string): string[] => {
     const words = text.split(/\s+/);
-    if (words.length <= 150) return [text];
+    if (words.length <= 60) return [text];
 
     const sentences = text.match(/[^.!?]+[.!?]+/g);
     if (!sentences) return [text];
@@ -145,7 +203,7 @@ export function useSpeechEngine(): SpeechEngine {
     let current = '';
     for (const sentence of sentences) {
       const combined = current ? `${current} ${sentence.trim()}` : sentence.trim();
-      if (combined.split(/\s+/).length > 80 && current) {
+      if (combined.split(/\s+/).length > 50 && current) {
         chunks.push(current);
         current = sentence.trim();
       } else {
@@ -156,10 +214,13 @@ export function useSpeechEngine(): SpeechEngine {
     return chunks;
   }, []);
 
+  // ---- Public API ----
+
   const speak = useCallback(
     (text: string, onEnd?: () => void) => {
       if (!isReady) return;
 
+      genRef.current++;
       speechSynthesis.cancel();
       cancelledRef.current = false;
       onEndCallbackRef.current = onEnd ?? null;
@@ -178,16 +239,45 @@ export function useSpeechEngine(): SpeechEngine {
     setIsPaused(true);
   }, [isSpeaking, isPaused]);
 
+  /**
+   * Chrome's speechSynthesis.resume() is unreliable — it silently fails,
+   * leaving the engine in a zombie state. Instead of native resume, we
+   * cancel and re-speak from the last known word boundary (charIndexRef).
+   * If onboundary never fired, falls back to full chunk replay.
+   */
   const resume = useCallback(() => {
     if (!isPaused) return;
-    speechSynthesis.resume();
+
+    genRef.current++;
+    speechSynthesis.cancel();
+    cancelledRef.current = false;
     setIsPaused(false);
-  }, [isPaused]);
+
+    const chunk = currentChunkRef.current;
+    if (!chunk) {
+      processQueue();
+      return;
+    }
+
+    // Slice from last known word boundary for sub-chunk resume
+    const remaining = charIndexRef.current > 0
+      ? chunk.slice(charIndexRef.current).trimStart()
+      : chunk;
+
+    if (remaining) {
+      speakChunk(remaining, processQueue);
+    } else {
+      processQueue();
+    }
+  }, [isPaused, speakChunk, processQueue]);
 
   const cancel = useCallback(() => {
+    genRef.current++;
     cancelledRef.current = true;
     speechSynthesis.cancel();
     queueRef.current = [];
+    currentChunkRef.current = '';
+    charIndexRef.current = 0;
     onEndCallbackRef.current = null;
     setIsSpeaking(false);
     setIsPaused(false);

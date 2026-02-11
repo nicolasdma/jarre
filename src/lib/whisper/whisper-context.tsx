@@ -34,6 +34,12 @@ const WhisperContext = createContext<WhisperContextValue>({
 });
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const STORAGE_KEY = 'jarre-whisper-enabled';
+
+// ============================================================================
 // Provider
 // ============================================================================
 
@@ -46,12 +52,19 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
   const [isEnabled, setIsEnabled] = useState(false);
   const engine = useSpeechEngine();
 
-  // Refs for DOM-level tracking (avoid re-renders on hover)
+  // Refs for DOM-level tracking (avoid re-renders on hover/key)
   const blocksRef = useRef<Element[]>([]);
   const cursorIndexRef = useRef<number>(-1);
   const currentIndexRef = useRef<number>(-1);
-  const spaceHeldRef = useRef(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const speakIdRef = useRef(0);
+
+  // ---- P8: Restore preference from localStorage on mount ----
+  useEffect(() => {
+    if (activeStep === 'learn' && localStorage.getItem(STORAGE_KEY) === 'true') {
+      setIsEnabled(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Auto-disable when leaving learn step ----
   useEffect(() => {
@@ -61,17 +74,39 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
     }
   }, [activeStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- Query blocks when enabled ----
+  // ---- P1: Query blocks when enabled + MutationObserver for DOM changes ----
   useEffect(() => {
-    if (isEnabled) {
-      blocksRef.current = Array.from(
-        document.querySelectorAll('[data-whisper="block"]')
-      );
-    } else {
+    if (!isEnabled) {
       blocksRef.current = [];
       cursorIndexRef.current = -1;
       currentIndexRef.current = -1;
+      return;
     }
+
+    const queryBlocks = () => {
+      blocksRef.current = Array.from(
+        document.querySelectorAll('[data-whisper="block"]')
+      );
+    };
+
+    queryBlocks();
+
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    // Re-query when DOM changes (section transitions, quiz expand/collapse).
+    // Debounced to avoid excessive re-queries during React batch updates.
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const observer = new MutationObserver(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(queryBlocks, 100);
+    });
+    observer.observe(wrapper, { childList: true, subtree: true });
+
+    return () => {
+      clearTimeout(debounceTimer);
+      observer.disconnect();
+    };
   }, [isEnabled]);
 
   // ---- Clear active attribute from all blocks ----
@@ -81,43 +116,49 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
     }
   }, []);
 
-  // ---- Speak from a given block index, auto-advancing ----
+  // ---- P2+F3: Speak from a given block index ----
+  // Iterative empty-block skip (P2) + speakId guard against stale callbacks (F3)
   const speakFrom = useCallback(
     (index: number) => {
-      if (index < 0 || index >= blocksRef.current.length) {
+      const id = ++speakIdRef.current;
+
+      // P2: Skip empty blocks iteratively instead of recursing
+      let targetIndex = index;
+      while (targetIndex < blocksRef.current.length) {
+        const text = blocksRef.current[targetIndex].textContent?.trim();
+        if (text) break;
+        targetIndex++;
+      }
+
+      if (targetIndex >= blocksRef.current.length) {
         engine.cancel();
         clearActiveAttr();
         currentIndexRef.current = -1;
         return;
       }
 
-      const block = blocksRef.current[index];
-      const text = block.textContent?.trim();
-      if (!text) {
-        speakFrom(index + 1);
-        return;
-      }
+      const block = blocksRef.current[targetIndex];
+      // Strip parenthesized content — typically English terms, citations, or
+      // asides that break the reading flow when spoken aloud.
+      const text = block.textContent!.trim().replace(/\s*\([^)]*\)/g, '');
 
       clearActiveAttr();
       block.setAttribute('data-whisper-active', 'true');
-      currentIndexRef.current = index;
-
+      currentIndexRef.current = targetIndex;
       block.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-
       engine.speak(text, () => {
-        if (spaceHeldRef.current) {
-          speakFrom(index + 1);
-        } else {
-          clearActiveAttr();
-          currentIndexRef.current = -1;
-        }
+        // F3: If a newer speakFrom was called, this callback is stale — ignore
+        if (id !== speakIdRef.current) return;
+
+        // Auto-advance to next block continuously until content ends
+        speakFrom(targetIndex + 1);
       });
     },
     [engine, clearActiveAttr]
   );
 
-  // ---- Keyboard listeners ----
+  // ---- Keyboard: Space toggles play/stop, Escape disables ----
   useEffect(() => {
     if (!isEnabled) return;
 
@@ -125,8 +166,9 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
       if (e.key === 'Escape') {
         engine.cancel();
         clearActiveAttr();
+        currentIndexRef.current = -1;
         setIsEnabled(false);
-        spaceHeldRef.current = false;
+        localStorage.removeItem(STORAGE_KEY);
         return;
       }
 
@@ -139,62 +181,65 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
 
       e.preventDefault();
 
-      if (spaceHeldRef.current) return;
-      spaceHeldRef.current = true;
-
+      // Paused → resume from where we left off
       if (engine.isPaused) {
         engine.resume();
         return;
       }
 
-
-      if (cursorIndexRef.current >= 0) {
-        speakFrom(cursorIndexRef.current);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key !== ' ' && e.code !== 'Space') return;
-      spaceHeldRef.current = false;
-
-      if (engine.isSpeaking && !engine.isPaused) {
+      // Speaking → pause (keep position for resume)
+      if (engine.isSpeaking) {
         engine.pause();
+        return;
+      }
+
+      // Not speaking — start from saved position or cursor
+      const startIndex = currentIndexRef.current >= 0
+        ? currentIndexRef.current
+        : cursorIndexRef.current;
+      if (startIndex >= 0) {
+        speakFrom(startIndex);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEnabled, engine, speakFrom, clearActiveAttr]);
 
-  // ---- Hover: delegated mouseover on wrapper ----
+  // ---- P5: Hover updates cursor only; click jumps during speech ----
   useEffect(() => {
     if (!isEnabled) return;
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
-    const handleMouseOver = (e: MouseEvent) => {
+    const findBlockIndex = (e: Event): number => {
       const target = (e.target as HTMLElement).closest('[data-whisper="block"]');
-      if (!target) return;
+      if (!target) return -1;
+      return blocksRef.current.indexOf(target);
+    };
 
-      const index = blocksRef.current.indexOf(target);
+    // Hover: only update cursor position, never interrupt speech
+    const handleMouseOver = (e: MouseEvent) => {
+      const index = findBlockIndex(e);
+      if (index !== -1) cursorIndexRef.current = index;
+    };
+
+    // Click: jump to block if currently speaking a different block
+    const handleClick = (e: MouseEvent) => {
+      const index = findBlockIndex(e);
       if (index === -1) return;
 
       if (engine.isSpeaking && currentIndexRef.current !== index) {
-        cursorIndexRef.current = index;
         speakFrom(index);
-        return;
       }
-
-      cursorIndexRef.current = index;
     };
 
     wrapper.addEventListener('mouseover', handleMouseOver);
-    return () => wrapper.removeEventListener('mouseover', handleMouseOver);
+    wrapper.addEventListener('click', handleClick);
+    return () => {
+      wrapper.removeEventListener('mouseover', handleMouseOver);
+      wrapper.removeEventListener('click', handleClick);
+    };
   }, [isEnabled, engine, speakFrom]);
 
   // ---- Auto-pause on textarea/input focus ----
@@ -221,15 +266,16 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
     };
   }, []);
 
-  // ---- Toggle ----
+  // ---- Toggle with localStorage persistence (P8) ----
   const toggle = useCallback(() => {
-
     if (isEnabled) {
       engine.cancel();
       clearActiveAttr();
       setIsEnabled(false);
+      localStorage.removeItem(STORAGE_KEY);
     } else {
       setIsEnabled(true);
+      localStorage.setItem(STORAGE_KEY, 'true');
     }
   }, [isEnabled, engine, clearActiveAttr]);
 
@@ -237,7 +283,6 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
   const cancel = useCallback(() => {
     engine.cancel();
     clearActiveAttr();
-    spaceHeldRef.current = false;
     currentIndexRef.current = -1;
   }, [engine, clearActiveAttr]);
 
