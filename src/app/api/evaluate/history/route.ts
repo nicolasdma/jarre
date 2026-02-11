@@ -1,5 +1,9 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { errorResponse, jsonOk } from '@/lib/api/errors';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Evaluate/History');
 
 /**
  * GET /api/evaluate/history
@@ -11,16 +15,8 @@ import { createClient } from '@/lib/supabase/server';
  * - limit (optional): Number of results, default 10, max 50
  * - offset (optional): Pagination offset, default 0
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // Parse query params
     const { searchParams } = new URL(request.url);
@@ -30,7 +26,7 @@ export async function GET(request: Request) {
 
     // Build query
     let query = supabase
-      .from('evaluations')
+      .from(TABLES.evaluations)
       .select(`
         id,
         overall_score,
@@ -49,7 +45,7 @@ export async function GET(request: Request) {
 
     // Get total count for pagination
     const countQuery = supabase
-      .from('evaluations')
+      .from(TABLES.evaluations)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'completed');
@@ -64,11 +60,8 @@ export async function GET(request: Request) {
     ]);
 
     if (error) {
-      console.error('[History] Error fetching evaluations:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch evaluations' },
-        { status: 500 }
-      );
+      log.error('Error fetching evaluations:', error);
+      return errorResponse(new Error('Failed to fetch evaluations'));
     }
 
     // Get question counts for each evaluation
@@ -77,7 +70,7 @@ export async function GET(request: Request) {
     let questionCounts: Record<string, number> = {};
     if (evaluationIds.length > 0) {
       const { data: counts } = await supabase
-        .from('evaluation_questions')
+        .from(TABLES.evaluationQuestions)
         .select('evaluation_id')
         .in('evaluation_id', evaluationIds);
 
@@ -100,7 +93,7 @@ export async function GET(request: Request) {
       questionCount: questionCounts[e.id] || 0,
     })) || [];
 
-    return NextResponse.json({
+    return jsonOk({
       evaluations: response,
       pagination: {
         total: count || 0,
@@ -110,10 +103,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('[History] Unexpected error:', error);
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to fetch history' },
-      { status: 500 }
-    );
+    log.error('Unexpected error:', error);
+    return errorResponse(error);
   }
-}
+});

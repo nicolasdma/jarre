@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { ApiError, errorResponse, notFound, jsonOk } from '@/lib/api/errors';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
 
-interface RouteContext {
-  params: Promise<{ evaluationId: string }>;
-}
+const log = createLogger('Evaluate/Detail');
 
 /**
  * GET /api/evaluate/[evaluationId]
@@ -11,22 +11,13 @@ interface RouteContext {
  * Returns complete evaluation detail including questions, responses, and feedback.
  * RLS ensures users can only access their own evaluations.
  */
-export async function GET(request: Request, context: RouteContext) {
+export const GET = withAuth<{ evaluationId: string }>(async (request, { supabase, user, params }) => {
   try {
-    const { evaluationId } = await context.params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { evaluationId } = params;
 
     // Fetch evaluation with nested questions and responses
     const { data: evaluation, error } = await supabase
-      .from('evaluations')
+      .from(TABLES.evaluations)
       .select(`
         id,
         user_id,
@@ -41,24 +32,18 @@ export async function GET(request: Request, context: RouteContext) {
       .single();
 
     if (error || !evaluation) {
-      console.error('[EvaluationDetail] Error fetching evaluation:', error);
-      return NextResponse.json(
-        { error: 'Evaluation not found' },
-        { status: 404 }
-      );
+      log.error('Error fetching evaluation:', error);
+      throw notFound('Evaluation not found');
     }
 
     // RLS should handle this, but double-check ownership
     if (evaluation.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+      throw new ApiError(403, 'Access denied');
     }
 
     // Fetch questions with their responses
     const { data: questions, error: questionsError } = await supabase
-      .from('evaluation_questions')
+      .from(TABLES.evaluationQuestions)
       .select(`
         id,
         type,
@@ -70,11 +55,8 @@ export async function GET(request: Request, context: RouteContext) {
       .order('id', { ascending: true });
 
     if (questionsError) {
-      console.error('[EvaluationDetail] Error fetching questions:', questionsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch questions' },
-        { status: 500 }
-      );
+      log.error('Error fetching questions:', questionsError);
+      return errorResponse(new Error('Failed to fetch questions'));
     }
 
     // Fetch responses for all questions
@@ -88,7 +70,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     if (questionIds.length > 0) {
       const { data: responses } = await supabase
-        .from('evaluation_responses')
+        .from(TABLES.evaluationResponses)
         .select('question_id, user_answer, score, feedback, is_correct')
         .in('question_id', questionIds);
 
@@ -119,7 +101,7 @@ export async function GET(request: Request, context: RouteContext) {
       };
     }) || [];
 
-    return NextResponse.json({
+    return jsonOk({
       id: evaluation.id,
       overallScore: evaluation.overall_score,
       createdAt: evaluation.created_at,
@@ -130,10 +112,7 @@ export async function GET(request: Request, context: RouteContext) {
       questions: questionsWithResponses,
     });
   } catch (error) {
-    console.error('[EvaluationDetail] Unexpected error:', error);
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to fetch evaluation' },
-      { status: 500 }
-    );
+    log.error('Unexpected error:', error);
+    return errorResponse(error);
   }
-}
+});

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { ENGINE_DEBUG_TIMEOUT_MS } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Engine/State');
 
 const ENGINE_DEBUG_PORT = parseInt(process.env.ENGINE_DEBUG_PORT ?? '6381', 10);
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = ENGINE_DEBUG_TIMEOUT_MS;
 
 /**
  * GET /api/playground/storage-engine/state
@@ -47,7 +51,7 @@ export async function GET() {
       );
     }
 
-    console.error('[api/storage-engine/state] Error:', message);
+    log.error('Error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

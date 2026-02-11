@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { extractConceptName } from '@/lib/db/helpers';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Review/Random');
 
 /**
  * GET /api/review/random?concepts=id1,id2,id3&sectionId=uuid
@@ -9,17 +14,8 @@ import { createClient } from '@/lib/supabase/server';
  * If `concepts` param is provided, scopes to those concept IDs.
  * Otherwise, scopes to concepts the user has studied (concept_progress).
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Determine which concepts to filter by
     const { searchParams } = new URL(request.url);
     const conceptsParam = searchParams.get('concepts');
@@ -34,7 +30,7 @@ export async function GET(request: Request) {
     } else {
       // Default: all concepts the user has studied
       const { data: progress } = await supabase
-        .from('concept_progress')
+        .from(TABLES.conceptProgress)
         .select('concept_id')
         .eq('user_id', user.id);
 
@@ -51,7 +47,7 @@ export async function GET(request: Request) {
     // Helper: count + fetch a random question with given filters
     const fetchRandom = async (filters: { useSectionId?: boolean }) => {
       let cq = supabase
-        .from('question_bank')
+        .from(TABLES.questionBank)
         .select('*', { count: 'exact', head: true })
         .eq('is_active', true)
         .in('concept_id', conceptIds);
@@ -69,7 +65,7 @@ export async function GET(request: Request) {
       const randomOffset = Math.floor(Math.random() * count);
 
       let qq = supabase
-        .from('question_bank')
+        .from(TABLES.questionBank)
         .select(`
           id,
           concept_id,
@@ -109,23 +105,22 @@ export async function GET(request: Request) {
       );
     }
 
-    const conceptRow = question.concepts as unknown as { name: string } | { name: string }[];
-    const conceptName = Array.isArray(conceptRow) ? conceptRow[0]?.name : conceptRow?.name;
+    const conceptName = extractConceptName(question.concepts, question.concept_id);
 
     return NextResponse.json({
       questionId: question.id,
       conceptId: question.concept_id,
-      conceptName: conceptName || question.concept_id,
+      conceptName,
       questionText: question.question_text,
       expectedAnswer: question.expected_answer,
       type: question.type,
       difficulty: question.difficulty,
     });
   } catch (error) {
-    console.error('[Review/Random] Unexpected error:', error);
+    log.error('Unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});

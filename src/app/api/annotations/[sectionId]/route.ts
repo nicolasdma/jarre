@@ -1,62 +1,48 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Annotations');
 
 /**
  * GET /api/annotations/[sectionId]
  * Fetch all annotations for the current user + section.
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ sectionId: string }> }
-) {
+export const GET = withAuth<{ sectionId: string }>(async (_request, { supabase, user, params }) => {
   try {
-    const { sectionId } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { sectionId } = params;
 
     const { data, error } = await supabase
-      .from('section_annotations')
+      .from(TABLES.sectionAnnotations)
       .select('*')
       .eq('user_id', user.id)
       .eq('section_id', sectionId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[Annotations/GET] Error:', error);
+      log.error('GET error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data ?? []);
   } catch (error) {
-    console.error('[Annotations/GET] Unexpected error:', error);
+    log.error('GET unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to fetch annotations' },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * POST /api/annotations/[sectionId]
  * Create a new annotation (highlight + optional note).
  * Body: { selectedText, prefix, suffix, segmentIndex, note? }
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ sectionId: string }> }
-) {
+export const POST = withAuth<{ sectionId: string }>(async (request, { supabase, user, params }) => {
   try {
-    const { sectionId } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { sectionId } = params;
 
     const body = await request.json();
     const { selectedText, prefix, suffix, segmentIndex, note } = body;
@@ -70,7 +56,7 @@ export async function POST(
     }
 
     const { data, error } = await supabase
-      .from('section_annotations')
+      .from(TABLES.sectionAnnotations)
       .insert({
         user_id: user.id,
         section_id: sectionId,
@@ -84,39 +70,28 @@ export async function POST(
       .single();
 
     if (error) {
-      console.error('[Annotations/POST] Error:', error);
+      log.error('POST error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`[Annotations/POST] Created annotation ${data.id} for section ${sectionId}`);
+    log.info(`Created annotation ${data.id} for section ${sectionId}`);
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error('[Annotations/POST] Unexpected error:', error);
+    log.error('POST unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to create annotation' },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * PATCH /api/annotations/[sectionId]
  * Update an annotation's note.
  * Body: { annotationId, note }
  */
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ sectionId: string }> }
-) {
+export const PATCH = withAuth<{ sectionId: string }>(async (request, { supabase, user }) => {
   try {
-    await params; // consume params for consistency
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { annotationId, note } = body;
 
@@ -125,7 +100,7 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from('section_annotations')
+      .from(TABLES.sectionAnnotations)
       .update({ note: note ?? null, updated_at: new Date().toISOString() })
       .eq('id', annotationId)
       .eq('user_id', user.id)
@@ -133,38 +108,27 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('[Annotations/PATCH] Error:', error);
+      log.error('PATCH error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[Annotations/PATCH] Unexpected error:', error);
+    log.error('PATCH unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to update annotation' },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * DELETE /api/annotations/[sectionId]
  * Remove an annotation.
  * Body: { annotationId }
  */
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ sectionId: string }> }
-) {
+export const DELETE = withAuth<{ sectionId: string }>(async (request, { supabase, user }) => {
   try {
-    await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { annotationId } = body;
 
@@ -173,22 +137,22 @@ export async function DELETE(
     }
 
     const { error } = await supabase
-      .from('section_annotations')
+      .from(TABLES.sectionAnnotations)
       .delete()
       .eq('id', annotationId)
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('[Annotations/DELETE] Error:', error);
+      log.error('DELETE error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Annotations/DELETE] Unexpected error:', error);
+    log.error('DELETE unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to delete annotation' },
       { status: 500 }
     );
   }
-}
+});

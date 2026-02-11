@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
+import { PDF_CACHE_TTL_MS } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ProxyPDF');
 
 // Cache fetched PDFs in memory to avoid re-downloading
 const pdfCache = new Map<string, { buffer: ArrayBuffer; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
 /**
  * GET /api/proxy-pdf?url=...&start=...&end=...
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
     const cached = pdfCache.get(decodedUrl);
     let pdfBuffer: ArrayBuffer;
 
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < PDF_CACHE_TTL_MS) {
       pdfBuffer = cached.buffer;
     } else {
       // Fetch the PDF
@@ -90,7 +93,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[ProxyPDF] Error:', error);
+    log.error('Error:', error);
     return NextResponse.json(
       { error: 'Failed to proxy PDF' },
       { status: 500 }

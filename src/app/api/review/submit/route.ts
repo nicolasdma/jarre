@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { getUserLanguage } from '@/lib/db/queries/user';
+import { extractConceptData, parseMasteryLevel, serializeMasteryLevel } from '@/lib/db/helpers';
+import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { ReviewEvaluationSchema, RubricEvaluationSchema } from '@/lib/llm/schemas';
 import {
@@ -12,8 +16,12 @@ import {
 import { calculateNextReview, scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
 import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
-import type { SupportedLanguage } from '@/lib/llm/prompts';
 import type { QuestionBankType, ReviewRating } from '@/types';
+import type { createClient } from '@/lib/supabase/server';
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+const log = createLogger('Review/Submit');
 
 /**
  * POST /api/review/submit
@@ -25,17 +33,8 @@ import type { QuestionBankType, ReviewRating } from '@/types';
  * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays,
  *            dimensionScores?, reasoning?, masteryAdvanced? }
  */
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { questionId, userAnswer, selectedAnswer, confidence } = body;
 
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
 
     // Fetch the question with format + grading fields
     const { data: question, error: qError } = await supabase
-      .from('question_bank')
+      .from(TABLES.questionBank)
       .select('id, question_text, expected_answer, concept_id, type, format, correct_answer, explanation, options, concepts!concept_id(name, phase)')
       .eq('id', questionId)
       .single();
@@ -58,13 +57,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
-    const conceptsData = question.concepts as unknown as
-      | { name: string; phase: number }
-      | { name: string; phase: number }[]
-      | null;
-    const conceptObj = Array.isArray(conceptsData) ? conceptsData[0] : conceptsData;
-    const conceptName = conceptObj?.name || question.concept_id;
-    const conceptPhase = conceptObj?.phase ?? 1;
+    const conceptData = extractConceptData(question.concepts);
+    const conceptName = conceptData?.name || question.concept_id;
+    const conceptPhase = conceptData?.phase ?? 1;
     const questionType = question.type as QuestionBankType;
     const format = (question.format as string) || 'open';
 
@@ -92,8 +87,8 @@ export async function POST(request: Request) {
         confidenceLevel,
       });
 
-      console.log(
-        `[Review/Submit] MC/TF: question=${questionId}, format=${format}, correct=${isCorrect}, interval=${smResult.intervalDays}d`
+      log.info(
+        `MC/TF: question=${questionId}, format=${format}, correct=${isCorrect}, interval=${smResult.intervalDays}d`
       );
 
       return NextResponse.json({
@@ -116,13 +111,7 @@ export async function POST(request: Request) {
     }
 
     // Get user language
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('language')
-      .eq('id', user.id)
-      .single();
-
-    const language = (profile?.language || 'es') as SupportedLanguage;
+    const language = await getUserLanguage(supabase, user.id);
 
     let score: number;
     let feedback: string;
@@ -164,15 +153,12 @@ export async function POST(request: Request) {
       dimensionScores = rubricResult.scores;
       reasoning = rubricResult.reasoning;
 
-      console.log(
-        `[Review/Submit] Rubric eval: question=${questionId}, type=${questionType}, ` +
+      log.info(
+        `Rubric eval: question=${questionId}, type=${questionType}, ` +
         `scores=${JSON.stringify(rubricResult.scores)}, total=${derived.total}, rating=${rating}`
       );
     } catch (rubricParseError) {
-      console.warn(
-        '[Review/Submit] Rubric parse failed, falling back to legacy prompt:',
-        rubricParseError
-      );
+      log.warn('Rubric parse failed, falling back to legacy prompt:', rubricParseError);
 
       const legacyPrompt = buildReviewEvaluationPrompt({
         questionText: question.question_text,
@@ -211,8 +197,8 @@ export async function POST(request: Request) {
       confidenceLevel,
     });
 
-    console.log(
-      `[Review/Submit] Open: question=${questionId}, score=${score}, rating=${rating}, interval=${smResult.intervalDays}d, tokens=${tokensUsed}`
+    log.info(
+      `Open: question=${questionId}, score=${score}, rating=${rating}, interval=${smResult.intervalDays}d, tokens=${tokensUsed}`
     );
 
     return NextResponse.json({
@@ -228,20 +214,20 @@ export async function POST(request: Request) {
       reasoning,
     });
   } catch (error) {
-    console.error('[Review/Submit] Unexpected error:', error);
+    log.error('Unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to evaluate review answer' },
       { status: 500 }
     );
   }
-}
+});
 
 // ============================================================================
 // Shared SM-2 + Mastery Logic (extracted to avoid duplication between paths)
 // ============================================================================
 
 interface SM2Params {
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>;
+  supabase: SupabaseClient;
   userId: string;
   questionId: string;
   conceptId: string;
@@ -261,7 +247,7 @@ async function applySM2AndMastery({
 }: SM2Params) {
   // Fetch or create review_schedule state
   const { data: schedule } = await supabase
-    .from('review_schedule')
+    .from(TABLES.reviewSchedule)
     .select('ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count')
     .eq('user_id', userId)
     .eq('question_id', questionId)
@@ -306,18 +292,18 @@ async function applySM2AndMastery({
   }
 
   const { error: upsertError } = await supabase
-    .from('review_schedule')
+    .from(TABLES.reviewSchedule)
     .upsert(upsertData, { onConflict: 'user_id,question_id' });
 
   if (upsertError) {
-    console.error('[Review/Submit] Error upserting schedule:', upsertError);
+    log.error('Error upserting schedule:', upsertError);
   }
 
   // Check micro-test mastery advancement (0->1) if answer was correct
   let masteryAdvanced = false;
   if (isCorrect) {
     const { count: correctCount } = await supabase
-      .from('review_schedule')
+      .from(TABLES.reviewSchedule)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('correct_count', 1)
@@ -325,7 +311,7 @@ async function applySM2AndMastery({
         'question_id',
         (
           await supabase
-            .from('question_bank')
+            .from(TABLES.questionBank)
             .select('id')
             .eq('concept_id', conceptId)
         ).data?.map((q) => q.id) || []
@@ -334,22 +320,22 @@ async function applySM2AndMastery({
     const totalCorrect = correctCount || 0;
 
     const { data: progress } = await supabase
-      .from('concept_progress')
+      .from(TABLES.conceptProgress)
       .select('mastery_level')
       .eq('user_id', userId)
       .eq('concept_id', conceptId)
       .single();
 
-    const currentLevel = progress ? parseInt(progress.mastery_level, 10) : 0;
+    const currentLevel = parseMasteryLevel(progress?.mastery_level);
 
     if (canAdvanceFromMicroTests(currentLevel, totalCorrect)) {
       const { error: advanceError } = await supabase
-        .from('concept_progress')
+        .from(TABLES.conceptProgress)
         .upsert(
           {
             user_id: userId,
             concept_id: conceptId,
-            mastery_level: '1',
+            mastery_level: serializeMasteryLevel(1),
           },
           { onConflict: 'user_id,concept_id' }
         );
@@ -357,7 +343,7 @@ async function applySM2AndMastery({
       if (!advanceError) {
         masteryAdvanced = true;
 
-        await supabase.from('mastery_history').insert(
+        await supabase.from(TABLES.masteryHistory).insert(
           buildMasteryHistoryRecord({
             userId,
             conceptId,
@@ -368,8 +354,8 @@ async function applySM2AndMastery({
           })
         );
 
-        console.log(
-          `[Review/Submit] Mastery advanced: ${conceptId} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
+        log.info(
+          `Mastery advanced: ${conceptId} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
         );
       }
     }

@@ -1,38 +1,23 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
+import { getUserLanguage } from '@/lib/db/queries/user';
+import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { GenerateQuestionsResponseSchema } from '@/lib/llm/schemas';
-import { buildGenerateQuestionsPrompt, getSystemPrompt, PROMPT_VERSIONS, type SupportedLanguage } from '@/lib/llm/prompts';
+import { buildGenerateQuestionsPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 
-export async function POST(request: Request) {
+const log = createLogger('Evaluate/Generate');
+
+export const POST = withAuth(async (request, { supabase, user }) => {
   try {
-    // Verify auth
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Get user's language preference
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('language')
-      .eq('id', user.id)
-      .single();
-
-    const language = (profile?.language || 'es') as SupportedLanguage;
+    const language = await getUserLanguage(supabase, user.id);
 
     const body = await request.json();
     const { resourceId, resourceTitle, resourceType, concepts } = body;
 
     if (!resourceId || !resourceTitle || !concepts?.length) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      throw badRequest('Missing required fields');
     }
 
     // Build prompt
@@ -68,18 +53,15 @@ export async function POST(request: Request) {
       relatedConceptName: q.relatedConceptName,
     }));
 
-    console.log(`[Evaluate] Generated ${questions.length} questions for ${resourceId}, tokens: ${tokensUsed}`);
+    log.info(`Generated ${questions.length} questions for ${resourceId}, tokens: ${tokensUsed}`);
 
-    return NextResponse.json({
+    return jsonOk({
       questions,
       promptVersion: PROMPT_VERSIONS.GENERATE_QUESTIONS,
       tokensUsed,
     });
   } catch (error) {
-    console.error('[Evaluate] Error generating questions:', error);
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to generate questions' },
-      { status: 500 }
-    );
+    log.error('Error generating questions:', error);
+    return errorResponse(error);
   }
-}
+});

@@ -1,33 +1,26 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
+import { REVIEW_MAX_OPEN } from '@/lib/constants';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { interleaveByConcept } from '@/lib/interleave';
 import type { ReviewCard, QuestionBankType } from '@/types';
 
-/** Max open-ended questions per session (rest filled with MC/TF) */
-const MAX_OPEN = 3;
+const log = createLogger('Review/Due');
 
 /**
  * GET /api/review/due
  * Returns up to REVIEW_SESSION_CAP cards that are due for review.
  * Applies format mixing (max 3 open + rest MC/TF) and concept interleaving.
  */
-export async function GET() {
+export const GET = withAuth(async (_request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const now = new Date().toISOString();
 
     // Daily cap: check how many cards were already reviewed today
     const { count: reviewedToday } = await supabase
-      .from('review_schedule')
+      .from(TABLES.reviewSchedule)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('last_reviewed_at', todayStart());
@@ -42,7 +35,7 @@ export async function GET() {
     const fetchLimit = dailyRemaining * 3;
 
     const { data: dueCards, error } = await supabase
-      .from('review_schedule')
+      .from(TABLES.reviewSchedule)
       .select(`
         id,
         question_id,
@@ -71,7 +64,7 @@ export async function GET() {
       .limit(fetchLimit);
 
     if (error) {
-      console.error('[Review/Due] Error fetching due cards:', error);
+      log.error('Error fetching due cards:', error);
       return NextResponse.json({ error: 'Failed to fetch due cards' }, { status: 500 });
     }
 
@@ -107,11 +100,11 @@ export async function GET() {
       };
     });
 
-    // Apply format mixing: max MAX_OPEN open + fill rest with MC/TF
+    // Apply format mixing: max REVIEW_MAX_OPEN open + fill rest with MC/TF
     const openCards = allCards.filter((c) => c.format === 'open');
     const closedCards = allCards.filter((c) => c.format === 'mc' || c.format === 'tf');
 
-    const maxOpen = Math.min(MAX_OPEN, dailyRemaining);
+    const maxOpen = Math.min(REVIEW_MAX_OPEN, dailyRemaining);
     const selectedOpen = openCards.slice(0, maxOpen);
     const remainingSlots = dailyRemaining - selectedOpen.length;
     const selectedClosed = closedCards.slice(0, remainingSlots);
@@ -128,10 +121,10 @@ export async function GET() {
 
     return NextResponse.json({ cards, total: cards.length });
   } catch (error) {
-    console.error('[Review/Due] Unexpected error:', error);
+    log.error('Unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});

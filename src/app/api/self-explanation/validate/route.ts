@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { callDeepSeek } from '@/lib/llm/deepseek';
+import { SELF_EXPLANATION_AUTO_GENUINE_LENGTH } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SelfExplanation/Validate');
 
 /**
  * POST /api/self-explanation/validate
@@ -7,6 +11,8 @@ import { callDeepSeek } from '@/lib/llm/deepseek';
  * Lightweight LLM check: "Is this a genuine self-explanation attempt?"
  * Fire-and-forget from the client — doesn't block user advance.
  * Cost: ~$0.001 per call (~50 tokens prompt + ~10 tokens response).
+ *
+ * No auth required — lightweight check, no user data stored.
  *
  * Body: { explanation: string, conceptName: string }
  * Returns: { isGenuine: boolean }
@@ -20,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     // Skip validation for substantial explanations
-    if (explanation.trim().length > 120) {
+    if (explanation.trim().length > SELF_EXPLANATION_AUTO_GENUINE_LENGTH) {
       return NextResponse.json({ isGenuine: true });
     }
 
@@ -43,7 +49,7 @@ export async function POST(request: Request) {
     const isGenuine = content.toLowerCase().trim().startsWith('yes');
     return NextResponse.json({ isGenuine });
   } catch (error) {
-    console.error('[SelfExplanation/Validate] Error:', error);
+    log.error('Error:', error);
     // On error, assume genuine — don't punish the user for API failures
     return NextResponse.json({ isGenuine: true });
   }

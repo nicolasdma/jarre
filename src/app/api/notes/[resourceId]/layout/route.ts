@@ -1,31 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
 import { z } from 'zod';
+
+const log = createLogger('Layout');
 
 const LayoutBodySchema = z.object({
   split_position: z.number().int().min(20).max(80),
 });
 
-interface RouteParams {
-  params: Promise<{ resourceId: string }>;
-}
-
 /**
  * PUT /api/notes/[resourceId]/layout
  * Save split pane position for the authenticated user and resource
  */
-export async function PUT(request: Request, { params }: RouteParams) {
+export const PUT = withAuth<{ resourceId: string }>(async (request, { supabase, user, params }) => {
   try {
-    const { resourceId } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { resourceId } = params;
 
     const body = await request.json();
 
@@ -41,7 +32,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { split_position } = parseResult.data;
 
     // Upsert layout
-    const { error } = await supabase.from('resource_notes').upsert(
+    const { error } = await supabase.from(TABLES.resourceNotes).upsert(
       {
         user_id: user.id,
         resource_id: resourceId,
@@ -52,16 +43,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
     );
 
     if (error) {
-      console.error('[Layout] Error saving layout:', error);
+      log.error('Error saving layout:', error);
       return NextResponse.json({ error: 'Failed to save layout' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Layout] Error saving layout:', error);
+    log.error('Error saving layout:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to save layout' },
       { status: 500 }
     );
   }
-}
+});

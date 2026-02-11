@@ -6,8 +6,9 @@
  */
 
 import type { HighlightAnchor } from '@/types';
+import { ANCHOR_CONTEXT_LENGTH } from '@/lib/constants';
 
-const CONTEXT_LENGTH = 50;
+const CONTEXT_LENGTH = ANCHOR_CONTEXT_LENGTH;
 
 /**
  * Create an anchor from the current Selection within a segment container.

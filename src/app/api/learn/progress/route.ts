@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { TABLES } from '@/lib/db/tables';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Learn/Progress');
 
 /**
  * GET /api/learn/progress?resourceId=xxx
  * Returns the user's saved learn progress for a resource, or null.
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const resourceId = searchParams.get('resourceId');
 
@@ -24,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     const { data, error } = await supabase
-      .from('learn_progress')
+      .from(TABLES.learnProgress)
       .select('current_step, active_section, completed_sections, section_state, review_state')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
@@ -32,7 +27,7 @@ export async function GET(request: Request) {
 
     if (error && error.code !== 'PGRST116') {
       // PGRST116 = no rows found (expected for new resources)
-      console.error('[Learn/Progress] GET error:', error);
+      log.error('GET error:', error);
       return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
     }
 
@@ -48,13 +43,13 @@ export async function GET(request: Request) {
       reviewState: data.review_state,
     });
   } catch (error) {
-    console.error('[Learn/Progress] GET unexpected error:', error);
+    log.error('GET unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to fetch progress' },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * POST /api/learn/progress
@@ -62,17 +57,8 @@ export async function GET(request: Request) {
  *
  * Body: { resourceId, currentStep, activeSection, completedSections, sectionState }
  */
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { supabase, user }) => {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { resourceId, currentStep, activeSection, completedSections, sectionState, reviewState } = body;
 
@@ -81,7 +67,7 @@ export async function POST(request: Request) {
     }
 
     const { error } = await supabase
-      .from('learn_progress')
+      .from(TABLES.learnProgress)
       .upsert(
         {
           user_id: user.id,
@@ -97,16 +83,16 @@ export async function POST(request: Request) {
       );
 
     if (error) {
-      console.error('[Learn/Progress] POST upsert error:', error);
+      log.error('POST upsert error:', error);
       return NextResponse.json({ error: 'Failed to save progress' }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[Learn/Progress] POST unexpected error:', error);
+    log.error('POST unexpected error:', error);
     return NextResponse.json(
       { error: (error as Error).message || 'Failed to save progress' },
       { status: 500 }
     );
   }
-}
+});

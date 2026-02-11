@@ -1,45 +1,32 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/api/middleware';
+import { ApiError, badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
+import { TABLES } from '@/lib/db/tables';
+import { getUserLanguage } from '@/lib/db/queries/user';
+import { parseMasteryLevel, serializeMasteryLevel } from '@/lib/db/helpers';
+import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
-import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS, type SupportedLanguage } from '@/lib/llm/prompts';
+import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { computeNewLevelFromEvaluation, buildMasteryHistoryRecord } from '@/lib/mastery';
 import type { EvaluationType } from '@/types';
 
-export async function POST(request: Request) {
+const log = createLogger('Evaluate/Submit');
+
+export const POST = withAuth(async (request, { supabase, user }) => {
   try {
-    // Verify auth
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Get user's language preference
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('language')
-      .eq('id', user.id)
-      .single();
-
-    const language = (profile?.language || 'es') as SupportedLanguage;
+    const language = await getUserLanguage(supabase, user.id);
 
     const body = await request.json();
     const { resourceId, resourceTitle, questions, userId, predictedScore } = body;
 
     if (!resourceId || !questions?.length || !userId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      throw badRequest('Missing required fields');
     }
 
     // Verify user matches
     if (user.id !== userId) {
-      return NextResponse.json({ error: 'User mismatch' }, { status: 403 });
+      throw new ApiError(403, 'User mismatch');
     }
 
     // Build prompt
@@ -77,7 +64,7 @@ export async function POST(request: Request) {
 
     // Save evaluation to database
     const { data: evaluation, error: evalError } = await supabase
-      .from('evaluations')
+      .from(TABLES.evaluations)
       .insert({
         user_id: user.id,
         resource_id: resourceId,
@@ -91,7 +78,7 @@ export async function POST(request: Request) {
       .single();
 
     if (evalError) {
-      console.error('[Evaluate] Error saving evaluation:', evalError);
+      log.error('Error saving evaluation:', evalError);
       // Continue anyway - user should see results
     }
 
@@ -103,7 +90,7 @@ export async function POST(request: Request) {
 
         // Insert question
         const { data: savedQuestion } = await supabase
-          .from('evaluation_questions')
+          .from(TABLES.evaluationQuestions)
           .insert({
             evaluation_id: evaluation.id,
             concept_id: q.conceptId || null,
@@ -115,7 +102,7 @@ export async function POST(request: Request) {
 
         // Insert response
         if (savedQuestion && r) {
-          await supabase.from('evaluation_responses').insert({
+          await supabase.from(TABLES.evaluationResponses).insert({
             question_id: savedQuestion.id,
             user_answer: q.userAnswer,
             is_correct: r.isCorrect,
@@ -127,20 +114,20 @@ export async function POST(request: Request) {
         // Update concept progress with new mastery logic
         if (r && q.conceptName) {
           const { data: concept } = await supabase
-            .from('concepts')
+            .from(TABLES.concepts)
             .select('id')
             .eq('name', q.conceptName)
             .single();
 
           if (concept) {
             const { data: existingProgress } = await supabase
-              .from('concept_progress')
+              .from(TABLES.conceptProgress)
               .select('level')
               .eq('user_id', user.id)
               .eq('concept_id', concept.id)
               .single();
 
-            const currentLevel = existingProgress ? parseInt(existingProgress.level) : 0;
+            const currentLevel = parseMasteryLevel(existingProgress?.level);
             const questionType = q.type as EvaluationType;
             const newLevel = computeNewLevelFromEvaluation(currentLevel, questionType, r.score);
 
@@ -149,7 +136,7 @@ export async function POST(request: Request) {
               const updateFields: Record<string, unknown> = {
                 user_id: user.id,
                 concept_id: concept.id,
-                level: newLevel.toString(),
+                level: serializeMasteryLevel(newLevel),
                 last_evaluated_at: new Date().toISOString(),
               };
 
@@ -159,13 +146,13 @@ export async function POST(request: Request) {
                 updateFields.level_3_score = r.score;
               }
 
-              await supabase.from('concept_progress').upsert(
+              await supabase.from(TABLES.conceptProgress).upsert(
                 updateFields,
                 { onConflict: 'user_id,concept_id' }
               );
 
               // Log mastery history
-              await supabase.from('mastery_history').insert(
+              await supabase.from(TABLES.masteryHistory).insert(
                 buildMasteryHistoryRecord({
                   userId: user.id,
                   conceptId: concept.id,
@@ -180,7 +167,7 @@ export async function POST(request: Request) {
               // for this concept's questions in the question bank
               if (newLevel >= 1 && currentLevel < 1) {
                 const { data: bankQuestions } = await supabase
-                  .from('question_bank')
+                  .from(TABLES.questionBank)
                   .select('id')
                   .eq('concept_id', concept.id)
                   .eq('is_active', true);
@@ -193,23 +180,23 @@ export async function POST(request: Request) {
                   }));
 
                   const { error: schedError } = await supabase
-                    .from('review_schedule')
+                    .from(TABLES.reviewSchedule)
                     .upsert(scheduleEntries, { onConflict: 'user_id,question_id' });
 
                   if (schedError) {
-                    console.error('[Evaluate] Error creating review schedule:', schedError);
+                    log.error('Error creating review schedule:', schedError);
                   } else {
-                    console.log(`[Evaluate] Created ${scheduleEntries.length} review cards for concept ${concept.id}`);
+                    log.info(`Created ${scheduleEntries.length} review cards for concept ${concept.id}`);
                   }
                 }
               }
             } else if (currentLevel === 0 && r.score < 60) {
               // Even if not advancing, ensure concept_progress exists at level 0
-              await supabase.from('concept_progress').upsert(
+              await supabase.from(TABLES.conceptProgress).upsert(
                 {
                   user_id: user.id,
                   concept_id: concept.id,
-                  level: '0',
+                  level: serializeMasteryLevel(0),
                   last_evaluated_at: new Date().toISOString(),
                 },
                 { onConflict: 'user_id,concept_id' }
@@ -221,10 +208,10 @@ export async function POST(request: Request) {
 
       // Update user profile stats
       await supabase
-        .from('user_profiles')
+        .from(TABLES.userProfiles)
         .update({
           total_evaluations: (await supabase
-            .from('evaluations')
+            .from(TABLES.evaluations)
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id)).count || 0,
           last_active_at: new Date().toISOString(),
@@ -232,9 +219,9 @@ export async function POST(request: Request) {
         .eq('id', user.id);
     }
 
-    console.log(`[Evaluate] Completed evaluation for ${resourceId}, score: ${parsed.overallScore}, tokens: ${tokensUsed}`);
+    log.info(`Completed evaluation for ${resourceId}, score: ${parsed.overallScore}, tokens: ${tokensUsed}`);
 
-    return NextResponse.json({
+    return jsonOk({
       responses: parsed.responses,
       overallScore: Math.round(parsed.overallScore),
       summary: parsed.summary,
@@ -242,10 +229,7 @@ export async function POST(request: Request) {
       tokensUsed,
     });
   } catch (error) {
-    console.error('[Evaluate] Error evaluating answers:', error);
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to evaluate answers' },
-      { status: 500 }
-    );
+    log.error('Error evaluating answers:', error);
+    return errorResponse(error);
   }
-}
+});
