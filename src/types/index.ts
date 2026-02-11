@@ -386,6 +386,30 @@ export interface ReviewSubmitResponse {
   reasoning?: string;                         // CoT from evaluator
 }
 
+// ============================================================================
+// ANNOTATIONS
+// ============================================================================
+
+export interface Annotation {
+  id: string;
+  userId: string;
+  sectionId: string;
+  selectedText: string;
+  prefix: string;
+  suffix: string;
+  segmentIndex: number;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HighlightAnchor {
+  selectedText: string;
+  prefix: string;
+  suffix: string;
+  segmentIndex: number;
+}
+
 /**
  * Stats for the review dashboard
  */
