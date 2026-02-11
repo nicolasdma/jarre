@@ -22,12 +22,12 @@ interface SectionContentProps {
  */
 const markdownComponents = {
   h2: ({ children }: { children?: React.ReactNode }) => (
-    <h2 className="text-2xl font-light text-j-text mt-10 mb-4">
+    <h2 data-whisper="block" className="text-2xl font-light text-j-text mt-10 mb-4">
       {children}
     </h2>
   ),
   h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className="text-xl font-medium text-j-text mt-8 mb-3">
+    <h3 data-whisper="block" className="text-xl font-medium text-j-text mt-8 mb-3">
       {children}
     </h3>
   ),
@@ -38,7 +38,7 @@ const markdownComponents = {
     );
     if (hasImage) return <>{children}</>;
     return (
-      <p className="text-j-text-body leading-[1.6] mb-6 text-lg">
+      <p data-whisper="block" className="text-j-text-body leading-[1.6] mb-6 text-lg">
         {children}
       </p>
     );
@@ -59,7 +59,7 @@ const markdownComponents = {
     <ol className="space-y-2 mb-6 ml-4 list-decimal">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => (
-    <li className="text-j-text-body leading-[1.6] text-lg pl-1">
+    <li data-whisper="block" className="text-j-text-body leading-[1.6] text-lg pl-1">
       <span className="text-j-warm mr-2">—</span>
       {children}
     </li>
@@ -75,7 +75,7 @@ const markdownComponents = {
     </code>
   ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
-    <blockquote className="border-l-2 border-j-warm pl-4 my-4 text-j-text-tertiary italic">
+    <blockquote data-whisper="block" className="border-l-2 border-j-warm pl-4 my-4 text-j-text-tertiary italic">
       {children}
     </blockquote>
   ),

@@ -7,6 +7,7 @@ import { SelfExplanation } from './self-explanation';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewSubmitResponse, InlineQuiz } from '@/types';
 import type { FigureRegistry } from '@/lib/figure-registry';
+import { useWhisper } from '@/lib/whisper/whisper-context';
 import type { SectionState } from '@/lib/learn-progress';
 
 // ============================================================================
@@ -91,6 +92,8 @@ export function ConceptSection({
     !!(initialState?.selfExplanation && initialState.selfExplanation.length >= 30)
   );
 
+  const { cancel: cancelWhisper } = useWhisper();
+
   // Restore completed sections on mount: if saved as 'completed', notify parent
   const restoredRef = useRef(false);
   useEffect(() => {
@@ -144,13 +147,14 @@ export function ConceptSection({
 
   // Move to post-test
   const handleContentDone = useCallback(async () => {
+    cancelWhisper();
     setPhase('post-test');
     onStateChange?.({ phase: 'post-test', preAnswer, preAttempted });
     setPostLoading('fetching');
     const q = await fetchQuestion(preQuestion?.questionId);
     setPostQuestion(q);
     setPostLoading(null);
-  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted]);
+  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted, cancelWhisper]);
 
   // Submit post-test answer (evaluated via DeepSeek)
   const handlePostSubmit = useCallback(async () => {

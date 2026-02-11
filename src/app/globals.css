@@ -74,6 +74,7 @@
   --color-j-error-bg: var(--j-error-bg);
   --color-j-info: var(--j-info);
   --color-j-info-bg: var(--j-info-bg);
+  --color-j-whisper-cursor: var(--j-whisper-cursor);
 }
 
 :root {
@@ -106,6 +107,9 @@
   --j-border-input: #d4d0c8;
   --j-border-light: #f5f4f0;
   --j-border-dot: #d4d2cc;
+
+  /* Whisper read-along */
+  --j-whisper-cursor: rgba(74, 93, 74, 0.06);
 
   /* Feedback — amber for errors, not red (Deci & Ryan) */
   --j-success: #16A34A;
@@ -184,6 +188,7 @@
   --j-error-bg: #451a03;
   --j-info: #60A5FA;
   --j-info-bg: #172554;
+  --j-whisper-cursor: rgba(107, 142, 107, 0.08);
 
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -216,6 +221,22 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Whisper read-along mode */
+[data-whisper-mode="true"] [data-whisper="block"]:hover {
+  background-color: var(--j-whisper-cursor);
+  border-radius: 2px;
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+
+[data-whisper="block"][data-whisper-active="true"] {
+  background-color: var(--j-accent-light);
+  border-radius: 2px;
+  margin-inline: -4px;
+  padding-inline: 4px;
+  transition: background-color 200ms ease;
 }
 
 @layer base {

@@ -276,3 +276,4 @@
 - [x] `[P1]` Seed 22 inline quizzes for DDIA Ch5 (5 sections, MC+TF mix) - 2026-02-09
 - [x] `[P1]` UI/UX redesign: design tokens, TOC sidebar, confidence, dark mode, growth vocabulary - 2026-02-10
 - [x] `[P0]` Scaffolding cognitivo: 6 phases bridging Bloom 2→5 gap (new qtypes, mc2, self-explanation, practice-eval, calibration, interleaving) - 2026-02-10
+- [x] `[P2]` Whisper TTS read-along mode in learn flow (Web Speech API, hold Space to read, auto-advance) - 2026-02-10
