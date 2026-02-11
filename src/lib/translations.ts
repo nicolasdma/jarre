@@ -263,7 +263,7 @@ const translations = {
   'whisper.enable': { es: 'Lectura en voz alta', en: 'Read aloud' },
   'whisper.disable': { es: 'Desactivar lectura', en: 'Disable read-aloud' },
   'whisper.loading': { es: 'Cargando voces...', en: 'Loading voices...' },
-  'whisper.hint': { es: 'Mantén Espacio', en: 'Hold Space' },
+  'whisper.hint': { es: 'Espacio', en: 'Space' },
   'whisper.setup.title': { es: 'Configurar lectura', en: 'Setup read-aloud' },
   'whisper.setup.description': {
     es: 'La lectura en voz alta usa las voces de tu sistema operativo. No necesita extensiones.',
