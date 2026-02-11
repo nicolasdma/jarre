@@ -18,6 +18,20 @@ interface InlineQuizData {
   justificationHint?: string;
 }
 
+interface LlmResult {
+  overallResult: 'correct' | 'partial' | 'incorrect';
+  justificationScore: number;
+  dimensionScores: Record<string, number>;
+  feedback: string;
+}
+
+interface SavedAnswer {
+  selectedOption: string;
+  isCorrect: boolean;
+  justification?: string;
+  llmResult?: LlmResult;
+}
+
 interface InlineQuizProps {
   quiz: InlineQuizData;
   /** When defined (even null), overrides localStorage state for review mode */
@@ -26,13 +40,23 @@ interface InlineQuizProps {
   onAnswer?: (quizId: string, selectedOption: string, isCorrect: boolean, justification?: string) => void;
 }
 
-type QuizState = 'unanswered' | 'mc_answered' | 'justified' | 'answered';
+type QuizState = 'unanswered' | 'mc_answered' | 'evaluating' | 'answered';
+
+// ============================================================================
+// Dimension display names
+// ============================================================================
+
+const DIMENSION_LABELS: Record<string, string> = {
+  reasoning: 'Razonamiento',
+  precision: 'Precisión',
+  relevance: 'Relevancia',
+};
 
 // ============================================================================
 // Persistence helpers
 // ============================================================================
 
-function loadSavedAnswer(quizId: string): { selectedOption: string; isCorrect: boolean; justification?: string } | null {
+function loadSavedAnswer(quizId: string): SavedAnswer | null {
   try {
     const raw = localStorage.getItem(`jarre-quiz-${quizId}`);
     if (!raw) return null;
@@ -46,9 +70,9 @@ function loadSavedAnswer(quizId: string): { selectedOption: string; isCorrect: b
   }
 }
 
-function saveAnswer(quizId: string, selectedOption: string, isCorrect: boolean, justification?: string): void {
+function saveAnswer(quizId: string, data: SavedAnswer): void {
   try {
-    localStorage.setItem(`jarre-quiz-${quizId}`, JSON.stringify({ selectedOption, isCorrect, justification }));
+    localStorage.setItem(`jarre-quiz-${quizId}`, JSON.stringify(data));
   } catch {
     // localStorage full or unavailable — silently ignore
   }
@@ -66,6 +90,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [justification, setJustification] = useState('');
+  const [llmResult, setLlmResult] = useState<LlmResult | null>(null);
 
   // Restore state
   useEffect(() => {
@@ -79,6 +104,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         setSelectedOption(null);
         setIsCorrect(false);
         setJustification('');
+        setLlmResult(null);
         setState('unanswered');
       }
     } else {
@@ -87,6 +113,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         setSelectedOption(saved.selectedOption);
         setIsCorrect(saved.isCorrect);
         if (saved.justification) setJustification(saved.justification);
+        if (saved.llmResult) setLlmResult(saved.llmResult);
         // For mc2: if saved has justification → fully answered, else mc_answered
         if (isMc2 && !saved.justification) {
           setState('mc_answered');
@@ -107,14 +134,14 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       setState('mc_answered');
       // Don't call onAnswer yet — wait for justification
       if (!isOverrideMode) {
-        saveAnswer(quiz.id, selectedOption, correct);
+        saveAnswer(quiz.id, { selectedOption, isCorrect: correct });
       }
     } else {
       setState('answered');
       if (onAnswer) {
         onAnswer(quiz.id, selectedOption, correct);
       } else {
-        saveAnswer(quiz.id, selectedOption, correct);
+        saveAnswer(quiz.id, { selectedOption, isCorrect: correct });
       }
     }
   };
@@ -127,17 +154,72 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     if (onAnswer) {
       onAnswer(quiz.id, value, correct);
     } else {
-      saveAnswer(quiz.id, value, correct);
+      saveAnswer(quiz.id, { selectedOption: value, isCorrect: correct });
     }
   };
 
-  const handleJustificationSave = () => {
+  const handleJustificationSave = async () => {
     if (!justification.trim() || !selectedOption) return;
-    setState('answered');
+
+    const trimmedJustification = justification.trim();
+
+    // For override mode (review), skip LLM evaluation
     if (onAnswer) {
-      onAnswer(quiz.id, selectedOption, isCorrect, justification.trim());
-    } else {
-      saveAnswer(quiz.id, selectedOption, isCorrect, justification.trim());
+      setState('answered');
+      onAnswer(quiz.id, selectedOption, isCorrect, trimmedJustification);
+      return;
+    }
+
+    // MC2: call LLM evaluation endpoint
+    setState('evaluating');
+
+    try {
+      const response = await fetch('/api/quiz/evaluate-justification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizId: quiz.id,
+          questionText: quiz.questionText,
+          options: quiz.options,
+          correctAnswer: quiz.correctAnswer,
+          selectedAnswer: selectedOption,
+          explanation: quiz.explanation,
+          justification: trimmedJustification,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const result: LlmResult = {
+        overallResult: data.overallResult,
+        justificationScore: data.justificationScore,
+        dimensionScores: data.dimensionScores,
+        feedback: data.feedback,
+      };
+
+      setLlmResult(result);
+      // Update isCorrect based on combined result
+      const combinedCorrect = result.overallResult !== 'incorrect';
+      setIsCorrect(combinedCorrect);
+      setState('answered');
+      saveAnswer(quiz.id, {
+        selectedOption,
+        isCorrect: combinedCorrect,
+        justification: trimmedJustification,
+        llmResult: result,
+      });
+    } catch (error) {
+      // Fallback: use deterministic MC result, don't block the user
+      console.warn('[InlineQuiz] LLM evaluation failed, falling back to deterministic:', error);
+      setState('answered');
+      saveAnswer(quiz.id, {
+        selectedOption,
+        isCorrect,
+        justification: trimmedJustification,
+      });
     }
   };
 
@@ -201,6 +283,46 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     }
     return `${base} border-j-border bg-white text-j-text-tertiary opacity-50`;
   };
+
+  // Determine result display based on llmResult or deterministic
+  const getResultConfig = () => {
+    if (llmResult) {
+      switch (llmResult.overallResult) {
+        case 'correct':
+          return {
+            icon: '\u2713',
+            label: 'Bien hecho',
+            bgClass: 'bg-j-success-bg border-j-accent',
+            textClass: 'text-j-accent',
+          };
+        case 'partial':
+          return {
+            icon: '\u25D0',
+            label: 'Comprensión parcial',
+            bgClass: 'bg-purple-50 dark:bg-purple-950 border-purple-300 dark:border-purple-700',
+            textClass: 'text-purple-700 dark:text-purple-300',
+          };
+        case 'incorrect':
+          return {
+            icon: '\u26A0',
+            label: 'Aún no',
+            bgClass: 'bg-j-error-bg border-j-error',
+            textClass: 'text-j-error',
+          };
+      }
+    }
+    // Deterministic fallback
+    return isCorrect
+      ? { icon: '\u2713', label: 'Bien hecho', bgClass: 'bg-j-success-bg border-j-accent', textClass: 'text-j-accent' }
+      : { icon: '\u26A0', label: '\u00a1Casi!', bgClass: 'bg-j-error-bg border-j-error', textClass: 'text-j-error' };
+  };
+
+  const showResult =
+    (quiz.format !== 'mc2' && mcIsAnswered && quiz.format !== 'tf') ||
+    (quiz.format === 'tf' && state === 'answered') ||
+    (quiz.format === 'mc2' && state === 'answered');
+
+  const resultConfig = getResultConfig();
 
   return (
     <div className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-warm p-6 my-8">
@@ -317,45 +439,72 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
             disabled={!justification.trim()}
             className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Guardar justificación
+            Evaluar justificación
           </button>
         </div>
       )}
 
-      {/* Result + Explanation (for mc/tf: after answered; for mc2: after justified) */}
+      {/* MC2: Evaluating spinner */}
+      {isMc2 && state === 'evaluating' && (
+        <div className="mt-4 border border-j-border bg-white p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-j-accent border-t-transparent rounded-full animate-spin" />
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              Evaluando tu justificación...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Result + Explanation */}
       <div
         className={`grid transition-all duration-300 ease-in-out ${
-          (quiz.format !== 'mc2' && mcIsAnswered && quiz.format !== 'tf') ||
-          (quiz.format === 'tf' && state === 'answered') ||
-          (quiz.format === 'mc2' && (state === 'justified' || state === 'answered'))
+          showResult
             ? 'grid-rows-[1fr] opacity-100'
             : 'grid-rows-[0fr] opacity-0'
         }`}
       >
         <div className="overflow-hidden">
           <div className="mt-4">
-            {/* Result indicator — growth-oriented vocabulary */}
-            <div
-              className={`p-4 border ${
-                isCorrect
-                  ? 'bg-j-success-bg border-j-accent'
-                  : 'bg-j-error-bg border-j-error'
-              }`}
-            >
-              <p
-                className={`font-mono text-[11px] tracking-[0.15em] uppercase mb-2 ${
-                  isCorrect ? 'text-j-accent' : 'text-j-error'
-                }`}
-              >
-                {isCorrect ? '\u2713 Bien hecho' : '\u26A0 \u00a1Casi!'}
+            {/* Result indicator */}
+            <div className={`p-4 border ${resultConfig.bgClass}`}>
+              <p className={`font-mono text-[11px] tracking-[0.15em] uppercase mb-2 ${resultConfig.textClass}`}>
+                {resultConfig.icon} {resultConfig.label}
               </p>
-              <p className="text-sm text-j-text-secondary leading-relaxed">
-                {quiz.explanation}
-              </p>
+
+              {/* LLM feedback or static explanation */}
+              {llmResult ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-j-text-secondary leading-relaxed">
+                    {llmResult.feedback}
+                  </p>
+                  {/* Dimension score badges */}
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(llmResult.dimensionScores).map(([key, score]) => (
+                      <span
+                        key={key}
+                        className={`inline-flex items-center gap-1 font-mono text-[9px] tracking-[0.1em] uppercase px-2 py-1 border ${
+                          score === 2
+                            ? 'border-j-accent bg-j-accent-light text-j-accent'
+                            : score === 1
+                              ? 'border-j-warm bg-amber-50 dark:bg-amber-950 text-j-warm'
+                              : 'border-j-border bg-j-bg-alt text-j-text-tertiary'
+                        }`}
+                      >
+                        {DIMENSION_LABELS[key] || key} {score}/2
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-j-text-secondary leading-relaxed">
+                  {quiz.explanation}
+                </p>
+              )}
             </div>
 
-            {/* MC2: Show justification comparison */}
-            {isMc2 && state === 'answered' && justification && (
+            {/* MC2: Show justification + hint (only when no LLM result / fallback) */}
+            {isMc2 && state === 'answered' && justification && !llmResult && (
               <div className="mt-3 space-y-3">
                 <div className="border border-j-border p-3 bg-white">
                   <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
@@ -373,6 +522,18 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* MC2: Show reference explanation after LLM result */}
+            {isMc2 && state === 'answered' && llmResult && (
+              <div className="mt-3 border border-j-border p-3 bg-white">
+                <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                  Explicación de referencia
+                </p>
+                <p className="text-sm text-j-text-secondary leading-relaxed">
+                  {quiz.explanation}
+                </p>
               </div>
             )}
           </div>

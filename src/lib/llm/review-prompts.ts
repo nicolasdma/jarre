@@ -10,6 +10,17 @@
 import type { SupportedLanguage } from './prompts';
 import type { Rubric } from './rubrics';
 
+export interface JustificationPromptParams {
+  questionText: string;
+  options: { label: string; text: string }[];
+  correctAnswer: string;
+  selectedAnswer: string;
+  explanation: string;
+  justification: string;
+  rubric: Rubric;
+  language?: SupportedLanguage;
+}
+
 export const REVIEW_PROMPT_VERSION = 'review-v2.0.0';
 
 /**
@@ -193,6 +204,91 @@ ${rubricLines}
 2. Si hay errores factuales, identificalos explícitamente.
 3. Puntuá cada dimensión: 0, 1 o 2.
 4. Feedback: qué bien + qué falta + cómo mejorar (máx 2 oraciones).
+
+JSON: {"reasoning":"...","scores":{${keys}},"feedback":"..."}`;
+}
+
+// ============================================================================
+// v3: MC2 Justification evaluation prompt
+// ============================================================================
+
+/**
+ * Build the prompt for evaluating an MC2 justification.
+ * Evaluates the student's written reasoning independently of their MC choice.
+ */
+export function buildJustificationPrompt(params: JustificationPromptParams): string {
+  const {
+    questionText,
+    options,
+    correctAnswer,
+    selectedAnswer,
+    explanation,
+    justification,
+    rubric,
+    language = 'es',
+  } = params;
+
+  const lang = language === 'en' ? 'en' : 'es';
+  const mcCorrect = selectedAnswer === correctAnswer;
+
+  // Build options list with correct answer marker
+  const optionsText = options
+    .map((o) => {
+      const marker = o.label === correctAnswer
+        ? (lang === 'en' ? ' ← CORRECT' : ' ← CORRECTA')
+        : '';
+      return `${o.label}. ${o.text}${marker}`;
+    })
+    .join('\n');
+
+  // Build rubric section
+  const rubricLines = rubric.dimensions
+    .map((dim, i) => {
+      const l = dim.levels;
+      return `${i + 1}. ${dim.name[lang]} (0-2):
+   0 = ${l[0][lang]}
+   1 = ${l[1][lang]}
+   2 = ${l[2][lang]}`;
+    })
+    .join('\n');
+
+  const keys = rubric.dimensions.map((d) => `"${d.key}":N`).join(',');
+
+  if (lang === 'en') {
+    return `[MC QUESTION]: ${questionText}
+[OPTIONS]:
+${optionsText}
+[STUDENT'S CHOICE]: ${selectedAnswer} (${mcCorrect ? 'correct' : 'incorrect'})
+[STUDENT'S JUSTIFICATION]: ${justification}
+[REFERENCE EXPLANATION]: ${explanation}
+
+[RUBRIC]:
+${rubricLines}
+
+[INSTRUCTIONS]:
+1. Analyze the JUSTIFICATION only (not the MC choice).
+2. The student may have chosen wrong but understood well, or vice versa.
+3. Evaluate only what is written in the justification.
+4. Feedback: what they got right + what's missing (max 2 sentences).
+
+JSON: {"reasoning":"...","scores":{${keys}},"feedback":"..."}`;
+  }
+
+  return `[PREGUNTA MC]: ${questionText}
+[OPCIONES]:
+${optionsText}
+[OPCIÓN ELEGIDA]: ${selectedAnswer} (${mcCorrect ? 'correcta' : 'incorrecta'})
+[JUSTIFICACIÓN DEL ESTUDIANTE]: ${justification}
+[EXPLICACIÓN DE REFERENCIA]: ${explanation}
+
+[RÚBRICA]:
+${rubricLines}
+
+[INSTRUCCIONES]:
+1. Analizá la JUSTIFICACIÓN del estudiante (no la opción MC).
+2. El estudiante puede haber elegido mal pero entender bien, o viceversa.
+3. Evaluá solo lo escrito en la justificación.
+4. Feedback: qué captó bien + qué falta (máx 2 oraciones).
 
 JSON: {"reasoning":"...","scores":{${keys}},"feedback":"..."}`;
 }

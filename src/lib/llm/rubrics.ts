@@ -307,6 +307,42 @@ const TRADEOFF_RUBRIC: Rubric = {
   ],
 };
 
+/** Grupo I: MC2 justification — evaluates reasoning quality independent of MC choice */
+const JUSTIFICATION_RUBRIC: Rubric = {
+  id: 'justification',
+  dimensions: [
+    {
+      key: 'reasoning',
+      name: { es: 'Razonamiento', en: 'Reasoning' },
+      levels: [
+        { score: 0, es: 'Sin razonamiento o razonamiento circular', en: 'No reasoning or circular reasoning' },
+        { score: 1, es: 'Razonamiento parcial, conexión vaga con el concepto', en: 'Partial reasoning, vague connection to the concept' },
+        { score: 2, es: 'Cadena lógica clara que conecta causa con efecto', en: 'Clear logical chain connecting cause and effect' },
+      ],
+    },
+    {
+      key: 'precision',
+      name: { es: 'Precisión', en: 'Precision' },
+      levels: [
+        { score: 0, es: 'Errores factuales o confusión de conceptos', en: 'Factual errors or concept confusion' },
+        { score: 1, es: 'Mayormente correcto pero alguna imprecisión', en: 'Mostly correct but some imprecision' },
+        { score: 2, es: 'Todo lo afirmado es factualmente correcto', en: 'Everything stated is factually correct' },
+      ],
+    },
+    {
+      key: 'relevance',
+      name: { es: 'Relevancia', en: 'Relevance' },
+      levels: [
+        { score: 0, es: 'Describe algo no relacionado con lo preguntado', en: 'Describes something unrelated to the question' },
+        { score: 1, es: 'Relacionado pero no apunta al concepto específico', en: 'Related but does not target the specific concept' },
+        { score: 2, es: 'Aborda directamente lo que la pregunta pide', en: 'Directly addresses what the question asks' },
+      ],
+    },
+  ],
+};
+
+export { JUSTIFICATION_RUBRIC };
+
 // ============================================================================
 // Type → Rubric Mapping
 // ============================================================================
