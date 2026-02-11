@@ -321,7 +321,7 @@ export function LearnFlow({
         </div>
       )}
 
-      {/* Step content — centered on viewport */}
+      {/* Step content — centered on viewport, offset for annotations panel on xl+ */}
       <div className={`mx-auto max-w-3xl px-8 ${currentStep === 'apply' ? 'hidden' : ''}`}>
         {/* STEP 1: ACTIVATE — Advance organizer */}
         {currentStep === 'activate' && (

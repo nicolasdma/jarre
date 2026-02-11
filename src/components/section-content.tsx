@@ -145,12 +145,14 @@ export function SectionContent({
           quizzes={inlineQuizzes}
         />
       ) : (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={markdownComponents}
-        >
-          {processed}
-        </ReactMarkdown>
+        <div data-segment-index={0}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {processed}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );
@@ -186,7 +188,7 @@ function InterleavedContent({
           : [];
 
         return (
-          <div key={i}>
+          <div key={i} data-segment-index={i}>
             {segment.heading && (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}

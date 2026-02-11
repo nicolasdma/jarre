@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { SectionContent } from './section-content';
+import { AnnotatedContent } from './annotated-content';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
 import { SelfExplanation } from './self-explanation';
 import { t, type Language } from '@/lib/translations';
@@ -397,7 +397,8 @@ export function ConceptSection({
             </div>
           )}
 
-          <SectionContent
+          <AnnotatedContent
+            sectionId={section.id}
             markdown={section.contentMarkdown}
             conceptId={section.conceptId}
             sectionIndex={section.sortOrder}

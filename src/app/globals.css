@@ -75,6 +75,9 @@
   --color-j-info: var(--j-info);
   --color-j-info-bg: var(--j-info-bg);
   --color-j-whisper-cursor: var(--j-whisper-cursor);
+  --color-j-highlight: var(--j-highlight);
+  --color-j-highlight-hover: var(--j-highlight-hover);
+  --color-j-highlight-active: var(--j-highlight-active);
 }
 
 :root {
@@ -107,6 +110,11 @@
   --j-border-input: #d4d0c8;
   --j-border-light: #f5f4f0;
   --j-border-dot: #d4d2cc;
+
+  /* Text highlights */
+  --j-highlight: #fef3c7;
+  --j-highlight-hover: #fde68a;
+  --j-highlight-active: #fcd34d;
 
   /* Whisper read-along */
   --j-whisper-cursor: rgba(74, 93, 74, 0.06);
@@ -188,6 +196,10 @@
   --j-error-bg: #451a03;
   --j-info: #60A5FA;
   --j-info-bg: #172554;
+  --j-highlight: rgba(253, 230, 138, 0.25);
+  --j-highlight-hover: rgba(253, 230, 138, 0.35);
+  --j-highlight-active: rgba(252, 211, 77, 0.40);
+
   --j-whisper-cursor: rgba(107, 142, 107, 0.08);
 
   --background: oklch(0.145 0 0);
@@ -237,6 +249,24 @@
   margin-inline: -4px;
   padding-inline: 4px;
   transition: background-color 200ms ease;
+}
+
+/* Text highlight styles (<mark> fallback for browsers without CSS Highlight API) */
+/* CSS Custom Highlight API ::highlight() rules are injected dynamically in highlight-layer.tsx */
+mark.jarre-highlight {
+  background-color: var(--j-highlight);
+  color: inherit;
+  border-radius: 2px;
+  padding-inline: 1px;
+  transition: background-color 150ms ease;
+}
+
+mark.jarre-highlight:hover {
+  background-color: var(--j-highlight-hover);
+}
+
+mark.jarre-highlight-active {
+  background-color: var(--j-highlight-active);
 }
 
 @layer base {
