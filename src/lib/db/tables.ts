@@ -28,6 +28,8 @@ export const TABLES = {
   projectProgress: 'project_progress',
   sectionAnnotations: 'section_annotations',
   resourceNotes: 'resource_notes',
+  xpEvents: 'xp_events',
+  exerciseResults: 'exercise_results',
 } as const;
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES];

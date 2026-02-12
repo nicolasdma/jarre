@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
+import { SessionCTA } from '@/components/dashboard/session-cta';
+import { EngagementBar } from '@/components/dashboard/engagement-bar';
 import { t, getPhaseNames, getMasteryLevels, type Language } from '@/lib/translations';
 
 export default async function Home() {
@@ -111,22 +113,45 @@ export default async function Home() {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
-  const { count: reviewDueCount } = await supabase
-    .from('review_schedule')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .lte('next_review_at', new Date().toISOString());
-
   const currentPhase = profile?.current_phase || '1';
   const conceptsStarted = Object.values(levelCounts).reduce((a, b) => a + b, 0);
+
+  // Engagement data
+  const isToday = profile?.daily_xp_date === new Date().toISOString().slice(0, 10);
+  const dailyXp = isToday ? (profile?.daily_xp_earned ?? 0) : 0;
+  const dailyTarget = profile?.daily_xp_target ?? 50;
+  const streakDays = profile?.streak_days ?? 0;
+  const totalXp = profile?.total_xp ?? 0;
+  const xpLevel = profile?.xp_level ?? 1;
+  const longestStreak = profile?.longest_streak ?? 0;
+  const lastActive = profile?.last_active_at ? new Date(profile.last_active_at) : null;
+  const streakAlive = lastActive
+    ? (Date.now() - lastActive.getTime()) < 2 * 24 * 60 * 60 * 1000
+    : false;
 
   return (
     <div className="min-h-screen bg-j-bg">
       <Header currentPage="home" />
 
       <main className="mx-auto max-w-6xl px-8 py-12">
-        {/* Hero — same as landing but personalized */}
-        <div className="mb-16">
+        {/* Engagement bar */}
+        <EngagementBar
+          streakDays={streakDays}
+          streakAlive={streakAlive}
+          longestStreak={longestStreak}
+          totalXp={totalXp}
+          xpLevel={xpLevel}
+          dailyXp={dailyXp}
+          dailyTarget={dailyTarget}
+        />
+
+        {/* Session CTA */}
+        <div className="mb-12">
+          <SessionCTA userId={user.id} language={lang} />
+        </div>
+
+        {/* Hero — personalized */}
+        <div className="mb-12">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-px bg-j-accent"></div>
             <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
@@ -134,18 +159,18 @@ export default async function Home() {
             </span>
           </div>
 
-          <h2 className="text-5xl font-bold text-j-text mb-2">
+          <h2 className="text-4xl font-bold text-j-text mb-1">
             {t('dashboard.welcome', lang)},
           </h2>
-          <p className="text-3xl font-light text-j-text-tertiary">
+          <p className="text-2xl font-light text-j-text-tertiary">
             {profile?.display_name || user.email}
           </p>
 
-          <p className="mt-6 text-j-text-secondary max-w-xl leading-relaxed">
+          <p className="mt-4 text-j-text-secondary max-w-xl leading-relaxed">
             {t('dashboard.currentPhase', lang)}: <strong className="text-j-text">{phaseNames[currentPhase]}</strong>
           </p>
 
-          <div className="flex gap-4 mt-8">
+          <div className="flex gap-4 mt-6">
             <Link
               href="/library"
               className="font-mono text-[11px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-3 uppercase hover:bg-j-accent-hover transition-colors"
@@ -153,10 +178,10 @@ export default async function Home() {
               {t('dashboard.browseLibrary', lang)}
             </Link>
             <Link
-              href={`/library?phase=${currentPhase}`}
+              href="/mi-sistema"
               className="font-mono text-[11px] tracking-[0.15em] border border-j-border-input text-j-text px-6 py-3 uppercase hover:border-j-accent transition-colors"
             >
-              {t('dashboard.continuePhase', lang)} {currentPhase}
+              {lang === 'es' ? 'Ver mi sistema' : 'View my system'}
             </Link>
           </div>
         </div>
@@ -182,7 +207,7 @@ export default async function Home() {
             </p>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-light text-j-warm-dark">{profile?.streak_days || 0} {t('dashboard.days', lang)}</p>
+            <p className="text-4xl font-light text-j-warm-dark">{streakDays} {t('dashboard.days', lang)}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('dashboard.streak', lang)}
             </p>
@@ -209,24 +234,6 @@ export default async function Home() {
             ))}
           </div>
         </div>
-
-        {/* Review Pending */}
-        {(reviewDueCount || 0) > 0 && (
-          <div className="mb-12 p-6 border border-j-accent bg-white/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <p className="text-3xl font-light text-j-accent">{reviewDueCount}</p>
-                <p className="text-sm text-j-text-secondary">{t('review.pendingCards', lang)}</p>
-              </div>
-              <Link
-                href="/review"
-                className="font-mono text-[11px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-              >
-                {t('dashboard.startReview', lang)}
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Settings */}
         <div className="border-t border-j-border pt-8">

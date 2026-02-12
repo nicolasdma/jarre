@@ -14,6 +14,7 @@ import { WhisperProvider } from '@/lib/whisper/whisper-context';
 import { WhisperToggle } from './whisper-toggle';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz } from '@/types';
+import { getExercisesForConcept } from '@/lib/exercises/registry';
 
 // ============================================================================
 // Types
@@ -418,6 +419,7 @@ export function LearnFlow({
                   }
                   figureRegistry={figureRegistry}
                   inlineQuizzes={quizzesBySectionId?.[section.id]}
+                  exercises={getExercisesForConcept(section.conceptId)}
                 />
               ))}
             </div>

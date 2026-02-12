@@ -384,6 +384,8 @@ export interface ReviewSubmitResponse {
   // v2: rubric evaluation
   dimensionScores?: Record<string, number>;  // e.g. {precision: 2, completeness: 1, depth: 2}
   reasoning?: string;                         // CoT from evaluator
+  // v3: XP result (if awarded)
+  xp?: XPResult | null;
 }
 
 // ============================================================================
@@ -418,4 +420,99 @@ export interface ReviewStats {
   completedToday: number;
   currentStreak: number;
   totalCards: number;
+}
+
+// ============================================================================
+// ENGAGEMENT / XP
+// ============================================================================
+
+export interface EngagementStatus {
+  totalXp: number;
+  xpLevel: number;
+  dailyXp: number;
+  dailyTarget: number;
+  dailyGoalComplete: boolean;
+  streakDays: number;
+  longestStreak: number;
+  streakAlive: boolean;
+}
+
+export interface XPResult {
+  totalXp: number;
+  xpLevel: number;
+  dailyXp: number;
+  dailyTarget: number;
+  dailyGoalHit: boolean;
+  streakDays: number;
+  longestStreak: number;
+  levelUp: boolean;
+  streakMilestone: number;
+  xpAwarded: number;
+}
+
+// ============================================================================
+// INTERACTIVE EXERCISES
+// ============================================================================
+
+export type ExerciseType = 'sequence' | 'label' | 'connect';
+
+export interface SequenceExercise {
+  id: string;
+  type: 'sequence';
+  title: string;
+  instructions: string;
+  conceptId: string;
+  sectionId?: string;
+  steps: { id: string; text: string }[];
+  correctOrder: string[];
+}
+
+export interface LabelZone {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  correctLabel: string;
+}
+
+export interface LabelExercise {
+  id: string;
+  type: 'label';
+  title: string;
+  instructions: string;
+  conceptId: string;
+  sectionId?: string;
+  svgViewBox: string;
+  svgElements: string;
+  zones: LabelZone[];
+  labels: string[];
+}
+
+export interface ConnectNode {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+}
+
+export interface ConnectExercise {
+  id: string;
+  type: 'connect';
+  title: string;
+  instructions: string;
+  conceptId: string;
+  sectionId?: string;
+  svgViewBox: string;
+  nodes: ConnectNode[];
+  correctConnections: [string, string][];
+}
+
+export type Exercise = SequenceExercise | LabelExercise | ConnectExercise;
+
+export interface ExerciseResult {
+  exerciseId: string;
+  score: number;
+  isCorrect: boolean;
+  details: Record<string, unknown>;
 }

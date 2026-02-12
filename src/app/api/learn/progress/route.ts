@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { TABLES } from '@/lib/db/tables';
 import { createLogger } from '@/lib/logger';
+import { awardXP } from '@/lib/xp';
+import { XP_REWARDS } from '@/lib/constants';
 
 const log = createLogger('Learn/Progress');
 
@@ -66,6 +68,17 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Read previous state to detect newly completed sections
+    const { data: prevProgress } = await supabase
+      .from(TABLES.learnProgress)
+      .select('completed_sections')
+      .eq('user_id', user.id)
+      .eq('resource_id', resourceId)
+      .single();
+
+    const prevCompleted = new Set<number>(prevProgress?.completed_sections ?? []);
+    const newCompleted = (completedSections ?? []) as number[];
+
     const { error } = await supabase
       .from(TABLES.learnProgress)
       .upsert(
@@ -85,6 +98,13 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     if (error) {
       log.error('POST upsert error:', error);
       return NextResponse.json({ error: 'Failed to save progress' }, { status: 500 });
+    }
+
+    // Award XP for each newly completed section
+    for (const idx of newCompleted) {
+      if (!prevCompleted.has(idx)) {
+        await awardXP(supabase, user.id, XP_REWARDS.SECTION_COMPLETE, 'section_complete', `${resourceId}:${idx}`);
+      }
     }
 
     return NextResponse.json({ ok: true });

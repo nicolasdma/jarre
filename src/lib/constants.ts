@@ -132,3 +132,29 @@ export const ENGINE_DEBUG_TIMEOUT_MS = 3000;
 
 /** Word boundary sizes for TTS chunking */
 export const TTS_CHUNK_WORDS = { large: 60, small: 50 } as const;
+
+// ============================================================================
+// XP SYSTEM
+// ============================================================================
+
+/** XP rewards per action */
+export const XP_REWARDS = {
+  REVIEW_CORRECT: 10,
+  REVIEW_CORRECT_OPEN: 15,
+  REVIEW_STREAK_BONUS: 5,     // every 3-streak on a card
+  EVALUATION_COMPLETE: 25,
+  EVALUATION_HIGH_SCORE: 15,  // score >= 80%
+  SECTION_COMPLETE: 10,
+  MASTERY_ADVANCE: 20,
+  DAILY_GOAL_BONUS: 10,       // awarded by DB function
+} as const;
+
+/** Default daily XP target for new users */
+export const DEFAULT_DAILY_XP_TARGET = 50;
+
+// ============================================================================
+// EXERCISES
+// ============================================================================
+
+/** Minimum score to consider an exercise "correct" */
+export const EXERCISE_PASS_SCORE = 70;

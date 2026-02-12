@@ -8,6 +8,8 @@ import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
 import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { computeNewLevelFromEvaluation, buildMasteryHistoryRecord } from '@/lib/mastery';
+import { awardXP } from '@/lib/xp';
+import { XP_REWARDS } from '@/lib/constants';
 import type { EvaluationType } from '@/types';
 
 const log = createLogger('Evaluate/Submit');
@@ -221,12 +223,19 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 
     log.info(`Completed evaluation for ${resourceId}, score: ${parsed.overallScore}, tokens: ${tokensUsed}`);
 
+    // Award XP for evaluation (fire-and-forget)
+    const xpResult = await awardXP(supabase, user.id, XP_REWARDS.EVALUATION_COMPLETE, 'evaluation_complete', evaluation?.id);
+    if (Math.round(parsed.overallScore) >= 80) {
+      await awardXP(supabase, user.id, XP_REWARDS.EVALUATION_HIGH_SCORE, 'evaluation_high_score', evaluation?.id);
+    }
+
     return jsonOk({
       responses: parsed.responses,
       overallScore: Math.round(parsed.overallScore),
       summary: parsed.summary,
       evaluationId: evaluation?.id,
       tokensUsed,
+      xp: xpResult,
     });
   } catch (error) {
     log.error('Error evaluating answers:', error);

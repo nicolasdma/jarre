@@ -10,7 +10,7 @@
 // ============================================================================
 
 export interface SectionState {
-  phase: 'pre-question' | 'content' | 'post-test' | 'completed';
+  phase: 'pre-question' | 'content' | 'exercise' | 'post-test' | 'completed';
   preAnswer?: string;
   preAttempted: boolean;
   postScore?: number;

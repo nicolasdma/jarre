@@ -5,10 +5,11 @@ import { AnnotatedContent } from './annotated-content';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
 import { SelfExplanation } from './self-explanation';
 import { t, type Language } from '@/lib/translations';
-import type { ReviewSubmitResponse, InlineQuiz } from '@/types';
+import type { ReviewSubmitResponse, InlineQuiz, Exercise, ExerciseResult } from '@/types';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import { useWhisper } from '@/lib/whisper/whisper-context';
 import type { SectionState } from '@/lib/learn-progress';
+import { ExerciseShell } from '@/components/exercises/exercise-shell';
 
 // ============================================================================
 // Types
@@ -32,9 +33,10 @@ interface ConceptSectionProps {
   onStateChange?: (state: SectionState) => void;
   figureRegistry?: FigureRegistry;
   inlineQuizzes?: InlineQuiz[];
+  exercises?: Exercise[];
 }
 
-type Phase = 'pre-question' | 'content' | 'post-test' | 'completed';
+type Phase = 'pre-question' | 'content' | 'exercise' | 'post-test' | 'completed';
 
 interface QuestionData {
   questionId: string;
@@ -58,7 +60,9 @@ export function ConceptSection({
   onStateChange,
   figureRegistry,
   inlineQuizzes,
+  exercises,
 }: ConceptSectionProps) {
+  const hasExercises = exercises && exercises.length > 0;
   const [phase, setPhase] = useState<Phase>(initialState?.phase ?? 'pre-question');
   const [preQuestion, setPreQuestion] = useState<QuestionData | null>(null);
   const [preAnswer, setPreAnswer] = useState(initialState?.preAnswer ?? '');
@@ -145,16 +149,31 @@ export function ConceptSection({
     onStateChange?.({ phase: 'content', preAnswer: '', preAttempted: true });
   };
 
-  // Move to post-test
+  // Move to exercise or post-test
   const handleContentDone = useCallback(async () => {
     cancelWhisper();
+    if (hasExercises) {
+      setPhase('exercise');
+      onStateChange?.({ phase: 'exercise', preAnswer, preAttempted });
+    } else {
+      setPhase('post-test');
+      onStateChange?.({ phase: 'post-test', preAnswer, preAttempted });
+      setPostLoading('fetching');
+      const q = await fetchQuestion(preQuestion?.questionId);
+      setPostQuestion(q);
+      setPostLoading(null);
+    }
+  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted, cancelWhisper, hasExercises]);
+
+  // Move from exercise to post-test
+  const handleExercisesDone = useCallback(async () => {
     setPhase('post-test');
     onStateChange?.({ phase: 'post-test', preAnswer, preAttempted });
     setPostLoading('fetching');
     const q = await fetchQuestion(preQuestion?.questionId);
     setPostQuestion(q);
     setPostLoading(null);
-  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted, cancelWhisper]);
+  }, [fetchQuestion, preQuestion?.questionId, onStateChange, preAnswer, preAttempted]);
 
   // Submit post-test answer (evaluated via DeepSeek)
   const handlePostSubmit = useCallback(async () => {
@@ -386,7 +405,7 @@ export function ConceptSection({
       )}
 
       {/* Phase: Content (reading) — also shown in review mode for completed sections */}
-      {(phase === 'content' || phase === 'post-test' || phase === 'completed') && (
+      {(phase === 'content' || phase === 'exercise' || phase === 'post-test' || phase === 'completed') && (
         <div className="mb-6">
           {preAttempted && preAnswer.trim() && (
             <div className="bg-j-bg-alt border border-j-border p-3 mb-6 text-xs text-j-text-tertiary">
@@ -416,6 +435,20 @@ export function ConceptSection({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Phase: Exercise (interactive, optional) */}
+      {phase === 'exercise' && hasExercises && (
+        <div className="mb-6">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-4">
+            {language === 'es' ? 'Ejercicio interactivo' : 'Interactive exercise'}
+          </p>
+          <ExerciseShell
+            exercises={exercises!}
+            language={language}
+            onAllComplete={() => handleExercisesDone()}
+          />
         </div>
       )}
 
