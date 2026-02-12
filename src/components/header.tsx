@@ -6,7 +6,7 @@ import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { t, type Language } from '@/lib/translations';
 
 interface HeaderProps {
-  currentPage?: 'home' | 'library' | 'review';
+  currentPage?: 'home' | 'library' | 'review' | 'mi-sistema';
 }
 
 export async function Header({ currentPage }: HeaderProps) {
@@ -17,14 +17,20 @@ export async function Header({ currentPage }: HeaderProps) {
 
   let lang: Language = 'es';
   let dueCount = 0;
+  let streakDays = 0;
+  let totalXp = 0;
+  let xpLevel = 1;
 
   if (user) {
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('language')
+      .select('language, streak_days, total_xp, xp_level')
       .eq('id', user.id)
       .single();
     lang = (profile?.language || 'es') as Language;
+    streakDays = profile?.streak_days ?? 0;
+    totalXp = profile?.total_xp ?? 0;
+    xpLevel = profile?.xp_level ?? 1;
 
     // Count cards reviewed today
     const { count: reviewedToday } = await supabase
@@ -90,6 +96,30 @@ export async function Header({ currentPage }: HeaderProps) {
                     </span>
                   )}
                 </Link>
+                <Link
+                  href="/mi-sistema"
+                  className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
+                    currentPage === 'mi-sistema'
+                      ? 'text-j-accent'
+                      : 'text-j-text-secondary hover:text-j-text'
+                  }`}
+                >
+                  03. {lang === 'es' ? 'Mi Sistema' : 'My System'}
+                </Link>
+                {/* Engagement badges */}
+                <div className="flex items-center gap-3 pl-2 border-l border-j-border">
+                  {streakDays > 0 && (
+                    <div className="flex items-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-j-warm">
+                        <path d="M12 2C12 2 4 8 4 14C4 18.4 7.6 22 12 22C16.4 22 20 18.4 20 14C20 8 12 2 12 2Z" fill="currentColor" opacity="0.9"/>
+                      </svg>
+                      <span className="font-mono text-[10px] text-j-text">{streakDays}</span>
+                    </div>
+                  )}
+                  <span className="font-mono text-[10px] text-j-text-secondary">
+                    {totalXp >= 1000 ? `${(totalXp / 1000).toFixed(1)}k` : totalXp} XP · Nv {xpLevel}
+                  </span>
+                </div>
                 <ThemeToggle />
                 <LogoutButton label={t('nav.logout', lang)} />
               </>

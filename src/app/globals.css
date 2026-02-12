@@ -269,6 +269,26 @@ mark.jarre-highlight-active {
   background-color: var(--j-highlight-active);
 }
 
+/* Celebration overlay animation */
+@keyframes celebration-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.celebration-enter {
+  animation: celebration-enter 0.4s ease-out forwards;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

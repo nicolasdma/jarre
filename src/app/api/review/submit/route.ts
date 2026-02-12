@@ -16,6 +16,8 @@ import {
 import { calculateNextReview, scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
 import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
+import { awardXP } from '@/lib/xp';
+import { XP_REWARDS } from '@/lib/constants';
 import type { QuestionBankType, ReviewRating } from '@/types';
 import type { createClient } from '@/lib/supabase/server';
 
@@ -91,6 +93,15 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         `MC/TF: question=${questionId}, format=${format}, correct=${isCorrect}, interval=${smResult.intervalDays}d`
       );
 
+      // Award XP (fire-and-forget)
+      let xpResult = null;
+      if (isCorrect) {
+        xpResult = await awardXP(supabase, user.id, XP_REWARDS.REVIEW_CORRECT, 'review_correct', questionId);
+        if (smResult.masteryAdvanced) {
+          await awardXP(supabase, user.id, XP_REWARDS.MASTERY_ADVANCE, 'mastery_advance', question.concept_id);
+        }
+      }
+
       return NextResponse.json({
         score,
         feedback,
@@ -100,6 +111,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         nextReviewAt: smResult.nextReviewAt,
         intervalDays: smResult.intervalDays,
         masteryAdvanced: smResult.masteryAdvanced,
+        xp: xpResult,
       });
     }
 
@@ -201,6 +213,15 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       `Open: question=${questionId}, score=${score}, rating=${rating}, interval=${smResult.intervalDays}d, tokens=${tokensUsed}`
     );
 
+    // Award XP (fire-and-forget)
+    let xpResult = null;
+    if (isCorrect) {
+      xpResult = await awardXP(supabase, user.id, XP_REWARDS.REVIEW_CORRECT_OPEN, 'review_correct_open', questionId);
+      if (smResult.masteryAdvanced) {
+        await awardXP(supabase, user.id, XP_REWARDS.MASTERY_ADVANCE, 'mastery_advance', question.concept_id);
+      }
+    }
+
     return NextResponse.json({
       score,
       feedback,
@@ -212,6 +233,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       masteryAdvanced: smResult.masteryAdvanced,
       dimensionScores,
       reasoning,
+      xp: xpResult,
     });
   } catch (error) {
     log.error('Unexpected error:', error);
