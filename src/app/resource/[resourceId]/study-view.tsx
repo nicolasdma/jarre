@@ -41,6 +41,7 @@ export function StudyView({
   language,
 }: StudyViewProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const splitPositionRef = useRef(initialSplitPosition);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -57,9 +58,13 @@ export function StudyView({
 
         if (!response.ok) {
           console.error('[StudyView] Failed to save canvas:', await response.text());
+          setSaveError(true);
+        } else {
+          setSaveError(false);
         }
       } catch (error) {
         console.error('[StudyView] Error saving canvas:', error);
+        setSaveError(true);
       } finally {
         setIsSaving(false);
       }
@@ -115,9 +120,13 @@ export function StudyView({
         defaultPosition={initialSplitPosition}
         onPositionChange={handlePositionChange}
       />
-      {isSaving && (
-        <div className="absolute bottom-2 left-2 rounded bg-stone-900/70 px-2 py-1 text-xs text-white">
-          {t('study.saving', language)}
+      {(isSaving || saveError) && (
+        <div className={`absolute bottom-2 left-2 rounded px-2 py-1 text-xs text-white ${
+          saveError ? 'bg-red-600/90' : 'bg-stone-900/70'
+        }`}>
+          {saveError
+            ? (language === 'es' ? 'No guardado' : 'Not saved')
+            : t('study.saving', language)}
         </div>
       )}
     </div>

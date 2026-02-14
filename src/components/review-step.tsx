@@ -403,7 +403,7 @@ export function ReviewStep({
                     </p>
                   )}
 
-                  <div className="border border-j-border p-3 bg-white">
+                  <div className="border border-j-border p-3 bg-j-bg-white">
                     <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                       {language === 'es' ? 'Tu respuesta' : 'Your answer'}
                     </p>
@@ -440,7 +440,7 @@ export function ReviewStep({
                       language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
                     }
                     rows={3}
-                    className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                    className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.metaKey) {
                         handleBankSubmit(q.questionId);

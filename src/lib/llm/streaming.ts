@@ -68,6 +68,7 @@ export async function callDeepSeekStream(params: {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60_000),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Network request failed';

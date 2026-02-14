@@ -363,7 +363,7 @@ export function ConceptSection({
                 onChange={(e) => setPreAnswer(e.target.value)}
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
-                className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey) handlePreSubmit();
@@ -474,7 +474,7 @@ export function ConceptSection({
                 onChange={(e) => setPostAnswer(e.target.value)}
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
-                className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey && postAnswer.trim()) {
@@ -573,7 +573,7 @@ export function ConceptSection({
               </p>
 
               {!postResult.isCorrect && (
-                <div className="border border-j-border p-3 bg-white">
+                <div className="border border-j-border p-3 bg-j-bg-white">
                   <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                     {t('review.expectedAnswer', language)}
                   </p>

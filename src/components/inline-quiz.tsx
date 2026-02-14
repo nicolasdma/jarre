@@ -229,13 +229,13 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const getOptionClasses = (label: string): string => {
     const base =
-      'flex items-center gap-3 w-full border p-3 text-left transition-all duration-200';
+      'flex items-center gap-3 w-full border p-3 text-left transition-all duration-200 min-h-[44px]';
 
     if (state === 'unanswered') {
       if (selectedOption === label) {
-        return `${base} border-j-accent bg-white`;
+        return `${base} border-j-accent bg-[var(--j-bg)]`;
       }
-      return `${base} border-j-border bg-white hover:border-j-warm cursor-pointer`;
+      return `${base} border-j-border bg-[var(--j-bg)] hover:border-j-warm cursor-pointer`;
     }
 
     if (label === quiz.correctAnswer) {
@@ -244,7 +244,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     if (selectedOption === label && label !== quiz.correctAnswer) {
       return `${base} bg-j-error-bg border-j-error`;
     }
-    return `${base} border-j-border bg-white opacity-50`;
+    return `${base} border-j-border bg-[var(--j-bg)] opacity-50`;
   };
 
   const getRadioClasses = (label: string): string => {
@@ -269,10 +269,10 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const getTfButtonClasses = (value: 'true' | 'false'): string => {
     const base =
-      'flex-1 py-3 px-4 font-mono text-[11px] tracking-[0.15em] uppercase border transition-all duration-200';
+      'flex-1 py-3 px-4 font-mono text-[11px] tracking-[0.15em] uppercase border transition-all duration-200 min-h-[44px]';
 
     if (state === 'unanswered') {
-      return `${base} border-j-border bg-white text-j-text hover:border-j-warm cursor-pointer`;
+      return `${base} border-j-border bg-[var(--j-bg)] text-j-text hover:border-j-warm cursor-pointer`;
     }
 
     if (value === quiz.correctAnswer) {
@@ -281,7 +281,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     if (selectedOption === value && value !== quiz.correctAnswer) {
       return `${base} bg-j-error-bg border-j-error text-j-error`;
     }
-    return `${base} border-j-border bg-white text-j-text-tertiary opacity-50`;
+    return `${base} border-j-border bg-[var(--j-bg)] text-j-text-tertiary opacity-50`;
   };
 
   // Determine result display based on llmResult or deterministic
@@ -345,11 +345,13 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
       {/* MC / MC2 Mode */}
       {isMcFormat && quiz.options && (
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-4" role="radiogroup" aria-label="Opciones de respuesta">
           {quiz.options.map((option) => (
             <button
               key={option.label}
               type="button"
+              role="radio"
+              aria-checked={selectedOption === option.label}
               onClick={() => {
                 if (state === 'unanswered') setSelectedOption(option.label);
               }}
@@ -358,12 +360,12 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
             >
               <span className={getRadioClasses(option.label)}>
                 {mcIsAnswered && option.label === quiz.correctAnswer && (
-                  <span className="block w-1.5 h-1.5 rounded-full bg-white" />
+                  <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
                 )}
                 {mcIsAnswered &&
                   selectedOption === option.label &&
                   option.label !== quiz.correctAnswer && (
-                    <span className="block w-1.5 h-1.5 rounded-full bg-white" />
+                    <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
                   )}
                 {state === 'unanswered' && selectedOption === option.label && (
                   <span className="block w-1.5 h-1.5 rounded-full bg-j-accent" />
@@ -410,7 +412,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
           type="button"
           onClick={handleSubmit}
           disabled={!selectedOption}
-          className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 min-h-[44px] uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Verificar
         </button>
@@ -418,7 +420,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
       {/* MC2: Justification phase */}
       {isMc2 && state === 'mc_answered' && (
-        <div className="mt-4 border border-j-border bg-white p-4 space-y-3">
+        <div className="mt-4 border border-j-border bg-[var(--j-bg)] p-4 space-y-3">
           <p className="font-mono text-[10px] tracking-[0.2em] text-purple-600 dark:text-purple-400 uppercase">
             ¿Por qué esa es la respuesta correcta?
           </p>
@@ -431,13 +433,13 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
             placeholder="Escribe tu justificación..."
             rows={3}
             autoFocus
-            className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+            className="w-full border border-j-border-input bg-[var(--j-bg)] p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
           />
           <button
             type="button"
             onClick={handleJustificationSave}
             disabled={!justification.trim()}
-            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 min-h-[44px] uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Evaluar justificación
           </button>
@@ -446,7 +448,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
       {/* MC2: Evaluating spinner */}
       {isMc2 && state === 'evaluating' && (
-        <div className="mt-4 border border-j-border bg-white p-4">
+        <div className="mt-4 border border-j-border bg-[var(--j-bg)] p-4">
           <div className="flex items-center gap-3">
             <div className="w-4 h-4 border-2 border-j-accent border-t-transparent rounded-full animate-spin" />
             <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
@@ -506,7 +508,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
             {/* MC2: Show justification + hint (only when no LLM result / fallback) */}
             {isMc2 && state === 'answered' && justification && !llmResult && (
               <div className="mt-3 space-y-3">
-                <div className="border border-j-border p-3 bg-white">
+                <div className="border border-j-border p-3 bg-[var(--j-bg)]">
                   <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                     Tu justificación
                   </p>
@@ -527,7 +529,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
             {/* MC2: Show reference explanation after LLM result */}
             {isMc2 && state === 'answered' && llmResult && (
-              <div className="mt-3 border border-j-border p-3 bg-white">
+              <div className="mt-3 border border-j-border p-3 bg-[var(--j-bg)]">
                 <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                   Explicación de referencia
                 </p>

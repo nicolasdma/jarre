@@ -67,6 +67,7 @@ export async function callDeepSeek(params: {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(45_000),
       });
 
       if (!response.ok) {
@@ -81,6 +82,13 @@ export async function callDeepSeek(params: {
       return { content, tokensUsed };
     } catch (error) {
       lastError = error as Error;
+      // Don't retry on timeout - the request already took too long
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        throw new Error('La solicitud al modelo tardó demasiado (timeout 45s). Intenta de nuevo.');
+      }
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('La solicitud al modelo fue cancelada.');
+      }
       if (attempt < 2) {
         // Wait before retry: 1s, 2s
         await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));

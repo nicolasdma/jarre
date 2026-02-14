@@ -77,6 +77,7 @@ export default async function ReviewPage() {
           dueCount={dueCount}
           totalCards={totalCards || 0}
           language={lang}
+          reviewedToday={reviewedToday || 0}
         />
       </main>
     </div>

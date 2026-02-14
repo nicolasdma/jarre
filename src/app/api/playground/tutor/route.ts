@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api/middleware';
 import { callDeepSeekStream } from '@/lib/llm/streaming';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { buildTutorMessages } from '@/lib/llm/tutor-prompts';
@@ -21,7 +22,7 @@ function isValidPlayground(value: unknown): value is Playground {
   return typeof value === 'string' && VALID_PLAYGROUNDS.includes(value as Playground);
 }
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { }) => {
   try {
     const body = await request.json();
     const { playground, state, history, userMessage } = body as {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
           'Cache-Control': 'no-cache',
           Connection: 'keep-alive',
         },
-      });
+      }) as unknown as NextResponse;
     }
 
     // Proactive mode: generate a single question
@@ -73,4 +74,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

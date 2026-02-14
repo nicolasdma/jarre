@@ -4,10 +4,11 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { JarreButton } from '@/components/jarre-button';
+import { ErrorMessage } from '@/components/error-message';
 
 function LoginForm() {
   const router = useRouter();
@@ -42,7 +43,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-j-bg px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Welcome back</CardTitle>
@@ -73,18 +74,16 @@ function LoginForm() {
               />
             </div>
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <ErrorMessage message={error} variant="inline" />}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <JarreButton type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
+            </JarreButton>
           </form>
 
-          <p className="mt-4 text-center text-sm text-stone-600">
+          <p className="mt-4 text-center text-sm text-j-text-secondary">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-medium text-stone-900 hover:underline">
+            <Link href="/signup" className="font-medium text-j-text hover:underline">
               Sign up
             </Link>
           </p>
@@ -97,8 +96,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-stone-50">
-        <p className="text-stone-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-j-bg">
+        <p className="text-j-text-tertiary">Loading...</p>
       </div>
     }>
       <LoginForm />

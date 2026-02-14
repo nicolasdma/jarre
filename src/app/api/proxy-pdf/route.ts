@@ -9,8 +9,48 @@ const log = createLogger('ProxyPDF');
 const pdfCache = new Map<string, { buffer: ArrayBuffer; timestamp: number }>();
 
 /**
+ * Allowed PDF source domains.
+ * Only these hosts are permitted to prevent SSRF attacks.
+ */
+const ALLOWED_PDF_DOMAINS = [
+  'arxiv.org',
+  'dl.acm.org',
+  'papers.nips.cc',
+  'proceedings.neurips.cc',
+  'openreview.net',
+  'aclanthology.org',
+  'proceedings.mlr.press',
+  'jmlr.org',
+  'raw.githubusercontent.com',
+  'github.com',
+  'huggingface.co',
+];
+
+/**
+ * Validate that a URL points to an allowed domain.
+ */
+function isAllowedDomain(urlString: string): boolean {
+  try {
+    const parsed = new URL(urlString);
+
+    // Only allow HTTPS
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    // Check hostname against whitelist (allow subdomains)
+    const hostname = parsed.hostname.toLowerCase();
+    return ALLOWED_PDF_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * GET /api/proxy-pdf?url=...&start=...&end=...
- * Proxies external PDFs and optionally extracts page range
+ * Proxies external PDFs from whitelisted domains and optionally extracts page range
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
@@ -23,6 +63,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const decodedUrl = decodeURIComponent(url);
+
+    // Validate URL structure
+    if (!isAllowedDomain(decodedUrl)) {
+      log.error(`Blocked PDF request for disallowed domain: ${decodedUrl}`);
+      return NextResponse.json(
+        { error: 'Domain not allowed. Only known academic sources are permitted.' },
+        { status: 403 }
+      );
+    }
+
     if (!decodedUrl.toLowerCase().includes('.pdf')) {
       return NextResponse.json({ error: 'Only PDF files allowed' }, { status: 400 });
     }
@@ -39,6 +89,7 @@ export async function GET(request: NextRequest) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; JarreApp/1.0)',
         },
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {

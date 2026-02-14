@@ -55,12 +55,14 @@ export function ConfidenceIndicator({
               type="button"
               onClick={() => handleSelect(level)}
               disabled={isLocked && !isActive}
-              className={`flex-1 font-mono text-[10px] tracking-[0.1em] py-2 px-3 border transition-all duration-200 uppercase ${
+              aria-pressed={isActive}
+              aria-label={`${t(key, language)} — nivel de confianza ${level} de 3`}
+              className={`flex-1 font-mono text-[10px] tracking-[0.1em] py-2 px-3 border transition-all duration-200 uppercase min-h-[44px] ${
                 isActive
                   ? 'border-j-accent bg-j-accent-light text-j-accent'
                   : isLocked
                     ? 'border-j-border bg-j-bg-alt text-j-text-tertiary opacity-40'
-                    : 'border-j-border-input bg-white text-j-text-secondary hover:border-j-accent cursor-pointer'
+                    : 'border-j-border-input bg-[var(--j-bg)] text-j-text-secondary hover:border-j-accent cursor-pointer'
               }`}
             >
               {t(key, language)}

@@ -55,20 +55,23 @@ export default async function Home() {
           </div>
 
           {/* Mastery Levels Explanation */}
-          <div className="grid grid-cols-5 gap-4 text-center">
-            {[
-              { level: 0, name: 'Exposed', desc: 'Read/watched' },
-              { level: 1, name: 'Understood', desc: 'Can explain' },
-              { level: 2, name: 'Applied', desc: 'Used in project' },
-              { level: 3, name: 'Criticized', desc: 'Know when NOT to use' },
-              { level: 4, name: 'Taught', desc: 'Can teach others' },
-            ].map((item) => (
-              <div key={item.level} className="border border-j-border p-4">
-                <p className="text-2xl font-light text-j-text mb-1">{item.level}</p>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mb-1">{item.name}</p>
-                <p className="text-xs text-j-text-tertiary">{item.desc}</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
+            {getMasteryLevels('en').map((item) => {
+              const descriptions: Record<string, string> = {
+                '0': 'Read/watched',
+                '1': 'Can explain',
+                '2': 'Used in project',
+                '3': 'Know when NOT to use',
+                '4': 'Can teach others',
+              };
+              return (
+                <div key={item.level} className="border border-j-border p-4">
+                  <p className="text-2xl font-light text-j-text mb-1">{item.level}</p>
+                  <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mb-1">{item.name}</p>
+                  <p className="text-xs text-j-text-tertiary">{descriptions[item.level]}</p>
+                </div>
+              );
+            })}
           </div>
         </main>
 
@@ -84,34 +87,49 @@ export default async function Home() {
   }
 
   // Authenticated — dashboard
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase row type is dynamic
+  let profile: Record<string, any> | null = null;
+  let progressCounts: { level: string }[] | null = null;
+  let totalConcepts: number | null = 0;
+  let evaluationCount: number | null = 0;
+  let dashboardError = false;
+
+  try {
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    profile = profileData;
+
+    const { data: progressData } = await supabase
+      .from('concept_progress')
+      .select('level')
+      .eq('user_id', user.id);
+    progressCounts = progressData;
+
+    const { count: conceptCount } = await supabase
+      .from('concepts')
+      .select('*', { count: 'exact', head: true });
+    totalConcepts = conceptCount;
+
+    const { count: evalCount } = await supabase
+      .from('evaluations')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    evaluationCount = evalCount;
+  } catch {
+    dashboardError = true;
+  }
 
   const lang = (profile?.language || 'es') as Language;
   const phaseNames = getPhaseNames(lang);
   const masteryLevels = getMasteryLevels(lang);
 
-  const { data: progressCounts } = await supabase
-    .from('concept_progress')
-    .select('level')
-    .eq('user_id', user.id);
-
   const levelCounts = { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0 };
   progressCounts?.forEach((p) => {
     levelCounts[p.level as keyof typeof levelCounts]++;
   });
-
-  const { count: totalConcepts } = await supabase
-    .from('concepts')
-    .select('*', { count: 'exact', head: true });
-
-  const { count: evaluationCount } = await supabase
-    .from('evaluations')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
 
   const currentPhase = profile?.current_phase || '1';
   const conceptsStarted = Object.values(levelCounts).reduce((a, b) => a + b, 0);
@@ -144,6 +162,24 @@ export default async function Home() {
           dailyXp={dailyXp}
           dailyTarget={dailyTarget}
         />
+
+        {dashboardError && (
+          <div className="bg-yellow-50 border border-yellow-300 p-4 mb-8">
+            <p className="text-sm text-yellow-800">
+              {lang === 'es'
+                ? 'No pudimos cargar todos los datos. Algunos valores pueden estar incompletos.'
+                : 'We could not load all data. Some values may be incomplete.'}
+            </p>
+            <div className="flex gap-4 mt-2">
+              <Link href="/" className="font-mono text-[10px] tracking-[0.15em] text-yellow-800 underline uppercase">
+                {lang === 'es' ? 'Reintentar' : 'Retry'}
+              </Link>
+              <Link href="/library" className="font-mono text-[10px] tracking-[0.15em] text-yellow-800 underline uppercase">
+                {lang === 'es' ? 'Ir a Biblioteca' : 'Go to Library'}
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Session CTA */}
         <div className="mb-12">
@@ -221,7 +257,7 @@ export default async function Home() {
               {t('dashboard.masteryProgress', lang)}
             </span>
           </div>
-          <div className="grid grid-cols-5 gap-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
             {masteryLevels.map((item) => (
               <div key={item.level} className="border border-j-border p-4">
                 <p className="text-2xl font-light text-j-text mb-1">

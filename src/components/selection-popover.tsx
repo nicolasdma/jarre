@@ -58,7 +58,6 @@ export function SelectionPopover({ containerRef, onHighlight }: SelectionPopover
       top: mouseRef.current.y - (containerRect.top + window.scrollY) + 8,
       left: mouseRef.current.x - (containerRect.left + window.scrollX),
     };
-    console.log(`[TEST] mouse: pageX=${mouseRef.current.x} pageY=${mouseRef.current.y} | container: top=${containerRect.top + window.scrollY} left=${containerRect.left + window.scrollX} | popover: top=${pos.top} left=${pos.left}`);
     setPosition(pos);
   }, [containerRef]);
 

@@ -171,7 +171,7 @@ export function SelfExplanation({
         }
         rows={3}
         disabled={saved}
-        className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none disabled:opacity-60"
+        className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none disabled:opacity-60"
       />
 
       {/* Character counter (when required) */}
