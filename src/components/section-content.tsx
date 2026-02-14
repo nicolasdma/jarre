@@ -100,7 +100,7 @@ const markdownComponents = {
       <img
         src={typeof props.src === 'string' ? props.src : undefined}
         alt={props.alt || ''}
-        className="w-full border border-j-border bg-white p-3"
+        className="w-full border border-j-border bg-j-bg-white p-3"
         loading="lazy"
       />
       {props.alt && (

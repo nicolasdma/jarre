@@ -322,7 +322,7 @@ export function PracticeEvalStep({
 
               {/* Scaffold: rubric visible (level 2) */}
               {scaffoldLevel === 2 && !savedAnswer && (
-                <div className="border border-j-border p-3 mb-4 bg-white">
+                <div className="border border-j-border p-3 mb-4 bg-j-bg-white">
                   <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
                     {language === 'es' ? 'Dimensiones de evaluación' : 'Evaluation dimensions'}
                   </p>
@@ -377,7 +377,7 @@ export function PracticeEvalStep({
                     </p>
                   )}
 
-                  <div className="border border-j-border p-3 bg-white">
+                  <div className="border border-j-border p-3 bg-j-bg-white">
                     <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
                       {language === 'es' ? 'Tu respuesta' : 'Your answer'}
                     </p>
@@ -398,7 +398,7 @@ export function PracticeEvalStep({
                       language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
                     }
                     rows={4}
-                    className="w-full border border-j-border-input bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                    className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.metaKey) {
                         handleSubmit(q.questionId);

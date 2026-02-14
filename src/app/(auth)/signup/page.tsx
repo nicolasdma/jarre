@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { JarreButton } from '@/components/jarre-button';
+import { ErrorMessage } from '@/components/error-message';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-j-bg px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Check your email</CardTitle>
@@ -58,7 +59,7 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-center text-sm text-stone-600">
+            <p className="text-center text-sm text-j-text-secondary">
               Click the link in your email to activate your account.
             </p>
           </CardContent>
@@ -68,7 +69,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-j-bg px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create your account</CardTitle>
@@ -109,21 +110,19 @@ export default function SignupPage() {
                 minLength={6}
                 required
               />
-              <p className="text-xs text-stone-500">Minimum 6 characters</p>
+              <p className="text-xs text-j-text-tertiary">Minimum 6 characters</p>
             </div>
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <ErrorMessage message={error} variant="inline" />}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <JarreButton type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating account...' : 'Create account'}
-            </Button>
+            </JarreButton>
           </form>
 
-          <p className="mt-4 text-center text-sm text-stone-600">
+          <p className="mt-4 text-center text-sm text-j-text-secondary">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-stone-900 hover:underline">
+            <Link href="/login" className="font-medium text-j-text hover:underline">
               Sign in
             </Link>
           </p>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { MobileNav } from '@/components/mobile-nav';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { t, type Language } from '@/lib/translations';
 
@@ -55,7 +56,7 @@ export async function Header({ currentPage }: HeaderProps) {
   return (
     <header className="border-b border-j-border bg-j-bg">
       <div className="mx-auto max-w-6xl px-8 py-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-8 h-8 border border-j-accent flex items-center justify-center">
@@ -67,9 +68,10 @@ export async function Header({ currentPage }: HeaderProps) {
           </Link>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/library"
+              aria-current={currentPage === 'library' ? 'page' : undefined}
               className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
                 currentPage === 'library'
                   ? 'text-j-accent'
@@ -83,6 +85,7 @@ export async function Header({ currentPage }: HeaderProps) {
               <>
                 <Link
                   href="/review"
+                  aria-current={currentPage === 'review' ? 'page' : undefined}
                   className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors flex items-center gap-2 ${
                     currentPage === 'review'
                       ? 'text-j-accent'
@@ -98,6 +101,7 @@ export async function Header({ currentPage }: HeaderProps) {
                 </Link>
                 <Link
                   href="/mi-sistema"
+                  aria-current={currentPage === 'mi-sistema' ? 'page' : undefined}
                   className={`font-mono text-[11px] tracking-[0.15em] uppercase transition-colors ${
                     currentPage === 'mi-sistema'
                       ? 'text-j-accent'
@@ -141,6 +145,35 @@ export async function Header({ currentPage }: HeaderProps) {
               </>
             )}
           </nav>
+
+          {/* Mobile Navigation */}
+          {user ? (
+            <MobileNav
+              links={[
+                { href: '/library', label: `01. ${t('nav.library', lang)}`, active: currentPage === 'library' },
+                { href: '/review', label: `02. ${t('nav.review', lang)}`, active: currentPage === 'review', badge: dueCount },
+                { href: '/mi-sistema', label: `03. ${lang === 'es' ? 'Mi Sistema' : 'My System'}`, active: currentPage === 'mi-sistema' },
+              ]}
+              streakDays={streakDays}
+              totalXp={totalXp}
+              xpLevel={xpLevel}
+              isAuthenticated={!!user}
+              logoutLabel={t('nav.logout', lang)}
+            />
+          ) : (
+            <MobileNav
+              links={[
+                { href: '/library', label: `01. ${t('nav.library', lang)}`, active: currentPage === 'library' },
+                { href: '/login', label: t('common.login', lang), active: false },
+                { href: '/signup', label: t('common.signup', lang), active: false },
+              ]}
+              streakDays={0}
+              totalXp={0}
+              xpLevel={1}
+              isAuthenticated={false}
+              logoutLabel=""
+            />
+          )}
         </div>
       </div>
     </header>

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { InlineQuiz } from '@/components/inline-quiz';
 import { ReviewPrediction } from '@/components/review-prediction';
+import { ErrorMessage } from '@/components/error-message';
+import { categorizeError } from '@/lib/utils/categorize-error';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewCard, ReviewSubmitResponse } from '@/types';
 
@@ -13,6 +16,7 @@ interface ReviewSessionProps {
   dueCount: number;
   totalCards: number;
   language: Language;
+  reviewedToday: number;
 }
 
 interface CompletedCard {
@@ -73,7 +77,7 @@ function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
 
 function FormatBadge({ format }: { format: string }) {
   if (format === 'open') return null;
-  const label = format === 'mc' ? 'Opción múltiple' : 'Verdadero/Falso';
+  const label = format === 'mc' ? 'Opcion multiple' : 'Verdadero/Falso';
   return (
     <span className="font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-j-warm text-j-warm">
       {label}
@@ -85,7 +89,7 @@ function FormatBadge({ format }: { format: string }) {
 // Main Component
 // ============================================================================
 
-export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionProps) {
+export function ReviewSession({ dueCount, totalCards, language, reviewedToday }: ReviewSessionProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<SessionPhase>('start');
   const [cards, setCards] = useState<ReviewCard[]>([]);
@@ -95,12 +99,23 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
   const [currentResult, setCurrentResult] = useState<ReviewSubmitResponse | null>(null);
   const [completed, setCompleted] = useState<CompletedCard[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [prediction, setPrediction] = useState<number | null>(null);
+
+  // Preserved answer for retry on submit failure
+  const pendingAnswerRef = useRef<{ type: 'open'; answer: string } | { type: 'closed'; quizId: string; selectedOption: string; isCorrect: boolean } | null>(null);
+
+  const handleCategorizedError = (err: unknown) => {
+    const categorized = categorizeError(err);
+    setError(categorized.message);
+    setErrorAction(categorized.action);
+  };
 
   const startSession = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setErrorAction(null);
     try {
       const response = await fetch('/api/review/due');
       if (!response.ok) throw new Error('Failed to fetch cards');
@@ -115,7 +130,7 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
       setCurrentIndex(0);
       setPhase('card');
     } catch (err) {
-      setError((err as Error).message);
+      handleCategorizedError(err);
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +142,9 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
 
     setIsLoading(true);
     setError(null);
+    setErrorAction(null);
+    pendingAnswerRef.current = { type: 'open', answer: answer.trim() };
+
     try {
       const response = await fetch('/api/review/submit', {
         method: 'POST',
@@ -144,16 +162,25 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
       setCompleted((prev) => [...prev, { card: cards[currentIndex], result }]);
       setShowReasoning(false);
       setPhase('feedback');
+      pendingAnswerRef.current = null;
+
+      toast.success(language === 'es' ? 'Respuesta registrada' : 'Answer recorded');
+
+      // Micro-progress every 5 cards
+      const newCount = completed.length + 1;
+      if (newCount > 0 && newCount % 5 === 0 && newCount < cards.length) {
+        toast(`${newCount} de ${cards.length} completadas — buen ritmo`);
+      }
     } catch (err) {
-      setError((err as Error).message);
+      handleCategorizedError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [answer, cards, currentIndex]);
+  }, [answer, cards, currentIndex, completed.length, language]);
 
   // Submit MC/TF answer (called from InlineQuiz onAnswer)
   const submitClosedAnswer = useCallback(async (
-    _quizId: string,
+    quizId: string,
     selectedOption: string,
     isCorrect: boolean,
   ) => {
@@ -162,6 +189,9 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
 
     setIsLoading(true);
     setError(null);
+    setErrorAction(null);
+    pendingAnswerRef.current = { type: 'closed', quizId, selectedOption, isCorrect };
+
     try {
       const response = await fetch('/api/review/submit', {
         method: 'POST',
@@ -182,25 +212,53 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
       setCompleted((prev) => [...prev, { card, result: finalResult }]);
       setShowReasoning(false);
       setPhase('feedback');
+      pendingAnswerRef.current = null;
+
+      toast.success(language === 'es' ? 'Respuesta registrada' : 'Answer recorded');
+
+      // Micro-progress every 5 cards
+      const newCount = completed.length + 1;
+      if (newCount > 0 && newCount % 5 === 0 && newCount < cards.length) {
+        toast(`${newCount} de ${cards.length} completadas — buen ritmo`);
+      }
     } catch (err) {
-      setError((err as Error).message);
+      handleCategorizedError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [cards, currentIndex]);
+  }, [cards, currentIndex, completed.length, language]);
+
+  // Retry last failed submission
+  const retrySubmit = useCallback(async () => {
+    const pending = pendingAnswerRef.current;
+    if (!pending) return;
+
+    if (pending.type === 'open') {
+      // Restore the answer text in case it was cleared
+      setAnswer(pending.answer);
+      await submitOpenAnswer();
+    } else {
+      await submitClosedAnswer(pending.quizId, pending.selectedOption, pending.isCorrect);
+    }
+  }, [submitOpenAnswer, submitClosedAnswer]);
 
   const nextCard = useCallback(() => {
     setAnswer('');
     setCurrentResult(null);
     setShowReasoning(false);
+    setError(null);
+    setErrorAction(null);
 
     if (currentIndex + 1 >= cards.length) {
       setPhase('summary');
+      toast.success(language === 'es'
+        ? 'Sesion de repaso completada — buen trabajo!'
+        : 'Review session completed — good job!');
     } else {
       setCurrentIndex((prev) => prev + 1);
       setPhase('card');
     }
-  }, [currentIndex, cards.length]);
+  }, [currentIndex, cards.length, language]);
 
   const difficultyLabel = (d: number) => {
     const labels = { 1: '●', 2: '●●', 3: '●●●' };
@@ -239,7 +297,24 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
         ) : (
           <>
             <p className="text-2xl font-light text-j-accent mb-4">✓</p>
-            <p className="text-j-text-secondary">{t('review.noPending', language)}</p>
+            {reviewedToday > 0 ? (
+              <>
+                <p className="text-j-text-secondary">
+                  {language === 'es'
+                    ? 'Ya completaste tu sesion de hoy. Descansa y vuelve manana.'
+                    : 'You completed today\'s session. Rest and come back tomorrow.'}
+                </p>
+                <p className="mt-2 font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+                  {reviewedToday} {language === 'es' ? 'tarjetas revisadas hoy' : 'cards reviewed today'}
+                </p>
+              </>
+            ) : (
+              <p className="text-j-text-secondary">
+                {language === 'es'
+                  ? 'Aun no tienes tarjetas de repaso. Completa evaluaciones para generar tarjetas.'
+                  : 'You don\'t have review cards yet. Complete evaluations to generate cards.'}
+              </p>
+            )}
             <button
               onClick={() => router.push('/')}
               className="mt-8 font-mono text-[11px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors"
@@ -248,7 +323,15 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
             </button>
           </>
         )}
-        {error && <p className="mt-4 text-sm text-j-error">{error}</p>}
+        {error && (
+          <div className="mt-4 max-w-md mx-auto">
+            <ErrorMessage
+              message={error}
+              variant="block"
+              onRetry={errorAction !== 'relogin' ? startSession : undefined}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -346,7 +429,23 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
           </>
         )}
 
-        {error && <p className="mt-4 text-sm text-j-error">{error}</p>}
+        {error && (
+          <div className="mt-4">
+            <ErrorMessage
+              message={error}
+              variant="block"
+              onRetry={errorAction !== 'relogin' ? retrySubmit : undefined}
+            />
+            {errorAction === 'relogin' && (
+              <button
+                onClick={() => router.push('/login')}
+                className="mt-2 font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase"
+              >
+                {language === 'es' ? 'Iniciar sesion' : 'Log in'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -415,7 +514,7 @@ export function ReviewSession({ dueCount, totalCards, language }: ReviewSessionP
           {currentResult.feedback && (
             <div className="p-4 bg-white dark:bg-j-bg-alt border border-j-border">
               <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
-                {isClosed ? 'Explicación' : 'Feedback'}
+                {isClosed ? 'Explicacion' : 'Feedback'}
               </p>
               <p className="text-sm text-j-text leading-relaxed">{currentResult.feedback}</p>
             </div>

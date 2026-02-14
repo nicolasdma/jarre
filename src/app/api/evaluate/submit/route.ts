@@ -234,6 +234,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       overallScore: Math.round(parsed.overallScore),
       summary: parsed.summary,
       evaluationId: evaluation?.id,
+      saved: !evalError,
       tokensUsed,
       xp: xpResult,
     });

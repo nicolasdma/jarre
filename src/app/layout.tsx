@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,7 +42,21 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-j-accent focus:text-j-text-on-accent font-mono text-[10px] tracking-[0.2em] uppercase"
+        >
+          Saltar al contenido principal
+        </a>
+        <main id="main-content">
+          {children}
+        </main>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            className: 'font-mono text-[11px] tracking-wide',
+          }}
+        />
       </body>
     </html>
   );

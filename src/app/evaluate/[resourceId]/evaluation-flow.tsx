@@ -1,42 +1,75 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ReviewPrediction } from '@/components/review-prediction';
+import { ErrorMessage } from '@/components/error-message';
+import { categorizeError } from '@/lib/utils/categorize-error';
 
 type Language = 'es' | 'en';
 
 const translations = {
-  'eval.testUnderstanding': { es: 'Evalúa tu comprensión de este', en: 'Test your understanding of this' },
+  'eval.testUnderstanding': { es: 'Evalua tu comprension de este', en: 'Test your understanding of this' },
   'eval.conceptsToEvaluate': { es: 'Conceptos a evaluar', en: 'Concepts to evaluate' },
   'eval.aiWillGenerate': {
-    es: 'La IA generará 5 preguntas para evaluar tu comprensión. Respondé honestamente — esto ayuda a identificar vacíos en tu conocimiento.',
-    en: 'AI will generate 5 questions to test your understanding. Answer honestly — this helps identify gaps in your knowledge.'
+    es: 'La IA generara 5 preguntas para evaluar tu comprension. Responde honestamente — esto ayuda a identificar areas de exploracion en tu conocimiento.',
+    en: 'AI will generate 5 questions to test your understanding. Answer honestly — this helps identify areas to explore in your knowledge.'
   },
-  'eval.start': { es: 'Comenzar Evaluación', en: 'Start Evaluation' },
+  'eval.start': { es: 'Comenzar Evaluacion', en: 'Start Evaluation' },
   'eval.generating': { es: 'Generando preguntas...', en: 'Generating questions...' },
-  'eval.mayTakeSeconds': { es: 'Esto puede tomar unos segundos', en: 'This may take a few seconds' },
-  'eval.answerAll': { es: 'Respondé todas las preguntas para completar la evaluación', en: 'Answer all questions to complete the evaluation' },
+  'eval.generatingEstimate': { es: 'Esto suele tomar ~15 segundos', en: 'This usually takes ~15 seconds' },
+  'eval.cancelLoading': { es: 'Cancelar', en: 'Cancel' },
+  'eval.answerAll': { es: 'Responde todas las preguntas para completar la evaluacion', en: 'Answer all questions to complete the evaluation' },
   'eval.question': { es: 'Pregunta', en: 'Question' },
   'eval.of': { es: 'de', en: 'of' },
   'eval.concept': { es: 'Concepto', en: 'Concept' },
-  'eval.placeholder': { es: 'Escribí tu respuesta aquí...', en: 'Type your answer here...' },
+  'eval.placeholder': { es: 'Escribi tu respuesta aqui...', en: 'Type your answer here...' },
   'eval.cancel': { es: 'Cancelar', en: 'Cancel' },
   'eval.submit': { es: 'Enviar Respuestas', en: 'Submit Answers' },
-  'eval.answerAllCount': { es: 'Respondé todas las preguntas', en: 'Answer all questions' },
+  'eval.answerAllCount': { es: 'Responde todas las preguntas', en: 'Answer all questions' },
   'eval.evaluating': { es: 'Evaluando tus respuestas...', en: 'Evaluating your answers...' },
-  'eval.aiReviewing': { es: 'La IA está revisando tus respuestas', en: 'AI is reviewing your responses' },
-  'eval.complete': { es: 'Evaluación Completada', en: 'Evaluation Complete' },
-  'eval.overallScore': { es: 'Puntuación General', en: 'Overall Score' },
+  'eval.evaluatingEstimate': { es: 'Esto suele tomar ~15 segundos', en: 'This usually takes ~15 seconds' },
+  'eval.aiReviewing': { es: 'La IA esta revisando tus respuestas', en: 'AI is reviewing your responses' },
+  'eval.complete': { es: 'Evaluacion Completada', en: 'Evaluation Complete' },
+  'eval.overallScore': { es: 'Puntuacion General', en: 'Overall Score' },
   'eval.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
-  'eval.feedback': { es: 'Retroalimentación', en: 'Feedback' },
-  'eval.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
-  'eval.backToChapter': { es: 'Volver al capítulo', en: 'Back to chapter' },
+  'eval.feedback': { es: 'Retroalimentacion', en: 'Feedback' },
+  'eval.backToStudy': { es: 'Ver material de estudio', en: 'Back to study material' },
+  'eval.backToChapter': { es: 'Volver al capitulo', en: 'Back to chapter' },
+  'eval.saved': { es: 'Evaluacion guardada', en: 'Evaluation saved' },
+  'eval.cancelConfirm': {
+    es: 'Seguro? Tu progreso se guardara como borrador.',
+    en: 'Are you sure? Your progress will be saved as a draft.'
+  },
+  'eval.discoveryMessage': {
+    es: 'Las evaluaciones son herramientas de descubrimiento, no juicios',
+    en: 'Evaluations are discovery tools, not judgments'
+  },
+  'eval.predictionInsight': {
+    es: 'La diferencia entre tu prediccion y el resultado senala donde enfocar tu proxima lectura',
+    en: 'The difference between your prediction and the result points to where to focus your next reading'
+  },
+  'eval.lowScoreEncouragement': {
+    es: 'Cuando te sientas listo, volve a intentarlo — cada intento es aprendizaje',
+    en: 'When you feel ready, try again — each attempt is learning'
+  },
+  'eval.lowScoreIdentified': {
+    es: 'Identificaste areas clave para profundizar',
+    en: 'You identified key areas to explore further'
+  },
+  'eval.retryEvaluation': { es: 'Volver a intentar', en: 'Try again' },
+  'eval.deepenTopic': { es: 'Profundizar en el tema', en: 'Deepen your understanding' },
+  'eval.hintShort': { es: '2-4 oraciones suelen ser suficientes', en: '2-4 sentences are usually enough' },
+  'eval.hintLong': { es: 'Un parrafo con ejemplo concreto', en: 'A paragraph with a concrete example' },
 } as const;
 
 function t(key: keyof typeof translations, lang: Language): string {
   return translations[key]?.[lang] || translations[key]?.en || key;
 }
+
+// Question types that require deeper answers
+const DEEP_QUESTION_TYPES = new Set(['scenario', 'tradeoff', 'trade-off', 'connection', 'error_detection']);
 
 interface Concept {
   id: string;
@@ -73,6 +106,70 @@ interface Props {
 
 type Phase = 'intro' | 'loading' | 'questions' | 'submitting' | 'results';
 
+// ============================================================================
+// Spinner Component
+// ============================================================================
+
+function Spinner() {
+  return (
+    <div className="h-5 w-5 border-2 border-j-border border-t-j-accent rounded-full animate-spin" />
+  );
+}
+
+// ============================================================================
+// Rubric Dimension Display
+// ============================================================================
+
+function RubricSummary({ responses }: { responses: EvaluationResult[] }) {
+  // Compute aggregate rubric dimensions from individual scores
+  // We derive accuracy/completeness/depth from the score of each question
+  const totalQuestions = responses.length;
+  if (totalQuestions === 0) return null;
+
+  const avgScore = responses.reduce((sum, r) => sum + r.score, 0) / totalQuestions;
+
+  // Map overall score to 3 dimensions on a 0-5 scale
+  // Precision: how many got > 80%
+  const highScoreCount = responses.filter(r => r.score >= 80).length;
+  const midScoreCount = responses.filter(r => r.score >= 50 && r.score < 80).length;
+
+  const precisionDots = Math.min(5, Math.round((highScoreCount / totalQuestions) * 5));
+  const completenessDots = Math.min(5, Math.round((avgScore / 100) * 5));
+  const depthDots = Math.min(5, Math.round(((highScoreCount + midScoreCount * 0.5) / totalQuestions) * 5));
+
+  const dimensions = [
+    { label: 'Precision', dots: precisionDots },
+    { label: 'Completitud', dots: completenessDots },
+    { label: 'Profundidad', dots: depthDots },
+  ];
+
+  return (
+    <div className="flex flex-col gap-2">
+      {dimensions.map(({ label, dots }) => (
+        <div key={label} className="flex items-center gap-3">
+          <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase w-24 text-right">
+            {label}
+          </span>
+          <div className="flex gap-0.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className={`text-xs ${i < dots ? 'text-j-accent' : 'text-j-border-input'}`}
+              >
+                {i < dots ? '●' : '○'}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export function EvaluationFlow({ resource, concepts, userId, language }: Props) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('intro');
@@ -84,11 +181,92 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
     summary: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
   const [predictedScore, setPredictedScore] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState(false);
+  const [showCancelButton, setShowCancelButton] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const draftKey = `eval-draft-${resource.id}`;
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed === 'object' && parsed !== null) {
+          setAnswers(parsed);
+        }
+      }
+    } catch {
+      // Corrupted draft, ignore
+    }
+  }, [draftKey]);
+
+  // Persist draft on change
+  useEffect(() => {
+    if (Object.keys(answers).length > 0) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(answers));
+      } catch {
+        // Storage full or unavailable, ignore
+      }
+    }
+  }, [answers, draftKey]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, []);
+
+  const handleCategorizedError = (err: unknown) => {
+    const categorized = categorizeError(err);
+    setError(categorized.message);
+    setErrorAction(categorized.action);
+  };
+
+  const startLoadingState = () => {
+    setShowCancelButton(false);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // Show cancel button after 10 seconds
+    cancelTimerRef.current = setTimeout(() => {
+      setShowCancelButton(true);
+    }, 10_000);
+
+    return controller;
+  };
+
+  const cleanupLoadingState = () => {
+    if (cancelTimerRef.current) {
+      clearTimeout(cancelTimerRef.current);
+      cancelTimerRef.current = null;
+    }
+    setShowCancelButton(false);
+    abortControllerRef.current = null;
+  };
+
+  const handleCancelLoading = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    cleanupLoadingState();
+    setPhase('intro');
+  };
 
   const handleStartEvaluation = async () => {
     setPhase('loading');
     setError(null);
+    setErrorAction(null);
+
+    const controller = startLoadingState();
 
     try {
       const response = await fetch('/api/evaluate/generate', {
@@ -103,6 +281,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
             definition: c.canonical_definition,
           })),
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -114,14 +293,30 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
       setQuestions(data.questions);
       setPhase('questions');
     } catch (err) {
-      setError((err as Error).message);
+      if ((err as Error).name === 'AbortError') {
+        // User cancelled, already handled
+        return;
+      }
+      handleCategorizedError(err);
       setPhase('intro');
+    } finally {
+      cleanupLoadingState();
+    }
+  };
+
+  const handleCancelEvaluation = () => {
+    const confirmed = window.confirm(t('eval.cancelConfirm', language));
+    if (confirmed) {
+      router.push(`/learn/${resource.id}`);
     }
   };
 
   const handleSubmitAnswers = async () => {
     setPhase('submitting');
     setError(null);
+    setErrorAction(null);
+
+    const controller = startLoadingState();
 
     try {
       const response = await fetch('/api/evaluate/submit', {
@@ -139,6 +334,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
           userId,
           predictedScore,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -149,13 +345,100 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
       const data = await response.json();
       setResults(data);
       setPhase('results');
+      localStorage.removeItem(draftKey);
+
+      // Toast on successful save
+      if (data.saved !== false) {
+        toast.success(t('eval.saved', language));
+      }
+
+      // Check if first evaluation ever
+      checkFirstEvaluation();
+
+      // Celebration for high score
+      if (data.overallScore >= 80) {
+        toast.success('+ 25 XP por evaluacion completada');
+      }
+
+      if (data.saved === false) {
+        setSaveError(true);
+        try {
+          localStorage.setItem(`eval-results-${resource.id}`, JSON.stringify(data));
+        } catch {
+          // Storage full or unavailable, ignore
+        }
+      }
     } catch (err) {
-      setError((err as Error).message);
+      if ((err as Error).name === 'AbortError') {
+        return;
+      }
+      handleCategorizedError(err);
       setPhase('questions');
+    } finally {
+      cleanupLoadingState();
+    }
+  };
+
+  const checkFirstEvaluation = () => {
+    try {
+      const key = 'jarre-first-eval-celebrated';
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, 'true');
+        setTimeout(() => {
+          toast.success('Primera evaluacion completada!');
+        }, 500);
+      }
+    } catch {
+      // Storage unavailable
+    }
+  };
+
+  const retrySave = async () => {
+    if (!results) return;
+    try {
+      const response = await fetch('/api/evaluate/retry-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceId: resource.id,
+          overallScore: results.overallScore,
+          predictedScore,
+          promptVersion: 'unknown',
+        }),
+      });
+      const data = await response.json();
+      if (data.saved) {
+        setSaveError(false);
+        localStorage.removeItem(`eval-results-${resource.id}`);
+        toast.success(t('eval.saved', language));
+      }
+    } catch {
+      // Retry failed, keep banner visible
     }
   };
 
   const allAnswered = questions.every((_, i) => answers[i.toString()]?.trim());
+
+  // Find lowest dimension for recovery guidance
+  const getLowestDimension = (): string | null => {
+    if (!results || results.responses.length === 0) return null;
+    const totalQ = results.responses.length;
+    const highCount = results.responses.filter(r => r.score >= 80).length;
+    const midCount = results.responses.filter(r => r.score >= 50 && r.score < 80).length;
+    const avg = results.responses.reduce((s, r) => s + r.score, 0) / totalQ;
+
+    const precision = (highCount / totalQ) * 100;
+    const completeness = avg;
+    const depth = ((highCount + midCount * 0.5) / totalQ) * 100;
+
+    const dims = [
+      { label: 'precision', value: precision },
+      { label: 'completitud', value: completeness },
+      { label: 'profundidad', value: depth },
+    ];
+    dims.sort((a, b) => a.value - b.value);
+    return dims[0].label;
+  };
 
   // INTRO PHASE
   if (phase === 'intro') {
@@ -197,7 +480,6 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
             language={language}
             totalQuestions={5}
             onPredict={(predicted) => {
-              // Convert from count (0-5) to percentage (0-100)
               setPredictedScore(Math.round((predicted / 5) * 100));
             }}
             initialPrediction={predictedScore != null ? Math.round((predictedScore / 100) * 5) : undefined}
@@ -205,7 +487,21 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
         </div>
 
         {error && (
-          <p className="text-sm text-j-error mb-4">{error}</p>
+          <div className="mb-4">
+            <ErrorMessage
+              message={error}
+              variant="block"
+              onRetry={errorAction === 'retry' || errorAction === 'wait' ? handleStartEvaluation : undefined}
+            />
+            {errorAction === 'relogin' && (
+              <button
+                onClick={() => router.push('/login')}
+                className="mt-2 font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase"
+              >
+                {language === 'es' ? 'Iniciar sesion' : 'Log in'}
+              </button>
+            )}
+          </div>
         )}
 
         <button
@@ -221,9 +517,18 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   // LOADING PHASE
   if (phase === 'loading') {
     return (
-      <div className="py-16 text-center">
+      <div className="py-16 flex flex-col items-center gap-4">
+        <Spinner />
         <p className="text-sm text-j-text-secondary">{t('eval.generating', language)}</p>
-        <p className="mt-2 text-xs text-j-text-tertiary">{t('eval.mayTakeSeconds', language)}</p>
+        <p className="text-xs text-j-text-tertiary">{t('eval.generatingEstimate', language)}</p>
+        {showCancelButton && (
+          <button
+            onClick={handleCancelLoading}
+            className="mt-4 font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+          >
+            {t('eval.cancelLoading', language)}
+          </button>
+        )}
       </div>
     );
   }
@@ -273,15 +578,30 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
                   setAnswers((prev) => ({ ...prev, [index.toString()]: e.target.value }))
                 }
               />
+
+              {/* Expected length hint */}
+              <p className="text-[9px] text-j-text-tertiary font-mono mt-1">
+                {DEEP_QUESTION_TYPES.has(question.type)
+                  ? t('eval.hintLong', language)
+                  : t('eval.hintShort', language)}
+              </p>
             </div>
           ))}
         </div>
 
-        {error && <p className="text-sm text-j-error mt-4">{error}</p>}
+        {error && (
+          <div className="mt-4">
+            <ErrorMessage
+              message={error}
+              variant="block"
+              onRetry={errorAction !== 'relogin' ? handleSubmitAnswers : undefined}
+            />
+          </div>
+        )}
 
         <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
           <button
-            onClick={() => router.push(`/learn/${resource.id}`)}
+            onClick={handleCancelEvaluation}
             className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
           >
             {t('eval.cancel', language)}
@@ -303,15 +623,29 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   // SUBMITTING PHASE
   if (phase === 'submitting') {
     return (
-      <div className="py-16 text-center">
+      <div className="py-16 flex flex-col items-center gap-4">
+        <Spinner />
         <p className="text-sm text-j-text-secondary">{t('eval.evaluating', language)}</p>
-        <p className="mt-2 text-xs text-j-text-tertiary">{t('eval.aiReviewing', language)}</p>
+        <p className="text-xs text-j-text-tertiary">{t('eval.evaluatingEstimate', language)}</p>
+        {showCancelButton && (
+          <button
+            onClick={handleCancelLoading}
+            className="mt-4 font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+          >
+            {t('eval.cancelLoading', language)}
+          </button>
+        )}
       </div>
     );
   }
 
   // RESULTS PHASE
   if (phase === 'results' && results) {
+    const isHighScore = results.overallScore >= 80;
+    const isLowScore = results.overallScore < 60;
+    const lowestDimension = isLowScore ? getLowestDimension() : null;
+    const predictionDelta = predictedScore != null ? predictedScore - results.overallScore : null;
+
     return (
       <div>
         <div className="flex items-center gap-2 mb-8">
@@ -321,8 +655,32 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
           </span>
         </div>
 
+        {saveError && (
+          <div className="bg-yellow-50 border border-yellow-300 p-4 mb-6">
+            <p className="text-sm text-yellow-800">
+              {language === 'es'
+                ? 'Tus resultados no se pudieron guardar. Tus respuestas estan respaldadas localmente.'
+                : 'Your results could not be saved. Your answers are backed up locally.'}
+            </p>
+            <button
+              onClick={retrySave}
+              className="mt-2 font-mono text-[10px] tracking-[0.15em] text-yellow-800 underline uppercase"
+            >
+              {language === 'es' ? 'Reintentar guardado' : 'Retry save'}
+            </button>
+          </div>
+        )}
+
+        {/* Rubric dimensions summary */}
+        <div className="border border-j-border p-6 mb-4">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-4">
+            {language === 'es' ? 'Desglose por dimension' : 'Breakdown by dimension'}
+          </p>
+          <RubricSummary responses={results.responses} />
+        </div>
+
         {/* Score summary */}
-        <div className="border border-j-border p-8 mb-6">
+        <div className={`border p-8 mb-4 ${isHighScore ? 'border-j-accent bg-j-accent/5' : 'border-j-border'}`}>
           <div className="flex items-center gap-8">
             <div className="text-center">
               <p className={`text-4xl font-light ${
@@ -333,16 +691,30 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
               <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
                 {t('eval.overallScore', language)}
               </p>
+              {isHighScore && (
+                <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mt-2 animate-pulse">
+                  Excelente
+                </p>
+              )}
             </div>
             <div className="flex-1">
-              <p className="text-sm text-j-text-secondary leading-relaxed">{results.summary}</p>
+              <p className="text-sm text-j-text-secondary leading-relaxed">
+                {isLowScore
+                  ? t('eval.lowScoreIdentified', language)
+                  : results.summary}
+              </p>
             </div>
           </div>
         </div>
 
+        {/* Discovery framing message */}
+        <p className="text-[10px] text-j-text-tertiary font-mono text-center mb-6">
+          {t('eval.discoveryMessage', language)}
+        </p>
+
         {/* Confidence calibration comparison */}
         {predictedScore != null && (
-          <div className="mb-10">
+          <div className="mb-6">
             <ReviewPrediction
               language={language}
               totalQuestions={100}
@@ -350,6 +722,25 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
               initialPrediction={predictedScore}
               actualCorrect={results.overallScore}
             />
+            {predictionDelta != null && predictionDelta > 15 && (
+              <p className="text-[10px] text-j-text-tertiary font-mono mt-2 text-center">
+                {t('eval.predictionInsight', language)}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Recovery guidance for low scores */}
+        {isLowScore && lowestDimension && (
+          <div className="border border-j-border bg-j-bg-alt p-6 mb-6">
+            <p className="text-sm text-j-text-secondary leading-relaxed mb-2">
+              {language === 'es'
+                ? `Recomendacion: profundizar en ${lowestDimension}`
+                : `Recommendation: deepen your ${lowestDimension}`}
+            </p>
+            <p className="text-[10px] text-j-text-tertiary font-mono">
+              {t('eval.lowScoreEncouragement', language)}
+            </p>
           </div>
         )}
 
@@ -400,18 +791,43 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
         </div>
 
         <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
-          <button
-            onClick={() => router.push(`/learn/${resource.id}`)}
-            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
-          >
-            {t('eval.backToChapter', language)}
-          </button>
-          <button
-            onClick={() => router.push('/library')}
-            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-          >
-            {t('eval.backToLibrary', language)}
-          </button>
+          {isLowScore ? (
+            <>
+              <button
+                onClick={() => router.push(`/learn/${resource.id}`)}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+              >
+                {t('eval.backToChapter', language)}
+              </button>
+              <button
+                onClick={() => {
+                  setPhase('intro');
+                  setResults(null);
+                  setError(null);
+                  setErrorAction(null);
+                  setQuestions([]);
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('eval.retryEvaluation', language)}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => router.push(`/learn/${resource.id}`)}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+              >
+                {t('eval.backToChapter', language)}
+              </button>
+              <button
+                onClick={() => router.push(`/learn/${resource.id}`)}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('eval.deepenTopic', language)}
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

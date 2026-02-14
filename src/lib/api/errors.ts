@@ -52,8 +52,11 @@ export function errorResponse(error: unknown): NextResponse {
     );
   }
 
-  const message = error instanceof Error ? error.message : 'Internal server error';
-  return NextResponse.json({ error: message }, { status: 500 });
+  // Never expose internal error details to the client
+  if (error instanceof Error) {
+    console.error('[API] Internal error:', error.message, error.stack);
+  }
+  return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
 }
 
 export function jsonOk<T>(data: T, status = 200): NextResponse {
