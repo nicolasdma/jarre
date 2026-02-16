@@ -10,6 +10,7 @@ import type { FigureRegistry } from '@/lib/figure-registry';
 import { useWhisper } from '@/lib/whisper/whisper-context';
 import type { SectionState } from '@/lib/learn-progress';
 import { ExerciseShell } from '@/components/exercises/exercise-shell';
+import { VoicePanel } from '@/components/voice/voice-panel';
 
 // ============================================================================
 // Types
@@ -97,6 +98,7 @@ export function ConceptSection({
   );
 
   const [preFetchFailed, setPreFetchFailed] = useState(false);
+  const [voiceCompleted, setVoiceCompleted] = useState(initialState?.voiceCompleted ?? false);
 
   const { cancel: cancelWhisper } = useWhisper();
 
@@ -430,12 +432,45 @@ export function ConceptSection({
 
           {phase === 'content' && (
             <div className="mt-8 pt-6 border-t border-j-border">
-              <button
-                onClick={handleContentDone}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
-              >
-                {t('learn.postTest.title', language)} →
-              </button>
+              {!voiceCompleted ? (
+                <VoicePanel
+                  sectionId={section.id}
+                  sectionContent={section.contentMarkdown}
+                  sectionTitle={section.sectionTitle}
+                  language={language}
+                  onSessionComplete={() => {
+                    setVoiceCompleted(true);
+                    onStateChange?.({
+                      ...initialState,
+                      phase: 'content',
+                      preAnswer: preAnswer,
+                      preAttempted,
+                      voiceCompleted: true,
+                    });
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center py-8">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-j-accent mb-3">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-1">
+                    {language === 'es' ? 'Sesión completada' : 'Session complete'}
+                  </p>
+                  <p className="text-sm text-j-text-secondary mb-6">
+                    {language === 'es'
+                      ? 'Ahora comprobá lo que aprendiste.'
+                      : 'Now test what you learned.'}
+                  </p>
+                  <button
+                    onClick={handleContentDone}
+                    className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-8 py-3 uppercase hover:bg-j-accent-hover transition-colors"
+                  >
+                    {t('learn.postTest.title', language)} →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

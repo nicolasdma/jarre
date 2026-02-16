@@ -9,10 +9,11 @@ import type { Language } from '@/lib/translations';
 // ============================================================================
 
 interface VoicePanelProps {
+  sectionId: string;
   sectionContent: string;
   sectionTitle: string;
   language: Language;
-  onClose: () => void;
+  onSessionComplete?: () => void;
 }
 
 // ============================================================================
@@ -26,10 +27,10 @@ function formatTime(seconds: number): string {
 }
 
 // ============================================================================
-// Waveform visualizer (simple canvas bars)
+// Waveform visualizer — wider for inline use
 // ============================================================================
 
-function WaveformIndicator({ isActive }: { isActive: boolean }) {
+function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
 
@@ -40,26 +41,43 @@ function WaveformIndicator({ isActive }: { isActive: boolean }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const BAR_COUNT = 5;
+    const BAR_COUNT = 24;
     const BAR_WIDTH = 3;
-    const GAP = 2;
-    const MAX_HEIGHT = 20;
+    const GAP = 3;
+    const MAX_HEIGHT = 32;
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (let i = 0; i < BAR_COUNT; i++) {
-        const height = isActive
-          ? MAX_HEIGHT * (0.3 + 0.7 * Math.abs(Math.sin(Date.now() / 200 + i * 0.8)))
-          : 4;
+        let height: number;
+        let color: string;
+
+        switch (state) {
+          case 'speaking':
+            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
+            color = 'var(--j-accent, #6b7280)';
+            break;
+          case 'listening':
+            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
+            color = 'var(--j-warm, #d97706)';
+            break;
+          case 'thinking':
+            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
+            color = 'var(--j-text-tertiary, #9ca3af)';
+            break;
+          default:
+            height = 3;
+            color = 'var(--j-border, #e5e7eb)';
+        }
 
         const x = i * (BAR_WIDTH + GAP);
         const y = (canvas.height - height) / 2;
 
-        ctx.fillStyle = isActive
-          ? 'var(--j-accent, #6b7280)'
-          : 'var(--j-text-tertiary, #9ca3af)';
-        ctx.fillRect(x, y, BAR_WIDTH, height);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
+        ctx.fill();
       }
 
       frameRef.current = requestAnimationFrame(draw);
@@ -67,15 +85,53 @@ function WaveformIndicator({ isActive }: { isActive: boolean }) {
 
     draw();
     return () => cancelAnimationFrame(frameRef.current);
-  }, [isActive]);
+  }, [state]);
+
+  const totalWidth = 24 * 3 + 23 * 3; // BAR_COUNT * BAR_WIDTH + (BAR_COUNT-1) * GAP
 
   return (
     <canvas
       ref={canvasRef}
-      width={5 * 3 + 4 * 2} // BAR_COUNT * BAR_WIDTH + (BAR_COUNT-1) * GAP
-      height={24}
-      className="opacity-80"
+      width={totalWidth}
+      height={40}
+      className="mx-auto"
     />
+  );
+}
+
+// ============================================================================
+// Mic button with pulse ring animation
+// ============================================================================
+
+function MicButton({ onClick, disabled, language }: {
+  onClick: () => void;
+  disabled: boolean;
+  language: Language;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="group relative w-16 h-16 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+      aria-label={language === 'es' ? 'Iniciar sesión de voz' : 'Start voice session'}
+    >
+      {/* Pulse ring */}
+      <span className="absolute inset-0 rounded-full border-2 border-j-accent animate-ping opacity-20 group-hover:opacity-40 group-disabled:animate-none group-disabled:opacity-0" />
+
+      {disabled ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+        </svg>
+      ) : (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="1" width="6" height="11" rx="3" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -84,10 +140,11 @@ function WaveformIndicator({ isActive }: { isActive: boolean }) {
 // ============================================================================
 
 export function VoicePanel({
+  sectionId,
   sectionContent,
   sectionTitle,
   language,
-  onClose,
+  onSessionComplete,
 }: VoicePanelProps) {
   const {
     connectionState,
@@ -96,12 +153,11 @@ export function VoicePanel({
     elapsed,
     connect,
     disconnect,
-  } = useVoiceSession({ sectionContent, sectionTitle, language });
+  } = useVoiceSession({ sectionId, sectionContent, sectionTitle, language, onSessionComplete });
 
   const handleDisconnect = useCallback(() => {
     disconnect();
-    onClose();
-  }, [disconnect, onClose]);
+  }, [disconnect]);
 
   // Keyboard shortcut: Escape to disconnect
   useEffect(() => {
@@ -117,9 +173,46 @@ export function VoicePanel({
   const isConnected = connectionState === 'connected';
   const isConnecting = connectionState === 'connecting';
 
+  // ---- Idle state: CTA to start ----
+  if (!isConnected && !isConnecting) {
+    return (
+      <div className="flex flex-col items-center py-10">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2">
+          {language === 'es' ? 'Antes del quiz' : 'Before the quiz'}
+        </p>
+        <p className="text-sm text-j-text-secondary mb-6 text-center max-w-sm">
+          {language === 'es'
+            ? 'Conversá con el tutor sobre lo que leíste. Te va a desafiar con preguntas.'
+            : 'Talk to the tutor about what you read. They\'ll challenge you with questions.'}
+        </p>
+
+        <MicButton onClick={connect} disabled={false} language={language} />
+
+        <p className="font-mono text-[10px] text-j-text-tertiary mt-4">
+          {language === 'es' ? 'Toca para hablar' : 'Tap to speak'}
+        </p>
+
+        {error && (
+          <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
+        )}
+      </div>
+    );
+  }
+
+  // ---- Connecting state ----
+  if (isConnecting) {
+    return (
+      <div className="flex flex-col items-center py-10">
+        <MicButton onClick={() => {}} disabled={true} language={language} />
+        <p className="font-mono text-[10px] text-j-text-tertiary mt-4 animate-pulse">
+          {language === 'es' ? 'Conectando...' : 'Connecting...'}
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Connected state: live session ----
   const statusLabel = (() => {
-    if (isConnecting) return language === 'es' ? 'Conectando...' : 'Connecting...';
-    if (!isConnected) return language === 'es' ? 'Click para conectar' : 'Click to connect';
     switch (tutorState) {
       case 'listening': return language === 'es' ? 'Tu turno — hablá' : 'Your turn — speak';
       case 'thinking': return language === 'es' ? 'Pensando...' : 'Thinking...';
@@ -129,97 +222,46 @@ export function VoicePanel({
   })();
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-      {/* Error message */}
-      {error && (
-        <div className="bg-j-error-bg border border-j-error text-j-error px-3 py-2 text-xs max-w-xs">
-          {error}
-        </div>
-      )}
+    <div className="flex flex-col items-center py-8">
+      {/* Waveform */}
+      <WaveformVisualizer state={tutorState} />
 
-      {/* Main panel */}
-      <div className="bg-j-bg-white border border-j-border shadow-lg flex items-center gap-3 px-4 py-3">
-        {/* Waveform */}
-        <WaveformIndicator isActive={tutorState === 'speaking' || tutorState === 'listening'} />
-
-        {/* Status */}
-        <div className="flex flex-col min-w-[100px]">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-            {language === 'es' ? 'Tutor de voz' : 'Voice tutor'}
-          </span>
-          <span className={`font-mono text-[10px] ${
-            tutorState === 'speaking'
-              ? 'text-j-accent'
-              : tutorState === 'listening' && isConnected
-                ? 'text-j-warm'
-                : 'text-j-text-secondary'
-          }`}>
-            {statusLabel}
-          </span>
-        </div>
-
-        {/* Timer */}
-        {isConnected && (
-          <span className="font-mono text-[10px] text-j-text-tertiary tabular-nums">
-            {formatTime(elapsed)}
-          </span>
-        )}
-
-        {/* Connect / Disconnect button */}
-        {!isConnected ? (
-          <button
-            type="button"
-            onClick={connect}
-            disabled={isConnecting}
-            className="w-10 h-10 flex items-center justify-center border border-j-border-input text-j-text-secondary hover:text-j-accent hover:border-j-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={language === 'es' ? 'Iniciar sesión de voz' : 'Start voice session'}
-          >
-            {isConnecting ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
-              </svg>
-            ) : (
-              /* Microphone icon */
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="1" width="6" height="11" rx="3" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            )}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleDisconnect}
-            className="w-10 h-10 flex items-center justify-center border border-j-error text-j-error hover:bg-j-error-bg transition-colors"
-            aria-label={language === 'es' ? 'Desconectar' : 'Disconnect'}
-          >
-            {/* Square stop icon */}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="4" y="4" width="16" height="16" rx="2" />
-            </svg>
-          </button>
-        )}
-
-        {/* Close panel button (only when disconnected) */}
-        {!isConnected && !isConnecting && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-j-text-tertiary hover:text-j-text transition-colors text-sm"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        )}
+      {/* Status + timer */}
+      <div className="flex items-center gap-3 mt-4 mb-5">
+        <span className={`font-mono text-[10px] tracking-[0.1em] ${
+          tutorState === 'speaking'
+            ? 'text-j-accent'
+            : tutorState === 'listening'
+              ? 'text-j-warm'
+              : 'text-j-text-tertiary'
+        }`}>
+          {statusLabel}
+        </span>
+        <span className="text-j-border">·</span>
+        <span className="font-mono text-[10px] text-j-text-tertiary tabular-nums">
+          {formatTime(elapsed)}
+        </span>
       </div>
 
-      {/* Desktop-only hint */}
-      {!isConnected && !isConnecting && (
-        <span className="font-mono text-[9px] text-j-text-tertiary tracking-[0.1em]">
-          ESC {language === 'es' ? 'para cerrar' : 'to close'}
-        </span>
+      {/* Stop button */}
+      <button
+        type="button"
+        onClick={handleDisconnect}
+        className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-j-error/30 text-j-error hover:bg-j-error hover:text-white hover:border-j-error transition-all duration-200"
+        aria-label={language === 'es' ? 'Terminar sesión' : 'End session'}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="3" />
+        </svg>
+      </button>
+
+      <p className="font-mono text-[10px] text-j-text-tertiary mt-3">
+        {language === 'es' ? 'Esc para terminar' : 'Esc to end'}
+      </p>
+
+      {/* Error */}
+      {error && (
+        <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
       )}
     </div>
   );
