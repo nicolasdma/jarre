@@ -149,6 +149,56 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
+  'ddia-ch4': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué Kleppmann argumenta que los formatos de codificación nativa de cada lenguaje (pickle, java.io.Serializable) son una mala elección para almacenar datos a largo plazo? ¿Qué tres problemas fundamentales tienen?',
+      concept: 'Language-specific encoding',
+      hint: 'Piensa en acoplamiento al lenguaje, seguridad (instanciar clases arbitrarias), y versionado.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'JSON es el estándar dominante para APIs web, pero Kleppmann identifica problemas sutiles. ¿Cuál es el trade-off entre usar JSON (universal, legible) vs Protocol Buffers (compacto, tipado) para comunicación entre microservicios?',
+      concept: 'JSON vs binary encoding',
+      hint: 'Considera: ¿qué pasa cuando transmites millones de mensajes por segundo? ¿Y cuando necesitas verificar compatibilidad antes de desplegar?',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Tienes un data pipeline que exporta tablas SQL a archivos para un data warehouse. ¿Elegirías Avro o Protocol Buffers? ¿Por qué la ausencia de field tags en Avro es una ventaja aquí?',
+      concept: 'Avro para schemas dinámicos',
+      hint: 'Si una columna se agrega a la tabla SQL, ¿qué pasa con los field tags en Protobuf vs el schema resolution de Avro?',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta la evolución de schemas (ch4) con los rolling upgrades y la replicación (ch5)? ¿Por qué necesitas forward Y backward compatibility simultáneamente durante un despliegue?',
+      concept: 'Schema evolution y rolling upgrades',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Una llamada RPC es conceptualmente igual a una llamada a función local, solo que más lenta." ¿Qué está fundamentalmente mal con esta afirmación?',
+      concept: 'RPC vs local calls',
+      hint: 'Una llamada local nunca falla "a medias" — funciona o lanza una excepción. Una llamada de red puede ejecutarse y perder la respuesta.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Un schema registry (como Confluent Schema Registry) agrega complejidad operacional. ¿Cuándo vale la pena ese costo adicional vs simplemente versionar la API en la URL?',
+      concept: 'Schema registry',
+      hint: 'Piensa en sistemas con cientos de servicios que producen y consumen mensajes Kafka.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué el problema de "data outliving code" es especialmente peligroso con ORMs? ¿Qué puede pasar si un proceso con schema viejo lee, modifica y reescribe un registro que tiene campos nuevos?',
+      concept: 'Data outliving code',
+    },
+  ],
+
   'ddia-ch5': [
     {
       type: 'tradeoff',
@@ -238,6 +288,57 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       question:
         'Un índice secundario local (document-partitioned) vs global (term-partitioned): ¿cuándo elegirías cada uno? Piensa en el costo de escritura vs lectura.',
       concept: 'Secondary indexes in partitioned data',
+    },
+  ],
+
+  'ddia-ch7': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué Kleppmann dice que la "C" en ACID es "de relleno"? Si consistency es una propiedad de la aplicación y no de la base de datos, ¿qué herramientas provee la DB para que la app la mantenga?',
+      concept: 'ACID Consistency',
+      hint: 'La DB ofrece atomicidad y aislamiento. La aplicación define los invariantes y escribe transacciones que los preserven.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Read Committed es el nivel de aislamiento por defecto en PostgreSQL. ¿Por qué no usan Serializable como default? ¿Qué trade-off está implícito en esta decisión?',
+      concept: 'Read Committed como default',
+      hint: 'Piensa en rendimiento: ¿cuántas aplicaciones realmente tienen problemas de concurrencia vs cuántas sufrirían la penalización de rendimiento?',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Snapshot isolation previene todas las anomalías de concurrencia porque cada transacción ve una foto consistente de los datos." ¿Qué está mal con esta afirmación?',
+      concept: 'Limitaciones de snapshot isolation',
+      hint: 'Snapshot isolation previene read skew y dirty reads/writes, pero permite write skew y phantoms.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Tienes una aplicación de reservas donde dos usuarios pueden intentar reservar la última habitación simultáneamente. ¿Qué nivel de aislamiento y qué técnica usarías? ¿Por qué SELECT FOR UPDATE no es suficiente si la habitación aún no tiene reserva?',
+      concept: 'Phantoms en reservas',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se relaciona el concepto de lost updates (ch7) con el problema de conflictos en replicación multi-líder (ch5)? ¿Por qué las soluciones del ch7 (locks, CAS) no funcionan en multi-líder?',
+      concept: 'Lost updates y replicación',
+      hint: 'En multi-líder, las escrituras ocurren en nodos diferentes. No puedes tomar un lock que abarque dos datacenters.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué SSI (Serializable Snapshot Isolation) fue un avance tan significativo cuando se publicó en 2008? ¿Qué problema práctico de 2PL resuelve sin sacrificar correctness?',
+      concept: 'SSI vs 2PL',
+      hint: '2PL tiene throughput reducido por contención de locks y deadlocks frecuentes. SSI usa control optimista.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Ejecución serial real (VoltDB, Redis) suena absurdo en la era de CPUs de 128 cores. ¿En qué tipo de workload es realmente la mejor opción, y cuándo es inaceptable?',
+      concept: 'Serial execution viability',
+      hint: 'Piensa en: ¿qué pasa si una transacción necesita datos de múltiples particiones? ¿Y si necesita hacer una llamada de red?',
     },
   ],
 

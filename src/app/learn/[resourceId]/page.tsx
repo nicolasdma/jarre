@@ -6,6 +6,8 @@ import { DDIAChapter2 } from './ddia-ch2';
 import { DDIAChapter3 } from './ddia-ch3';
 import { DDIAChapter5 } from './ddia-ch5';
 import { DDIAChapter6 } from './ddia-ch6';
+import { DDIAChapter4 } from './ddia-ch4';
+import { DDIAChapter7 } from './ddia-ch7';
 import { DDIAChapter8 } from './ddia-ch8';
 import { DDIAChapter9 } from './ddia-ch9';
 import { DDIAChapter11 } from './ddia-ch11';
@@ -30,8 +32,10 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'ddia-ch1': { label: 'Playground', href: '/playground/latency-simulator' },
   'ddia-ch2': { label: 'Evaluar', href: '/evaluate/ddia-ch2' },
   'ddia-ch3': { label: 'Playground', href: '/playground/storage-engine' },
+  'ddia-ch4': { label: 'Playground', href: '/playground/encoding' },
   'ddia-ch5': { label: 'Playground', href: '/playground/replication-lab' },
   'ddia-ch6': { label: 'Playground', href: '/playground/partitioning' },
+  'ddia-ch7': { label: 'Playground', href: '/playground/transactions' },
   'ddia-ch8': { label: 'Playground', href: '/playground/consensus' },
   'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
   'ddia-ch11': { label: 'Playground', href: '/playground/stream-processing' },
@@ -47,8 +51,10 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'ddia-ch1': () => <DDIAChapter1 />,
   'ddia-ch2': () => <DDIAChapter2 />,
   'ddia-ch3': () => <DDIAChapter3 />,
+  'ddia-ch4': () => <DDIAChapter4 />,
   'ddia-ch5': () => <DDIAChapter5 />,
   'ddia-ch6': () => <DDIAChapter6 />,
+  'ddia-ch7': () => <DDIAChapter7 />,
   'ddia-ch8': () => <DDIAChapter8 />,
   'ddia-ch9': () => <DDIAChapter9 />,
   'ddia-ch11': () => <DDIAChapter11 />,
