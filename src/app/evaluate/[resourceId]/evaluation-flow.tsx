@@ -34,8 +34,6 @@ const translations = {
   'eval.overallScore': { es: 'Puntuacion General', en: 'Overall Score' },
   'eval.yourAnswer': { es: 'Tu respuesta', en: 'Your answer' },
   'eval.feedback': { es: 'Retroalimentacion', en: 'Feedback' },
-  'eval.backToStudy': { es: 'Ver material de estudio', en: 'Back to study material' },
-  'eval.backToChapter': { es: 'Volver al capitulo', en: 'Back to chapter' },
   'eval.saved': { es: 'Evaluacion guardada', en: 'Evaluation saved' },
   'eval.cancelConfirm': {
     es: 'Seguro? Tu progreso se guardara como borrador.',
@@ -54,7 +52,8 @@ const translations = {
     en: 'You identified key areas to explore further'
   },
   'eval.retryEvaluation': { es: 'Volver a intentar', en: 'Try again' },
-  'eval.deepenTopic': { es: 'Profundizar en el tema', en: 'Deepen your understanding' },
+  'eval.reviewMaterial': { es: 'Repasar material', en: 'Review material' },
+  'eval.backToLibrary': { es: 'Volver a la biblioteca', en: 'Back to library' },
   'eval.hintShort': { es: '2-4 oraciones suelen ser suficientes', en: '2-4 sentences are usually enough' },
   'eval.hintLong': { es: 'Un parrafo con ejemplo concreto', en: 'A paragraph with a concrete example' },
 } as const;
@@ -764,13 +763,22 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
         </div>
 
         <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
-          {isLowScore ? (
+          {isHighScore ? (
+            /* ≥80%: Mastery demonstrated — done, go back to library */
+            <button
+              onClick={() => router.push('/library')}
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+            >
+              {t('eval.backToLibrary', language)}
+            </button>
+          ) : isLowScore ? (
+            /* <60%: Needs more study — retry or go back to review */
             <>
               <button
-                onClick={() => router.push(`/learn/${resource.id}`)}
+                onClick={() => onCancel ? onCancel() : router.push(`/learn/${resource.id}`)}
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
               >
-                {t('eval.backToChapter', language)}
+                {t('eval.reviewMaterial', language)}
               </button>
               <button
                 onClick={() => {
@@ -787,18 +795,19 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
               </button>
             </>
           ) : (
+            /* 60-79%: Passed with gaps — review material or move on */
             <>
               <button
-                onClick={() => router.push(`/learn/${resource.id}`)}
+                onClick={() => router.push('/library')}
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
               >
-                {t('eval.backToChapter', language)}
+                {t('eval.backToLibrary', language)}
               </button>
               <button
-                onClick={() => router.push(`/learn/${resource.id}`)}
+                onClick={() => onCancel ? onCancel() : router.push(`/learn/${resource.id}`)}
                 className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
-                {t('eval.deepenTopic', language)}
+                {t('eval.reviewMaterial', language)}
               </button>
             </>
           )}
