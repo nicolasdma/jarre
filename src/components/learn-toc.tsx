@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { t, type Language } from '@/lib/translations';
 
-type Step = 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
 
 interface Section {
   sectionTitle: string;
@@ -20,13 +20,12 @@ interface LearnTOCProps {
   onStepClick: (step: Step) => void;
 }
 
-const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'review', 'practice-eval', 'evaluate'];
+const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'practice-eval', 'evaluate'];
 
 const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
   activate: 'learn.step.activate',
   learn: 'learn.step.learn',
   apply: 'learn.step.apply',
-  review: 'learn.step.review',
   'practice-eval': 'learn.step.practiceEval',
   evaluate: 'learn.step.evaluate',
 };
