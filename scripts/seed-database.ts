@@ -139,6 +139,17 @@ async function seedResources() {
   const mappingRows = Array.from(mappingMap.values());
 
   if (mappingRows.length > 0) {
+    // Clear stale mappings: delete all existing then re-insert
+    const resourceIds = [...new Set(resources.map((r) => r.id))];
+    const { error: clearError } = await supabase
+      .from('resource_concepts')
+      .delete()
+      .in('resource_id', resourceIds);
+
+    if (clearError) {
+      console.error('Error clearing resource-concept mappings:', clearError);
+    }
+
     const { error: mappingError } = await supabase
       .from('resource_concepts')
       .upsert(mappingRows, { onConflict: 'resource_id,concept_id' });
