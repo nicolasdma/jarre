@@ -98,7 +98,7 @@ export default async function ResourcePage({ params }: PageProps) {
           💡 Aprender
         </Link>
         <Link
-          href={`/evaluate/${resourceId}`}
+          href={`/learn/${resourceId}`}
           className="rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-black/80"
         >
           {t('resource.evaluate', lang)}

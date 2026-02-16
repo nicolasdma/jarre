@@ -79,7 +79,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
   const handleCardClick = () => {
     if (!isLocked) {
       if (shouldSkipLearn(resource.id)) {
-        router.push(`/evaluate/${resource.id}`);
+        router.push(`/learn/${resource.id}`);
       } else {
         router.push(`/learn/${resource.id}`);
       }
@@ -234,7 +234,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                router.push(`/evaluate/${resource.id}`);
+                router.push(`/learn/${resource.id}`);
               }}
               className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
             >

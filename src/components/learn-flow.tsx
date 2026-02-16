@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { ConceptSection } from './concept-section';
 import { ScrollProgress } from './scroll-progress';
 import { LearnTOC } from './learn-toc';
@@ -29,15 +30,23 @@ interface Section {
 
 type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
 
+interface EvalConcept {
+  id: string;
+  name: string;
+  canonical_definition: string;
+}
+
 interface LearnFlowProps {
   language: Language;
   resourceId: string;
   resourceTitle: string;
+  resourceType: string;
   sections: Section[];
   activateComponent: React.ReactNode;
   playgroundHref?: string;
   playgroundLabel?: string;
-  evaluateHref: string;
+  concepts: EvalConcept[];
+  userId: string;
   guidedQuestions?: ReadingQuestion[];
   initialProgress?: LearnProgress;
   figureRegistry?: FigureRegistry;
@@ -83,11 +92,13 @@ export function LearnFlow({
   language,
   resourceId,
   resourceTitle,
+  resourceType,
   sections,
   activateComponent,
   playgroundHref,
   playgroundLabel,
-  evaluateHref,
+  concepts,
+  userId,
   guidedQuestions,
   initialProgress,
   figureRegistry,
@@ -454,45 +465,16 @@ export function LearnFlow({
           />
         )}
 
-        {/* STEP 6: EVALUATE — Link to full evaluation */}
+        {/* STEP 5: EVALUATE — Embedded evaluation flow */}
         {currentStep === 'evaluate' && (
           <div className="py-16">
-            <header className="mb-12 lg:hidden">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-px bg-j-accent" />
-                <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                  {t('learn.step.evaluate', language)}
-                </span>
-              </div>
-            </header>
-
-            <div className="border border-j-border p-8 text-center">
-              <h2 className="text-xl font-light text-j-text mb-4">
-                {language === 'es'
-                  ? 'Evaluación Completa'
-                  : 'Full Evaluation'}
-              </h2>
-              <p className="text-sm text-j-text-secondary mb-6 max-w-md mx-auto">
-                {language === 'es'
-                  ? 'Pon a prueba tu comprensión profunda con preguntas de transfer, trade-offs y detección de errores. Si obtienes ≥60%, avanzas al nivel 1 de dominio.'
-                  : 'Test your deep understanding with transfer, trade-off, and error detection questions. Score ≥60% to advance to mastery level 1.'}
-              </p>
-              <Link
-                href={evaluateHref}
-                className="inline-block font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
-              >
-                {t('learn.step.evaluate', language)} →
-              </Link>
-            </div>
-
-            <div className="mt-8 text-center">
-              <Link
-                href="/library"
-                className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text uppercase transition-colors"
-              >
-                ← {t('learn.backToLibrary', language)}
-              </Link>
-            </div>
+            <EvaluationFlow
+              resource={{ id: resourceId, title: resourceTitle, type: resourceType }}
+              concepts={concepts}
+              userId={userId}
+              language={language}
+              onCancel={() => changeStep('practice-eval')}
+            />
           </div>
         )}
       </div>

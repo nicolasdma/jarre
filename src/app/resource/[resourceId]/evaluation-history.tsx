@@ -59,7 +59,7 @@ export async function EvaluationHistory({ resourceId, language }: EvaluationHist
           {t('history.title', language)}
         </h2>
         <Link
-          href={`/evaluate/${resourceId}`}
+          href={`/learn/${resourceId}`}
           className="text-sm font-medium text-stone-600 hover:text-stone-900"
         >
           {t('history.newEvaluation', language)} →
