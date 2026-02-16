@@ -24,6 +24,8 @@ export interface SectionState {
   postConfidence?: 1 | 2 | 3;
   // v4: self-explanation (pure text, no LLM)
   selfExplanation?: string;
+  // v5: voice tutor completion gate
+  voiceCompleted?: boolean;
 }
 
 export interface ReviewStepState {

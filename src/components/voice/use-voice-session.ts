@@ -15,9 +15,11 @@ import type { Language } from '@/lib/translations';
 // ============================================================================
 
 interface UseVoiceSessionParams {
+  sectionId: string;
   sectionContent: string;
   sectionTitle: string;
   language: Language;
+  onSessionComplete?: () => void;
 }
 
 type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -46,9 +48,11 @@ const WARNING_BEFORE_END_MS = 5 * 60 * 1000; // warn at 25 min
 // ============================================================================
 
 export function useVoiceSession({
+  sectionId,
   sectionContent,
   sectionTitle,
   language,
+  onSessionComplete,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -65,10 +69,45 @@ export function useVoiceSession({
   const startTimeRef = useRef(0);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Pre-fetch refs
+  const prefetchedTokenRef = useRef<string | null>(null);
+  const prefetchedContextRef = useRef<{ summary?: string } | null>(null);
+  const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionContent, sectionTitle, language });
-  paramsRef.current = { sectionContent, sectionTitle, language };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language };
+
+  // Stable ref for onSessionComplete to avoid stale closures
+  const onSessionCompleteRef = useRef(onSessionComplete);
+  onSessionCompleteRef.current = onSessionComplete;
+
+  // ---- Pre-fetch token + context on mount / sectionId change ----
+
+  useEffect(() => {
+    // Invalidate previous pre-fetch if section changed
+    prefetchedTokenRef.current = null;
+    prefetchedContextRef.current = null;
+    prefetchSectionIdRef.current = sectionId;
+
+    const currentSectionId = sectionId;
+
+    Promise.all([
+      fetch('/api/voice/token', { method: 'POST' })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch(`/api/voice/session/context?sectionId=${currentSectionId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ]).then(([tokenData, contextData]) => {
+      // Only store if sectionId hasn't changed while fetching
+      if (prefetchSectionIdRef.current !== currentSectionId) return;
+      if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
+      if (contextData) prefetchedContextRef.current = contextData;
+    });
+  }, [sectionId]);
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 
@@ -231,27 +270,79 @@ export function useVoiceSession({
     setElapsed(0);
   }, []);
 
+  // ---- Transcript saving (fire-and-forget) ----
+
+  const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
+    const sid = sessionIdRef.current;
+    if (!sid) return;
+
+    fetch('/api/voice/session/transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: sid, role, text }),
+    }).catch(() => {
+      // Fire-and-forget: don't block audio for transcript failures
+    });
+  }, []);
+
   // ---- Connect ----
 
   const connect = useCallback(async () => {
     setError(null);
 
     try {
-      // 1. Get ephemeral token
-      const res = await fetch('/api/voice/token', { method: 'POST' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Failed to get voice token' }));
-        throw new Error(data.error || 'Failed to get voice token');
-      }
-      const { token } = await res.json();
+      const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang } = paramsRef.current;
 
-      // 2. Build system instruction
-      const { sectionContent: sc, sectionTitle: st, language: lang } = paramsRef.current;
-      const systemInstruction = buildVoiceSystemInstruction({
+      // Use pre-fetched token if available, otherwise fetch fresh
+      const tokenPromise = prefetchedTokenRef.current
+        ? Promise.resolve(prefetchedTokenRef.current)
+        : fetch('/api/voice/token', { method: 'POST' })
+            .then((r) => {
+              if (!r.ok) throw new Error('Failed to get voice token');
+              return r.json();
+            })
+            .then((d) => d.token as string);
+
+      // Use pre-fetched context if available, otherwise fetch fresh
+      const contextPromise: Promise<{ summary?: string }> = prefetchedContextRef.current
+        ? Promise.resolve(prefetchedContextRef.current)
+        : fetch(`/api/voice/session/context?sectionId=${secId}`)
+            .then((r) => (r.ok ? r.json() : {}))
+            .catch(() => ({}));
+
+      // Start session (always fresh) + resolve token/context in parallel
+      const [sessionRes, token, context] = await Promise.all([
+        fetch('/api/voice/session/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sectionId: secId }),
+        }),
+        tokenPromise,
+        contextPromise,
+      ]);
+
+      // Consume pre-fetched data (one-time use)
+      prefetchedTokenRef.current = null;
+      prefetchedContextRef.current = null;
+
+      // Extract session ID (non-blocking if fails)
+      if (sessionRes.ok) {
+        const { sessionId } = await sessionRes.json();
+        sessionIdRef.current = sessionId;
+      }
+
+      const summary = context?.summary;
+
+      // 2. Build system instruction with optional memory summary
+      let systemInstruction = buildVoiceSystemInstruction({
         sectionContent: sc,
         sectionTitle: st,
         language: lang,
       });
+
+      if (summary) {
+        systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
+      }
 
       // 3. Create Gemini Live client
       const client = createGeminiLiveClient({
@@ -271,6 +362,7 @@ export function useVoiceSession({
           setError(err);
           setTutorState('idle');
         },
+        onTranscript: saveTranscript,
       });
       clientRef.current = client;
 
@@ -285,10 +377,14 @@ export function useVoiceSession({
       await startMic(client);
       setTutorState('listening');
 
-      // 6. Send greeting to prompt the tutor to kick off the conversation
-      const greeting = lang === 'es'
-        ? 'Buenas, estoy leyendo esta sección. Arrancamos?'
-        : 'Hey, I\'m reading this section. Shall we dive in?';
+      // 6. Send a single greeting — phrased so the model jumps straight into a question
+      const greeting = summary
+        ? (lang === 'es'
+            ? 'Ya leí esta sección. La vez pasada hablamos un poco, preguntame algo nuevo.'
+            : 'I\'ve read this section. We talked about it before, ask me something new.')
+        : (lang === 'es'
+            ? 'Terminé de leer esta sección, preguntame lo que quieras.'
+            : 'I just finished reading this section, ask me anything.');
       client.sendText(greeting);
 
       // 7. Start session timer with auto-disconnect
@@ -307,11 +403,26 @@ export function useVoiceSession({
       setTutorState('idle');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playAudioChunk, stopPlayback, startMic, startTimer]);
+  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript]);
 
   // ---- Disconnect ----
 
+  // TODO: Re-enable threshold once AI-driven completion is implemented
+  // const MIN_SESSION_FOR_COMPLETE_MS = 30_000;
+
   const disconnect = useCallback(() => {
+    const hadSession = startTimeRef.current > 0;
+
+    // End session in backend (fire-and-forget)
+    if (sessionIdRef.current) {
+      fetch('/api/voice/session/end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionIdRef.current }),
+      }).catch(() => {});
+      sessionIdRef.current = null;
+    }
+
     stopMic();
     stopPlayback();
     stopTimer();
@@ -322,6 +433,11 @@ export function useVoiceSession({
     setTutorState('idle');
     setConnectionState('disconnected');
     setError(null);
+
+    // Mark voice step as complete after any connected session
+    if (hadSession) {
+      onSessionCompleteRef.current?.();
+    }
   }, [stopMic, stopPlayback, stopTimer]);
 
   // ---- Cleanup on unmount ----
