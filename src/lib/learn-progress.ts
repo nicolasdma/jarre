@@ -53,7 +53,7 @@ export interface PracticeEvalState {
 }
 
 export interface LearnProgress {
-  currentStep: 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
+  currentStep: 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
   activeSection: number;
   completedSections: number[];
   /** Steps the user has visited at least once — persists even when navigating back */

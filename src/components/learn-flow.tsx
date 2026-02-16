@@ -3,13 +3,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ConceptSection } from './concept-section';
-import { ReviewStep } from './review-step';
 import { ScrollProgress } from './scroll-progress';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
 import { PracticeEvalStep } from './practice-eval-step';
-import { saveLearnProgress, type LearnProgress, type SectionState, type ReviewStepState, type PracticeEvalState } from '@/lib/learn-progress';
+import { saveLearnProgress, type LearnProgress, type SectionState, type PracticeEvalState } from '@/lib/learn-progress';
 import { WhisperProvider } from '@/lib/whisper/whisper-context';
 import { WhisperToggle } from './whisper-toggle';
 import type { FigureRegistry } from '@/lib/figure-registry';
@@ -28,7 +27,7 @@ interface Section {
   sortOrder: number;
 }
 
-type Step = 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
 
 interface LearnFlowProps {
   language: Language;
@@ -49,12 +48,11 @@ interface LearnFlowProps {
 // Step indicator labels
 // ============================================================================
 
-const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'review', 'practice-eval', 'evaluate'];
+const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'practice-eval', 'evaluate'];
 
 const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   activate: { key: 'learn.step.activate' },
   learn: { key: 'learn.step.learn' },
-  review: { key: 'learn.step.review' },
   'practice-eval': { key: 'learn.step.practiceEval' },
   apply: { key: 'learn.step.apply' },
   evaluate: { key: 'learn.step.evaluate' },
@@ -107,9 +105,6 @@ export function LearnFlow({
   const [sectionState, setSectionState] = useState<Record<string, SectionState>>(
     initialProgress?.sectionState ?? {}
   );
-  const [reviewState, setReviewState] = useState<ReviewStepState>(
-    initialProgress?.reviewState ?? { inlineAnswers: {}, bankAnswers: {} }
-  );
   const [practiceEvalState, setPracticeEvalState] = useState<PracticeEvalState>(
     initialProgress?.practiceEvalState ?? { answers: {}, currentScaffoldLevel: 1 }
   );
@@ -143,7 +138,6 @@ export function LearnFlow({
       section: number;
       completed: Set<number>;
       state: Record<string, SectionState>;
-      review: ReviewStepState;
       practiceEval: PracticeEvalState;
       visited: Set<Step>;
     }>): LearnProgress => ({
@@ -152,10 +146,9 @@ export function LearnFlow({
       completedSections: Array.from(overrides?.completed ?? completedSections),
       visitedSteps: Array.from(overrides?.visited ?? visitedSteps),
       sectionState: overrides?.state ?? sectionState,
-      reviewState: overrides?.review ?? reviewState,
       practiceEvalState: overrides?.practiceEval ?? practiceEvalState,
     }),
-    [currentStep, activeSection, completedSections, visitedSteps, sectionState, reviewState, practiceEvalState]
+    [currentStep, activeSection, completedSections, visitedSteps, sectionState, practiceEvalState]
   );
 
   /** Persist + update step, marking current step as visited */
@@ -446,28 +439,7 @@ export function LearnFlow({
           </div>
         )}
 
-        {/* STEP 4: REVIEW — Consolidate all questions */}
-        {currentStep === 'review' && (
-          <ReviewStep
-            language={language}
-            resourceId={resourceId}
-            sections={sections.map((s) => ({
-              id: s.id,
-              conceptId: s.conceptId,
-              sectionTitle: s.sectionTitle,
-              sortOrder: s.sortOrder,
-            }))}
-            quizzesBySectionId={quizzesBySectionId ?? {}}
-            initialState={reviewState}
-            onStateChange={(next) => {
-              setReviewState(next);
-              saveLearnProgress(resourceId, buildProgress({ review: next }));
-            }}
-            onComplete={() => changeStep('practice-eval')}
-          />
-        )}
-
-        {/* STEP 5: PRACTICE EVAL — Scaffolded evaluation preview */}
+        {/* STEP 4: PRACTICE EVAL — Scaffolded evaluation preview */}
         {currentStep === 'practice-eval' && (
           <PracticeEvalStep
             language={language}
