@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 import { QuickQuiz } from '@/components/quick-quiz';
 
-// Resources that have learn pages (deep explanations or playgrounds)
-const RESOURCES_WITH_LEARN_PAGES = ['ddia-ch1', 'ddia-ch2', 'ddia-ch3', 'ddia-ch5', 'ddia-ch6', 'ddia-ch8', 'ddia-ch9'];
+// Resources that skip learn and go directly to evaluate (e.g., no content yet)
+const EVALUATE_ONLY_RESOURCES: string[] = [];
 
-function hasLearnPage(resourceId: string): boolean {
-  return RESOURCES_WITH_LEARN_PAGES.includes(resourceId);
+function shouldSkipLearn(resourceId: string): boolean {
+  return EVALUATE_ONLY_RESOURCES.includes(resourceId);
 }
 
 interface EvalStats {
@@ -78,10 +78,10 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
 
   const handleCardClick = () => {
     if (!isLocked) {
-      if (hasLearnPage(resource.id)) {
-        router.push(`/learn/${resource.id}`);
-      } else {
+      if (shouldSkipLearn(resource.id)) {
         router.push(`/evaluate/${resource.id}`);
+      } else {
+        router.push(`/learn/${resource.id}`);
       }
     }
   };

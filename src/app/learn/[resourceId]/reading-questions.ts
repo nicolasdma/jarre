@@ -330,6 +330,199 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       concept: 'Lamport timestamps limitations',
     },
   ],
+
+  'ddia-ch11': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué Kafka usa un log append-only (log-based broker) en lugar del modelo tradicional de message queue donde los mensajes se borran al ser consumidos? ¿Qué capacidades fundamentales habilita el log que una cola tradicional no puede ofrecer?',
+      concept: 'Log-based message brokers',
+      hint: 'Piensa en qué pasa cuando necesitas re-procesar todos los eventos del último mes, o cuando un nuevo consumidor se une al sistema.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué la distinción entre event time y processing time es crítica en stream processing? Describe un escenario concreto donde ignorar esta diferencia produce resultados incorrectos.',
+      concept: 'Event time vs processing time',
+      hint: 'Un evento generado a las 23:59 puede llegar al sistema a las 00:05 del día siguiente. ¿A qué ventana pertenece?',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'At-least-once delivery es más simple de implementar que exactly-once, pero puede duplicar efectos. ¿Cuándo es aceptable at-least-once sin idempotencia, y cuándo necesitas las garantías más fuertes de exactly-once (que realmente es effectively-once)?',
+      concept: 'At-least-once vs exactly-once semantics',
+      hint: 'Piensa en la diferencia entre incrementar un contador (no idempotente) vs escribir un valor con una key fija (idempotente).',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'En un stream-stream join necesitas definir una ventana temporal. Una ventana pequeña pierde correlaciones legítimas; una ventana grande consume más memoria y aumenta la latencia. ¿Cómo decidirías el tamaño de ventana para un sistema de detección de fraude que correlaciona transacciones con logins?',
+      concept: 'Stream joins y windowing',
+    },
+    {
+      type: 'connection',
+      question:
+        'Kleppmann argumenta que batch processing (ch10) y stream processing son dos puntos en un espectro, no paradigmas opuestos. ¿Cómo el concepto de "derivar datos" unifica ambos? ¿Por qué una base de datos puede verse como el resultado de un stream de cambios?',
+      concept: 'Stream processing y batch processing como espectro',
+      hint: 'Piensa en un materialized view: es el resultado de aplicar un stream de cambios a un estado inicial.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'CDC (Change Data Capture) y event sourcing ambos capturan cambios como secuencias de eventos. ¿Cuál es la diferencia fundamental en el nivel de abstracción de los eventos, y cuándo elegirías uno sobre el otro?',
+      concept: 'CDC vs event sourcing',
+      hint: 'CDC captura cambios a nivel de fila en la base de datos; event sourcing captura intenciones del dominio. ¿Quién define el esquema del evento?',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Kafka garantiza exactly-once delivery de mensajes de forma nativa." ¿Por qué esta afirmación es engañosa? ¿Qué se necesita realmente para lograr exactly-once end-to-end, más allá de lo que el broker ofrece?',
+      concept: 'Exactly-once en Kafka',
+      hint: 'El broker puede garantizar que un mensaje se escribe exactamente una vez en un topic. Pero ¿qué pasa con los side effects del consumidor (enviar un email, cobrar una tarjeta)?',
+    },
+  ],
+
+  'tail-scale-paper': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué Dean y Barroso argumentan que la tail latency (p99, p999) importa más que la latencia promedio en sistemas a escala de Google? ¿Qué tiene que ver el número de usuarios concurrentes con que la cola de la distribución domine la experiencia real?',
+      concept: 'Tail latency a escala',
+      hint: 'Si un usuario hace múltiples requests durante una sesión, la probabilidad de experimentar al menos un request lento crece rápidamente.',
+    },
+    {
+      type: 'why',
+      question:
+        'Si un solo servidor tiene un p99 de 1% de requests lentos, ¿por qué un request que hace fan-out a 100 servidores en paralelo tiene ~63% de probabilidad de ser lento? Explica la matemática y la implicación arquitectónica.',
+      concept: 'Fan-out y probabilidad de tail latency',
+      hint: 'P(al menos uno lento) = 1 - P(todos rápidos) = 1 - (0.99)^100 ≈ 0.634.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Hedged requests envían la misma petición a múltiples réplicas y usan la primera respuesta. Esto reduce la tail latency dramáticamente, pero ¿qué costo tiene para el sistema? ¿Cuándo el remedio es peor que la enfermedad?',
+      concept: 'Hedged requests',
+      hint: 'Cada hedged request es carga adicional. Si todos los clientes hacen hedging agresivo, ¿qué le pasa a la carga total del sistema?',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conectan los conceptos de este paper con lo que Kleppmann describe en DDIA ch1 sobre percentiles y tail latency amplification? ¿En qué se complementan ambas perspectivas?',
+      concept: 'Conexión con DDIA ch1',
+      hint: 'DDIA ch1 introduce el concepto teórico; este paper lo lleva a la práctica con técnicas concretas de mitigación.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Cuándo elegirías hedged requests vs tied requests? ¿Qué ventaja tienen los tied requests (donde los servidores se comunican entre sí para cancelar trabajo redundante) sobre los hedged requests simples?',
+      concept: 'Hedged vs tied requests',
+      hint: 'Los tied requests evitan trabajo duplicado porque el segundo servidor puede abortar si el primero ya respondió.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Para reducir la latencia de un servicio distribuido, basta con optimizar cada componente individual hasta que todos tengan baja latencia." ¿Por qué esta estrategia es insuficiente según el paper?',
+      concept: 'Optimización individual vs sistémica',
+      hint: 'Incluso si cada componente tiene 99.9% de requests rápidos, el efecto multiplicativo del fan-out crea tail latency a nivel del sistema completo.',
+    },
+  ],
+
+  'attention-paper': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué el mecanismo de attention permite reemplazar la recurrencia (RNNs/LSTMs) como forma de capturar dependencias entre tokens? ¿Qué dos ventajas fundamentales ofrece attention sobre las arquitecturas recurrentes?',
+      concept: 'Attention reemplaza recurrencia',
+      hint: 'Piensa en paralelización durante el entrenamiento y en la longitud del camino entre tokens distantes.',
+    },
+    {
+      type: 'why',
+      question:
+        'En scaled dot-product attention, se divide por √d_k antes del softmax. ¿Por qué? ¿Qué pasa con los gradientes si no escalas cuando d_k es grande (ej. 512)?',
+      concept: 'Scaling factor 1/√d_k',
+      hint: 'El dot product de dos vectores aleatorios tiene varianza proporcional a d_k. Si la varianza es alta, el softmax satura y los gradientes desaparecen.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Multi-head attention usa h cabezas con dimensiones reducidas (d_k = d_model/h) en lugar de una sola cabeza con la dimensión completa. ¿Qué se gana y qué se pierde? ¿Por qué h=8 y no h=1 o h=64?',
+      concept: 'Número de attention heads',
+      hint: 'Cada cabeza puede aprender diferentes patrones (sintáctico, semántico, posicional). Pero con demasiadas cabezas, cada una tiene muy poca dimensión para representar algo útil.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'El paper usa positional encoding sinusoidal en lugar de embeddings posicionales aprendidos. Los resultados fueron similares. ¿Qué ventaja teórica tiene el encoding sinusoidal para secuencias más largas que las vistas en entrenamiento?',
+      concept: 'Sinusoidal vs learned positional encoding',
+      hint: 'Las funciones sinusoidales son periódicas y permiten extrapolación. ¿Puede un embedding aprendido generalizar a posiciones que nunca vio?',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo la arquitectura Transformer habilitó las scaling laws descubiertas posteriormente? ¿Qué propiedades específicas del Transformer (vs RNN/LSTM) lo hacen escalable a miles de millones de parámetros?',
+      concept: 'Transformers y scaling laws',
+      hint: 'Piensa en paralelismo, en cómo se distribuye el cómputo, y en qué pasa cuando duplicas el tamaño de un RNN vs un Transformer.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'El paper original usa una arquitectura encoder-decoder. GPT usa solo decoder. BERT usa solo encoder. ¿Qué tarea determina qué arquitectura necesitas, y por qué un decoder-only terminó dominando para generación de texto?',
+      concept: 'Encoder-decoder vs decoder-only',
+      hint: 'El encoder procesa toda la entrada bidireccionalmente; el decoder genera autogresivamente. ¿Qué necesitas para traducción vs para generación libre?',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Los Transformers entienden el orden de las palabras a través del mecanismo de attention, que naturalmente captura las posiciones relativas de los tokens." ¿Por qué es incorrecto?',
+      concept: 'Attention y orden posicional',
+      hint: 'Attention es una operación sobre conjuntos (set operation), no sobre secuencias. Sin positional encoding, "el gato come pescado" y "pescado come el gato" producirían la misma representación.',
+    },
+  ],
+
+  'scaling-laws-paper': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué la loss de los language models sigue power laws (L ∝ N^{-α}) a lo largo de 7 órdenes de magnitud de escala? ¿Qué sugiere esta regularidad sobre la naturaleza del aprendizaje de lenguaje, y por qué no es obvio que debería ser tan predecible?',
+      concept: 'Power laws en scaling',
+      hint: 'Muchos fenómenos complejos no escalan de forma predecible. Que la loss siga una ley de potencias sugiere algo fundamental sobre la estructura del lenguaje natural.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué los modelos más grandes son más sample-efficient (necesitan menos datos para alcanzar la misma loss)? ¿Qué implica esto para la estrategia óptima de entrenamiento cuando tienes un presupuesto fijo de compute?',
+      concept: 'Sample efficiency de modelos grandes',
+      hint: 'Si un modelo grande aprende más por cada token que ve, ¿tiene sentido entrenar un modelo pequeño con muchos datos o un modelo grande con menos datos?',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Kaplan et al. sugieren invertir más compute en modelos más grandes (entrenados con menos tokens). Chinchilla (Hoffmann et al.) demostró que la asignación óptima es más balanceada entre tamaño y datos. ¿Qué implicaciones prácticas tiene cada estrategia, y por qué Chinchilla cambió la industria?',
+      concept: 'Kaplan vs Chinchilla compute allocation',
+      hint: 'Chinchilla 70B superó a Gopher 280B con 4x menos parámetros pero 4x más datos de entrenamiento.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Por qué las scaling laws funcionan específicamente con la arquitectura Transformer? ¿Qué propiedades del Transformer (paralelismo, attention como operación diferenciable sobre toda la secuencia) son prerrequisito para que escalar compute se traduzca predeciblemente en mejor performance?',
+      concept: 'Scaling laws y arquitectura Transformer',
+      hint: 'Las RNNs no escalan igual. ¿Qué bottleneck tienen las RNNs que los Transformers no?',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Las scaling laws muestran que entrenar un modelo grande hasta convergencia no es compute-optimal. ¿Cuándo tiene sentido parar el entrenamiento early (antes de convergencia) y usar ese compute para un modelo más grande? ¿Cómo cambiaría tu decisión si el costo de inferencia domina sobre el de entrenamiento?',
+      concept: 'Early stopping vs convergencia',
+      hint: 'Un modelo más grande es más caro de servir. Si vas a hacer billones de inferencias, el costo de entrenamiento es negligible comparado con el de inferencia.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"La arquitectura del modelo (profundidad vs anchura, tipo de attention, etc.) es tan importante como la escala total de parámetros para determinar la performance." ¿Por qué los resultados del paper contradicen esta intuición?',
+      concept: 'Arquitectura vs escala',
+      hint: 'El paper muestra que la loss depende principalmente del número total de parámetros N, no de cómo están distribuidos entre capas. Dos modelos con el mismo N pero diferente profundidad/anchura tienen loss similar.',
+    },
+  ],
 };
 
 export const QUESTION_TYPE_LABELS: Record<ReadingQuestion['type'], string> = {

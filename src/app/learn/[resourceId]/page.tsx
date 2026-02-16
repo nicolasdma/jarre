@@ -8,6 +8,10 @@ import { DDIAChapter5 } from './ddia-ch5';
 import { DDIAChapter6 } from './ddia-ch6';
 import { DDIAChapter8 } from './ddia-ch8';
 import { DDIAChapter9 } from './ddia-ch9';
+import { DDIAChapter11 } from './ddia-ch11';
+import { TailAtScale } from './tail-scale';
+import { AttentionPaper } from './attention-paper';
+import { ScalingLawsPaper } from './scaling-laws';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
@@ -28,6 +32,10 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'ddia-ch6': { label: 'Playground', href: '/playground/partitioning' },
   'ddia-ch8': { label: 'Playground', href: '/playground/consensus' },
   'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
+  'ddia-ch11': { label: 'Playground', href: '/playground/stream-processing' },
+  'tail-at-scale-paper': { label: 'Playground', href: '/playground/tail-latency' },
+  'attention-paper': { label: 'Playground', href: '/playground/attention' },
+  'scaling-laws-paper': { label: 'Playground', href: '/playground/scaling-laws' },
 };
 
 /** Resources with advance organizer components (Step 1: ACTIVATE) */
@@ -39,6 +47,10 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'ddia-ch6': () => <DDIAChapter6 />,
   'ddia-ch8': () => <DDIAChapter8 />,
   'ddia-ch9': () => <DDIAChapter9 />,
+  'ddia-ch11': () => <DDIAChapter11 />,
+  'tail-at-scale-paper': () => <TailAtScale />,
+  'attention-paper': () => <AttentionPaper />,
+  'scaling-laws-paper': () => <ScalingLawsPaper />,
 };
 
 const AVAILABLE_RESOURCES = new Set(Object.keys(EXPLANATION_COMPONENTS));
@@ -94,22 +106,11 @@ export default async function LearnPage({ params }: PageProps) {
     );
   }
 
-  if (!AVAILABLE_RESOURCES.has(resourceId)) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
-        <p className="mb-4 text-j-text-secondary">Explicacion no disponible aun para este recurso.</p>
-        <Link href="/library" className="text-j-accent hover:underline">
-          ← Volver a la biblioteca
-        </Link>
-      </div>
-    );
-  }
-
   const renderContent = EXPLANATION_COMPONENTS[resourceId];
   const practical = PRACTICAL_ROUTES[resourceId];
   const guidedQuestions = READING_QUESTIONS[resourceId];
 
-  // NEW FLOW: If resource has sections, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
+  // NEW FLOW: If resource has sections in DB, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
   if (sections.length > 0) {
     const sectionIds = sections.map((s) => s.id);
 
@@ -169,7 +170,19 @@ export default async function LearnPage({ params }: PageProps) {
     );
   }
 
-  // FALLBACK: Original flow for resources without sections
+  // If no sections and no explanation component, show message
+  if (!AVAILABLE_RESOURCES.has(resourceId)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
+        <p className="mb-4 text-j-text-secondary">Contenido no disponible aún para este recurso.</p>
+        <Link href="/library" className="text-j-accent hover:underline">
+          ← Volver a la biblioteca
+        </Link>
+      </div>
+    );
+  }
+
+  // FALLBACK: Original flow for resources with explanation component but no sections
   const hasQuestions = !!guidedQuestions;
 
   return (
