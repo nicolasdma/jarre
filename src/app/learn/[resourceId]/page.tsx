@@ -16,6 +16,7 @@ import { AttentionPaper } from './attention-paper';
 import { ScalingLawsPaper } from './scaling-laws';
 import { AgentSandboxPatterns } from './agent-sandbox-patterns';
 import { ClawvaultAgentMemory } from './clawvault-agent-memory';
+import { OpenClawCaseStudy } from './openclaw-casestudy';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
@@ -44,6 +45,7 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'scaling-laws-paper': { label: 'Playground', href: '/playground/scaling-laws' },
   'agent-sandbox-patterns': { label: 'Playground', href: '/playground/agent-sandbox' },
   'clawvault-agent-memory': { label: 'Playground', href: '/playground/clawvault-memory' },
+  'openclaw-casestudy': { label: 'Playground', href: '/playground/openclaw-architecture' },
 };
 
 /** Resources with advance organizer components (Step 1: ACTIVATE) */
@@ -63,6 +65,7 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'scaling-laws-paper': () => <ScalingLawsPaper />,
   'agent-sandbox-patterns': () => <AgentSandboxPatterns />,
   'clawvault-agent-memory': () => <ClawvaultAgentMemory />,
+  'openclaw-casestudy': () => <OpenClawCaseStudy />,
 };
 
 const AVAILABLE_RESOURCES = new Set(Object.keys(EXPLANATION_COMPONENTS));

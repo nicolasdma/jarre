@@ -624,6 +624,57 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       hint: 'El paper muestra que la loss depende principalmente del número total de parámetros N, no de cómo están distribuidos entre capas. Dos modelos con el mismo N pero diferente profundidad/anchura tienen loss similar.',
     },
   ],
+
+  'openclaw-casestudy': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué OpenClaw diseñó un protocolo propio (ACP) con NDJSON streams en lugar de usar REST estándar para la comunicación agente-gateway? ¿Qué limitaciones de REST harían inviable el flujo de un agente conversacional?',
+      concept: 'Agent Communication Protocol',
+      hint: 'Pensá en qué pasa cuando un agente necesita enviar tool calls, actualizaciones de estado, y texto parcial en una misma interacción — todo de forma incremental.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'OpenClaw usa una abstracción ChannelDock para normalizar 15+ plataformas de chat. ¿Qué se pierde al abstraer las diferencias entre Discord (threads, polls, reactions) y Signal (mensajes planos)? ¿Cuándo esta abstracción se convierte en una limitación?',
+      concept: 'Plugin & Channel Architecture',
+      hint: 'Cada plataforma tiene features únicos. Una abstracción demasiado fina pierde features; una demasiado gruesa se vuelve inmanejable.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Por qué OpenClaw eligió una arquitectura de skills basada en CLIs externos (1Password CLI, gh CLI) en vez de implementar integraciones nativas dentro del sistema? ¿Qué implicaciones tiene esto para la seguridad y el mantenimiento?',
+      concept: 'Agent Skill Orchestration',
+      hint: 'Considerá qué pasa cuando el CLI externo se actualiza, cambia su API, o requiere autenticación diferente.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se compara el sistema de memoria de OpenClaw (memory-core + memory-lancedb con autoCapture/autoRecall) con el enfoque de MemGPT que estudiaste en Fase 5? ¿Qué problema resuelve cada uno de forma diferente?',
+      concept: 'Agent Memory Persistence',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'A2UI prohíbe que los agentes envíen código ejecutable — solo JSON declarativo mapeado a un catálogo de componentes pre-aprobados. ¿Qué capacidades de UI se pierden con esta restricción? ¿Cuándo vale la pena ese trade-off?',
+      concept: 'Agent UI Generation (A2UI)',
+      hint: 'Pensá en un agente que necesita crear una visualización completamente nueva que no existe en el catálogo.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"OpenClaw es superior a LangChain porque tiene más funcionalidad (15+ canales, skills, UI generation, voice) mientras que LangChain solo hace chains y agents." ¿Qué está mal con esta comparación?',
+      concept: 'Framework Trade-offs',
+      hint: 'Son sistemas con propósitos fundamentalmente diferentes. Uno es un framework de desarrollo, el otro es un producto de usuario final.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'OpenClaw implementa daemons multiplataforma (launchd en macOS, systemd en Linux, Scheduled Tasks en Windows). ¿Por qué no simplificar usando Docker como capa de abstracción universal? ¿Qué ganan y qué pierden con el enfoque nativo?',
+      concept: 'Production Architectures',
+      hint: 'Pensá en los requisitos de OpenClaw: acceso a cámara, micrófono, iMessage, Bluetooth — cosas que Docker no puede hacer.',
+    },
+  ],
 };
 
 export const QUESTION_TYPE_LABELS: Record<ReadingQuestion['type'], string> = {
