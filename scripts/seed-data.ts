@@ -1064,6 +1064,22 @@ export const resources: SeedResource[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // PHASE 2: ARTICLES - Agent Architecture
+  // ---------------------------------------------------------------------------
+  {
+    id: 'agent-sandbox-patterns',
+    title: 'The Two Patterns by Which Agents Connect Sandboxes',
+    type: 'article',
+    url: 'https://blog.langchain.com/the-two-patterns-by-which-agents-connect-sandboxes/',
+    author: 'Harrison Chase (LangChain)',
+    phase: 2,
+    description: 'Two architecture patterns for agent-sandbox integration: Agent IN Sandbox vs Sandbox as Tool. Security, latency, and operational trade-offs.',
+    estimatedHours: 1,
+    sortOrder: 230,
+    concepts: ['tool-use', 'react-pattern', 'plan-and-execute'],
+  },
+
+  // ---------------------------------------------------------------------------
   // PHASE 2: VIDEOS - LLM Understanding (Karpathy Complete)
   // ---------------------------------------------------------------------------
   {
@@ -1263,6 +1279,22 @@ export const resources: SeedResource[] = [
     sortOrder: 70,
     concepts: ['vector-search', 'hybrid-search', 'chunking-strategies'],
     prerequisites: ['rag-basics', 'embeddings'],
+  },
+
+  // ---------------------------------------------------------------------------
+  // PHASE 3: ARTICLES - Agent Memory
+  // ---------------------------------------------------------------------------
+  {
+    id: 'clawvault-agent-memory',
+    title: 'Solving Memory for Openclaw & General Agents (ClawVault)',
+    type: 'article',
+    url: 'https://clawvault.dev',
+    author: 'Pedro (@sillydarket), Versatly',
+    phase: 3,
+    description: 'File-based agent memory architecture using markdown + YAML + wiki-links. Budget-aware context injection, memory type taxonomy, knowledge graphs. Benchmarked against LoCoMo.',
+    estimatedHours: 1,
+    sortOrder: 80,
+    concepts: ['external-memory', 'memory-management'],
   },
 
   // ---------------------------------------------------------------------------

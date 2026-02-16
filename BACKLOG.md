@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-10
+> Last updated: 2026-02-14
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -277,3 +277,6 @@
 - [x] `[P1]` UI/UX redesign: design tokens, TOC sidebar, confidence, dark mode, growth vocabulary - 2026-02-10
 - [x] `[P0]` Scaffolding cognitivo: 6 phases bridging Bloom 2→5 gap (new qtypes, mc2, self-explanation, practice-eval, calibration, interleaving) - 2026-02-10
 - [x] `[P2]` Whisper TTS read-along mode in learn flow (Web Speech API, hold Space to read, auto-advance) - 2026-02-10
+- [x] `[P0]` Hardening: localStorage drafts, saved flag, LLM timeout, canvas error UI - 2026-02-14
+- [x] `[P0]` Hardening: Vitest + 45 unit tests (spaced-repetition, mastery, grading) - 2026-02-14
+- [x] `[P1]` Hardening: 404 page, dashboard try/catch, review empty states, aria-current, mobile hamburger - 2026-02-14
