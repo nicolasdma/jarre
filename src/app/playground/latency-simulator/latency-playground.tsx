@@ -4,8 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { LessonGuide } from './lesson-guide';
 import { ControlPanel } from './control-panel';
 import { MetricsPanel } from './metrics-panel';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
-import { TutorPanel } from '@/components/playground/tutor-panel';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 
 export interface SimulationConfig {
   isRunning: boolean;
@@ -377,23 +376,26 @@ export function LatencyPlayground() {
   }, []);
 
   return (
-    <div className="h-full flex">
-      {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-        <TabbedSidebar
-          lessons={
-            <LessonGuide
-              onApplyPreset={handleApplyPreset}
-              currentConfig={config}
-            />
-          }
-          disableTutor
-          accentColor="#d97706"
+    <PlaygroundLayout
+      accentColor="#d97706"
+      disableTutor
+      lessons={
+        <LessonGuide
+          onApplyPreset={handleApplyPreset}
+          currentConfig={config}
         />
-      </div>
-
-      {/* Center: Control Panel */}
-      <div className="flex-[4] min-w-0 border-r border-j-border">
+      }
+      rightPanel={
+        <MetricsPanel
+          percentiles={percentiles}
+          totalRequests={totalRequests}
+          sloTarget={config.sloTarget}
+          sloViolations={sloViolations}
+          config={config}
+        />
+      }
+    >
+      <div className="h-full border-r border-j-border">
         <ControlPanel
           config={config}
           onConfigChange={handleConfigChange}
@@ -403,17 +405,6 @@ export function LatencyPlayground() {
           percentileHistory={percentileHistory}
         />
       </div>
-
-      {/* Right: Metrics */}
-      <div className="flex-[3] min-w-0 overflow-y-auto">
-        <MetricsPanel
-          percentiles={percentiles}
-          totalRequests={totalRequests}
-          sloTarget={config.sloTarget}
-          sloViolations={sloViolations}
-          config={config}
-        />
-      </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

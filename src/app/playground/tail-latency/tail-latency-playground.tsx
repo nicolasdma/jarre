@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 import { LessonGuide } from './lesson-guide';
 
 // ---------------------------------------------------------------------------
@@ -854,27 +854,21 @@ export function TailLatencyPlayground() {
   }, [currentResult]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 min-h-0 flex">
-        {/* Lesson Guide sidebar */}
-        <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-          <TabbedSidebar
-            lessons={
-              <LessonGuide
-                onRunBatch={handleRunBatch}
-                onSetFanout={handleSetFanout}
-                onToggleHedging={handleToggleHedging}
-                onToggleTied={handleToggleTied}
-                onReset={handleReset}
-              />
-            }
-            disableTutor
-            accentColor={ACCENT}
-          />
-        </div>
-
-        {/* Main area */}
-        <div className="flex-[5] min-w-0 flex flex-col">
+    <PlaygroundLayout
+      accentColor={ACCENT}
+      disableTutor
+      lessons={
+        <LessonGuide
+          onRunBatch={handleRunBatch}
+          onSetFanout={handleSetFanout}
+          onToggleHedging={handleToggleHedging}
+          onToggleTied={handleToggleTied}
+          onReset={handleReset}
+        />
+      }
+      bottomPanel={<RequestLog requests={currentResult?.requests ?? []} />}
+    >
+      <div className="h-full flex flex-col">
           {/* Stats row */}
           <div className="shrink-0 border-b border-j-border px-4 py-3">
             {currentResult ? (
@@ -1009,13 +1003,7 @@ export function TailLatencyPlayground() {
               isRunning={isRunning}
             />
           </div>
-        </div>
       </div>
-
-      {/* Bottom: Request log */}
-      <div className="h-48 shrink-0 border-t border-j-border">
-        <RequestLog requests={currentResult?.requests ?? []} />
-      </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

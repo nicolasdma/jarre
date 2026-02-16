@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // ============================================================================
 // Types
@@ -79,12 +79,67 @@ function saveAnswer(quizId: string, data: SavedAnswer): void {
 }
 
 // ============================================================================
+// Deterministic shuffle (seeded by quiz ID for stable ordering)
+// ============================================================================
+
+function seededRandom(seed: string): () => number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h = Math.imul(h ^ (h >>> 13), 0x45d9f3b);
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h / 0x100000000;
+  };
+}
+
+function shuffleOptions(
+  options: { label: string; text: string }[],
+  correctAnswer: string,
+  quizId: string
+): { shuffled: { label: string; text: string }[]; mappedCorrect: string } {
+  const labels = ['A', 'B', 'C', 'D'];
+  const rng = seededRandom(quizId);
+
+  // Fisher-Yates shuffle with seeded random
+  const indices = options.map((_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  // Build shuffled options with fresh labels
+  const shuffled = indices.map((origIdx, newIdx) => ({
+    label: labels[newIdx],
+    text: options[origIdx].text,
+  }));
+
+  // Map the correct answer to its new label
+  const origCorrectIdx = options.findIndex(o => o.label === correctAnswer);
+  const newCorrectIdx = indices.indexOf(origCorrectIdx);
+  const mappedCorrect = labels[newCorrectIdx];
+
+  return { shuffled, mappedCorrect };
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
 export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
   const isOverrideMode = overrideState !== undefined;
   const isMc2 = quiz.format === 'mc2';
+
+  // Shuffle MC options deterministically per quiz ID
+  const { shuffledOptions, shuffledCorrect } = useMemo(() => {
+    if (quiz.options && quiz.options.length > 1) {
+      const { shuffled, mappedCorrect } = shuffleOptions(quiz.options, quiz.correctAnswer, quiz.id);
+      return { shuffledOptions: shuffled, shuffledCorrect: mappedCorrect };
+    }
+    return { shuffledOptions: quiz.options, shuffledCorrect: quiz.correctAnswer };
+  }, [quiz.id, quiz.options, quiz.correctAnswer]);
 
   const [state, setState] = useState<QuizState>('unanswered');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -126,7 +181,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const handleSubmit = () => {
     if (!selectedOption) return;
-    const correct = selectedOption === quiz.correctAnswer;
+    const correct = selectedOption === shuffledCorrect;
     setIsCorrect(correct);
 
     if (isMc2) {
@@ -148,7 +203,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const handleTrueFalse = (value: 'true' | 'false') => {
     setSelectedOption(value);
-    const correct = value === quiz.correctAnswer;
+    const correct = value === shuffledCorrect;
     setIsCorrect(correct);
     setState('answered');
     if (onAnswer) {
@@ -180,8 +235,8 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         body: JSON.stringify({
           quizId: quiz.id,
           questionText: quiz.questionText,
-          options: quiz.options,
-          correctAnswer: quiz.correctAnswer,
+          options: shuffledOptions,
+          correctAnswer: shuffledCorrect,
           selectedAnswer: selectedOption,
           explanation: quiz.explanation,
           justification: trimmedJustification,
@@ -238,10 +293,10 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       return `${base} border-j-border bg-[var(--j-bg)] hover:border-j-warm cursor-pointer`;
     }
 
-    if (label === quiz.correctAnswer) {
+    if (label === shuffledCorrect) {
       return `${base} bg-j-accent-light border-j-accent`;
     }
-    if (selectedOption === label && label !== quiz.correctAnswer) {
+    if (selectedOption === label && label !== shuffledCorrect) {
       return `${base} bg-j-error-bg border-j-error`;
     }
     return `${base} border-j-border bg-[var(--j-bg)] opacity-50`;
@@ -258,10 +313,10 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       return `${base} border-j-border-input`;
     }
 
-    if (label === quiz.correctAnswer) {
+    if (label === shuffledCorrect) {
       return `${base} border-j-accent bg-j-accent`;
     }
-    if (selectedOption === label && label !== quiz.correctAnswer) {
+    if (selectedOption === label && label !== shuffledCorrect) {
       return `${base} border-j-error bg-j-error`;
     }
     return `${base} border-j-border-input`;
@@ -275,10 +330,10 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       return `${base} border-j-border bg-[var(--j-bg)] text-j-text hover:border-j-warm cursor-pointer`;
     }
 
-    if (value === quiz.correctAnswer) {
+    if (value === shuffledCorrect) {
       return `${base} bg-j-accent-light border-j-accent text-j-accent`;
     }
-    if (selectedOption === value && value !== quiz.correctAnswer) {
+    if (selectedOption === value && value !== shuffledCorrect) {
       return `${base} bg-j-error-bg border-j-error text-j-error`;
     }
     return `${base} border-j-border bg-[var(--j-bg)] text-j-text-tertiary opacity-50`;
@@ -344,9 +399,9 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       </p>
 
       {/* MC / MC2 Mode */}
-      {isMcFormat && quiz.options && (
+      {isMcFormat && shuffledOptions && (
         <div className="space-y-2 mb-4" role="radiogroup" aria-label="Opciones de respuesta">
-          {quiz.options.map((option) => (
+          {shuffledOptions.map((option) => (
             <button
               key={option.label}
               type="button"
@@ -359,12 +414,12 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
               className={getOptionClasses(option.label)}
             >
               <span className={getRadioClasses(option.label)}>
-                {mcIsAnswered && option.label === quiz.correctAnswer && (
+                {mcIsAnswered && option.label === shuffledCorrect && (
                   <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
                 )}
                 {mcIsAnswered &&
                   selectedOption === option.label &&
-                  option.label !== quiz.correctAnswer && (
+                  option.label !== shuffledCorrect && (
                     <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
                   )}
                 {state === 'unanswered' && selectedOption === option.label && (

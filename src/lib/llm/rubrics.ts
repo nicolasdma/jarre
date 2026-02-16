@@ -307,7 +307,41 @@ const TRADEOFF_RUBRIC: Rubric = {
   ],
 };
 
-/** Grupo I: MC2 justification — evaluates reasoning quality independent of MC choice */
+/** Grupo I: design — evaluates system architecture proposals */
+const DESIGN_RUBRIC: Rubric = {
+  id: 'design',
+  dimensions: [
+    {
+      key: 'architecture',
+      name: { es: 'Arquitectura', en: 'Architecture' },
+      levels: [
+        { score: 0, es: 'Diseño incoherente o falta de componentes esenciales', en: 'Incoherent design or missing essential components' },
+        { score: 1, es: 'Componentes correctos pero integración poco clara', en: 'Correct components but unclear integration' },
+        { score: 2, es: 'Arquitectura coherente con componentes bien integrados y flujo claro', en: 'Coherent architecture with well-integrated components and clear flow' },
+      ],
+    },
+    {
+      key: 'tradeoffs',
+      name: { es: 'Trade-offs', en: 'Trade-offs' },
+      levels: [
+        { score: 0, es: 'Sin mención de trade-offs o alternativas', en: 'No mention of trade-offs or alternatives' },
+        { score: 1, es: 'Reconoce trade-offs pero sin análisis concreto', en: 'Acknowledges trade-offs but no concrete analysis' },
+        { score: 2, es: 'Analiza trade-offs específicos con justificación de decisiones', en: 'Analyzes specific trade-offs with decision justification' },
+      ],
+    },
+    {
+      key: 'feasibility',
+      name: { es: 'Viabilidad', en: 'Feasibility' },
+      levels: [
+        { score: 0, es: 'Propuesta impracticable o ignora restricciones reales', en: 'Impractical proposal or ignores real constraints' },
+        { score: 1, es: 'Viable pero con gaps operativos', en: 'Viable but with operational gaps' },
+        { score: 2, es: 'Propuesta implementable con consideraciones de producción', en: 'Implementable proposal with production considerations' },
+      ],
+    },
+  ],
+};
+
+/** Grupo J: MC2 justification — evaluates reasoning quality independent of MC choice */
 const JUSTIFICATION_RUBRIC: Rubric = {
   id: 'justification',
   dimensions: [
@@ -365,6 +399,7 @@ const QUESTION_TYPE_RUBRIC_MAP: Record<QuestionBankType | EvaluationType, Rubric
   error_detection: ERROR_DETECTION_RUBRIC,
   connection: CONNECTION_RUBRIC,
   tradeoff: TRADEOFF_RUBRIC,
+  design: DESIGN_RUBRIC,
 };
 
 /**

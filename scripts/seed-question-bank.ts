@@ -2003,62 +2003,6 @@ async function seedQuestionBank() {
     console.log(`  ${concept}: ${count}`);
   }
 
-  // Also seed project_concepts mappings
-  console.log(`\n=== Seeding Project-Concept Mappings ===\n`);
-
-  const projectConcepts = [
-    // project-kv-store → Phase 1 concepts
-    { project_id: 'project-kv-store', concept_id: 'replication' },
-    { project_id: 'project-kv-store', concept_id: 'partitioning' },
-    { project_id: 'project-kv-store', concept_id: 'distributed-failures' },
-    { project_id: 'project-kv-store', concept_id: 'consistency-models' },
-    { project_id: 'project-kv-store', concept_id: 'consensus' },
-
-    // project-react-agent → Phase 2 concepts
-    { project_id: 'project-react-agent', concept_id: 'react-pattern' },
-    { project_id: 'project-react-agent', concept_id: 'tool-use' },
-    { project_id: 'project-react-agent', concept_id: 'chain-of-thought' },
-    { project_id: 'project-react-agent', concept_id: 'structured-output' },
-
-    // project-rag-system → Phase 3 concepts
-    { project_id: 'project-rag-system', concept_id: 'rag-basics' },
-    { project_id: 'project-rag-system', concept_id: 'vector-search' },
-    { project_id: 'project-rag-system', concept_id: 'chunking-strategies' },
-    { project_id: 'project-rag-system', concept_id: 'embeddings' },
-    { project_id: 'project-rag-system', concept_id: 'hybrid-search' },
-
-    // project-validators → Phase 4 concepts
-    { project_id: 'project-validators', concept_id: 'output-validation' },
-    { project_id: 'project-validators', concept_id: 'prompt-injection' },
-    { project_id: 'project-validators', concept_id: 'llm-security-owasp' },
-
-    // project-router → Phase 5 concepts
-    { project_id: 'project-router', concept_id: 'model-routing' },
-    { project_id: 'project-router', concept_id: 'token-economics' },
-    { project_id: 'project-router', concept_id: 'semantic-caching' },
-
-    // project-framework-critique → Phase 6 concepts
-    { project_id: 'project-framework-critique', concept_id: 'langchain-architecture' },
-    { project_id: 'project-framework-critique', concept_id: 'framework-tradeoffs' },
-    { project_id: 'project-framework-critique', concept_id: 'minimal-implementations' },
-  ];
-
-  // Clear existing
-  await supabase
-    .from('project_concepts')
-    .delete()
-    .neq('project_id', '__none__');
-
-  const { error: pcError } = await supabase
-    .from('project_concepts')
-    .insert(projectConcepts);
-
-  if (pcError) {
-    console.error('Error inserting project_concepts:', pcError);
-    process.exit(1);
-  }
-
-  console.log(`Inserted ${projectConcepts.length} project-concept mappings.`);
   console.log('\n=== Done! ===\n');
 }
 

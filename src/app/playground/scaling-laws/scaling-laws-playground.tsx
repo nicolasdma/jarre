@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 import { LessonGuide } from './lesson-guide';
 
 // ---------------------------------------------------------------------------
@@ -957,18 +957,12 @@ export function ScalingLawsPlayground() {
   const activeTab = VIEW_TABS.find((t) => t.key === view)!;
 
   return (
-    <div className="h-full flex">
-      {/* Sidebar: Lessons */}
-      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-        <TabbedSidebar
-          lessons={<LessonGuide onSelectView={handleSelectView} />}
-          disableTutor
-          accentColor="#1e40af"
-        />
-      </div>
-
-      {/* Main area */}
-      <div className="flex-[5] min-w-0 flex flex-col">
+    <PlaygroundLayout
+      accentColor="#1e40af"
+      disableTutor
+      lessons={<LessonGuide onSelectView={handleSelectView} />}
+    >
+      <div className="h-full flex flex-col">
         {/* View tabs */}
         <div className="shrink-0 border-b border-j-border flex items-center px-2 bg-white">
           {VIEW_TABS.map((tab) => (
@@ -1006,6 +1000,6 @@ export function ScalingLawsPlayground() {
           {view === 'budget' && <BudgetView chartSize={chartSize} />}
         </div>
       </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

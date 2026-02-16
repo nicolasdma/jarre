@@ -7,8 +7,7 @@ import { ClusterVisualizer } from './cluster-visualizer';
 import { LogVisualizer } from './log-visualizer';
 import { ControlsPanel } from './controls-panel';
 import { LessonGuide } from './lesson-guide';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
-import { TutorPanel } from '@/components/playground/tutor-panel';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 
 let writeCounter = 0;
 
@@ -31,10 +30,8 @@ function nextWriteCommand(): string {
 }
 
 export function ConsensusPlayground() {
-  const clusterRef = useRef<RaftCluster>(new RaftCluster());
-  const [snapshot, setSnapshot] = useState<RaftClusterSnapshot>(() =>
-    clusterRef.current.snapshot()
-  );
+  const clusterRef = useRef<RaftCluster | null>(null);
+  const [snapshot, setSnapshot] = useState<RaftClusterSnapshot | null>(null);
   const [mode, setMode] = useState<'step' | 'auto'>('step');
   const [speed, setSpeed] = useState(500);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -42,11 +39,22 @@ export function ConsensusPlayground() {
   const [proactiveQuestion, setProactiveQuestion] = useState<string | null>(null);
   const lastProactiveRef = useRef(0);
 
+  // Initialize cluster only on the client to avoid hydration mismatch
+  // (RaftCluster uses Math.random() for election timers)
+  useEffect(() => {
+    if (!clusterRef.current) {
+      clusterRef.current = new RaftCluster();
+      setSnapshot(clusterRef.current.snapshot());
+    }
+  }, []);
+
   const updateSnapshot = useCallback(() => {
+    if (!clusterRef.current) return;
     setSnapshot(clusterRef.current.snapshot());
   }, []);
 
   const handleStep = useCallback(() => {
+    if (!clusterRef.current) return;
     clusterRef.current.step();
     updateSnapshot();
   }, [updateSnapshot]);
@@ -60,29 +68,32 @@ export function ConsensusPlayground() {
   }, []);
 
   const handleClientWrite = useCallback(() => {
+    if (!clusterRef.current) return;
     const cmd = nextWriteCommand();
     clusterRef.current.clientWrite(cmd);
     updateSnapshot();
   }, [updateSnapshot]);
 
   const handleKillNode = useCallback(() => {
-    if (!selectedNode) return;
+    if (!selectedNode || !clusterRef.current) return;
     clusterRef.current.killNode(selectedNode);
     updateSnapshot();
   }, [selectedNode, updateSnapshot]);
 
   const handleRecoverNode = useCallback(() => {
-    if (!selectedNode) return;
+    if (!selectedNode || !clusterRef.current) return;
     clusterRef.current.recoverNode(selectedNode);
     updateSnapshot();
   }, [selectedNode, updateSnapshot]);
 
   const handlePartition = useCallback(() => {
+    if (!clusterRef.current) return;
     clusterRef.current.createPartition();
     updateSnapshot();
   }, [updateSnapshot]);
 
   const handleHeal = useCallback(() => {
+    if (!clusterRef.current) return;
     clusterRef.current.healPartition();
     updateSnapshot();
   }, [updateSnapshot]);
@@ -100,6 +111,7 @@ export function ConsensusPlayground() {
   }, []);
 
   const handleKillLeader = useCallback(() => {
+    if (!clusterRef.current) return;
     const leader = clusterRef.current.getLeader();
     if (leader) {
       clusterRef.current.killNode(leader);
@@ -108,6 +120,7 @@ export function ConsensusPlayground() {
   }, [updateSnapshot]);
 
   const handleStepUntilElection = useCallback(() => {
+    if (!clusterRef.current) return;
     // Step up to 20 ticks or until a leader is elected
     for (let i = 0; i < 20; i++) {
       const events = clusterRef.current.step();
@@ -121,6 +134,7 @@ export function ConsensusPlayground() {
   useEffect(() => {
     if (mode === 'auto') {
       autoRef.current = setInterval(() => {
+        if (!clusterRef.current) return;
         clusterRef.current.step();
         setSnapshot(clusterRef.current.snapshot());
       }, speed);
@@ -140,6 +154,7 @@ export function ConsensusPlayground() {
 
   // Proactive tutor trigger: fires on significant events
   useEffect(() => {
+    if (!snapshot) return;
     const recentEvents = snapshot.events.slice(-5);
     const hasSignificantEvent = recentEvents.some(
       (e) => e.type === 'elected_leader' || e.type === 'partition_created' || e.type === 'entry_committed'
@@ -164,7 +179,16 @@ export function ConsensusPlayground() {
         if (data.question) setProactiveQuestion(data.question);
       })
       .catch(() => {});
-  }, [snapshot.events.length]);
+  }, [snapshot?.events.length]);
+
+  // Don't render until cluster is initialized on the client
+  if (!snapshot) {
+    return (
+      <div className="h-full flex items-center justify-center text-j-text-muted">
+        Initializing cluster...
+      </div>
+    );
+  }
 
   const currentLeader = snapshot.nodes.find(
     (n) => n.state === 'leader' && n.status === 'alive'
@@ -174,71 +198,58 @@ export function ConsensusPlayground() {
     : null;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Top: Lesson Guide + Cluster Viz + Controls */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Lesson Guide sidebar */}
-        <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-          <TabbedSidebar
-            lessons={
-              <LessonGuide
-                onReset={handleReset}
-                onStep={handleStep}
-                onStepUntilElection={handleStepUntilElection}
-                onKillLeader={handleKillLeader}
-                onToggleMode={handleToggleMode}
-                onClientWrite={handleClientWrite}
-                onPartition={handlePartition}
-                onHeal={handleHeal}
-              />
-            }
-            disableTutor
-            accentColor="#991b1b"
+    <PlaygroundLayout
+      accentColor="#991b1b"
+      disableTutor
+      lessons={
+        <LessonGuide
+          onReset={handleReset}
+          onStep={handleStep}
+          onStepUntilElection={handleStepUntilElection}
+          onKillLeader={handleKillLeader}
+          onToggleMode={handleToggleMode}
+          onClientWrite={handleClientWrite}
+          onPartition={handlePartition}
+          onHeal={handleHeal}
+        />
+      }
+      bottomPanel={<LogVisualizer nodes={snapshot.nodes} />}
+    >
+      <div className="h-full flex flex-col">
+        {/* Cluster visualization */}
+        <div className="flex-1 min-h-0">
+          <ClusterVisualizer
+            nodes={snapshot.nodes}
+            messages={snapshot.messages}
+            partition={snapshot.partition}
+            selectedNode={selectedNode}
+            onSelectNode={handleSelectNode}
+            onKillNode={handleKillNode}
           />
         </div>
 
-        {/* Main area: cluster + controls */}
-        <div className="flex-[5] min-w-0 flex flex-col">
-          {/* Cluster visualization */}
-          <div className="flex-1 min-h-0">
-            <ClusterVisualizer
-              nodes={snapshot.nodes}
-              messages={snapshot.messages}
-              partition={snapshot.partition}
-              selectedNode={selectedNode}
-              onSelectNode={handleSelectNode}
-              onKillNode={handleKillNode}
-            />
-          </div>
-
-          {/* Controls */}
-          <div className="shrink-0 border-t border-j-border">
-            <ControlsPanel
-              mode={mode}
-              speed={speed}
-              tick={snapshot.tick}
-              currentLeader={currentLeader?.id ?? null}
-              selectedNode={selectedNode}
-              selectedNodeStatus={selectedNodeData?.status ?? null}
-              isPartitioned={snapshot.partition !== null}
-              onStep={handleStep}
-              onToggleMode={handleToggleMode}
-              onSpeedChange={handleSpeedChange}
-              onClientWrite={handleClientWrite}
-              onKillNode={handleKillNode}
-              onRecoverNode={handleRecoverNode}
-              onPartition={handlePartition}
-              onHeal={handleHeal}
-              onReset={handleReset}
-            />
-          </div>
+        {/* Controls */}
+        <div className="shrink-0 border-t border-j-border">
+          <ControlsPanel
+            mode={mode}
+            speed={speed}
+            tick={snapshot.tick}
+            currentLeader={currentLeader?.id ?? null}
+            selectedNode={selectedNode}
+            selectedNodeStatus={selectedNodeData?.status ?? null}
+            isPartitioned={snapshot.partition !== null}
+            onStep={handleStep}
+            onToggleMode={handleToggleMode}
+            onSpeedChange={handleSpeedChange}
+            onClientWrite={handleClientWrite}
+            onKillNode={handleKillNode}
+            onRecoverNode={handleRecoverNode}
+            onPartition={handlePartition}
+            onHeal={handleHeal}
+            onReset={handleReset}
+          />
         </div>
       </div>
-
-      {/* Bottom: Log Visualizer */}
-      <div className="h-48 shrink-0 border-t border-j-border">
-        <LogVisualizer nodes={snapshot.nodes} />
-      </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

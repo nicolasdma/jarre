@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 import { LessonGuide } from './lesson-guide';
 
 // ---------------------------------------------------------------------------
@@ -158,9 +158,18 @@ export function EncodingPlayground() {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Main area */}
-      <div className="flex-1 overflow-y-auto p-6">
+    <PlaygroundLayout
+      accentColor="#991b1b"
+      disableTutor
+      lessons={
+        <LessonGuide
+          onToggleField={handleToggleExtraField}
+          onSelectFormat={(f: EncodingFormat) => setSelectedFormat(f)}
+          onReset={handleReset}
+        />
+      }
+    >
+      <div className="overflow-y-auto h-full p-6">
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Controls */}
           <div className="flex items-center gap-4">
@@ -275,19 +284,6 @@ export function EncodingPlayground() {
           </div>
         </div>
       </div>
-
-      {/* Sidebar */}
-      <TabbedSidebar
-        accentColor="#991b1b"
-        disableTutor
-        lessons={
-          <LessonGuide
-            onToggleField={handleToggleExtraField}
-            onSelectFormat={(f: EncodingFormat) => setSelectedFormat(f)}
-            onReset={handleReset}
-          />
-        }
-      />
-    </div>
+    </PlaygroundLayout>
   );
 }

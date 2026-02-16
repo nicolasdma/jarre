@@ -96,6 +96,8 @@ export function ConceptSection({
     !!(initialState?.selfExplanation && initialState.selfExplanation.length >= 30)
   );
 
+  const [preFetchFailed, setPreFetchFailed] = useState(false);
+
   const { cancel: cancelWhisper } = useWhisper();
 
   // Restore completed sections on mount: if saved as 'completed', notify parent
@@ -124,15 +126,16 @@ export function ConceptSection({
 
   // Load pre-question on first render (if active)
   const loadPreQuestion = useCallback(async () => {
-    if (preQuestion || preLoading) return;
+    if (preQuestion || preLoading || preFetchFailed) return;
     setPreLoading(true);
     const q = await fetchQuestion();
     setPreQuestion(q);
+    if (!q) setPreFetchFailed(true);
     setPreLoading(false);
-  }, [preQuestion, preLoading, fetchQuestion]);
+  }, [preQuestion, preLoading, preFetchFailed, fetchQuestion]);
 
   // Start loading when this section becomes active
-  if (isActive && !preQuestion && !preLoading && !preAttempted) {
+  if (isActive && !preQuestion && !preLoading && !preAttempted && !preFetchFailed) {
     loadPreQuestion();
   }
 
@@ -583,14 +586,12 @@ export function ConceptSection({
                 </div>
               )}
 
-              {/* Confidence indicator — appears after result */}
+              {/* TODO: Confidence + SelfExplanation disabled — users skip them
               <ConfidenceIndicator
                 language={language}
                 onSelect={handleConfidence}
                 selected={postConfidence}
               />
-
-              {/* Self-explanation — required gate for advancing */}
               <SelfExplanation
                 language={language}
                 conceptName={section.sectionTitle}
@@ -602,11 +603,11 @@ export function ConceptSection({
                 postTestScore={postResult?.score}
                 postTestCorrect={postResult?.isCorrect}
               />
+              */}
 
               <button
                 onClick={handleComplete}
-                disabled={!selfExplanationValid}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-5 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
               >
                 {t('learn.section.next', language)} →
               </button>

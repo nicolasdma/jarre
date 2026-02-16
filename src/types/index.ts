@@ -10,7 +10,7 @@
 
 export type ResourceType = 'paper' | 'book' | 'video' | 'course' | 'article';
 
-export type StudyPhase = 1 | 2 | 3 | 4 | 5 | 6;
+export type StudyPhase = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type MasteryLevel = 0 | 1 | 2 | 3 | 4;
 // 0 - Exposed: Read/watched the material
@@ -24,7 +24,8 @@ export type EvaluationType =
   | 'scenario'       // Apply to situation
   | 'error_detection' // Find the mistake
   | 'connection'     // Relate concepts
-  | 'tradeoff';      // When NOT to use
+  | 'tradeoff'       // When NOT to use
+  | 'design';        // Propose architecture integrating multiple concepts
 
 export type EvaluationStatus = 'in_progress' | 'completed' | 'abandoned';
 

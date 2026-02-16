@@ -11,11 +11,11 @@ import { z } from 'zod';
  * Schema for generated evaluation questions.
  */
 export const GeneratedQuestionSchema = z.object({
-  type: z.enum(['explanation', 'scenario', 'error_detection', 'connection', 'tradeoff']),
+  type: z.enum(['explanation', 'scenario', 'error_detection', 'connection', 'tradeoff', 'design']),
   conceptName: z.string().min(1),
   question: z.string().min(10),
-  incorrectStatement: z.string().optional(),
-  relatedConceptName: z.string().optional(),
+  incorrectStatement: z.string().nullable().optional(),
+  relatedConceptName: z.string().nullable().optional(),
 });
 
 export const GenerateQuestionsResponseSchema = z.object({
