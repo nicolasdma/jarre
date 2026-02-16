@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 import { LessonGuide } from './lesson-guide';
 
 // ---------------------------------------------------------------------------
@@ -564,26 +564,20 @@ export function AttentionPlayground() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="h-full flex">
-      {/* Sidebar */}
-      <div className="w-[340px] shrink-0 border-r border-j-border">
-        <TabbedSidebar
-          accentColor={ACCENT}
-          disableTutor
-          lessons={
-            <LessonGuide
-              onChangeInput={handleChangeInput}
-              onSelectHead={(h) => setActiveHead(h)}
-              onToggleMultiHead={handleToggleMultiHead}
-              onTogglePositional={handleTogglePositional}
-              onAnimate={handleAnimate}
-            />
-          }
+    <PlaygroundLayout
+      accentColor={ACCENT}
+      disableTutor
+      lessons={
+        <LessonGuide
+          onChangeInput={handleChangeInput}
+          onSelectHead={(h) => setActiveHead(h)}
+          onToggleMultiHead={handleToggleMultiHead}
+          onTogglePositional={handleTogglePositional}
+          onAnimate={handleAnimate}
         />
-      </div>
-
-      {/* Main area */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      }
+    >
+      <div className="h-full flex flex-col overflow-hidden">
         {/* Controls bar */}
         <div className="shrink-0 border-b border-j-border px-6 py-3 flex items-center gap-4 flex-wrap">
           {/* Sentence input */}
@@ -930,6 +924,6 @@ export function AttentionPlayground() {
           )}
         </div>
       </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

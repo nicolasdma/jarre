@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { computeLayout, PHASE_META, type ConceptNode } from './layout-engine';
+import { computeLayout, PHASE_META, PHASE_BAND_HEIGHT, type ConceptNode } from './layout-engine';
 import { ConceptNodeSVG } from './concept-node';
 import { ConnectionArrows } from './connection-arrows';
 import { ConceptDetailPanel } from './concept-detail-panel';
@@ -59,7 +59,7 @@ export function SystemVisualization({ concepts, definitions, language }: SystemV
   const totalConcepts = concepts.length;
 
   // Phase bands: draw from top (6) to bottom (1)
-  const phases = [6, 5, 4, 3, 2, 1];
+  const phases = [9, 8, 7, 6, 5, 4, 3, 2, 1];
 
   return (
     <div className="relative">
@@ -81,11 +81,11 @@ export function SystemVisualization({ concepts, definitions, language }: SystemV
         <svg
           viewBox={`0 0 ${layout.viewBox.width} ${layout.viewBox.height}`}
           width="100%"
-          style={{ minHeight: 600 }}
+          style={{ minHeight: 950 }}
         >
           {/* Phase bands */}
           {phases.map((phase, i) => {
-            const bandY = 40 + i * 130;
+            const bandY = 40 + i * PHASE_BAND_HEIGHT;
             const meta = PHASE_META[phase];
             return (
               <g key={phase}>
@@ -94,7 +94,7 @@ export function SystemVisualization({ concepts, definitions, language }: SystemV
                   x={0}
                   y={bandY}
                   width={layout.viewBox.width}
-                  height={130}
+                  height={PHASE_BAND_HEIGHT}
                   fill={i % 2 === 0 ? 'var(--j-bg)' : 'var(--j-bg-alt)'}
                   opacity={0.5}
                 />

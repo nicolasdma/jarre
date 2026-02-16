@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { LessonGuide } from './lesson-guide';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1099,72 +1099,65 @@ export function StreamPlayground() {
       <StatsBar state={state} />
 
       {/* Main area */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Lesson Guide sidebar */}
-        <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-          <TabbedSidebar
-            lessons={
-              <LessonGuide
-                onReset={handleReset}
-                onProduce={handleProduce}
-                onAdvanceConsumer={handleAdvanceConsumer}
-                onRewindConsumer={handleRewindConsumer}
-                onAddConsumer={handleAddConsumer}
-                onAddPartition={handleAddPartition}
-                onToggleAuto={handleToggleAuto}
-              />
-            }
-            disableTutor
-            accentColor={ACCENT}
-          />
-        </div>
-
-        {/* Center: visualization */}
-        <div className="flex-[5] min-w-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-            {/* Flow diagram */}
-            <FlowDiagram
-              partitions={state.partitions}
-              consumers={state.consumers}
-            />
-
-            {/* Partitioned log */}
-            <PartitionVisualizer
-              partitions={state.partitions}
-              consumers={state.consumers}
-            />
-
-            {/* Consumer group */}
-            <ConsumerGroupPanel
-              consumers={state.consumers}
-              partitions={state.partitions}
-              selectedConsumer={selectedConsumer}
-              onSelectConsumer={handleSelectConsumer}
-              onAddConsumer={handleAddConsumer}
-              onRemoveConsumer={handleRemoveConsumer}
-            />
-          </div>
-
-          {/* Controls */}
-          <div className="shrink-0 border-t border-j-border">
-            <ControlsPanel
-              selectedConsumer={selectedConsumer}
-              autoMode={autoMode}
+      <div className="flex-1 min-h-0">
+        <PlaygroundLayout
+          accentColor={ACCENT}
+          disableTutor
+          lessons={
+            <LessonGuide
+              onReset={handleReset}
               onProduce={handleProduce}
               onAdvanceConsumer={handleAdvanceConsumer}
-              onAdvanceAll={handleAdvanceAll}
               onRewindConsumer={handleRewindConsumer}
+              onAddConsumer={handleAddConsumer}
               onAddPartition={handleAddPartition}
               onToggleAuto={handleToggleAuto}
-              onReset={handleReset}
             />
-          </div>
-        </div>
-      </div>
+          }
+          bottomPanel={<EventLog events={eventLog} />}
+          bottomPanelHeight="h-44"
+        >
+          <div className="h-full flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+              {/* Flow diagram */}
+              <FlowDiagram
+                partitions={state.partitions}
+                consumers={state.consumers}
+              />
 
-      {/* Bottom: Event Log */}
-      <div className="h-44 shrink-0 border-t border-j-border">
-        <EventLog events={eventLog} />
+              {/* Partitioned log */}
+              <PartitionVisualizer
+                partitions={state.partitions}
+                consumers={state.consumers}
+              />
+
+              {/* Consumer group */}
+              <ConsumerGroupPanel
+                consumers={state.consumers}
+                partitions={state.partitions}
+                selectedConsumer={selectedConsumer}
+                onSelectConsumer={handleSelectConsumer}
+                onAddConsumer={handleAddConsumer}
+                onRemoveConsumer={handleRemoveConsumer}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="shrink-0 border-t border-j-border">
+              <ControlsPanel
+                selectedConsumer={selectedConsumer}
+                autoMode={autoMode}
+                onProduce={handleProduce}
+                onAdvanceConsumer={handleAdvanceConsumer}
+                onAdvanceAll={handleAdvanceAll}
+                onRewindConsumer={handleRewindConsumer}
+                onAddPartition={handleAddPartition}
+                onToggleAuto={handleToggleAuto}
+                onReset={handleReset}
+              />
+            </div>
+          </div>
+        </PlaygroundLayout>
       </div>
     </div>
   );

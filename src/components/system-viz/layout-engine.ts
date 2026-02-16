@@ -1,7 +1,7 @@
 /**
  * Layout engine — pure function that computes positions for concept nodes.
  *
- * Groups concepts by phase (6 rows), applies topological sort within each row,
+ * Groups concepts by phase (9 rows), applies topological sort within each row,
  * returns pixel positions for SVG rendering.
  *
  * No DOM, no side effects, fully testable.
@@ -37,7 +37,7 @@ const NODE_WIDTH = 80;
 const NODE_HEIGHT = 56;
 const NODE_GAP_X = 24;
 const NODE_GAP_Y = 16;
-const PHASE_BAND_HEIGHT = 130;
+export const PHASE_BAND_HEIGHT = 100;
 const PHASE_LABEL_WIDTH = 120;
 const PADDING = 40;
 
@@ -86,7 +86,7 @@ function topoSortWithinPhase(
 /**
  * Compute layout positions for all concept nodes.
  *
- * Phase 1 at bottom (foundation), Phase 6 at top (integration).
+ * Phase 1 at bottom (foundation), Phase 9 at top (integration).
  */
 export function computeLayout(concepts: ConceptNode[]): LayoutResult {
   // Group by phase
@@ -112,7 +112,7 @@ export function computeLayout(concepts: ConceptNode[]): LayoutResult {
   }
 
   const nodes: PositionedNode[] = [];
-  const phases = [6, 5, 4, 3, 2, 1]; // top to bottom
+  const phases = [9, 8, 7, 6, 5, 4, 3, 2, 1]; // top to bottom
 
   let maxRowWidth = 0;
 
@@ -151,10 +151,13 @@ export function computeLayout(concepts: ConceptNode[]): LayoutResult {
  * Phase display metadata.
  */
 export const PHASE_META: Record<number, { label: string; labelEs: string; color: string }> = {
-  1: { label: 'Infrastructure', labelEs: 'Infraestructura', color: 'var(--j-accent)' },
-  2: { label: 'Model', labelEs: 'Modelo', color: 'var(--j-warm)' },
-  3: { label: 'Memory', labelEs: 'Memoria', color: 'var(--j-info)' },
-  4: { label: 'Safety', labelEs: 'Seguridad', color: 'var(--j-error)' },
-  5: { label: 'Operations', labelEs: 'Operaciones', color: 'var(--j-warm-dark)' },
-  6: { label: 'Integration', labelEs: 'Integracion', color: 'var(--j-accent-muted)' },
+  1: { label: 'Distributed', labelEs: 'Distribuidos', color: 'var(--j-accent)' },
+  2: { label: 'ML Infra', labelEs: 'Infra ML', color: 'var(--j-info)' },
+  3: { label: 'Transformers', labelEs: 'Transformers', color: 'var(--j-warm)' },
+  4: { label: 'Agents', labelEs: 'Agentes', color: 'var(--j-accent-muted)' },
+  5: { label: 'RAG & Memory', labelEs: 'RAG + Memoria', color: 'var(--j-info)' },
+  6: { label: 'Multimodal', labelEs: 'Multimodal', color: 'var(--j-warm-dark)' },
+  7: { label: 'Safety', labelEs: 'Seguridad', color: 'var(--j-error)' },
+  8: { label: 'Inference', labelEs: 'Inferencia', color: 'var(--j-warm)' },
+  9: { label: 'Integration', labelEs: 'Integracion', color: 'var(--j-accent)' },
 };

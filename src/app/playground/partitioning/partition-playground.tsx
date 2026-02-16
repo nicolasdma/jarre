@@ -4,8 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { RingVisualizer } from './ring-visualizer';
 import { PartitionStats } from './partition-stats';
 import { LessonGuide } from './lesson-guide';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
-import { TutorPanel } from '@/components/playground/tutor-panel';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -469,18 +468,19 @@ export function PartitionPlayground() {
   }, [initializeNodes, setMode, addKeys, addNode, addHotspotKeys]);
 
   return (
-    <div className="h-full flex">
-      {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-        <TabbedSidebar
-          disableTutor
-          lessons={<LessonGuide onAction={handleLessonAction} />}
-          accentColor="#059669"
+    <PlaygroundLayout
+      accentColor="#059669"
+      disableTutor
+      lessons={<LessonGuide onAction={handleLessonAction} />}
+      rightPanel={
+        <PartitionStats
+          nodes={state.nodes}
+          lastRebalance={state.lastRebalance}
+          mode={state.mode}
         />
-      </div>
-
-      {/* Center: Ring Visualizer */}
-      <div className="flex-[4] min-w-0 border-r border-j-border">
+      }
+    >
+      <div className="h-full border-r border-j-border">
         <RingVisualizer
           state={state}
           onAddNode={addNode}
@@ -492,15 +492,6 @@ export function PartitionPlayground() {
           onClear={clearAll}
         />
       </div>
-
-      {/* Right: Stats */}
-      <div className="flex-[3] min-w-0 overflow-y-auto">
-        <PartitionStats
-          nodes={state.nodes}
-          lastRebalance={state.lastRebalance}
-          mode={state.mode}
-        />
-      </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

@@ -75,11 +75,14 @@ const translations = {
 
   // Phases
   'phase.1': { es: 'Sistemas Distribuidos', en: 'Distributed Systems' },
-  'phase.2': { es: 'LLMs + Razonamiento', en: 'LLMs + Reasoning' },
-  'phase.3': { es: 'RAG + Memoria', en: 'RAG + Memory' },
-  'phase.4': { es: 'Seguridad + Guardrails', en: 'Safety + Guardrails' },
-  'phase.5': { es: 'Inferencia + Economía', en: 'Inference + Economics' },
-  'phase.6': { es: 'Frameworks', en: 'Frameworks' },
+  'phase.2': { es: 'Infraestructura ML', en: 'ML Infrastructure Bridge' },
+  'phase.3': { es: 'Fundamentos Transformer', en: 'Transformer Foundations' },
+  'phase.4': { es: 'Agentes + Razonamiento', en: 'Agents & Reasoning' },
+  'phase.5': { es: 'RAG, Memoria + Contexto', en: 'RAG, Memory & Context' },
+  'phase.6': { es: 'Multimodal + Emergente', en: 'Multimodal & Emerging' },
+  'phase.7': { es: 'Seguridad + Guardrails', en: 'Safety, Guardrails & Eval' },
+  'phase.8': { es: 'Inferencia + Economía', en: 'Inference & Economics' },
+  'phase.9': { es: 'Diseño de Sistemas', en: 'System Design & Integration' },
 
   // Common
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
@@ -151,6 +154,7 @@ const translations = {
   'questionType.error_detection': { es: 'Detección de Error', en: 'Error Detection' },
   'questionType.connection': { es: 'Conexión', en: 'Connection' },
   'questionType.tradeoff': { es: 'Trade-off', en: 'Trade-off' },
+  'questionType.design': { es: 'Diseño', en: 'Design' },
 
   // Study View
   'study.title': { es: 'Estudio', en: 'Study' },
@@ -196,6 +200,10 @@ const translations = {
   'dashboard.noReviewPending': { es: 'Sin repasos pendientes', en: 'No pending reviews' },
 
   // Projects
+  'project.project-react-agent': { es: 'Agente de Código Auto-Mejorable', en: 'Self-Improving Coding Agent' },
+  'project.project-rag-system': { es: 'Agente de Conocimiento Personal', en: 'Personal Knowledge Agent' },
+  'project.project-router': { es: 'Router de Modelos con Optimización Edge', en: 'Edge AI Model Router' },
+  'project.project-system-design': { es: 'Orquestador de Workflows Empresarial', en: 'Enterprise Workflow Orchestrator' },
   'project.title': { es: 'Proyecto', en: 'Project' },
   'project.deliverables': { es: 'Entregables', en: 'Deliverables' },
   'project.start': { es: 'Iniciar Proyecto', en: 'Start Project' },
@@ -298,6 +306,9 @@ export function getPhaseNames(language: Language): Record<string, string> {
     '4': t('phase.4', language),
     '5': t('phase.5', language),
     '6': t('phase.6', language),
+    '7': t('phase.7', language),
+    '8': t('phase.8', language),
+    '9': t('phase.9', language),
   };
 }
 

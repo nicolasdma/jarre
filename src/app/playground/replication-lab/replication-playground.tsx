@@ -4,8 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { NodeDiagram } from './node-diagram';
 import { EventLog } from './event-log';
 import { LessonGuide } from './lesson-guide';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
-import { TutorPanel } from '@/components/playground/tutor-panel';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -856,18 +855,13 @@ export function ReplicationPlayground() {
   };
 
   return (
-    <div className="h-full flex">
-      {/* Left: Lesson Guide */}
-      <div className="flex-[2] shrink-0 border-r border-j-border overflow-hidden">
-        <TabbedSidebar
-          disableTutor
-          lessons={<LessonGuide actions={actions} config={config} isPartitioned={isPartitioned} />}
-          accentColor="#2d4a6a"
-        />
-      </div>
-
-      {/* Center: Node Diagram */}
-      <div className="flex-[4] min-w-0 border-r border-j-border">
+    <PlaygroundLayout
+      accentColor="#2d4a6a"
+      disableTutor
+      lessons={<LessonGuide actions={actions} config={config} isPartitioned={isPartitioned} />}
+      rightPanel={<EventLog events={events} />}
+    >
+      <div className="h-full border-r border-j-border">
         <NodeDiagram
           nodes={nodes}
           messages={messages}
@@ -884,11 +878,6 @@ export function ReplicationPlayground() {
           violations={violations}
         />
       </div>
-
-      {/* Right: Event Log */}
-      <div className="flex-[3] min-w-0 overflow-y-auto">
-        <EventLog events={events} />
-      </div>
-    </div>
+    </PlaygroundLayout>
   );
 }

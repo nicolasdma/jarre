@@ -31,7 +31,8 @@ Question types to use:
 - SCENARIO: "Given [situation], what would happen and why?"
 - ERROR_DETECTION: "This statement has a subtle error: [statement]. What is wrong?"
 - CONNECTION: "How does X relate to Y?"
-- TRADEOFF: "When would you NOT use X? Give a concrete example."`,
+- TRADEOFF: "When would you NOT use X? Give a concrete example."
+- DESIGN: "Design a system that [requirement]. What components would you use and why?"`,
 
   es: `Eres Jarre, un evaluador técnico experto. Tu trabajo es evaluar la comprensión profunda de conceptos técnicos complejos, no la memorización superficial.
 
@@ -48,7 +49,8 @@ Tipos de preguntas a usar:
 - SCENARIO: "Dado [situación], ¿qué pasaría y por qué?"
 - ERROR_DETECTION: "Esta afirmación tiene un error sutil: [afirmación]. ¿Cuál es el error?"
 - CONNECTION: "¿Cómo se relaciona X con Y?"
-- TRADEOFF: "¿Cuándo NO usarías X? Da un ejemplo concreto."`,
+- TRADEOFF: "¿Cuándo NO usarías X? Da un ejemplo concreto."
+- DESIGN: "Diseñá un sistema que [requerimiento]. ¿Qué componentes usarías y por qué?"`,
 };
 
 export function getSystemPrompt(language: SupportedLanguage = 'es'): string {
@@ -82,15 +84,16 @@ ${conceptList}
 Requirements:
 - Generate exactly ${questionCount} questions
 - Each question must test understanding of one of the listed concepts
-- Use a variety of question types (explanation, scenario, error_detection, connection, tradeoff)
+- Use a variety of question types (explanation, scenario, error_detection, connection, tradeoff, design)
 - Questions should be challenging but fair
 - For error_detection questions, include the incorrect statement in the question
+- For design questions, ask the student to propose an architecture integrating multiple concepts
 
 Respond in JSON format:
 {
   "questions": [
     {
-      "type": "explanation|scenario|error_detection|connection|tradeoff",
+      "type": "explanation|scenario|error_detection|connection|tradeoff|design",
       "conceptName": "the concept being tested",
       "question": "the question text",
       "incorrectStatement": "only for error_detection type",
@@ -111,16 +114,17 @@ ${conceptList}
 Requisitos:
 - Generá exactamente ${questionCount} preguntas
 - Cada pregunta debe evaluar la comprensión de uno de los conceptos listados
-- Usá una variedad de tipos de preguntas (explanation, scenario, error_detection, connection, tradeoff)
+- Usá una variedad de tipos de preguntas (explanation, scenario, error_detection, connection, tradeoff, design)
 - Las preguntas deben ser desafiantes pero justas
 - Para preguntas error_detection, incluí la afirmación incorrecta en la pregunta
+- Para preguntas design, pedí que diseñen una arquitectura integrando múltiples conceptos
 - IMPORTANTE: Las preguntas deben estar en ESPAÑOL
 
 Respondé en formato JSON:
 {
   "questions": [
     {
-      "type": "explanation|scenario|error_detection|connection|tradeoff",
+      "type": "explanation|scenario|error_detection|connection|tradeoff|design",
       "conceptName": "el concepto que se evalúa",
       "question": "el texto de la pregunta en español",
       "incorrectStatement": "solo para tipo error_detection",
