@@ -225,7 +225,7 @@ export default async function EvaluationDetailPage({ params }: PageProps) {
               ← {t('history.backToResource', lang)}
             </Link>
             <Link
-              href={`/evaluate/${evalDetail.resource.id}`}
+              href={`/learn/${evalDetail.resource.id}`}
               className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
             >
               {t('history.newEvaluation', lang)} →
@@ -311,7 +311,7 @@ export default async function EvaluationDetailPage({ params }: PageProps) {
             ← {t('history.backToResource', lang)}
           </Link>
           <Link
-            href={`/evaluate/${evalDetail.resource.id}`}
+            href={`/learn/${evalDetail.resource.id}`}
             className="rounded-lg bg-stone-900 px-6 py-3 text-sm font-medium text-white hover:bg-stone-800"
           >
             {t('history.newEvaluation', lang)} →

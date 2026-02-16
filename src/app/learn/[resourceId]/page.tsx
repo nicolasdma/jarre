@@ -30,7 +30,7 @@ interface PageProps {
 /** Where does the "practical" step go for each resource */
 const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'ddia-ch1': { label: 'Playground', href: '/playground/latency-simulator' },
-  'ddia-ch2': { label: 'Evaluar', href: '/evaluate/ddia-ch2' },
+  'ddia-ch2': { label: 'Evaluar', href: '/learn/ddia-ch2' },
   'ddia-ch3': { label: 'Playground', href: '/playground/storage-engine' },
   'ddia-ch4': { label: 'Playground', href: '/playground/encoding' },
   'ddia-ch5': { label: 'Playground', href: '/playground/replication-lab' },
@@ -79,8 +79,8 @@ export default async function LearnPage({ params }: PageProps) {
     redirect(`/login?redirect=/learn/${resourceId}`);
   }
 
-  // Get resource + user language + resource sections + learn progress in parallel
-  const [resourceResult, profileResult, sectionsResult, progressResult] = await Promise.all([
+  // Get resource + user language + resource sections + learn progress + concepts in parallel
+  const [resourceResult, profileResult, sectionsResult, progressResult, conceptsResult] = await Promise.all([
     supabase.from('resources').select('*').eq('id', resourceId).single(),
     supabase.from('user_profiles').select('language').eq('id', user.id).single(),
     supabase
@@ -94,11 +94,24 @@ export default async function LearnPage({ params }: PageProps) {
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
       .single(),
+    supabase
+      .from('resource_concepts')
+      .select('concept_id, is_prerequisite, concepts (id, name, canonical_definition)')
+      .eq('resource_id', resourceId),
   ]);
 
   const resource = resourceResult.data;
   const language = (profileResult.data?.language || 'es') as Language;
   const sections = sectionsResult.data || [];
+
+  // Extract concepts taught (not prerequisites) for evaluation
+  // Supabase returns `concepts` as an array from the join; we take the first element
+  const conceptsTaught = (conceptsResult.data || [])
+    .filter((rc: { is_prerequisite: boolean }) => !rc.is_prerequisite)
+    .map((rc: { concepts: { id: string; name: string; canonical_definition: string }[] }) =>
+      Array.isArray(rc.concepts) ? rc.concepts[0] : rc.concepts
+    )
+    .filter(Boolean) as { id: string; name: string; canonical_definition: string }[];
 
   const initialProgress: LearnProgress | undefined = progressResult.data
     ? {
@@ -169,11 +182,13 @@ export default async function LearnPage({ params }: PageProps) {
         language={language}
         resourceId={resourceId}
         resourceTitle={resource.title}
+        resourceType={resource.type}
         sections={flowSections}
         activateComponent={renderContent?.()}
         playgroundHref={practical?.href}
         playgroundLabel={practical?.label}
-        evaluateHref={`/evaluate/${resourceId}`}
+        concepts={conceptsTaught}
+        userId={user.id}
         guidedQuestions={guidedQuestions}
         initialProgress={initialProgress}
         figureRegistry={FIGURE_REGISTRY}

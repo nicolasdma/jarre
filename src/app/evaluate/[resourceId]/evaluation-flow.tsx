@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ReviewPrediction } from '@/components/review-prediction';
 import { ErrorMessage } from '@/components/error-message';
 import { categorizeError } from '@/lib/utils/categorize-error';
 
@@ -45,10 +44,6 @@ const translations = {
   'eval.discoveryMessage': {
     es: 'Las evaluaciones son herramientas de descubrimiento, no juicios',
     en: 'Evaluations are discovery tools, not judgments'
-  },
-  'eval.predictionInsight': {
-    es: 'La diferencia entre tu prediccion y el resultado senala donde enfocar tu proxima lectura',
-    en: 'The difference between your prediction and the result points to where to focus your next reading'
   },
   'eval.lowScoreEncouragement': {
     es: 'Cuando te sientas listo, volve a intentarlo — cada intento es aprendizaje',
@@ -102,6 +97,8 @@ interface Props {
   concepts: Concept[];
   userId: string;
   language: Language;
+  /** Called when the user cancels from the evaluation (e.g. back to previous step) */
+  onCancel?: () => void;
 }
 
 type Phase = 'intro' | 'loading' | 'questions' | 'submitting' | 'results';
@@ -170,7 +167,7 @@ function RubricSummary({ responses }: { responses: EvaluationResult[] }) {
 // Main Component
 // ============================================================================
 
-export function EvaluationFlow({ resource, concepts, userId, language }: Props) {
+export function EvaluationFlow({ resource, concepts, userId, language, onCancel }: Props) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('intro');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -182,7 +179,6 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
-  const [predictedScore, setPredictedScore] = useState<number | null>(null);
   const [saveError, setSaveError] = useState(false);
   const [showCancelButton, setShowCancelButton] = useState(false);
 
@@ -258,7 +254,11 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
       abortControllerRef.current.abort();
     }
     cleanupLoadingState();
-    setPhase('intro');
+    if (onCancel) {
+      onCancel();
+    } else {
+      setPhase('intro');
+    }
   };
 
   const handleStartEvaluation = async () => {
@@ -307,7 +307,11 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
   const handleCancelEvaluation = () => {
     const confirmed = window.confirm(t('eval.cancelConfirm', language));
     if (confirmed) {
-      router.push(`/learn/${resource.id}`);
+      if (onCancel) {
+        onCancel();
+      } else {
+        router.push(`/learn/${resource.id}`);
+      }
     }
   };
 
@@ -332,7 +336,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
             userAnswer: answers[i.toString()] || '',
           })),
           userId,
-          predictedScore,
+          predictedScore: null,
         }),
         signal: controller.signal,
       });
@@ -402,7 +406,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
         body: JSON.stringify({
           resourceId: resource.id,
           overallScore: results.overallScore,
-          predictedScore,
+          predictedScore: null,
           promptVersion: 'unknown',
         }),
       });
@@ -474,19 +478,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
           {t('eval.aiWillGenerate', language)}
         </p>
 
-        {/* Confidence calibration: predict score before starting */}
-        <div className="mb-8">
-          <ReviewPrediction
-            language={language}
-            totalQuestions={5}
-            onPredict={(predicted) => {
-              setPredictedScore(Math.round((predicted / 5) * 100));
-            }}
-            initialPrediction={predictedScore != null ? Math.round((predictedScore / 100) * 5) : undefined}
-          />
-        </div>
-
-        {error && (
+{error && (
           <div className="mb-4">
             <ErrorMessage
               message={error}
@@ -644,7 +636,6 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
     const isHighScore = results.overallScore >= 80;
     const isLowScore = results.overallScore < 60;
     const lowestDimension = isLowScore ? getLowestDimension() : null;
-    const predictionDelta = predictedScore != null ? predictedScore - results.overallScore : null;
 
     return (
       <div>
@@ -712,25 +703,7 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
           {t('eval.discoveryMessage', language)}
         </p>
 
-        {/* Confidence calibration comparison */}
-        {predictedScore != null && (
-          <div className="mb-6">
-            <ReviewPrediction
-              language={language}
-              totalQuestions={100}
-              onPredict={() => {}}
-              initialPrediction={predictedScore}
-              actualCorrect={results.overallScore}
-            />
-            {predictionDelta != null && predictionDelta > 15 && (
-              <p className="text-[10px] text-j-text-tertiary font-mono mt-2 text-center">
-                {t('eval.predictionInsight', language)}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Recovery guidance for low scores */}
+{/* Recovery guidance for low scores */}
         {isLowScore && lowestDimension && (
           <div className="border border-j-border bg-j-bg-alt p-6 mb-6">
             <p className="text-sm text-j-text-secondary leading-relaxed mb-2">
@@ -801,11 +774,12 @@ export function EvaluationFlow({ resource, concepts, userId, language }: Props) 
               </button>
               <button
                 onClick={() => {
-                  setPhase('intro');
                   setResults(null);
                   setError(null);
                   setErrorAction(null);
                   setQuestions([]);
+                  setAnswers({});
+                  handleStartEvaluation();
                 }}
                 className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
               >
