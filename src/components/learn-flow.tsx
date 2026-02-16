@@ -13,6 +13,8 @@ import { PracticeEvalStep } from './practice-eval-step';
 import { saveLearnProgress, type LearnProgress, type SectionState, type PracticeEvalState } from '@/lib/learn-progress';
 import { WhisperProvider } from '@/lib/whisper/whisper-context';
 import { WhisperToggle } from './whisper-toggle';
+import { VoiceToggle } from './voice/voice-toggle';
+import { VoicePanel } from './voice/voice-panel';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz } from '@/types';
 import { getExercisesForConcept } from '@/lib/exercises/registry';
@@ -123,6 +125,9 @@ export function LearnFlow({
   const [visitedSteps, setVisitedSteps] = useState<Set<Step>>(
     new Set((initialProgress?.visitedSteps as Step[]) ?? [(initialProgress?.currentStep as Step) ?? 'activate'])
   );
+
+  // Voice companion panel
+  const [voiceActive, setVoiceActive] = useState(false);
 
   // Focus mode: compress header on scroll > 200px during LEARN step
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -266,8 +271,17 @@ export function LearnFlow({
             })}
           </div>
 
-          {/* Whisper toggle */}
-          <WhisperToggle language={language} />
+          {/* Whisper + Voice toggles */}
+          <div className="flex items-center gap-2">
+            <WhisperToggle language={language} />
+            {currentStep === 'learn' && (
+              <VoiceToggle
+                language={language}
+                isActive={voiceActive}
+                onToggle={() => setVoiceActive((v) => !v)}
+              />
+            )}
+          </div>
 
           {/* Right side: resource title + step info on desktop (lg+) */}
           <div className="hidden lg:flex items-center gap-3">
@@ -477,6 +491,16 @@ export function LearnFlow({
         )}
       </div>
     </div>
+
+      {/* Voice companion panel */}
+      {voiceActive && currentStep === 'learn' && sections[activeSection] && (
+        <VoicePanel
+          sectionContent={sections[activeSection].contentMarkdown}
+          sectionTitle={sections[activeSection].sectionTitle}
+          language={language}
+          onClose={() => setVoiceActive(false)}
+        />
+      )}
     </WhisperProvider>
   );
 }
