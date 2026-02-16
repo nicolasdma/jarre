@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  LessonGuideShell,
+  type LessonStep,
+  type LessonGuideColors,
+} from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface AttentionStep extends LessonStep {
   action: string;
-  observe: string;
 }
 
 interface LessonGuideProps {
@@ -17,7 +22,11 @@ interface LessonGuideProps {
   onAnimate: () => void;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+
+const STEPS: AttentionStep[] = [
   {
     title: '1. Tokens y embeddings',
     theory: `Antes de que el transformer procese texto, cada palabra se convierte en un "token" y cada token se mapea a un vector de numeros (embedding). Estos vectores capturan el significado semantico: palabras similares tienen vectores cercanos. En "Attention Is All You Need", los embeddings tienen dimension 512. Aqui usamos dimensiones pequeñas para visualizar.
@@ -75,7 +84,11 @@ Las posiciones cercanas tienen encodings similares, y las lejanas tienen encodin
   },
 ];
 
-const ACCENT = '#6366f1';
+const COLORS: LessonGuideColors = {
+  accent: '#6366f1',
+  visited: '#c7d2fe',
+  calloutBg: '#eef2ff',
+};
 
 const LESSON_ACTIONS: Record<
   number,
@@ -88,44 +101,20 @@ const LESSON_ACTIONS: Record<
   4: (p) => ({ label: 'Ver positional encoding', handler: p.onTogglePositional }),
 };
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide(props: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-  const action = LESSON_ACTIONS[currentStep]?.(props);
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const action = LESSON_ACTIONS[stepIndex]?.(props);
+        if (!action) return null;
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p
-              key={i}
-              className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
-            >
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {/* Action button */}
-        {action && (
+        return (
           <div className="mb-5">
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
               Accion
@@ -133,63 +122,15 @@ export function LessonGuide(props: LessonGuideProps) {
             <button
               onClick={action.handler}
               className="w-full text-left px-4 py-2.5 text-white font-mono text-[12px] tracking-wider transition-colors rounded"
-              style={{ backgroundColor: ACCENT }}
+              style={{ backgroundColor: COLORS.accent }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#4f46e5')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = ACCENT)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = COLORS.accent)}
             >
               {action.label}
             </button>
           </div>
-        )}
-
-        {/* What to observe */}
-        <div className="bg-[#eef2ff] px-4 py-3 border-l-2 border-[#6366f1] rounded-r">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#6366f1]'
-                  : i < currentStep
-                    ? 'bg-[#c7d2fe]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
-          }
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+        );
+      }}
+    />
   );
 }

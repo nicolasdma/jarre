@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ErrorMessage } from '@/components/error-message';
+import { SectionLabel } from '@/components/ui/section-label';
 import { categorizeError } from '@/lib/utils/categorize-error';
 
 type Language = 'es' | 'en';
@@ -447,12 +448,9 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
   if (phase === 'intro') {
     return (
       <div>
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-px bg-j-accent" />
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-            {language === 'es' ? 'Evaluar' : 'Evaluate'}
-          </span>
-        </div>
+        <SectionLabel className="mb-8">
+          {language === 'es' ? 'Evaluar' : 'Evaluate'}
+        </SectionLabel>
 
         <h2 className="text-xl font-light text-j-text mb-2">{resource.title}</h2>
         <p className="text-sm text-j-text-secondary mb-8">
@@ -528,12 +526,9 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
   if (phase === 'questions') {
     return (
       <div>
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-px bg-j-accent" />
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-            {language === 'es' ? 'Evaluar' : 'Evaluate'}
-          </span>
-        </div>
+        <SectionLabel className="mb-8">
+          {language === 'es' ? 'Evaluar' : 'Evaluate'}
+        </SectionLabel>
 
         <h2 className="text-xl font-light text-j-text mb-2">{resource.title}</h2>
         <p className="text-sm text-j-text-secondary mb-10">
@@ -638,12 +633,9 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
 
     return (
       <div>
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-px bg-j-accent" />
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-            {t('eval.complete', language)}
-          </span>
-        </div>
+        <SectionLabel className="mb-8">
+          {t('eval.complete', language)}
+        </SectionLabel>
 
         {saveError && (
           <div className="bg-yellow-50 border border-yellow-300 p-4 mb-6">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { SectionLabel } from '@/components/ui/section-label';
 import { t, type Language } from '@/lib/translations';
 import type { PracticeEvalState, PracticeEvalAnswer } from '@/lib/learn-progress';
 import type { ReviewSubmitResponse } from '@/types';
@@ -247,12 +248,9 @@ export function PracticeEvalStep({
       {/* Header */}
       <header className="mb-12">
         <div className="flex items-center justify-between mb-4 lg:hidden">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-px bg-j-accent" />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {t('learn.step.practiceEval', language)}
-            </span>
-          </div>
+          <SectionLabel className="mb-0">
+            {t('learn.step.practiceEval', language)}
+          </SectionLabel>
         </div>
 
         <h2 className="text-xl font-light text-j-text mb-2">

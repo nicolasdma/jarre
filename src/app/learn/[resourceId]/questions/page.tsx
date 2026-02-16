@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { SectionLabel } from '@/components/ui/section-label';
 import {
   READING_QUESTIONS,
   QUESTION_TYPE_LABELS,
@@ -101,12 +102,7 @@ export default async function QuestionsPage({ params }: PageProps) {
       <article className="mx-auto max-w-3xl px-8 py-16">
         {/* Hero */}
         <header className="mb-16">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-px bg-j-accent" />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              Preguntas Guía
-            </span>
-          </div>
+          <SectionLabel className="mb-6">Preguntas Guía</SectionLabel>
 
           <h1 className="text-3xl font-light text-j-text mb-4">
             Focos de Lectura

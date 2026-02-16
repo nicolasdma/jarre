@@ -1,20 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  LessonGuideShell,
+  type LessonStep,
+  type LessonGuideColors,
+} from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Extended step with executable commands
+// ---------------------------------------------------------------------------
+
+interface StorageStep extends LessonStep {
   commands: Array<{ cmd: string; explain: string }>;
-  observe: string;
 }
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface LessonGuideProps {
   onRunCommand: (command: string) => void;
   currentBackend: string;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Colors (warm/earthy theme for storage-engine)
+// ---------------------------------------------------------------------------
+
+const COLORS: LessonGuideColors = {
+  accent: '#c4a07a',   // j-warm — active dot + callout border
+  visited: '#c4a07a',  // visited dots
+  calloutBg: '#f0efe8',
+};
+
+// ---------------------------------------------------------------------------
+// Steps
+// ---------------------------------------------------------------------------
+
+const STEPS: StorageStep[] = [
   {
     title: '1. Como funciona una base de datos por dentro',
     theory: `Cuando haces INSERT en PostgreSQL o SET en Redis, ¿que pasa fisicamente? Se escriben bytes en un archivo en tu disco.
@@ -396,111 +419,45 @@ Compara ambos backends:`,
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p key={i} className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0">
-              {para}
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const step = STEPS[stepIndex];
+        return (
+          <div className="mb-5">
+            <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
+              Haz click para ejecutar
             </p>
-          ))}
-        </div>
-
-        {/* Commands to run */}
-        <div className="mb-5">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
-            Haz click para ejecutar
-          </p>
-          <div className="space-y-1.5">
-            {step.commands.map((c, i) => (
-              <button
-                key={i}
-                onClick={() => onRunCommand(c.cmd)}
-                className="w-full text-left group"
-              >
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] transition-colors">
-                  <span className="text-j-accent font-mono text-[11px] shrink-0">{'>'}</span>
-                  <span className="text-[#e0e0d0] font-mono text-[11px]">{c.cmd}</span>
-                  <span className="ml-auto text-[#555] font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    click
-                  </span>
-                </div>
-                {c.explain && (
-                  <p className="text-[11px] text-[#999] mt-0.5 pl-3">{c.explain}</p>
-                )}
-              </button>
-            ))}
+            <div className="space-y-1.5">
+              {step.commands.map((c, i) => (
+                <button
+                  key={i}
+                  onClick={() => onRunCommand(c.cmd)}
+                  className="w-full text-left group"
+                >
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] transition-colors">
+                    <span className="text-j-accent font-mono text-[11px] shrink-0">{'>'}</span>
+                    <span className="text-[#e0e0d0] font-mono text-[11px]">{c.cmd}</span>
+                    <span className="ml-auto text-[#555] font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      click
+                    </span>
+                  </div>
+                  {c.explain && (
+                    <p className="text-[11px] text-[#999] mt-0.5 pl-3">{c.explain}</p>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* What to observe */}
-        <div className="bg-[#f0efe8] px-4 py-3 border-l-2 border-j-warm">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-j-accent'
-                  : i < currentStep
-                    ? 'bg-[#c4a07a]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setCurrentStep(s => Math.min(LESSONS.length - 1, s + 1))}
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+        );
+      }}
+    />
   );
 }

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { LessonGuideShell, type LessonStep } from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface TailLatencyStep extends LessonStep {
   action: string;
-  observe: string;
 }
 
-interface LessonGuideProps {
+export interface LessonGuideProps {
   onRunBatch: () => void;
   onSetFanout: (k: number) => void;
   onToggleHedging: () => void;
@@ -17,7 +18,11 @@ interface LessonGuideProps {
   onReset: () => void;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+
+const STEPS: TailLatencyStep[] = [
   {
     title: '1. La cola que muerde: tail latency',
     theory: `En un sistema con muchos servidores, la latencia de cada request individual sigue una distribucion: la mayoria responde rapido (p50), pero algunos tardan mucho mas (p99, p999). Estos "outliers" no son bugs — son inherentes: garbage collection, page faults, background tasks, contention por CPU/disco. Google encontro que incluso en servidores bien optimizados, el p99 puede ser 10x el p50. El paper "The Tail at Scale" (Dean & Barroso, 2013) explora por que esto importa y como mitigarlo.`,
@@ -68,41 +73,19 @@ const LESSON_ACTIONS: Record<
 
 const ACCENT = '#b45309';
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide(props: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-  const action = LESSON_ACTIONS[currentStep]?.(props);
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p
-              key={i}
-              className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
-            >
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {action && (
+    <LessonGuideShell
+      steps={STEPS}
+      colors={{ accent: ACCENT, visited: '#fde68a', calloutBg: '#fffbeb' }}
+      renderAction={(stepIndex) => {
+        const action = LESSON_ACTIONS[stepIndex]?.(props);
+        if (!action) return null;
+        return (
           <div className="mb-5">
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
               Accion
@@ -121,56 +104,8 @@ export function LessonGuide(props: LessonGuideProps) {
               {action.label}
             </button>
           </div>
-        )}
-
-        <div className="bg-[#fffbeb] px-4 py-3 border-l-2 rounded-r" style={{ borderColor: ACCENT }}>
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className="w-1.5 h-1.5 rounded-full transition-colors"
-              style={{
-                backgroundColor:
-                  i === currentStep
-                    ? ACCENT
-                    : i < currentStep
-                      ? '#fde68a'
-                      : '#ddd',
-              }}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
-          }
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+        );
+      }}
+    />
   );
 }

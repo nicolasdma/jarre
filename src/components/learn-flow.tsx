@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { ConceptSection } from './concept-section';
+import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
@@ -356,12 +357,9 @@ export function LearnFlow({
             <header className="mb-12 lg:hidden">
               {/* Step label + nav arrows — hidden on lg+ where sidebar covers this */}
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-px bg-j-accent" />
-                  <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                    {t('learn.step.learn', language)}
-                  </span>
-                </div>
+                <SectionLabel className="mb-0">
+                  {t('learn.step.learn', language)}
+                </SectionLabel>
 
                 {/* Section nav arrows */}
                 <div className="flex items-center gap-3">

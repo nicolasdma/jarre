@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/header';
+import { SectionLabel } from '@/components/ui/section-label';
 import { t, type Language } from '@/lib/translations';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { ReviewSession } from './review-session';
@@ -59,12 +60,7 @@ export default async function ReviewPage() {
 
       <main className="mx-auto max-w-3xl px-8 py-12">
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-j-accent"></div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              SM-2
-            </span>
-          </div>
+          <SectionLabel>SM-2</SectionLabel>
           <h1 className="text-4xl font-bold text-j-text mb-2">
             {t('review.title', lang)}
           </h1>

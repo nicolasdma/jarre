@@ -1,19 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-
-interface LessonStep {
-  title: string;
-  theory: string;
-  action: string;
-  observe: string;
-}
+import { LessonGuideShell, type LessonStep } from '@/components/playground/lesson-guide-shell';
 
 interface LessonGuideProps {
   onSelectView: (view: 'parameters' | 'data' | 'compute' | 'optimal' | 'budget') => void;
 }
 
-const LESSONS: LessonStep[] = [
+const STEPS: (LessonStep & { action: string })[] = [
   {
     title: '1. Power Laws: la geometria del scaling',
     theory: `Las scaling laws de Kaplan et al. (2020) descubrieron que la loss de un language model sigue power laws con respecto a tres ejes: parametros (N), datos (D) y compute (C). Una power law tiene la forma L(x) = (x_c / x)^alpha + L_inf, donde alpha es el exponente y L_inf es la loss irreducible (entropia del lenguaje natural). En un grafico log-log, una power law es una LINEA RECTA. La pendiente de esa linea es el exponente alpha, y es lo que determina cuan rapido mejora el modelo al escalar ese eje.`,
@@ -51,6 +44,8 @@ const LESSONS: LessonStep[] = [
   },
 ];
 
+const COLORS = { accent: '#1e40af', visited: '#bfdbfe', calloutBg: '#eff6ff' };
+
 const VIEW_MAP: Record<number, 'parameters' | 'data' | 'compute' | 'optimal' | 'budget'> = {
   0: 'parameters',
   1: 'parameters',
@@ -60,101 +55,26 @@ const VIEW_MAP: Record<number, 'parameters' | 'data' | 'compute' | 'optimal' | '
 };
 
 export function LessonGuide({ onSelectView }: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-
-  const handleAction = () => {
-    const view = VIEW_MAP[currentStep];
-    if (view) onSelectView(view);
-  };
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p
-              key={i}
-              className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
-            >
-              {para}
-            </p>
-          ))}
-        </div>
-
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => (
         <div className="mb-5">
           <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
             Accion
           </p>
           <button
-            onClick={handleAction}
+            onClick={() => {
+              const view = VIEW_MAP[stepIndex];
+              if (view) onSelectView(view);
+            }}
             className="w-full text-left px-4 py-2.5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-mono text-[12px] tracking-wider transition-colors rounded"
           >
-            {step.action}
+            {STEPS[stepIndex].action}
           </button>
         </div>
-
-        <div className="bg-[#eff6ff] px-4 py-3 border-l-2 border-[#1e40af] rounded-r">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#1e40af]'
-                  : i < currentStep
-                    ? 'bg-[#bfdbfe]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
-          }
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+      )}
+    />
   );
 }
