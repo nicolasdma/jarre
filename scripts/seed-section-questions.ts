@@ -1191,6 +1191,116 @@ const questionsBySection: Record<string, Record<number, SectionQuestion[]>> = {
       },
     ],
   },
+
+  // ========================================================================
+  // OPENCLAW CASE STUDY — Production AI Agent System Architecture
+  // Sections: ACP, Plugins, Skills, Memory, A2UI (sort_order 0-4)
+  // ========================================================================
+  'openclaw-casestudy': {
+    // Section 0: Protocolo de Comunicación de Agentes (ACP)
+    0: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es el Agent Client Protocol (ACP) de OpenClaw y por qué no usa REST estándar?',
+        expected_answer: 'ACP es un protocolo de comunicación basado en NDJSON streams que conecta clientes interactivos con un gateway backend. No usa REST porque los agentes necesitan comunicación bidireccional continua: enviar tool calls, actualizaciones de estado parciales, y texto streaming en una misma interacción. REST es request-response, inadecuado para flujos conversacionales largos con múltiples eventos intermedios.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Cómo maneja OpenClaw las sesiones de agente y qué rol juega el AbortController?',
+        expected_answer: 'Las sesiones se gestionan con un in-memory store de objetos AcpSession. El session-mapper resuelve claves de sesión desde metadata de requests, permite resetear sesiones, y asociar sesiones con runs activos. AbortController permite cancelar sesiones en curso de forma limpia, propagando la señal de cancelación a través de todo el pipeline de procesamiento del agente.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Qué diferencias hay entre el patrón de traducción del AcpGatewayAgent y un API gateway tradicional como Kong o Envoy?',
+        expected_answer: 'Un API gateway tradicional hace routing/proxy de HTTP requests, rate limiting, y auth. El AcpGatewayAgent es un traductor semántico: convierte solicitudes ACP (con contexto conversacional, estado de sesión, y selección de modelo) en comandos específicos del gateway backend, procesando eventos bidireccionales. Es stateful (mantiene sesiones) y domain-specific (entiende el flujo de un agente), mientras que Kong/Envoy son stateless y domain-agnostic.',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 1: Arquitectura de Plugins y Gestión de Canales
+    1: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es un ChannelDock en OpenClaw y qué problema resuelve?',
+        expected_answer: 'Un ChannelDock es una representación ligera de un canal de comunicación que proporciona una interfaz consistente para acceder a su metadata y capacidades, independientemente de la plataforma subyacente (Discord, Telegram, WhatsApp, etc.). Resuelve el problema de normalizar 15+ APIs de chat diferentes bajo una abstracción uniforme que el core del sistema puede consumir sin conocer los detalles de cada plataforma.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Cómo implementa OpenClaw la seguridad en canales con DM policies, group policies, y command gating?',
+        expected_answer: 'OpenClaw tiene tres capas de seguridad por canal: (1) DM policy determina quién puede enviar mensajes directos al agente (pairing, allowlist por user ID). (2) Group policy controla el comportamiento en grupos (open, allowlist, disabled). (3) Command gating verifica si un comando específico está autorizado para el remitente, usando resolveCommandAuthorizedFromAuthorizers que evalúa access groups y listas de autorizadores. Adicionalmente, mention gating controla si el agente responde solo cuando es mencionado.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Qué se gana y qué se pierde al abstraer todas las plataformas de chat bajo una interfaz ChannelDock uniforme?',
+        expected_answer: 'Se gana: código core independiente de plataformas, facilidad para agregar nuevos canales sin tocar el núcleo, testing uniforme, y políticas de seguridad consistentes. Se pierde: features específicos de cada plataforma (threads en Discord, polls, rich cards en LINE, reactions complejas) quedan limitados a lo que la abstracción expone. El diseño de OpenClaw mitiga esto permitiendo que los plugins implementen capabilities opcionales, pero la tensión entre abstracción y especificidad es inherente.',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 2: Skills y Orquestación de Herramientas
+    2: [
+      {
+        type: 'definition',
+        question_text: '¿Cómo funciona el sistema de skills de OpenClaw y qué metadata contiene SKILL.md?',
+        expected_answer: 'Cada skill es un módulo que integra una herramienta externa (CLI, API, etc.). SKILL.md contiene un bloque metadata.openclaw con el id del skill, kind (tipo), y bins (ejecutables requeridos). También documenta instrucciones de instalación, métodos de autenticación, acciones disponibles, y restricciones de seguridad. El sistema usa esta metadata para automatizar el provisioning de skills.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué OpenClaw delega en CLIs externos (gh, op, gog) en vez de implementar integraciones nativas?',
+        expected_answer: 'Delegando en CLIs externos: (1) se aprovecha el mantenimiento del equipo original de cada herramienta, (2) las actualizaciones de la herramienta se obtienen gratis, (3) se reduce la superficie de código propio a mantener, (4) se preserva el modelo de autenticación nativo de cada herramienta. La desventaja es la dependencia en binarios externos, posibles cambios de CLI que rompan la integración, y el overhead de spawn de procesos.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 3: Memoria Persistente y Autenticación
+    3: [
+      {
+        type: 'definition',
+        question_text: '¿Cuál es la diferencia entre memory-core y memory-lancedb en OpenClaw?',
+        expected_answer: 'memory-core proporciona memoria foundational basada en archivos con tools memory_search y memory_get para recuperación de corto plazo. memory-lancedb agrega memoria de largo plazo con búsqueda vectorial usando LanceDB para almacenamiento y OpenAI para generar embeddings. Incluye memory_recall, memory_store, memory_forget, y hooks autoCapture/autoRecall que automáticamente almacenan snippets importantes y recuperan memorias relevantes al inicio de conversaciones.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Cómo funcionan los hooks autoCapture y autoRecall de memory-lancedb?',
+        expected_answer: 'autoCapture es un lifecycle hook que se ejecuta durante/después de conversaciones: detecta automáticamente snippets importantes de la conversación y los almacena como memorias vectorizadas en LanceDB. autoRecall se activa al inicio de una nueva conversación: extrae el contexto del prompt inicial, genera embeddings, busca memorias similares en LanceDB, y las inyecta en el contexto del agente antes de que responda. Esto permite continuidad sin que el usuario necesite recordar manualmente al agente.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cómo se compara el health monitoring de autenticación de OpenClaw (buildAuthHealthSummary) con un sistema de secrets management como Vault?',
+        expected_answer: 'buildAuthHealthSummary monitorea el estado de cada perfil de autenticación clasificándolos como ok, expiring, expired, missing, o static, y maneja cooldowns para intentos fallidos. Es específico para credenciales de agentes y auto-refresh de OAuth tokens. Vault (HashiCorp) es un sistema genérico de secrets management con lease/renew, dynamic secrets, y encryption as a service. OpenClaw opera a nivel de aplicación (credenciales de integraciones), Vault opera a nivel de infraestructura (secretos de cualquier tipo).',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 4: A2UI - Interfaces Generadas por Agentes
+    4: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es A2UI y cuáles son sus cuatro principios de diseño?',
+        expected_answer: 'A2UI (Agent-to-User Interface) es un framework para que agentes de IA generen UIs ricas usando JSON declarativo. Sus cuatro principios son: (1) Security-first: trata el JSON como datos, no código ejecutable; los clientes tienen un catálogo de componentes pre-aprobados. (2) LLM-friendly: lista plana de componentes con IDs para facilitar la generación por LLMs. (3) Incremental updates: soporta actualizaciones parciales para rendering progresivo. (4) Framework-agnostic: la descripción abstracta se mapea a widgets nativos de cualquier plataforma.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Cómo mitiga A2UI los riesgos de seguridad de ejecutar UI generada por agentes (prompt injection, XSS, phishing)?',
+        expected_answer: 'A2UI trata todo el JSON del agente como datos puros, nunca como código ejecutable. Los clientes mantienen un catálogo cerrado de componentes pre-aprobados y solo instancian componentes de ese catálogo. Input sanitization se aplica a todos los valores. Content Security Policies (CSP) restringen recursos externos. Embedded content se aísla en iframes con sandboxing. El agente solo puede solicitar componentes existentes con datos que pasan validación del schema JSON, eliminando la posibilidad de inyectar código arbitrario.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son los trade-offs del enfoque declarativo de A2UI (JSON → catálogo) versus generar código directamente (HTML/React)?',
+        expected_answer: 'JSON declarativo: máxima seguridad (no ejecuta código del agente), consistencia visual (catálogo controlado), portabilidad cross-platform (JSON → native widgets). Pero limita la expresividad a componentes del catálogo, no permite UIs completamente nuevas, y requiere mantener catálogos para cada plataforma. Generar código directamente: máxima flexibilidad y expresividad, el agente puede crear cualquier UI. Pero abre vectores de ataque (XSS, prompt injection en HTML), requiere sandboxing complejo, y no es portable entre plataformas.',
+        difficulty: 3,
+      },
+    ],
+  },
 };
 
 // ============================================================================
