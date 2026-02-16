@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import type { SimConfig } from './replication-playground';
+import { LessonGuideShell } from '@/components/playground/lesson-guide-shell';
+import type { LessonStep } from '@/components/playground/lesson-guide-shell';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,11 +14,8 @@ interface LessonAction {
   args?: Record<string, unknown>;
 }
 
-interface LessonStep {
-  title: string;
-  theory: string;
+interface ReplicationStep extends LessonStep {
   actions: LessonAction[];
-  observe: string;
 }
 
 interface LessonGuideProps {
@@ -41,10 +39,10 @@ interface LessonGuideProps {
 }
 
 // ---------------------------------------------------------------------------
-// Lessons
+// Steps
 // ---------------------------------------------------------------------------
 
-const LESSONS: LessonStep[] = [
+const STEPS: ReplicationStep[] = [
   {
     title: '1. Por que replicar',
     theory: `Replicar = mantener una copia de los datos en varias maquinas. Tres razones:
@@ -183,98 +181,88 @@ DDIA Ch5 te prepara para entender por que existen protocolos como Raft (Ch9): ga
 ];
 
 // ---------------------------------------------------------------------------
+// Action dispatcher
+// ---------------------------------------------------------------------------
+
+function executeAction(lessonAction: LessonAction, actions: LessonGuideProps['actions']) {
+  switch (lessonAction.action) {
+    case 'startSimulation':
+      actions.startSimulation();
+      break;
+    case 'writeToLeader': {
+      const args = lessonAction.args as { key?: string; value?: string } | undefined;
+      actions.writeToLeader(args?.key, args?.value);
+      break;
+    }
+    case 'readFromNode': {
+      const args = lessonAction.args as { nodeId: string } | undefined;
+      if (args?.nodeId) actions.readFromNode(args.nodeId);
+      break;
+    }
+    case 'crashNode': {
+      const args = lessonAction.args as { nodeId: string } | undefined;
+      if (args?.nodeId) actions.crashNode(args.nodeId);
+      break;
+    }
+    case 'recoverNode': {
+      const args = lessonAction.args as { nodeId: string } | undefined;
+      if (args?.nodeId) actions.recoverNode(args.nodeId);
+      break;
+    }
+    case 'partitionNetwork':
+      actions.partitionNetwork();
+      break;
+    case 'healPartition':
+      actions.healPartition();
+      break;
+    case 'toggleMode':
+      actions.toggleMode();
+      break;
+    case 'setReplicationDelay': {
+      const args = lessonAction.args as { delay: number } | undefined;
+      if (args?.delay !== undefined) actions.setReplicationDelay(args.delay);
+      break;
+    }
+    case 'simulateReadAfterWrite':
+      actions.simulateReadAfterWrite();
+      break;
+    case 'simulateMonotonicRead':
+      actions.simulateMonotonicRead();
+      break;
+    case 'simulateSplitBrain':
+      actions.simulateSplitBrain();
+      break;
+    case 'resetSimulation':
+      actions.resetSimulation();
+      actions.startSimulation();
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
+
+const COLORS = {
+  accent: '#2d4a6a',
+  visited: '#6b94b8',
+  calloutBg: '#f0f4f8',
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function LessonGuide({ actions, config, isPartitioned }: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-
-  function executeAction(lessonAction: LessonAction) {
-    switch (lessonAction.action) {
-      case 'startSimulation':
-        actions.startSimulation();
-        break;
-      case 'writeToLeader': {
-        const args = lessonAction.args as { key?: string; value?: string } | undefined;
-        actions.writeToLeader(args?.key, args?.value);
-        break;
-      }
-      case 'readFromNode': {
-        const args = lessonAction.args as { nodeId: string } | undefined;
-        if (args?.nodeId) actions.readFromNode(args.nodeId);
-        break;
-      }
-      case 'crashNode': {
-        const args = lessonAction.args as { nodeId: string } | undefined;
-        if (args?.nodeId) actions.crashNode(args.nodeId);
-        break;
-      }
-      case 'recoverNode': {
-        const args = lessonAction.args as { nodeId: string } | undefined;
-        if (args?.nodeId) actions.recoverNode(args.nodeId);
-        break;
-      }
-      case 'partitionNetwork':
-        actions.partitionNetwork();
-        break;
-      case 'healPartition':
-        actions.healPartition();
-        break;
-      case 'toggleMode':
-        actions.toggleMode();
-        break;
-      case 'setReplicationDelay': {
-        const args = lessonAction.args as { delay: number } | undefined;
-        if (args?.delay !== undefined) actions.setReplicationDelay(args.delay);
-        break;
-      }
-      case 'simulateReadAfterWrite':
-        actions.simulateReadAfterWrite();
-        break;
-      case 'simulateMonotonicRead':
-        actions.simulateMonotonicRead();
-        break;
-      case 'simulateSplitBrain':
-        actions.simulateSplitBrain();
-        break;
-      case 'resetSimulation':
-        actions.resetSimulation();
-        actions.startSimulation();
-        break;
-    }
-  }
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const step = STEPS[stepIndex];
+        if (step.actions.length === 0) return null;
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p key={i} className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0">
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {/* Action buttons */}
-        {step.actions.length > 0 && (
+        return (
           <div className="mb-5">
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
               Acciones
@@ -283,7 +271,7 @@ export function LessonGuide({ actions, config, isPartitioned }: LessonGuideProps
               {step.actions.map((a, i) => (
                 <button
                   key={i}
-                  onClick={() => executeAction(a)}
+                  onClick={() => executeAction(a, actions)}
                   className="w-full text-left group"
                 >
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2d4a6a] hover:bg-[#1e3a5f] transition-colors rounded">
@@ -297,19 +285,9 @@ export function LessonGuide({ actions, config, isPartitioned }: LessonGuideProps
               ))}
             </div>
           </div>
-        )}
-
-        {/* What to observe */}
-        <div className="bg-[#f0f4f8] px-4 py-3 border-l-2 border-[#2d4a6a] rounded-r">
-          <p className="font-mono text-[10px] text-[#5a7a9a] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#444] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-
-        {/* Current config summary */}
+        );
+      }}
+      renderExtra={() => (
         <div className="mt-4 px-3 py-2 bg-[#f8f8f4] border border-j-border rounded">
           <p className="font-mono text-[9px] text-[#a0a090] uppercase tracking-wider mb-1">
             Estado actual
@@ -328,43 +306,7 @@ export function LessonGuide({ actions, config, isPartitioned }: LessonGuideProps
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#2d4a6a]'
-                  : i < currentStep
-                    ? 'bg-[#6b94b8]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setCurrentStep(s => Math.min(LESSONS.length - 1, s + 1))}
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+      )}
+    />
   );
 }

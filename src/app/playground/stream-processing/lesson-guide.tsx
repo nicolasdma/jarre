@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { LessonGuideShell, type LessonStep } from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface StreamStep extends LessonStep {
   action: string;
-  observe: string;
 }
 
-interface LessonGuideProps {
+export interface LessonGuideProps {
   onReset: () => void;
   onProduce: () => void;
   onAdvanceConsumer: () => void;
@@ -19,7 +20,11 @@ interface LessonGuideProps {
   onToggleAuto: () => void;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Steps data
+// ---------------------------------------------------------------------------
+
+const STEPS: StreamStep[] = [
   {
     title: '1. Eventos y el log inmutable',
     theory: `En un sistema de stream processing, los datos se modelan como un log inmutable y append-only de eventos. Cada evento tiene un offset (posicion en el log), un timestamp, una key, y un value. A diferencia de una base de datos donde actualizas registros "in place", aqui NUNCA modificas eventos pasados — solo agregas nuevos al final. Esto es el corazon de Kafka, Kinesis, y Pulsar.
@@ -69,6 +74,10 @@ El rewind (retroceder el offset) es una operacion poderosa: permite re-procesar 
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Action mapping
+// ---------------------------------------------------------------------------
+
 const LESSON_ACTIONS: Record<
   number,
   (props: LessonGuideProps) => { label: string; handler: () => void }
@@ -80,44 +89,29 @@ const LESSON_ACTIONS: Record<
   4: (p) => ({ label: 'Agregar consumidor', handler: p.onAddConsumer }),
 };
 
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
+
+const COLORS = {
+  accent: '#1e40af',
+  visited: '#bfdbfe',
+  calloutBg: '#eff6ff',
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide(props: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-  const action = LESSON_ACTIONS[currentStep]?.(props);
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p
-              key={i}
-              className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
-            >
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {/* Action button */}
-        {action && (
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const action = LESSON_ACTIONS[stepIndex]?.(props);
+        if (!action) return null;
+        return (
           <div className="mb-5">
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
               Accion
@@ -129,56 +123,8 @@ export function LessonGuide(props: LessonGuideProps) {
               {action.label}
             </button>
           </div>
-        )}
-
-        {/* What to observe */}
-        <div className="bg-[#eff6ff] px-4 py-3 border-l-2 border-[#1e40af] rounded-r">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#1e40af]'
-                  : i < currentStep
-                    ? 'bg-[#bfdbfe]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
-          }
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+        );
+      }}
+    />
   );
 }

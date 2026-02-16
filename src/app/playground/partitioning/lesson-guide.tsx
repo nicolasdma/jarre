@@ -1,28 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { type LessonStep, LessonGuideShell } from '@/components/playground/lesson-guide-shell';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface LessonStep {
-  title: string;
-  theory: string;
+interface PartitioningStep extends LessonStep {
   actionLabel: string;
   actionId: string;
-  observe: string;
 }
 
 interface LessonGuideProps {
   onAction: (actionId: string) => void;
 }
 
-// ---------------------------------------------------------------------------
-// Lesson Content (Spanish)
-// ---------------------------------------------------------------------------
-
-const LESSONS: LessonStep[] = [
+const STEPS: PartitioningStep[] = [
   {
     title: '1. Por que particionar',
     theory: `Cuando una sola maquina no puede manejar todos los datos o todo el trafico, divides los datos en particiones (tambien llamadas "shards"). Cada particion vive en un nodo distinto. Asi puedes escalar horizontalmente: mas nodos = mas capacidad.
@@ -119,115 +108,47 @@ El tradeoff es: lectura rapida + escritura lenta, o escritura rapida + lectura l
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const COLORS = {
+  accent: '#059669',
+  visited: '#a7f3d0',
+  calloutBg: '#d1fae5',
+} as const;
 
 export function LessonGuide({ onAction }: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p key={i} className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0">
-              {para}
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const step = STEPS[stepIndex];
+        return (
+          <div className="mb-5">
+            <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
+              Accion
             </p>
-          ))}
-        </div>
-
-        {/* Action button */}
-        <div className="mb-5">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
-            Accion
-          </p>
-          {step.actionId !== 'noop' ? (
-            <button
-              onClick={() => onAction(step.actionId)}
-              className="w-full text-left group"
-            >
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#059669] hover:bg-[#047857] transition-colors">
-                <span className="text-white/60 font-mono text-[11px] shrink-0">{'>'}</span>
-                <span className="text-white font-mono text-[11px]">{step.actionLabel}</span>
-                <span className="ml-auto text-white/40 font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  click
+            {step.actionId !== 'noop' ? (
+              <button
+                onClick={() => onAction(step.actionId)}
+                className="w-full text-left group"
+              >
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#059669] hover:bg-[#047857] transition-colors">
+                  <span className="text-white/60 font-mono text-[11px] shrink-0">{'>'}</span>
+                  <span className="text-white font-mono text-[11px]">{step.actionLabel}</span>
+                  <span className="ml-auto text-white/40 font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    click
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <div className="px-3 py-2 bg-[#f0efe8] border border-j-border">
+                <span className="font-mono text-[11px] text-j-text-secondary">
+                  {step.actionLabel} — sin interaccion
                 </span>
               </div>
-            </button>
-          ) : (
-            <div className="px-3 py-2 bg-[#f0efe8] border border-j-border">
-              <span className="font-mono text-[11px] text-j-text-secondary">
-                {step.actionLabel} — sin interaccion
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* What to observe */}
-        <div className="bg-[#d1fae5]/30 px-4 py-3 border-l-2 border-[#059669]">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#059669]'
-                  : i < currentStep
-                    ? 'bg-[#a7f3d0]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setCurrentStep(s => Math.min(LESSONS.length - 1, s + 1))}
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+            )}
+          </div>
+        );
+      }}
+    />
   );
 }

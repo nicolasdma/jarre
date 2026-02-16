@@ -4,6 +4,7 @@ import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
 import { SessionCTA } from '@/components/dashboard/session-cta';
 import { EngagementBar } from '@/components/dashboard/engagement-bar';
+import { SectionLabel } from '@/components/ui/section-label';
 import { t, getPhaseNames, getMasteryLevels, type Language } from '@/lib/translations';
 
 export default async function Home() {
@@ -21,12 +22,7 @@ export default async function Home() {
 
         <main className="mx-auto max-w-6xl px-8 py-16">
           <div className="mb-16">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-px bg-j-accent"></div>
-              <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                Deep Learning System
-              </span>
-            </div>
+            <SectionLabel>Deep Learning System</SectionLabel>
 
             <h2 className="text-5xl font-bold text-j-text mb-2">
               Master Complex
@@ -188,12 +184,9 @@ export default async function Home() {
 
         {/* Hero — personalized */}
         <div className="mb-12">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-j-accent"></div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {lang === 'es' ? 'Sistema de Aprendizaje Profundo' : 'Deep Learning System'}
-            </span>
-          </div>
+          <SectionLabel>
+            {lang === 'es' ? 'Sistema de Aprendizaje Profundo' : 'Deep Learning System'}
+          </SectionLabel>
 
           <h2 className="text-4xl font-bold text-j-text mb-1">
             {t('dashboard.welcome', lang)},

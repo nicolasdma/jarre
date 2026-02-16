@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Header } from '@/components/header';
+import { SectionLabel } from '@/components/ui/section-label';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { ProjectMilestone } from './project-milestone';
@@ -246,12 +247,9 @@ export default async function LibraryPage() {
       <main className="mx-auto max-w-6xl px-8 py-12">
         {/* Hero Section */}
         <div className="mb-16">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-px bg-j-accent"></div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
-            </span>
-          </div>
+          <SectionLabel>
+            {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
+          </SectionLabel>
 
           <h1 className="text-5xl font-bold text-j-text mb-2">
             {t('library.title', lang)}
@@ -315,7 +313,7 @@ export default async function LibraryPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-4">
               {Object.entries(byPhase).map(([phase, phaseResources]) => {
                 const evaluated = phaseResources.filter(r => r.evalStats !== null).length;
                 const total = phaseResources.length;

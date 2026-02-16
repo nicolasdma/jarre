@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
+import { SectionLabel } from '@/components/ui/section-label';
 import { SystemVisualization } from '@/components/system-viz/system-visualization';
 import { redirect } from 'next/navigation';
 import type { Language } from '@/lib/translations';
@@ -59,12 +60,9 @@ export default async function MiSistemaPage() {
       <Header currentPage="mi-sistema" />
 
       <main className="mx-auto max-w-7xl px-8 py-12">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-px bg-j-accent"></div>
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-            {lang === 'es' ? 'Tu Sistema Distribuido' : 'Your Distributed System'}
-          </span>
-        </div>
+        <SectionLabel className="mb-8">
+          {lang === 'es' ? 'Tu Sistema Distribuido' : 'Your Distributed System'}
+        </SectionLabel>
 
         <h2 className="text-3xl font-bold text-j-text mb-2">
           {lang === 'es' ? 'Mi Sistema' : 'My System'}

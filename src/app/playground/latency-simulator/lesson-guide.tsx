@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import type { SimulationConfig } from './latency-playground';
+import {
+  LessonGuideShell,
+  type LessonStep,
+} from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface LatencyStep extends LessonStep {
   preset: string;
-  observe: string;
 }
 
 interface LessonGuideProps {
@@ -15,7 +19,11 @@ interface LessonGuideProps {
   currentConfig: SimulationConfig;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Steps data
+// ---------------------------------------------------------------------------
+
+const STEPS: LatencyStep[] = [
   {
     title: '1. Latencia vs Throughput',
     theory: `Latencia = cuanto TARDA un request. Throughput = cuantos requests PROCESAS por segundo. Son independientes: puedes tener baja latencia y bajo throughput (un request rapido pero uno a la vez), o alta latencia y alto throughput (muchos requests lentos en paralelo).
@@ -98,107 +106,55 @@ Google usa este modelo: el SRE team tiene autoridad para bloquear releases si el
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
+
+const COLORS = {
+  accent: '#d97706',
+  visited: '#92400e',
+  calloutBg: '#fef3c7',
+} as const;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide({ onApplyPreset, currentConfig }: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p key={i} className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0">
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {/* Apply preset button */}
-        <div className="mb-5">
-          <button
-            onClick={() => onApplyPreset(step.preset)}
-            className="w-full text-left group"
-          >
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#d97706] hover:bg-[#b45309] transition-colors">
-              <span className="text-white font-mono text-[11px] font-medium">
-                Aplicar preset
-              </span>
-              <span className="ml-auto text-white/60 font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                click
-              </span>
-            </div>
-            <p className="text-[11px] text-[#999] mt-1 pl-1">
-              {describePreset(step.preset, currentConfig)}
-            </p>
-          </button>
-        </div>
-
-        {/* What to observe */}
-        <div className="bg-[#fef3c7]/40 px-4 py-3 border-l-2 border-[#d97706]">
-          <p className="font-mono text-[10px] text-[#92400e] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const step = STEPS[stepIndex];
+        return (
+          <div className="mb-5">
             <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#d97706]'
-                  : i < currentStep
-                    ? 'bg-[#92400e]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setCurrentStep(s => Math.min(LESSONS.length - 1, s + 1))}
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+              onClick={() => onApplyPreset(step.preset)}
+              className="w-full text-left group"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#d97706] hover:bg-[#b45309] transition-colors">
+                <span className="text-white font-mono text-[11px] font-medium">
+                  Aplicar preset
+                </span>
+                <span className="ml-auto text-white/60 font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  click
+                </span>
+              </div>
+              <p className="text-[11px] text-[#999] mt-1 pl-1">
+                {describePreset(step.preset, currentConfig)}
+              </p>
+            </button>
+          </div>
+        );
+      }}
+    />
   );
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function describePreset(presetName: string, config: SimulationConfig): string {
   const descriptions: Record<string, string> = {

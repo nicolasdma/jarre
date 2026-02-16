@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  LessonGuideShell,
+  type LessonStep,
+} from '@/components/playground/lesson-guide-shell';
 
-interface LessonStep {
-  title: string;
-  theory: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ConsensusStep extends LessonStep {
   action: string;
-  observe: string;
 }
 
-interface LessonGuideProps {
+export interface LessonGuideProps {
   onReset: () => void;
   onStep: () => void;
   onStepUntilElection: () => void;
@@ -20,7 +24,11 @@ interface LessonGuideProps {
   onHeal: () => void;
 }
 
-const LESSONS: LessonStep[] = [
+// ---------------------------------------------------------------------------
+// Steps data
+// ---------------------------------------------------------------------------
+
+const STEPS: ConsensusStep[] = [
   {
     title: '1. El problema del consenso',
     theory: `En un sistema distribuido, los nodos pueden fallar, los mensajes pueden perderse, y los relojes no estan sincronizados. ¿Como logras que N maquinas se pongan de acuerdo en un valor? Este es el "problema del consenso". FLP demostro que es IMPOSIBLE resolver en un sistema asincrono con al menos 1 fallo. Raft lo resuelve en la practica con timeouts (sacrificando la garantia teorica de que siempre termina).`,
@@ -107,6 +115,10 @@ const LESSONS: LessonStep[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Action mapping
+// ---------------------------------------------------------------------------
+
 const LESSON_ACTIONS: Record<
   number,
   (props: LessonGuideProps) => { label: string; handler: () => void }
@@ -125,44 +137,29 @@ const LESSON_ACTIONS: Record<
   11: (p) => ({ label: 'Explorar libremente', handler: p.onStep }),
 };
 
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
+
+const COLORS = {
+  accent: '#991b1b',
+  visited: '#fecaca',
+  calloutBg: '#fef2f2',
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function LessonGuide(props: LessonGuideProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const step = LESSONS[currentStep];
-  const action = LESSON_ACTIONS[currentStep]?.(props);
-
   return (
-    <div className="h-full flex flex-col bg-j-bg">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-j-border flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] text-[#888] tracking-wider uppercase">
-          Guia
-        </span>
-        <span className="font-mono text-[10px] text-[#a0a090]">
-          {currentStep + 1} / {LESSONS.length}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-        {/* Step title */}
-        <h2 className="font-mono text-sm text-j-text font-medium mb-4">
-          {step.title}
-        </h2>
-
-        {/* Theory */}
-        <div className="mb-5">
-          {step.theory.split('\n\n').map((para, i) => (
-            <p
-              key={i}
-              className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
-            >
-              {para}
-            </p>
-          ))}
-        </div>
-
-        {/* Action button */}
-        {action && (
+    <LessonGuideShell
+      steps={STEPS}
+      colors={COLORS}
+      renderAction={(stepIndex) => {
+        const action = LESSON_ACTIONS[stepIndex]?.(props);
+        if (!action) return null;
+        return (
           <div className="mb-5">
             <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-2">
               Accion
@@ -174,56 +171,8 @@ export function LessonGuide(props: LessonGuideProps) {
               {action.label}
             </button>
           </div>
-        )}
-
-        {/* What to observe */}
-        <div className="bg-[#fef2f2] px-4 py-3 border-l-2 border-[#991b1b] rounded-r">
-          <p className="font-mono text-[10px] text-[#a0a090] uppercase tracking-wider mb-1">
-            Que observar
-          </p>
-          <p className="text-[12px] text-[#555] leading-relaxed">
-            {step.observe}
-          </p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-5 py-3 border-t border-j-border flex items-center justify-between shrink-0">
-        <button
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Anterior
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5">
-          {LESSONS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === currentStep
-                  ? 'bg-[#991b1b]'
-                  : i < currentStep
-                    ? 'bg-[#fecaca]'
-                    : 'bg-[#ddd]'
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={() =>
-            setCurrentStep((s) => Math.min(LESSONS.length - 1, s + 1))
-          }
-          disabled={currentStep === LESSONS.length - 1}
-          className="font-mono text-[11px] text-j-text-secondary hover:text-j-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
+        );
+      }}
+    />
   );
 }
