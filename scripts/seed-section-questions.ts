@@ -1649,6 +1649,96 @@ const questionsBySection: Record<string, Record<number, SectionQuestion[]>> = {
       },
     ],
   },
+
+  'p0-cs229-probability': {
+    // Section 0: Variables Aleatorias y Distribuciones Básicas
+    0: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es una variable aleatoria y por qué es una función, no un número?',
+        expected_answer: 'Una variable aleatoria X es una función medible X: Ω → ℝ que mapea cada resultado del espacio muestral a un número real. No es un número porque puede tomar diferentes valores dependiendo del resultado del experimento aleatorio. Es una función porque para cada resultado ω ∈ Ω, produce un valor numérico X(ω). Esto permite traducir eventos abstractos en cantidades computables: podemos calcular expectativas, varianzas y distribuciones sobre los valores numéricos.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué la linealidad de la expectativa E[aX + bY] = aE[X] + bE[Y] es tan fundamental en ML, y por qué NO necesita independencia?',
+        expected_answer: 'La linealidad de la expectativa vale SIEMPRE, incluso para variables dependientes. La demostración solo usa la definición E[g(X,Y)] = ΣΣ g(x,y)p(x,y) y las propiedades de la suma. En ML esto es crucial porque: (1) el gradiente esperado de una loss sobre un mini-batch es la media de los gradientes individuales (SGD), (2) la loss esperada de un ensemble es la media de las losses individuales, (3) permite descomponer E[L(θ)] en componentes analizables sin asumir independencia entre features.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre covarianza y correlación, y por qué correlación cero no implica independencia?',
+        expected_answer: 'La covarianza Cov[X,Y] = E[XY] - E[X]E[Y] mide la relación lineal entre X e Y pero depende de las escalas. La correlación ρ = Cov[X,Y]/(σ_X·σ_Y) normaliza a [-1,1], haciéndola comparable. Correlación cero solo significa ausencia de relación LINEAL. Ejemplo: X ~ N(0,1) y Y = X² tienen ρ = 0 (por simetría, E[X³]=0) pero Y depende completamente de X. La información mutua I(X;Y) captura toda dependencia, incluyendo la no lineal.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 1: Distribuciones Clásicas y sus Propiedades
+    1: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es una prior conjugada y por qué simplifica la inferencia Bayesiana? Da el ejemplo Beta-Bernoulli.',
+        expected_answer: 'Un prior es conjugado de un likelihood si el posterior pertenece a la misma familia que el prior. Para Beta-Bernoulli: prior Beta(α,β) + k éxitos en n ensayos → posterior Beta(α+k, β+n-k). Simplifica porque el posterior tiene forma cerrada: no necesitas integración numérica ni MCMC. Los parámetros α, β se interpretan como pseudo-observaciones previas. Sin conjugación, P(D) = ∫P(D|θ)P(θ)dθ suele ser intratable.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la conexión precisa entre la distribución asumida y la loss function vía MLE? Compara Gaussiana→MSE y Bernoulli→BCE.',
+        expected_answer: 'Para Gaussiana: si y ~ N(ŷ, σ²), el NLL es (y-ŷ)²/(2σ²) + const. Minimizar NLL = minimizar MSE. Para Bernoulli: si y ~ Ber(p), el NLL es -[y log p + (1-y)log(1-p)] = BCE. En ambos casos, la loss es el negative log-likelihood de la distribución asumida. Cada loss function codifica una suposición sobre el proceso generador de datos. Usar MSE para clasificación binaria es incorrecto porque asume ruido Gaussiano alrededor de labels 0/1.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué la Gaussiana tiene máxima entropía entre todas las distribuciones con media y varianza fija, y qué implicación tiene esto para ML?',
+        expected_answer: 'El principio de máxima entropía de Jaynes: entre todas las distribuciones con restricciones dadas, la de máxima entropía es la que asume menos estructura adicional. Sin restricciones: uniforme. Con media y varianza fija: Gaussiana. Implicación para ML: asumir ruido Gaussiano (usar MSE) es la asunción de "máxima ignorancia" dado que conocemos los dos primeros momentos. Si no tienes razón para asumir otra distribución, la Gaussiana es la elección más conservadora.',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 2: Inferencia: MLE, MAP y Bayes
+    2: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es MAP (Maximum A Posteriori) y cómo se relaciona con la regularización L2?',
+        expected_answer: 'MAP maximiza el posterior: θ_MAP = argmax P(θ|D) = argmax[log P(D|θ) + log P(θ)]. Con prior Gaussiano P(θ) = N(0, τ²I), log P(θ) = -||θ||²/(2τ²) + const. El objetivo se convierte en: argmin[NLL + λ||θ||²] con λ = 1/(2τ²). Esto es exactamente MLE + L2 regularization. Un prior más estrecho (τ² pequeño) = mayor regularización (λ grande). Weight decay en deep learning es MAP con prior Gaussiano.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuándo convergen MLE y MAP al mismo resultado, y cuándo difieren significativamente?',
+        expected_answer: 'Convergen cuando: (1) n → ∞, porque la likelihood domina sobre cualquier prior (el posterior se concentra en el MLE), (2) el prior es uniforme/no informativo (log P(θ) = const, MAP = MLE), (3) la regularización es cero (λ = 0, equivalente a τ² = ∞). Difieren cuando: (1) pocos datos (n pequeño) y prior informativo, (2) alta dimensionalidad (d >> n), donde la regularización es esencial para evitar overfitting, (3) el prior codifica información genuina (ej: sabemos que los pesos deberían ser pequeños).',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué la inferencia Bayesiana completa es preferible a MAP teóricamente pero intratable en la práctica para deep learning?',
+        expected_answer: 'Bayesian inference computa P(θ|D) completa, permitiendo: cuantificación de incertidumbre, predictive distribution p(x_new|D) = ∫p(x_new|θ)P(θ|D)dθ, y model comparison vía evidence P(D). Pero requiere calcular P(D) = ∫P(D|θ)P(θ)dθ, una integral de dimensión d (número de parámetros). Para redes con millones de parámetros, esta integral es intratable. Se usan aproximaciones: Variational Inference (optimiza q(θ) cercana al posterior), MCMC (muestrea del posterior), MC-Dropout, Laplace approximation.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 3: Entropía, KL Divergence y Cross-Entropy
+    3: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es la cross-entropy H(p,q) y por qué es la loss function estándar en clasificación?',
+        expected_answer: 'H(p,q) = -Σ p(x) log q(x) mide los bits promedio necesarios para codificar muestras de p usando un código diseñado para q. En clasificación, p es one-hot (clase correcta c) y q es softmax: H(p,q) = -log q_c = NLL. Es la loss estándar porque: (1) es el negative log-likelihood bajo distribución Categorical (MLE), (2) minimizarla equivale a minimizar KL(p||q) ya que H(p) es constante, (3) tiene gradientes bien comportados (no satura como MSE para probabilidades cercanas a 0/1).',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué la KL divergence no es simétrica y qué implicaciones prácticas tiene esto?',
+        expected_answer: 'D_KL(p||q) = Σ p(x) log(p(x)/q(x)) penaliza fuertemente cuando q es bajo donde p es alto (forward KL, mode-covering). D_KL(q||p) penaliza cuando p es bajo donde q es alto (reverse KL, mode-seeking). Implicaciones: Variational Inference minimiza reverse KL → q tiende a colapsar en un modo del posterior (subestima varianza). Forward KL → q intenta cubrir todo el soporte de p (sobreestima varianza). En RLHF, D_KL(π||π_ref) es forward KL que previene que la política se aleje demasiado del modelo base.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la relación entre entropía, cross-entropy y KL divergence, y por qué en clasificación las tres están conectadas?',
+        expected_answer: 'La relación fundamental: H(p,q) = H(p) + D_KL(p||q). Desglose: H(p) mide la incertidumbre intrínseca de los datos (constante, no depende del modelo). D_KL(p||q) mide cuánto difiere el modelo q de los datos p (lo que optimizamos). H(p,q) es la suma de ambos (la loss que computamos). En clasificación con labels one-hot: H(p) = 0 (certeza total), así que H(p,q) = D_KL(p||q) = -log q_c. Minimizar cross-entropy = minimizar KL = maximizar likelihood = hacer que q se acerque a p.',
+        difficulty: 3,
+      },
+    ],
+  },
 };
 
 // ============================================================================
