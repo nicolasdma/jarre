@@ -448,6 +448,16 @@ export function ConceptSection({
                       voiceCompleted: true,
                     });
                   }}
+                  onSkip={() => {
+                    setVoiceCompleted(true);
+                    onStateChange?.({
+                      ...initialState,
+                      phase: 'content',
+                      preAnswer: preAnswer,
+                      preAttempted,
+                      voiceCompleted: true,
+                    });
+                  }}
                 />
               ) : (
                 <div className="flex flex-col items-center py-8">
