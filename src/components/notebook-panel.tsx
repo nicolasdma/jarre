@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface NotebookPanelProps {
   initialContent: string;
@@ -15,6 +15,10 @@ interface NotebookPanelProps {
 }
 
 const SAVE_DEBOUNCE_MS = 600;
+const LS_WIDTH_KEY = 'jarre:notebook-width';
+const DEFAULT_WIDTH = 280;
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 600;
 
 /**
  * Continuous notebook surface using contentEditable.
@@ -32,6 +36,52 @@ export function NotebookPanel({
 }: NotebookPanelProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const mountedRef = useRef(false);
+  const isDraggingRef = useRef(false);
+
+  // Panel width — persisted in localStorage
+  const [width, setWidth] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_WIDTH;
+    const stored = localStorage.getItem(LS_WIDTH_KEY);
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) return parsed;
+    }
+    return DEFAULT_WIDTH;
+  });
+
+  // Drag-to-resize from the left edge
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = width;
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!isDraggingRef.current) return;
+      // Dragging left increases width, dragging right decreases
+      const delta = startX - ev.clientX;
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta));
+      setWidth(newWidth);
+    }
+
+    function onMouseUp() {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [width]);
+
+  // Persist width to localStorage on change
+  useEffect(() => {
+    localStorage.setItem(LS_WIDTH_KEY, String(width));
+  }, [width]);
 
   // Set initial content on mount only (no React-controlled innerHTML)
   useEffect(() => {
@@ -124,7 +174,16 @@ export function NotebookPanel({
   }, []);
 
   return (
-    <aside className="hidden xl:flex fixed right-0 top-[60px] w-[280px] h-[calc(100vh-60px)] border-l border-j-border bg-j-bg z-40 flex-col">
+    <aside
+      className="hidden xl:flex fixed right-0 top-[60px] h-[calc(100vh-60px)] border-l border-j-border bg-j-bg z-40 flex-col"
+      style={{ width: `${width}px` }}
+    >
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleDragStart}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-j-accent/30 transition-colors z-20"
+      />
+
       {/* Header */}
       <div className="sticky top-0 bg-j-bg border-b border-j-border px-4 py-3 z-10">
         <div className="flex items-center justify-between">
