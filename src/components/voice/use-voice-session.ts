@@ -270,6 +270,9 @@ export function useVoiceSession({
     setElapsed(0);
   }, []);
 
+  // Ref for disconnect so saveTranscript can call it without circular dependency
+  const disconnectRef = useRef<() => void>(() => {});
+
   // ---- Transcript saving (fire-and-forget) ----
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
@@ -283,6 +286,16 @@ export function useVoiceSession({
     }).catch(() => {
       // Fire-and-forget: don't block audio for transcript failures
     });
+
+    // Detect AI-driven session completion: the prompt instructs the tutor
+    // to say "quiz" when wrapping up. When we see it in the model's
+    // transcript, wait for the audio to finish, then auto-disconnect.
+    if (role === 'model' && /quiz/i.test(text)) {
+      setTimeout(() => {
+        disconnectRef.current();
+        onSessionCompleteRef.current?.();
+      }, 3000);
+    }
   }, []);
 
   // ---- Connect ----
@@ -407,12 +420,7 @@ export function useVoiceSession({
 
   // ---- Disconnect ----
 
-  // TODO: Re-enable threshold once AI-driven completion is implemented
-  // const MIN_SESSION_FOR_COMPLETE_MS = 30_000;
-
   const disconnect = useCallback(() => {
-    const hadSession = startTimeRef.current > 0;
-
     // End session in backend (fire-and-forget)
     if (sessionIdRef.current) {
       fetch('/api/voice/session/end', {
@@ -433,12 +441,12 @@ export function useVoiceSession({
     setTutorState('idle');
     setConnectionState('disconnected');
     setError(null);
-
-    // Mark voice step as complete after any connected session
-    if (hadSession) {
-      onSessionCompleteRef.current?.();
-    }
+    // NOTE: manual disconnect does NOT call onSessionComplete.
+    // Only AI-driven completion (via transcript detection) unlocks the quiz.
   }, [stopMic, stopPlayback, stopTimer]);
+
+  // Keep disconnectRef in sync so saveTranscript can call it
+  disconnectRef.current = disconnect;
 
   // ---- Cleanup on unmount ----
 
