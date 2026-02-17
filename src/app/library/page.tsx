@@ -3,20 +3,7 @@ import Link from 'next/link';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
-import { ResourceCard } from './resource-card';
-import { ProjectMilestone } from './project-milestone';
-
-// Corner bracket component for decorative framing
-function CornerBrackets({ className = '' }: { className?: string }) {
-  return (
-    <>
-      <div className={`absolute top-0 left-0 w-4 h-4 border-l border-t ${className}`} />
-      <div className={`absolute top-0 right-0 w-4 h-4 border-r border-t ${className}`} />
-      <div className={`absolute bottom-0 left-0 w-4 h-4 border-l border-b ${className}`} />
-      <div className={`absolute bottom-0 right-0 w-4 h-4 border-r border-b ${className}`} />
-    </>
-  );
-}
+import { LibraryContent } from './library-content';
 
 export default async function LibraryPage() {
   const supabase = await createClient();
@@ -302,136 +289,15 @@ export default async function LibraryPage() {
           </div>
         </div>
 
-        {/* Phase Progress - Only when logged in */}
-        {user && (
-          <div className="relative mb-16 p-8 bg-white/50">
-            <CornerBrackets className="border-j-border-input" />
-
-            <div className="flex items-center gap-2 mb-6">
-              <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                {lang === 'es' ? 'Progreso por Fase' : 'Phase Progress'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-4">
-              {Object.entries(byPhase).map(([phase, phaseResources]) => {
-                const evaluated = phaseResources.filter(r => r.evalStats !== null).length;
-                const total = phaseResources.length;
-                const progress = total > 0 ? Math.round((evaluated / total) * 100) : 0;
-
-                return (
-                  <div key={phase} className="text-center">
-                    <div className="relative h-1 bg-j-border mb-3">
-                      <div
-                        className="absolute left-0 top-0 h-full bg-j-accent transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
-                      {t('resource.phase', lang)} {phase}
-                    </p>
-                    <p className="text-lg font-light text-j-text">
-                      {evaluated}<span className="text-j-text-tertiary">/{total}</span>
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Resources by Phase with Project Milestones */}
-        {Object.entries(byPhase).map(([phase, phaseResources]) => (
-          <section key={phase} className="mb-16">
-            {/* Phase Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-5xl font-light text-j-border">
-                {phase.toString().padStart(2, '0')}
-              </span>
-              <div>
-                <h2 className="text-xl font-medium text-j-text">
-                  {phaseNames[phase] || `${t('resource.phase', lang)} ${phase}`}
-                </h2>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
-                  {phaseResources.length} {phaseResources.length === 1 ? t('library.resource', lang) : t('library.resources', lang)}
-                  {user && (
-                    <span className="ml-3">
-                      {phaseResources.filter(r => r.evalStats !== null).length} {t('library.evaluated', lang)}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Resource Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {phaseResources.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  isLoggedIn={!!user}
-                  language={lang}
-                />
-              ))}
-            </div>
-
-            {/* Project Milestone after this phase */}
-            {user && projectsByPhase[phase] && (
-              <ProjectMilestone
-                project={projectsByPhase[phase]}
-                isLoggedIn={!!user}
-                language={lang}
-              />
-            )}
-          </section>
-        ))}
-
-        {/* Supplementary Resources (Videos) */}
-        {supplementaryResources.length > 0 && (
-          <details className="mb-16 group">
-            <summary className="cursor-pointer list-none">
-              <div className="flex items-center gap-4 py-4 border-t border-b border-j-border hover:bg-j-bg-hover transition-colors">
-                <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                  {lang === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
-                </span>
-                <span className="text-xs text-j-text-tertiary">
-                  ({supplementaryResources.length} {lang === 'es' ? 'videos' : 'videos'})
-                </span>
-                <span className="ml-auto text-j-text-tertiary group-open:rotate-180 transition-transform">
-                  ▼
-                </span>
-              </div>
-            </summary>
-            <div className="pt-8">
-              <p className="text-sm text-j-text-secondary mb-6">
-                {lang === 'es'
-                  ? 'Videos y materiales adicionales para profundizar en los temas.'
-                  : 'Videos and additional materials to dive deeper into topics.'}
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {supplementaryResources.map((resource) => (
-                  <a
-                    key={resource.id}
-                    href={resource.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group/item flex items-start gap-3 p-4 border border-j-border hover:border-j-accent transition-colors"
-                  >
-                    <span className="text-lg">▶</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-j-text group-hover/item:text-j-accent transition-colors line-clamp-2">
-                        {resource.title}
-                      </p>
-                      {resource.author && (
-                        <p className="text-xs text-j-text-tertiary mt-1">{resource.author}</p>
-                      )}
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </details>
-        )}
+        {/* Phase Tabs + Resources + Supplementary */}
+        <LibraryContent
+          byPhase={byPhase}
+          projectsByPhase={projectsByPhase}
+          supplementaryResources={supplementaryResources}
+          isLoggedIn={!!user}
+          language={lang}
+          phaseNames={phaseNames}
+        />
       </main>
 
       {/* Footer */}
