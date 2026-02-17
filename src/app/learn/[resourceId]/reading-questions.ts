@@ -765,6 +765,50 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
+  'p0-cs229-probability': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué el MLE para una Gaussiana resulta exactamente en la media muestral? Deriva la conexión entre maximizar la likelihood y minimizar la suma de cuadrados.',
+      concept: 'MLE y MSE',
+      hint: 'El log-likelihood de N(μ, σ²) contiene el término -Σ(xᵢ - μ)²/(2σ²). Maximizar respecto a μ equivale a minimizar Σ(xᵢ - μ)².',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué weight decay en deep learning es matemáticamente equivalente a MAP con un prior Gaussiano? Muestra la equivalencia entre el término de regularización λ||θ||² y el log-prior.',
+      concept: 'Regularización como MAP',
+      hint: 'Si θ ~ N(0, τ²I), log P(θ) = -||θ||²/(2τ²) + const. Sumando al log-likelihood, λ = 1/(2τ²).',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'MLE puede overfittear con pocos datos pero es asintóticamente óptimo. MAP introduce sesgo del prior pero regulariza. ¿Cuándo preferirías MLE puro (sin regularización) y cuándo MAP?',
+      concept: 'MLE vs MAP',
+      hint: 'Con n >> d (muchos datos vs parámetros), el prior importa poco. Con n ≈ d o n < d, el prior estabiliza la estimación.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'La KL divergence es asimétrica: D_KL(p||q) ≠ D_KL(q||p). Forward KL produce mode-covering, reverse KL produce mode-seeking. ¿Qué implicaciones tiene para VAEs que usen reverse KL?',
+      concept: 'Forward vs Reverse KL',
+      hint: 'Los VAEs minimizan reverse KL en la ELBO. Esto hace que q(z|x) colapse sobre un modo del posterior, produciendo outputs borrosos.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo conecta la cross-entropy loss con MLE y con KL divergence? Demuestra que minimizar cross-entropy = maximizar likelihood = minimizar KL(p_data || p_model).',
+      concept: 'Cross-entropy, MLE y KL',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Un modelo de clasificación binaria usa sigmoid + BCE loss. Un modelo de regresión usa MSE. ¿Qué distribución asume cada uno implícitamente, y qué pasaría si usaras MSE para clasificación binaria?',
+      concept: 'Distribución implícita en loss functions',
+      hint: 'MSE asume ruido Gaussiano. Para clasificación, los targets son 0/1 — no tiene sentido asumir ruido Gaussiano simétrico alrededor de la predicción.',
+    },
+  ],
+
   'openclaw-casestudy': [
     {
       type: 'why',

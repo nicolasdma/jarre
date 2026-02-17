@@ -20,6 +20,7 @@ import { OpenClawCaseStudy } from './openclaw-casestudy';
 import { P0LinearAlgebra } from './p0-linear-algebra';
 import { P0CalculusOptimization } from './p0-calculus-optimization';
 import { P0Probability } from './p0-probability';
+import { P0CS229Probability } from './p0-cs229-probability';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
@@ -52,6 +53,7 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'p0-linear-algebra': { label: 'Playground', href: '/playground/linear-algebra' },
   'p0-calculus-optimization': { label: 'Playground', href: '/playground/gradient-descent' },
   'p0-probability': { label: 'Playground', href: '/playground/probability' },
+  'p0-cs229-probability': { label: 'Playground', href: '/playground/bayesian-inference' },
 };
 
 /** Resources with advance organizer components (Step 1: ACTIVATE) */
@@ -75,6 +77,7 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'p0-linear-algebra': () => <P0LinearAlgebra />,
   'p0-calculus-optimization': () => <P0CalculusOptimization />,
   'p0-probability': () => <P0Probability />,
+  'p0-cs229-probability': () => <P0CS229Probability />,
 };
 
 const AVAILABLE_RESOURCES = new Set(Object.keys(EXPLANATION_COMPONENTS));
