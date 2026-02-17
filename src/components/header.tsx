@@ -111,7 +111,7 @@ export async function Header({ currentPage }: HeaderProps) {
                   03. {lang === 'es' ? 'Mi Sistema' : 'My System'}
                 </Link>
                 {/* Engagement badges */}
-                <div className="flex items-center gap-3 pl-2 border-l border-j-border">
+                <Link href="/profile" className="flex items-center gap-3 pl-2 border-l border-j-border hover:opacity-80 transition-opacity">
                   {streakDays > 0 && (
                     <div className="flex items-center gap-1">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-j-warm">
@@ -123,7 +123,7 @@ export async function Header({ currentPage }: HeaderProps) {
                   <span className="font-mono text-[10px] text-j-text-secondary">
                     {totalXp >= 1000 ? `${(totalXp / 1000).toFixed(1)}k` : totalXp} XP · Nv {xpLevel}
                   </span>
-                </div>
+                </Link>
                 <ThemeToggle />
                 <LogoutButton label={t('nav.logout', lang)} />
               </>
@@ -153,6 +153,7 @@ export async function Header({ currentPage }: HeaderProps) {
                 { href: '/library', label: `01. ${t('nav.library', lang)}`, active: currentPage === 'library' },
                 { href: '/review', label: `02. ${t('nav.review', lang)}`, active: currentPage === 'review', badge: dueCount },
                 { href: '/mi-sistema', label: `03. ${lang === 'es' ? 'Mi Sistema' : 'My System'}`, active: currentPage === 'mi-sistema' },
+                { href: '/profile', label: `04. ${lang === 'es' ? 'Perfil' : 'Profile'}`, active: false },
               ]}
               streakDays={streakDays}
               totalXp={totalXp}

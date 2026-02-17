@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { createLogger } from '@/lib/logger';
+import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('NotesPolish');
 
@@ -21,7 +22,7 @@ Rules:
 - Use <br> ONLY to separate major sections (e.g. between topic changes). Do NOT put <br> between bullet points or between lines within the same section — just use newline characters
 - NEVER use <br><br> or multiple consecutive <br> tags`;
 
-export const POST = withAuth(async (request) => {
+export const POST = withAuth(async (request, { user }) => {
   const body = await request.json();
   const { content } = body;
 
@@ -42,6 +43,8 @@ export const POST = withAuth(async (request) => {
       maxTokens: 3000,
       responseFormat: 'text',
     });
+
+    logTokenUsage({ userId: user.id, category: 'notes_polish', tokens: tokensUsed });
 
     log.info(`Polished notes: ${tokensUsed} tokens used`);
 

@@ -3,6 +3,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
+import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
+import { VoicePracticeFlow } from '@/components/voice/voice-practice-flow';
 import { ConceptSection } from './concept-section';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
@@ -123,6 +125,12 @@ export function LearnFlow({
   const [visitedSteps, setVisitedSteps] = useState<Set<Step>>(
     new Set((initialProgress?.visitedSteps as Step[]) ?? [(initialProgress?.currentStep as Step) ?? 'activate'])
   );
+
+  // Evaluation mode: voice (default) or text fallback
+  const [evalMode, setEvalMode] = useState<'voice' | 'text'>('voice');
+
+  // Practice mode: voice (default) or text fallback
+  const [practiceMode, setPracticeMode] = useState<'voice' | 'text'>('voice');
 
   // Focus mode: compress header on scroll > 200px during LEARN step
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -448,31 +456,54 @@ export function LearnFlow({
           </div>
         )}
 
-        {/* STEP 4: PRACTICE EVAL — Scaffolded evaluation preview */}
+        {/* STEP 4: PRACTICE EVAL — Voice guided practice (default) or text fallback */}
         {currentStep === 'practice-eval' && (
-          <PracticeEvalStep
-            language={language}
-            resourceId={resourceId}
-            conceptIds={sections.map((s) => s.conceptId)}
-            initialState={practiceEvalState}
-            onStateChange={(next) => {
-              setPracticeEvalState(next);
-              saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
-            }}
-            onComplete={() => changeStep('evaluate')}
-          />
+          <div className="py-16">
+            {practiceMode === 'voice' ? (
+              <VoicePracticeFlow
+                language={language}
+                resourceId={resourceId}
+                concepts={concepts}
+                onComplete={() => changeStep('evaluate')}
+                onSwitchToText={() => setPracticeMode('text')}
+              />
+            ) : (
+              <PracticeEvalStep
+                language={language}
+                resourceId={resourceId}
+                conceptIds={sections.map((s) => s.conceptId)}
+                initialState={practiceEvalState}
+                onStateChange={(next) => {
+                  setPracticeEvalState(next);
+                  saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
+                }}
+                onComplete={() => changeStep('evaluate')}
+              />
+            )}
+          </div>
         )}
 
-        {/* STEP 5: EVALUATE — Embedded evaluation flow */}
+        {/* STEP 5: EVALUATE — Voice evaluation (default) or text fallback */}
         {currentStep === 'evaluate' && (
           <div className="py-16">
-            <EvaluationFlow
-              resource={{ id: resourceId, title: resourceTitle, type: resourceType }}
-              concepts={concepts}
-              userId={userId}
-              language={language}
-              onCancel={() => changeStep('practice-eval')}
-            />
+            {evalMode === 'voice' ? (
+              <VoiceEvaluationFlow
+                resource={{ id: resourceId, title: resourceTitle, type: resourceType }}
+                concepts={concepts}
+                userId={userId}
+                language={language}
+                onCancel={() => changeStep('practice-eval')}
+                onSwitchToText={() => setEvalMode('text')}
+              />
+            ) : (
+              <EvaluationFlow
+                resource={{ id: resourceId, title: resourceTitle, type: resourceType }}
+                concepts={concepts}
+                userId={userId}
+                language={language}
+                onCancel={() => changeStep('practice-eval')}
+              />
+            )}
           </div>
         )}
       </div>

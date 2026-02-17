@@ -5,6 +5,7 @@ import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { GenerateQuestionsResponseSchema } from '@/lib/llm/schemas';
 import { buildGenerateQuestionsPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
+import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('Evaluate/Generate');
 
@@ -52,6 +53,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       incorrectStatement: q.incorrectStatement,
       relatedConceptName: q.relatedConceptName,
     }));
+
+    logTokenUsage({ userId: user.id, category: 'evaluation_generate', tokens: tokensUsed });
 
     log.info(`Generated ${questions.length} questions for ${resourceId}, tokens: ${tokensUsed}`);
 

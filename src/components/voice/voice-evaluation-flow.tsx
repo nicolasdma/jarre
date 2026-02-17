@@ -1,0 +1,602 @@
+'use client';
+
+/**
+ * Jarre - Voice Evaluation Flow
+ *
+ * Complete UI for voice-based Socratic evaluation.
+ * 4 phases: INTRO → SESSION → SCORING → RESULTS
+ *
+ * Same props as EvaluationFlow for drop-in replacement.
+ */
+
+import { useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useVoiceEvalSession, type VoiceEvalState } from './use-voice-eval-session';
+import { SectionLabel } from '@/components/ui/section-label';
+import type { Language } from '@/lib/translations';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface Concept {
+  id: string;
+  name: string;
+  canonical_definition: string;
+}
+
+interface Resource {
+  id: string;
+  title: string;
+  type: string;
+}
+
+interface Props {
+  resource: Resource;
+  concepts: Concept[];
+  userId: string;
+  language: Language;
+  onCancel?: () => void;
+  /** Switch to text-based evaluation */
+  onSwitchToText?: () => void;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// ============================================================================
+// Waveform visualizer (reused from voice-panel)
+// ============================================================================
+
+function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const BAR_COUNT = 32;
+    const BAR_WIDTH = 3;
+    const GAP = 3;
+    const MAX_HEIGHT = 40;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < BAR_COUNT; i++) {
+        let height: number;
+        let color: string;
+
+        switch (state) {
+          case 'speaking':
+            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
+            color = 'var(--j-accent, #6b7280)';
+            break;
+          case 'listening':
+            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
+            color = 'var(--j-warm, #d97706)';
+            break;
+          case 'thinking':
+            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
+            color = 'var(--j-text-tertiary, #9ca3af)';
+            break;
+          default:
+            height = 3;
+            color = 'var(--j-border, #e5e7eb)';
+        }
+
+        const x = i * (BAR_WIDTH + GAP);
+        const y = (canvas.height - height) / 2;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
+        ctx.fill();
+      }
+
+      frameRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [state]);
+
+  const totalWidth = 32 * 3 + 31 * 3;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={totalWidth}
+      height={48}
+      className="mx-auto"
+    />
+  );
+}
+
+// ============================================================================
+// Rubric Summary (reused from evaluation-flow)
+// ============================================================================
+
+function RubricSummary({ responses }: { responses: Array<{ score: number }> }) {
+  const totalQuestions = responses.length;
+  if (totalQuestions === 0) return null;
+
+  const avgScore = responses.reduce((sum, r) => sum + r.score, 0) / totalQuestions;
+  const highScoreCount = responses.filter(r => r.score >= 80).length;
+  const midScoreCount = responses.filter(r => r.score >= 50 && r.score < 80).length;
+
+  const precisionDots = Math.min(5, Math.round((highScoreCount / totalQuestions) * 5));
+  const completenessDots = Math.min(5, Math.round((avgScore / 100) * 5));
+  const depthDots = Math.min(5, Math.round(((highScoreCount + midScoreCount * 0.5) / totalQuestions) * 5));
+
+  const dimensions = [
+    { label: 'Precision', dots: precisionDots },
+    { label: 'Completitud', dots: completenessDots },
+    { label: 'Profundidad', dots: depthDots },
+  ];
+
+  return (
+    <div className="flex flex-col gap-2">
+      {dimensions.map(({ label, dots }) => (
+        <div key={label} className="flex items-center gap-3">
+          <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase w-24 text-right">
+            {label}
+          </span>
+          <div className="flex gap-0.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className={`text-xs ${i < dots ? 'text-j-accent' : 'text-j-border-input'}`}
+              >
+                {i < dots ? '\u25CF' : '\u25CB'}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// Translations
+// ============================================================================
+
+const tr = {
+  introTitle: { es: 'Evaluacion oral', en: 'Oral evaluation' },
+  introDesc: {
+    es: 'Vamos a tener una conversacion tecnica sobre estos conceptos. Habla naturalmente — no es un examen formal.',
+    en: 'We\'ll have a technical conversation about these concepts. Speak naturally — this is not a formal exam.',
+  },
+  conceptsToEvaluate: { es: 'Conceptos a evaluar', en: 'Concepts to evaluate' },
+  startEval: { es: 'Comenzar conversacion', en: 'Start conversation' },
+  preferText: { es: 'Prefiero escribir', en: 'I prefer writing' },
+  cancel: { es: 'Cancelar', en: 'Cancel' },
+  yourTurn: { es: 'Tu turno — habla', en: 'Your turn — speak' },
+  thinking: { es: 'Pensando...', en: 'Thinking...' },
+  speaking: { es: 'Evaluador hablando...', en: 'Evaluator speaking...' },
+  endSession: { es: 'Terminar', en: 'End session' },
+  escToEnd: { es: 'Esc para terminar', en: 'Esc to end' },
+  scoring: { es: 'Analizando tu conversacion...', en: 'Analyzing your conversation...' },
+  scoringEstimate: { es: 'Esto suele tomar ~15 segundos', en: 'This usually takes ~15 seconds' },
+  complete: { es: 'Evaluacion Completada', en: 'Evaluation Complete' },
+  overallScore: { es: 'Puntuacion General', en: 'Overall Score' },
+  excellent: { es: 'Excelente', en: 'Excellent' },
+  feedback: { es: 'Retroalimentacion', en: 'Feedback' },
+  concept: { es: 'Concepto', en: 'Concept' },
+  backToLibrary: { es: 'Volver a la biblioteca', en: 'Back to library' },
+  reviewMaterial: { es: 'Repasar material', en: 'Review material' },
+  retryEval: { es: 'Volver a intentar', en: 'Try again' },
+  discoveryMessage: {
+    es: 'Las evaluaciones son herramientas de descubrimiento, no juicios',
+    en: 'Evaluations are discovery tools, not judgments',
+  },
+  lowScoreEncouragement: {
+    es: 'Cuando te sientas listo, volve a intentarlo — cada intento es aprendizaje',
+    en: 'When you feel ready, try again — each attempt is learning',
+  },
+  dimensionBreakdown: { es: 'Desglose por dimension', en: 'Breakdown by dimension' },
+  voiceEval: { es: 'Evaluacion por voz', en: 'Voice evaluation' },
+  maxDuration: { es: 'Maximo 10 minutos', en: 'Maximum 10 minutes' },
+} as const;
+
+function t(key: keyof typeof tr, lang: Language): string {
+  return tr[key]?.[lang] || tr[key]?.en || key;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export function VoiceEvaluationFlow({
+  resource,
+  concepts,
+  userId: _userId,
+  language,
+  onCancel,
+  onSwitchToText,
+}: Props) {
+  const router = useRouter();
+
+  const {
+    evalState,
+    tutorState,
+    error,
+    elapsed,
+    evaluationResult,
+    connect,
+    disconnect,
+  } = useVoiceEvalSession({
+    resourceId: resource.id,
+    concepts,
+    language,
+  });
+
+  // Keyboard shortcut: Escape to disconnect during session
+  const handleDisconnect = useCallback(() => {
+    disconnect();
+  }, [disconnect]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && evalState === 'conversing') {
+        handleDisconnect();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [evalState, handleDisconnect]);
+
+  // Toast on completion
+  useEffect(() => {
+    if (evalState === 'done' && evaluationResult?.saved) {
+      toast.success(language === 'es' ? 'Evaluacion guardada' : 'Evaluation saved');
+      if (evaluationResult.overallScore >= 80) {
+        toast.success('+ 30 XP por evaluacion oral');
+      }
+    }
+  }, [evalState, evaluationResult, language]);
+
+  // ---- INTRO ----
+  if (evalState === 'idle') {
+    return (
+      <div>
+        <SectionLabel className="mb-8">
+          {t('voiceEval', language)}
+        </SectionLabel>
+
+        <h2 className="text-xl font-light text-j-text mb-2">{resource.title}</h2>
+        <p className="text-sm text-j-text-secondary mb-8 max-w-lg">
+          {t('introDesc', language)}
+        </p>
+
+        <div className="mb-8">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-3">
+            {t('conceptsToEvaluate', language)}
+          </p>
+          <ul className="space-y-1.5">
+            {concepts.map((concept) => (
+              <li key={concept.id} className="text-sm text-j-text-secondary flex items-center gap-2">
+                <span className="w-1 h-1 bg-j-accent rounded-full" />
+                {concept.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="font-mono text-[10px] text-j-text-tertiary mb-6">
+          {t('maxDuration', language)}
+        </p>
+
+        {error && (
+          <p className="text-xs text-j-error mb-4 max-w-xs">{error}</p>
+        )}
+
+        <div className="flex items-center gap-4">
+          {/* Mic button */}
+          <button
+            type="button"
+            onClick={connect}
+            className="group relative w-16 h-16 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-all duration-300"
+            aria-label={t('startEval', language)}
+          >
+            <span className="absolute inset-0 rounded-full border-2 border-j-accent animate-ping opacity-20 group-hover:opacity-40" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="1" width="6" height="11" rx="3" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+
+          <div>
+            <p className="font-mono text-[10px] text-j-text-secondary">
+              {t('startEval', language)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-8">
+          {onSwitchToText && (
+            <button
+              type="button"
+              onClick={onSwitchToText}
+              className="font-mono text-[10px] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
+            >
+              {t('preferText', language)}
+            </button>
+          )}
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="font-mono text-[10px] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
+            >
+              {t('cancel', language)}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- CONNECTING ----
+  if (evalState === 'connecting') {
+    return (
+      <div className="py-16 flex flex-col items-center gap-4">
+        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent opacity-50">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+          </svg>
+        </div>
+        <p className="font-mono text-[10px] text-j-text-tertiary animate-pulse">
+          {language === 'es' ? 'Conectando...' : 'Connecting...'}
+        </p>
+      </div>
+    );
+  }
+
+  // ---- SESSION (conversing) ----
+  if (evalState === 'conversing') {
+    const statusLabel = (() => {
+      switch (tutorState) {
+        case 'listening': return t('yourTurn', language);
+        case 'thinking': return t('thinking', language);
+        case 'speaking': return t('speaking', language);
+        default: return '';
+      }
+    })();
+
+    return (
+      <div className="flex flex-col items-center py-8">
+        <WaveformVisualizer state={tutorState} />
+
+        <div className="flex items-center gap-3 mt-4 mb-5">
+          <span className={`font-mono text-[10px] tracking-[0.1em] ${
+            tutorState === 'speaking'
+              ? 'text-j-accent'
+              : tutorState === 'listening'
+                ? 'text-j-warm'
+                : 'text-j-text-tertiary'
+          }`}>
+            {statusLabel}
+          </span>
+          <span className="text-j-border">&middot;</span>
+          <span className="font-mono text-[10px] text-j-text-tertiary tabular-nums">
+            {formatTime(elapsed)}
+          </span>
+        </div>
+
+        {/* Progress indicator: time remaining */}
+        <div className="w-48 h-1 bg-j-border rounded-full mb-6 overflow-hidden">
+          <div
+            className="h-full bg-j-accent rounded-full transition-all duration-1000"
+            style={{ width: `${Math.min(100, (elapsed / 600) * 100)}%` }}
+          />
+        </div>
+
+        {/* Stop button */}
+        <button
+          type="button"
+          onClick={handleDisconnect}
+          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-j-error/30 text-j-error hover:bg-j-error hover:text-white hover:border-j-error transition-all duration-200"
+          aria-label={t('endSession', language)}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+          </svg>
+        </button>
+
+        <p className="font-mono text-[10px] text-j-text-tertiary mt-3">
+          {t('escToEnd', language)}
+        </p>
+
+        {error && (
+          <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
+        )}
+      </div>
+    );
+  }
+
+  // ---- SCORING ----
+  if (evalState === 'scoring') {
+    return (
+      <div className="py-16 flex flex-col items-center gap-4">
+        <div className="h-5 w-5 border-2 border-j-border border-t-j-accent rounded-full animate-spin" />
+        <p className="text-sm text-j-text-secondary">{t('scoring', language)}</p>
+        <p className="text-xs text-j-text-tertiary">{t('scoringEstimate', language)}</p>
+      </div>
+    );
+  }
+
+  // ---- ERROR (scoring failed) ----
+  if (evalState === 'error') {
+    return (
+      <div className="py-16 flex flex-col items-center gap-4">
+        <p className="text-sm text-j-error">{error}</p>
+        <div className="flex gap-4">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+            >
+              {t('cancel', language)}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- RESULTS ----
+  if (evalState === 'done' && evaluationResult) {
+    const isHighScore = evaluationResult.overallScore >= 80;
+    const isLowScore = evaluationResult.overallScore < 60;
+
+    return (
+      <div>
+        <SectionLabel className="mb-8">
+          {t('complete', language)}
+        </SectionLabel>
+
+        {/* Rubric dimensions */}
+        <div className="border border-j-border p-6 mb-4">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-4">
+            {t('dimensionBreakdown', language)}
+          </p>
+          <RubricSummary responses={evaluationResult.responses} />
+        </div>
+
+        {/* Score summary */}
+        <div className={`border p-8 mb-4 ${isHighScore ? 'border-j-accent bg-j-accent/5' : 'border-j-border'}`}>
+          <div className="flex items-center gap-8">
+            <div className="text-center">
+              <p className={`text-4xl font-light ${
+                evaluationResult.overallScore >= 60 ? 'text-j-accent' : 'text-j-error'
+              }`}>
+                {evaluationResult.overallScore}%
+              </p>
+              <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
+                {t('overallScore', language)}
+              </p>
+              {isHighScore && (
+                <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mt-2 animate-pulse">
+                  {t('excellent', language)}
+                </p>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-j-text-secondary leading-relaxed">
+                {evaluationResult.summary}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Discovery framing */}
+        <p className="text-[10px] text-j-text-tertiary font-mono text-center mb-6">
+          {t('discoveryMessage', language)}
+        </p>
+
+        {/* Low score encouragement */}
+        {isLowScore && (
+          <div className="border border-j-border bg-j-bg-alt p-6 mb-6">
+            <p className="text-[10px] text-j-text-tertiary font-mono">
+              {t('lowScoreEncouragement', language)}
+            </p>
+          </div>
+        )}
+
+        {/* Individual concept results */}
+        <div className="space-y-6">
+          {evaluationResult.responses.map((result, index) => (
+            <div
+              key={index}
+              className={`border-l-2 pl-6 ${
+                result.isCorrect ? 'border-j-accent' : 'border-j-error'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-mono text-[10px] text-j-text-tertiary">
+                  {t('concept', language)} {index + 1}
+                </span>
+                <span className="font-mono text-[9px] tracking-[0.15em] text-j-text-secondary uppercase">
+                  {concepts[index]?.name}
+                </span>
+                <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+                  result.isCorrect ? 'text-j-accent' : 'text-j-error'
+                }`}>
+                  {result.score}%
+                </span>
+              </div>
+
+              <div className="p-3">
+                <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                  {t('feedback', language)}
+                </p>
+                <p className="text-sm text-j-text-secondary leading-relaxed">{result.feedback}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
+          {isHighScore ? (
+            <button
+              onClick={() => router.push('/library')}
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+            >
+              {t('backToLibrary', language)}
+            </button>
+          ) : isLowScore ? (
+            <>
+              <button
+                onClick={() => onCancel ? onCancel() : router.push(`/learn/${resource.id}`)}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+              >
+                {t('reviewMaterial', language)}
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('retryEval', language)}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => router.push('/library')}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+              >
+                {t('backToLibrary', language)}
+              </button>
+              <button
+                onClick={() => onCancel ? onCancel() : router.push(`/learn/${resource.id}`)}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('reviewMaterial', language)}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}

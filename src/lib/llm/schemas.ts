@@ -82,3 +82,29 @@ export const RubricEvaluationSchema = z.object({
 });
 
 export type RubricEvaluation = z.infer<typeof RubricEvaluationSchema>;
+
+/**
+ * Schema for voice evaluation scoring (DeepSeek analysis of transcripts).
+ * Same shape as EvaluateAnswersResponseSchema for compatibility with save-results.
+ */
+export const VoiceEvalScoringResponseSchema = EvaluateAnswersResponseSchema;
+
+/**
+ * Schema for voice practice scoring (DeepSeek analysis of guided practice transcripts).
+ * Extends eval schema with practice-specific fields: neededHelp and understood.
+ * NOT saved to evaluations — only used as a gate to unlock evaluation step.
+ */
+export const VoicePracticeScoringResponseSchema = z.object({
+  responses: z.array(z.object({
+    questionIndex: z.number().int().min(0),
+    isCorrect: z.boolean(),
+    score: z.number().min(0).max(100),
+    feedback: z.string().min(1),
+    neededHelp: z.boolean(),
+    understood: z.boolean(),
+  })).min(1),
+  overallScore: z.number().min(0).max(100),
+  summary: z.string().min(1),
+});
+
+export type VoicePracticeScoringResponse = z.infer<typeof VoicePracticeScoringResponseSchema>;

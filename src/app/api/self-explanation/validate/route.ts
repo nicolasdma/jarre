@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api/middleware';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { SELF_EXPLANATION_AUTO_GENUINE_LENGTH } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
+import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('SelfExplanation/Validate');
 
@@ -16,7 +17,7 @@ const log = createLogger('SelfExplanation/Validate');
  * Body: { explanation: string, conceptName: string }
  * Returns: { isGenuine: boolean }
  */
-export const POST = withAuth(async (request, { }) => {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const { explanation, conceptName } = await request.json();
 
@@ -29,7 +30,7 @@ export const POST = withAuth(async (request, { }) => {
       return NextResponse.json({ isGenuine: true });
     }
 
-    const { content } = await callDeepSeek({
+    const { content, tokensUsed } = await callDeepSeek({
       messages: [
         {
           role: 'system',
@@ -46,6 +47,7 @@ export const POST = withAuth(async (request, { }) => {
     });
 
     const isGenuine = content.toLowerCase().trim().startsWith('yes');
+    logTokenUsage({ userId: user.id, category: 'self_explanation', tokens: tokensUsed });
     return NextResponse.json({ isGenuine });
   } catch (error) {
     log.error('Error:', error);
