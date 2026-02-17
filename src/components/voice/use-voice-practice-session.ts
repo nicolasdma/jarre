@@ -153,7 +153,7 @@ export function useVoicePracticeSession({
       return practiceState;
     }
     if (voiceSession.connectionState === 'connecting') return 'connecting' as const;
-    if (voiceSession.connectionState === 'connected') return 'practicing' as const;
+    if (voiceSession.connectionState === 'connected' || voiceSession.connectionState === 'reconnecting') return 'practicing' as const;
     return practiceState;
   })();
 

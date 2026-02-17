@@ -158,7 +158,7 @@ export function useVoiceEvalSession({
       return evalState;
     }
     if (voiceSession.connectionState === 'connecting') return 'connecting' as const;
-    if (voiceSession.connectionState === 'connected') return 'conversing' as const;
+    if (voiceSession.connectionState === 'connected' || voiceSession.connectionState === 'reconnecting') return 'conversing' as const;
     return evalState;
   })();
 

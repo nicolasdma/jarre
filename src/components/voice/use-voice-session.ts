@@ -8,7 +8,10 @@ import {
   type ConnectionState,
 } from '@/lib/voice/gemini-live';
 import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
+import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
+
+const log = createLogger('VoiceSession');
 
 // ============================================================================
 // Types
@@ -90,6 +93,9 @@ export function useVoiceSession({
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+
+  // Reconnect refs
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Pre-fetch refs
   const prefetchedTokenRef = useRef<string | null>(null);
@@ -414,6 +420,46 @@ export function useVoiceSession({
           setTutorState('idle');
         },
         onTranscript: saveTranscript,
+        onReconnectNeeded: (attempt) => {
+          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+          log.info(`Reconnecting in ${delay}ms (attempt ${attempt + 1})`);
+
+          // Clear stale playback
+          stopPlayback();
+
+          reconnectTimerRef.current = setTimeout(async () => {
+            try {
+              // Fetch a fresh ephemeral token
+              const res = await fetch('/api/voice/token', { method: 'POST' });
+              if (!res.ok) throw new Error('Failed to get fresh token for reconnect');
+              const { token } = await res.json();
+
+              const c = clientRef.current;
+              if (!c) return;
+
+              await c.reconnect(token);
+
+              // Reconnect succeeded — reset retry tracking
+              c.resetRetryCount();
+
+              // Re-send a brief context message so the tutor resumes naturally
+              const { language: lang } = paramsRef.current;
+              c.sendText(
+                lang === 'es'
+                  ? 'Hubo una interrupción breve. Seguí donde estabas.'
+                  : 'There was a brief interruption. Continue where you left off.'
+              );
+
+              setTutorState('listening');
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Reconnect failed';
+              log.error('Reconnect failed:', msg);
+              setError(msg);
+              setConnectionState('error');
+              setTutorState('idle');
+            }
+          }, delay);
+        },
       });
       clientRef.current = client;
 
@@ -461,6 +507,12 @@ export function useVoiceSession({
   // ---- Disconnect ----
 
   const disconnect = useCallback(() => {
+    // Cancel any pending reconnect attempt
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
     // End session in backend (fire-and-forget)
     if (sessionIdRef.current) {
       fetch('/api/voice/session/end', {
@@ -493,6 +545,10 @@ export function useVoiceSession({
 
   useEffect(() => {
     return () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       stopMic();
       stopPlayback();
       stopTimer();

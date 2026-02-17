@@ -148,7 +148,7 @@ export function useVoiceTeachSession({
       return teachState;
     }
     if (voiceSession.connectionState === 'connecting') return 'connecting' as const;
-    if (voiceSession.connectionState === 'connected') return 'teaching' as const;
+    if (voiceSession.connectionState === 'connected' || voiceSession.connectionState === 'reconnecting') return 'teaching' as const;
     return teachState;
   })();
 

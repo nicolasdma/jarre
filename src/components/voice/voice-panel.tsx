@@ -174,9 +174,10 @@ export function VoicePanel({
 
   const isConnected = connectionState === 'connected';
   const isConnecting = connectionState === 'connecting';
+  const isReconnecting = connectionState === 'reconnecting';
 
   // ---- Idle state: CTA to start ----
-  if (!isConnected && !isConnecting) {
+  if (!isConnected && !isConnecting && !isReconnecting) {
     return (
       <div className="flex flex-col items-center py-10">
         <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2">
@@ -223,8 +224,11 @@ export function VoicePanel({
     );
   }
 
-  // ---- Connected state: live session ----
+  // ---- Connected / Reconnecting state: live session ----
   const statusLabel = (() => {
+    if (isReconnecting) {
+      return language === 'es' ? 'Reconectando...' : 'Reconnecting...';
+    }
     switch (tutorState) {
       case 'listening': return language === 'es' ? 'Tu turno — hablá' : 'Your turn — speak';
       case 'thinking': return language === 'es' ? 'Pensando...' : 'Thinking...';
@@ -235,8 +239,17 @@ export function VoicePanel({
 
   return (
     <div className="flex flex-col items-center py-8">
+      {/* Reconnecting banner */}
+      {isReconnecting && (
+        <div className="mb-4 px-3 py-1.5 rounded-full bg-j-warm/10 border border-j-warm/20">
+          <p className="font-mono text-[10px] text-j-warm animate-pulse">
+            {language === 'es' ? 'Reconectando...' : 'Reconnecting...'}
+          </p>
+        </div>
+      )}
+
       {/* Waveform */}
-      <WaveformVisualizer state={tutorState} />
+      <WaveformVisualizer state={isReconnecting ? 'thinking' : tutorState} />
 
       {/* Status + timer */}
       <div className="flex items-center gap-3 mt-4 mb-5">
