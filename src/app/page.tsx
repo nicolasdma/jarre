@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
-import { SessionCTA } from '@/components/dashboard/session-cta';
-import { EngagementBar } from '@/components/dashboard/engagement-bar';
 import { SectionLabel } from '@/components/ui/section-label';
 import { t, getPhaseNames, getMasteryLevels, type Language } from '@/lib/translations';
 
@@ -130,35 +128,13 @@ export default async function Home() {
   const currentPhase = profile?.current_phase || '1';
   const conceptsStarted = Object.values(levelCounts).reduce((a, b) => a + b, 0);
 
-  // Engagement data
-  const isToday = profile?.daily_xp_date === new Date().toISOString().slice(0, 10);
-  const dailyXp = isToday ? (profile?.daily_xp_earned ?? 0) : 0;
-  const dailyTarget = profile?.daily_xp_target ?? 50;
   const streakDays = profile?.streak_days ?? 0;
-  const totalXp = profile?.total_xp ?? 0;
-  const xpLevel = profile?.xp_level ?? 1;
-  const longestStreak = profile?.longest_streak ?? 0;
-  const lastActive = profile?.last_active_at ? new Date(profile.last_active_at) : null;
-  const streakAlive = lastActive
-    ? (Date.now() - lastActive.getTime()) < 2 * 24 * 60 * 60 * 1000
-    : false;
 
   return (
     <div className="min-h-screen bg-j-bg">
       <Header currentPage="home" />
 
       <main className="mx-auto max-w-6xl px-8 py-12">
-        {/* Engagement bar */}
-        <EngagementBar
-          streakDays={streakDays}
-          streakAlive={streakAlive}
-          longestStreak={longestStreak}
-          totalXp={totalXp}
-          xpLevel={xpLevel}
-          dailyXp={dailyXp}
-          dailyTarget={dailyTarget}
-        />
-
         {dashboardError && (
           <div className="bg-yellow-50 border border-yellow-300 p-4 mb-8">
             <p className="text-sm text-yellow-800">
@@ -176,11 +152,6 @@ export default async function Home() {
             </div>
           </div>
         )}
-
-        {/* Session CTA */}
-        <div className="mb-12">
-          <SessionCTA userId={user.id} language={lang} />
-        </div>
 
         {/* Hero — personalized */}
         <div className="mb-12">
