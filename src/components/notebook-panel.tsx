@@ -81,6 +81,41 @@ export function NotebookPanel({
     document.execCommand('insertText', false, text);
   }, []);
 
+  // Auto-focus: any printable keypress focuses the editor immediately
+  useEffect(() => {
+    function handleGlobalKeydown(e: KeyboardEvent) {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      // Already focused on the editor — do nothing
+      if (document.activeElement === editor) return;
+
+      // Skip if user is typing in another input/textarea/contentEditable
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        (active instanceof HTMLElement && active.isContentEditable)
+      ) return;
+
+      // Skip modifier combos (Ctrl+C, Cmd+V, etc.) and non-printable keys
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return;
+
+      // Focus editor and place cursor at end
+      editor.focus();
+      const selection = window.getSelection();
+      if (selection) {
+        selection.selectAllChildren(editor);
+        selection.collapseToEnd();
+      }
+      // The keypress will naturally insert the character now that editor has focus
+    }
+
+    document.addEventListener('keydown', handleGlobalKeydown);
+    return () => document.removeEventListener('keydown', handleGlobalKeydown);
+  }, [editorRef]);
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
