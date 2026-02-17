@@ -25,7 +25,7 @@ export interface GeminiLiveConfig {
   voiceName?: string;
 }
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
 export interface GeminiLiveCallbacks {
   onAudioResponse: (pcmData: ArrayBuffer) => void;
@@ -34,6 +34,7 @@ export interface GeminiLiveCallbacks {
   onConnectionStateChange: (state: ConnectionState) => void;
   onError: (error: string) => void;
   onTranscript?: (role: 'user' | 'model', text: string) => void;
+  onReconnectNeeded?: (attempt: number) => void;
 }
 
 // ============================================================================
@@ -64,10 +65,15 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 // Client
 // ============================================================================
 
+const MAX_RETRIES = 3;
+const RETRYABLE_CLOSE_CODES = new Set([1006, 1011, 1012, 1013]);
+
 export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   let session: Session | null = null;
   let state: ConnectionState = 'disconnected';
   let intentionalClose = false;
+  let retryCount = 0;
+  let lastConfig: GeminiLiveConfig | null = null;
 
   function setState(next: ConnectionState) {
     state = next;
@@ -77,6 +83,8 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   return {
     async connect(ephemeralToken: string, config: GeminiLiveConfig): Promise<void> {
       setState('connecting');
+      lastConfig = config;
+      retryCount = 0;
 
       try {
         const client = new GoogleGenAI({
@@ -177,9 +185,25 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 log.info('Session closed (user disconnected)');
                 return;
               }
+
+              const closeCode = event instanceof CloseEvent ? event.code : 0;
               const reason = event instanceof CloseEvent
                 ? `code=${event.code} reason=${event.reason}`
                 : String(event);
+
+              // Check if this is a retryable disconnect
+              if (
+                RETRYABLE_CLOSE_CODES.has(closeCode) &&
+                retryCount < MAX_RETRIES &&
+                callbacks.onReconnectNeeded
+              ) {
+                log.info(`Retryable disconnect (${reason}), attempt ${retryCount + 1}/${MAX_RETRIES}`);
+                session = null;
+                setState('reconnecting');
+                callbacks.onReconnectNeeded(retryCount);
+                return;
+              }
+
               log.error('Session closed unexpectedly:', reason);
               if (state !== 'disconnected') {
                 callbacks.onError(`Disconnected: ${reason}`);
@@ -199,6 +223,22 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
         setState('error');
         throw err;
       }
+    },
+
+    async reconnect(ephemeralToken: string): Promise<void> {
+      if (!lastConfig) {
+        throw new Error('No previous config to reconnect with');
+      }
+      retryCount++;
+      const savedRetryCount = retryCount;
+      // Reuse the stored config for a fresh connection
+      await this.connect(ephemeralToken, lastConfig);
+      // Restore retry count (connect() resets it, but during reconnect we need to keep tracking)
+      retryCount = savedRetryCount;
+    },
+
+    resetRetryCount() {
+      retryCount = 0;
     },
 
     sendAudio(base64Audio: string) {
