@@ -17,6 +17,9 @@ import { ScalingLawsPaper } from './scaling-laws';
 import { AgentSandboxPatterns } from './agent-sandbox-patterns';
 import { ClawvaultAgentMemory } from './clawvault-agent-memory';
 import { OpenClawCaseStudy } from './openclaw-casestudy';
+import { P0LinearAlgebra } from './p0-linear-algebra';
+import { P0CalculusOptimization } from './p0-calculus-optimization';
+import { P0Probability } from './p0-probability';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
@@ -46,6 +49,9 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'agent-sandbox-patterns': { label: 'Playground', href: '/playground/agent-sandbox' },
   'clawvault-agent-memory': { label: 'Playground', href: '/playground/clawvault-memory' },
   'openclaw-casestudy': { label: 'Playground', href: '/playground/openclaw-architecture' },
+  'p0-linear-algebra': { label: 'Playground', href: '/playground/linear-algebra' },
+  'p0-calculus-optimization': { label: 'Playground', href: '/playground/gradient-descent' },
+  'p0-probability': { label: 'Playground', href: '/playground/probability' },
 };
 
 /** Resources with advance organizer components (Step 1: ACTIVATE) */
@@ -66,6 +72,9 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'agent-sandbox-patterns': () => <AgentSandboxPatterns />,
   'clawvault-agent-memory': () => <ClawvaultAgentMemory />,
   'openclaw-casestudy': () => <OpenClawCaseStudy />,
+  'p0-linear-algebra': () => <P0LinearAlgebra />,
+  'p0-calculus-optimization': () => <P0CalculusOptimization />,
+  'p0-probability': () => <P0Probability />,
 };
 
 const AVAILABLE_RESOURCES = new Set(Object.keys(EXPLANATION_COMPONENTS));

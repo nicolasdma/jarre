@@ -1301,6 +1301,354 @@ const questionsBySection: Record<string, Record<number, SectionQuestion[]>> = {
       },
     ],
   },
+
+  // ========================================================================
+  // P0 — LINEAR ALGEBRA (Álgebra Lineal para ML)
+  // Sections: 0-4
+  // ========================================================================
+  'p0-linear-algebra': {
+    // Section 0: Vectores, Espacios Vectoriales y Bases
+    0: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es un espacio vectorial y cuáles son los axiomas fundamentales que debe cumplir?',
+        expected_answer: 'Un espacio vectorial es un conjunto V equipado con dos operaciones (suma de vectores y multiplicación por escalar) que satisfacen ocho axiomas: cerradura bajo suma y producto escalar, asociatividad y conmutatividad de la suma, existencia de elemento neutro aditivo y inverso aditivo, y distributividad del producto escalar respecto a la suma de vectores y de escalares. En ML, los espacios vectoriales son el marco algebraico donde viven los embeddings, features y representaciones.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué significa que un conjunto de vectores sea linealmente independiente y por qué es crucial para representaciones en ML?',
+        expected_answer: 'Un conjunto de vectores {v₁, v₂, ..., vₙ} es linealmente independiente si la única combinación lineal que produce el vector cero es aquella donde todos los coeficientes son cero (α₁v₁ + α₂v₂ + ... + αₙvₙ = 0 implica α₁ = α₂ = ... = αₙ = 0). En ML esto es fundamental porque vectores linealmente dependientes significan redundancia en la representación: features que no aportan información nueva. PCA, por ejemplo, busca bases ortogonales (máximamente independientes) para eliminar esta redundancia.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre la base estándar (canónica) y una base arbitraria, y qué implicaciones tiene elegir una u otra?',
+        expected_answer: 'La base estándar en ℝⁿ son los vectores eᵢ con un 1 en la posición i y ceros en el resto. Una base arbitraria puede ser cualquier conjunto de n vectores linealmente independientes que generen el espacio. La base estándar es intuitiva pero no siempre óptima: en ML, cambiar de base (como hace PCA) permite representar los datos en direcciones de máxima varianza. La base estándar trata todas las dimensiones como igualmente importantes, mientras que bases aprendidas capturan la estructura estadística de los datos.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 1: Matrices y Transformaciones Lineales
+    1: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es el rango de una matriz y qué información proporciona sobre la transformación lineal que representa?',
+        expected_answer: 'El rango de una matriz es la dimensión de su espacio columna (o equivalentemente, de su espacio fila). Indica cuántas dimensiones del espacio de salida son realmente "alcanzables" por la transformación. Un rango menor que el mínimo de filas y columnas indica que la transformación colapsa dimensiones, perdiendo información. En redes neuronales, capas con rango deficiente crean cuellos de botella que limitan la capacidad expresiva del modelo.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué establece el teorema de rango-nulidad y por qué es relevante para entender capas de redes neuronales?',
+        expected_answer: 'El teorema de rango-nulidad dice que para una matriz A de m×n: rango(A) + nulidad(A) = n, donde la nulidad es la dimensión del espacio nulo (vectores mapeados a cero). Esto significa que toda información que no se preserva (rango) se destruye (nulidad). En redes neuronales, esto explica el trade-off de las capas de reducción de dimensionalidad: al pasar de dimensión n a dimensión k < n, necesariamente hay n - k dimensiones de información que se pierden.',
+        difficulty: 2,
+      },
+      {
+        type: 'fact',
+        question_text: '¿Por qué la multiplicación de matrices se puede interpretar como composición de transformaciones lineales y qué implica esto para deep learning?',
+        expected_answer: 'Si A representa una transformación T₁ y B representa T₂, entonces AB representa aplicar primero T₂ y luego T₁ (composición T₁ ∘ T₂). En deep learning, apilar capas lineales sin activaciones no lineal equivale a multiplicar sus matrices de peso, colapsando toda la red en una sola transformación lineal. Por eso las funciones de activación no lineales son esenciales: sin ellas, una red de 100 capas tendría la misma capacidad expresiva que una de 1 capa.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 2: Geometría Analítica
+    2: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es un producto interno (inner product) y qué estructura geométrica induce en un espacio vectorial?',
+        expected_answer: 'Un producto interno es una función bilineal, simétrica y definida positiva que toma dos vectores y devuelve un escalar. Induce una noción de longitud (norma: ‖v‖ = √⟨v,v⟩), ángulo entre vectores (cos θ = ⟨u,v⟩ / ‖u‖‖v‖), y ortogonalidad (⟨u,v⟩ = 0). En ML, el producto interno es la base de la similitud coseno usada en embeddings, attention mechanisms, y métricas de similitud semántica.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son las diferencias entre la norma L1 y la norma L2, y cuándo se prefiere cada una en ML?',
+        expected_answer: 'La norma L1 (Manhattan) suma valores absolutos (‖x‖₁ = Σ|xᵢ|), mientras que la norma L2 (Euclidiana) usa la raíz de la suma de cuadrados (‖x‖₂ = √Σxᵢ²). L1 promueve sparsity (muchos componentes exactamente cero) por la geometría de su bola unitaria con esquinas, por eso se usa en Lasso regression y feature selection. L2 distribuye la penalización más uniformemente, evitando pesos extremos, y se usa en Ridge regression. En la práctica, L1 es mejor para seleccionar features relevantes y L2 para regularización general.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es una proyección ortogonal y por qué es un concepto central en métodos como PCA y regresión lineal?',
+        expected_answer: 'La proyección ortogonal de un vector v sobre un subespacio W es el punto en W más cercano a v (minimiza la distancia). El vector residual (v - proj) es perpendicular al subespacio. En regresión lineal, la solución de mínimos cuadrados es exactamente la proyección ortogonal de y sobre el espacio columna de X. En PCA, se proyectan los datos sobre el subespacio de máxima varianza. La optimalidad de la proyección ortogonal (minimiza error cuadrático) fundamenta estos métodos.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 3: Descomposición de Matrices
+    3: [
+      {
+        type: 'definition',
+        question_text: '¿Qué son los eigenvalues (autovalores) y eigenvectors (autovectores) de una matriz?',
+        expected_answer: 'Un eigenvector v de una matriz A es un vector no nulo que, al ser transformado por A, solo cambia en escala: Av = λv. El escalar λ es el eigenvalue correspondiente. Los eigenvectors representan las direcciones privilegiadas de la transformación (no rotan, solo se estiran o comprimen). En ML, los eigenvalues de la matriz de covarianza indican cuánta varianza existe en cada dirección principal, lo que fundamenta PCA y análisis espectral de grafos.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son las diferencias clave entre eigendecomposition y SVD, y cuándo se usa cada una?',
+        expected_answer: 'Eigendecomposition (A = PDP⁻¹) solo existe para matrices cuadradas y requiere que sea diagonalizable. SVD (A = UΣVᵀ) existe para cualquier matriz de cualquier dimensión, siempre. Eigendecomposition usa una sola base de eigenvectors, SVD usa dos bases ortonormales diferentes (U para el espacio de salida, V para el de entrada). En la práctica, SVD es más general y numéricamente estable. Eigendecomposition se usa cuando la matriz es simétrica (como covarianza), donde coincide con SVD. SVD se usa para compresión, pseudo-inversas, y reducción de dimensionalidad general.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué se dice que SVD es "universal" y qué garantías ofrece que otros métodos no?',
+        expected_answer: 'SVD es universal porque: (1) existe para TODA matriz, sin importar dimensiones o propiedades (no requiere ser cuadrada, simétrica, ni invertible), (2) siempre produce bases ortonormales U y V, (3) los valores singulares σᵢ son siempre reales y no negativos, (4) proporciona la mejor aproximación de rango k en norma de Frobenius (teorema de Eckart-Young). Ninguna otra descomposición ofrece todas estas garantías simultáneamente, lo que hace de SVD la herramienta más robusta para compresión (LoRA), pseudo-inversas, y análisis de estabilidad numérica.',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 4: Reducción de Dimensionalidad
+    4: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es PCA (Principal Component Analysis) y cuál es su objetivo fundamental?',
+        expected_answer: 'PCA es un método de reducción de dimensionalidad que encuentra las direcciones (componentes principales) de máxima varianza en los datos. Matemáticamente, computa los eigenvectors de la matriz de covarianza y proyecta los datos sobre los k eigenvectors con mayores eigenvalues. El objetivo es reducir la dimensionalidad preservando la mayor cantidad posible de información (varianza). PCA asume que las direcciones de mayor varianza son las más informativas, lo cual es óptimo para reconstrucción lineal pero no siempre para clasificación.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son las diferencias fundamentales entre PCA, t-SNE y UMAP para reducción de dimensionalidad?',
+        expected_answer: 'PCA es lineal, preserva estructura global (distancias grandes), es determinístico y escalable, pero no captura relaciones no lineales. t-SNE es no lineal, optimiza preservar estructura local (vecindarios), es estocástico, lento en datasets grandes, y tiende a crear clusters artificiales; no preserva distancias globales. UMAP también es no lineal y preserva estructura local, pero es significativamente más rápido que t-SNE, preserva mejor la estructura global, y tiene fundamentos teóricos más sólidos (topología algebraica). Para exploración visual se prefiere UMAP; para preprocesamiento lineal, PCA.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es la hipótesis del manifold y por qué justifica el uso de reducción de dimensionalidad en ML?',
+        expected_answer: 'La hipótesis del manifold postula que los datos de alta dimensión del mundo real (imágenes, texto, audio) realmente viven en o cerca de subvariedades (manifolds) de dimensión mucho menor incrustadas en el espacio de alta dimensión. Por ejemplo, imágenes de rostros de 1M de píxeles realmente varían en pocas dimensiones (pose, iluminación, expresión). Esta hipótesis justifica la reducción de dimensionalidad porque si los datos están concentrados cerca de un manifold de baja dimensión, podemos representarlos eficientemente sin perder información semántica relevante. También explica por qué los autoencoders y embeddings funcionan tan bien.',
+        difficulty: 3,
+      },
+    ],
+  },
+
+  // ========================================================================
+  // P0 — CALCULUS & OPTIMIZATION (Cálculo y Optimización para ML)
+  // Sections: 0-4
+  // ========================================================================
+  'p0-calculus-optimization': {
+    // Section 0: Derivadas Parciales y Gradientes
+    0: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es el gradiente de una función escalar y cómo se relaciona con las derivadas parciales?',
+        expected_answer: 'El gradiente de una función f: ℝⁿ → ℝ es el vector de todas sus derivadas parciales: ∇f = (∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ). Cada componente indica cómo cambia f cuando se mueve infinitesimalmente en esa dimensión, manteniendo las demás fijas. En ML, el gradiente de la función de pérdida respecto a los parámetros del modelo indica la dirección en la que cada parámetro debe ajustarse para reducir el error.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué el gradiente apunta en la dirección de máximo crecimiento de la función y qué implica esto para optimización?',
+        expected_answer: 'Dado un punto x, la derivada direccional en dirección u es ∇f·u = ‖∇f‖cos(θ), que se maximiza cuando θ = 0, es decir, cuando u apunta en la misma dirección que ∇f. Por tanto, ∇f es la dirección de máximo incremento, y -∇f es la de máximo decremento. Esto fundamenta el descenso de gradiente: para minimizar la pérdida, nos movemos en dirección -∇f. La magnitud ‖∇f‖ indica qué tan pronunciada es la pendiente, lo que sugiere cuán grande debe ser el paso.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre el gradiente y la Jacobiana, y cuándo se usa cada uno?',
+        expected_answer: 'El gradiente aplica a funciones escalares f: ℝⁿ → ℝ y produce un vector de n componentes. La Jacobiana aplica a funciones vectoriales f: ℝⁿ → ℝᵐ y produce una matriz m×n donde cada fila es el gradiente de una componente de salida. El gradiente es un caso especial de la Jacobiana cuando m = 1. En redes neuronales, la Jacobiana describe cómo cada salida de una capa depende de cada entrada, mientras que el gradiente de la loss es lo que se usa para actualizar parámetros.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 1: Regla de la Cadena
+    1: [
+      {
+        type: 'definition',
+        question_text: '¿Qué establece la regla de la cadena multivariable y por qué es el fundamento teórico de backpropagation?',
+        expected_answer: 'La regla de la cadena establece que si y = f(g(x)), entonces dy/dx = (dy/dg)·(dg/dx). En el caso multivariable, si una función compuesta tiene variables intermedias, la derivada total se obtiene sumando los productos de derivadas parciales a lo largo de todos los caminos del grafo computacional. Backpropagation es exactamente la aplicación eficiente de la regla de la cadena: propaga gradientes desde la loss hacia los parámetros multiplicando Jacobianas capa por capa.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre modo forward y modo reverse en diferenciación automática, y por qué deep learning usa reverse?',
+        expected_answer: 'Forward mode computa derivadas propagando perturbaciones desde las entradas hacia las salidas (eficiente cuando hay pocas entradas y muchas salidas). Reverse mode propaga gradientes desde las salidas hacia las entradas (eficiente cuando hay pocas salidas y muchas entradas). Deep learning usa reverse mode porque típicamente hay una sola salida escalar (la loss) pero millones de parámetros de entrada. Reverse mode computa todos los gradientes en un solo pase hacia atrás (O(1) en número de salidas), mientras que forward mode necesitaría un pase por cada parámetro.',
+        difficulty: 2,
+      },
+      {
+        type: 'fact',
+        question_text: '¿Qué es un grafo computacional y cómo facilita el cálculo automático de gradientes?',
+        expected_answer: 'Un grafo computacional es un DAG (directed acyclic graph) donde los nodos representan operaciones o variables y las aristas representan dependencias de datos. Cada operación elemental (suma, multiplicación, activación) tiene una regla local de derivación conocida. Para calcular gradientes, se hace un forward pass guardando valores intermedios, y luego un backward pass aplicando la regla de la cadena en reversa. Frameworks como PyTorch construyen este grafo dinámicamente, permitiendo diferenciación automática de cualquier programa.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 2: Backpropagation
+    2: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es backpropagation y cuál es su relación con la regla de la cadena?',
+        expected_answer: 'Backpropagation es un algoritmo eficiente para calcular gradientes de la función de pérdida respecto a todos los parámetros de una red neuronal. Es la aplicación práctica de la regla de la cadena en modo reverse sobre el grafo computacional de la red. Primero se hace un forward pass para calcular la predicción y la loss, y luego se propagan los gradientes hacia atrás capa por capa, multiplicando las derivadas locales de cada operación. Su eficiencia reside en que reutiliza cálculos intermedios, evitando recomputar derivadas.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es el problema de vanishing gradients, por qué ocurre, y cómo afecta al entrenamiento de redes profundas?',
+        expected_answer: 'El vanishing gradient ocurre cuando los gradientes se hacen exponencialmente pequeños al propagarse hacia las capas iniciales de una red profunda. Sucede porque backpropagation multiplica gradientes locales capa por capa, y si estos son menores que 1 (como con sigmoid, cuya derivada máxima es 0.25), el producto de muchos factores pequeños converge a cero. Las capas iniciales dejan de aprender porque sus actualizaciones son negligibles. Soluciones incluyen: ReLU (derivada 1 para valores positivos), residual connections (atajos que permiten gradientes directos), y normalización (BatchNorm, LayerNorm).',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Por qué ReLU resuelve en gran medida el problema de vanishing gradients comparado con sigmoid, y qué problemas nuevos introduce?',
+        expected_answer: 'Sigmoid comprime su salida a (0,1) con derivada máxima de 0.25, causando que gradientes se reduzcan al menos 4x por capa. ReLU (max(0,x)) tiene derivada exactamente 1 para x > 0, permitiendo que gradientes fluyan sin atenuación. Sin embargo, ReLU introduce el problema de "dying neurons": si un neuron recibe entradas negativas consistentemente, su gradiente es permanentemente 0 y deja de aprender. Variantes como Leaky ReLU (pequeña pendiente para x < 0) y GELU (suave, usado en Transformers) mitigan esto manteniendo gradientes no nulos.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 3: Descenso de Gradiente
+    3: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es SGD (Stochastic Gradient Descent) y en qué se diferencia del descenso de gradiente clásico?',
+        expected_answer: 'SGD es una variante del descenso de gradiente que estima el gradiente usando un solo ejemplo (o un mini-batch) aleatorio en lugar de todo el dataset. El descenso de gradiente clásico (batch) calcula el gradiente exacto sumando sobre todos los ejemplos, lo que es costoso para datasets grandes. SGD introduce ruido en la estimación del gradiente, pero este ruido tiene propiedades beneficiosas: ayuda a escapar de mínimos locales, actúa como regularizador implícito, y permite actualizaciones mucho más frecuentes.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son los trade-offs entre batch gradient descent, SGD puro y mini-batch SGD?',
+        expected_answer: 'Batch GD: gradiente exacto, convergencia suave, pero costoso (O(n) por paso) y puede quedarse atrapado en mínimos locales. SGD puro (1 ejemplo): actualizaciones rápidas, buen escape de mínimos locales por el ruido, pero convergencia muy ruidosa y no aprovecha paralelismo de GPU. Mini-batch (típicamente 32-512): compromiso óptimo — reduce varianza del gradiente respecto a SGD puro, aprovecha paralelismo de GPU para cálculos matriciales eficientes, mantiene suficiente ruido para regularización. En la práctica, mini-batch es el estándar por su balance entre eficiencia computacional y calidad de convergencia.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es momentum en optimización y cómo acelera la convergencia del descenso de gradiente?',
+        expected_answer: 'Momentum acumula un promedio exponencial de gradientes pasados y usa esta velocidad acumulada para actualizar los parámetros: vₜ = βvₜ₋₁ + ∇f, θₜ = θₜ₋₁ - αvₜ. Acelera la convergencia de dos formas: (1) en direcciones consistentes, los gradientes se acumulan y el movimiento se acelera (como una bola rodando cuesta abajo), (2) en direcciones oscilantes, los gradientes opuestos se cancelan, reduciendo oscilaciones. Esto es especialmente útil en superficies de pérdida con curvatura desigual (valles estrechos), donde SGD puro oscila perpendicular al valle mientras momentum avanza a lo largo de él.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 4: Adam y Convexidad
+    4: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es el optimizador Adam y qué combina de otros métodos?',
+        expected_answer: 'Adam (Adaptive Moment Estimation) combina momentum (primer momento: promedio de gradientes) con RMSProp (segundo momento: promedio de gradientes al cuadrado). Mantiene dos medias móviles exponenciales: mₜ para la dirección promedio del gradiente y vₜ para la magnitud promedio. La actualización divide el momentum por √vₜ, lo que adapta el learning rate por parámetro: parámetros con gradientes grandes reciben pasos más pequeños y viceversa. Incluye corrección de sesgo para los primeros pasos, donde las medias móviles están inicializadas en cero.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Qué diferencias hay entre optimización convexa y no convexa, y por qué deep learning funciona a pesar de ser no convexo?',
+        expected_answer: 'En optimización convexa, todo mínimo local es global y los algoritmos de gradiente garantizan convergencia al óptimo. En no convexa (como deep learning), existen múltiples mínimos locales, puntos silla, y mesetas, sin garantías de encontrar el óptimo global. Deep learning funciona porque: (1) en alta dimensión, la mayoría de puntos críticos son puntos silla (no mínimos locales), y SGD escapa de ellos naturalmente, (2) los mínimos locales en redes grandes tienden a tener loss similar al global (landscape benign), (3) mínimos planos (flat minima) generalizan mejor, y SGD con ruido tiende a encontrarlos.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué son importantes los learning rate schedules y cuáles son las estrategias más efectivas?',
+        expected_answer: 'El learning rate controla el tamaño de los pasos de optimización y su ajuste dinámico es crítico: muy alto causa divergencia, muy bajo causa convergencia lenta o quedarse en mínimos subóptimos. Las estrategias más efectivas incluyen: warmup (empezar bajo y subir linealmente, esencial para Adam y Transformers para estabilizar las medias móviles iniciales), cosine annealing (decaimiento suave que permite exploración temprana y refinamiento final), step decay (reducir por factor en epochs específicos), y one-cycle (subir y bajar en un ciclo, encontrado empíricamente efectivo). El cosine schedule con warmup es el estándar actual en entrenamiento de LLMs.',
+        difficulty: 2,
+      },
+    ],
+  },
+
+  // ========================================================================
+  // P0 — PROBABILITY (Probabilidad y Estadística para ML)
+  // Sections: 0-4
+  // ========================================================================
+  'p0-probability': {
+    // Section 0: Espacios de Probabilidad
+    0: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es un espacio de probabilidad y cuáles son sus tres componentes fundamentales?',
+        expected_answer: 'Un espacio de probabilidad es una tripleta (Ω, F, P) donde: Ω es el espacio muestral (conjunto de todos los resultados posibles), F es una σ-álgebra (colección de eventos/subconjuntos de Ω que incluye Ω, es cerrada bajo complementos y uniones contables), y P es una medida de probabilidad (función que asigna valores en [0,1] a eventos en F, con P(Ω) = 1 y aditividad contable). Esta formalización de Kolmogorov permite tratar la probabilidad de manera rigurosa y unificar los casos discreto y continuo.',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es la probabilidad condicional y por qué es el concepto central del razonamiento bayesiano en ML?',
+        expected_answer: 'La probabilidad condicional P(A|B) = P(A∩B)/P(B) mide la probabilidad de A dado que B ha ocurrido, actualizando nuestra creencia al incorporar nueva evidencia. Es central en ML porque todo aprendizaje supervisado es esencialmente estimar P(Y|X): la probabilidad de la etiqueta dado los features. El teorema de Bayes P(θ|D) = P(D|θ)P(θ)/P(D) invierte la condicionalidad, permitiendo actualizar creencias sobre parámetros (θ) al observar datos (D), lo que fundamenta el aprendizaje bayesiano.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son las diferencias fundamentales entre distribuciones discretas y continuas, y cómo afecta esto a los modelos de ML?',
+        expected_answer: 'Las distribuciones discretas asignan probabilidades a valores individuales (PMF: P(X = x) > 0), sumando a 1. Las continuas usan densidades (PDF: f(x)), donde P(X = x) = 0 para cualquier punto individual y se integran a 1. En ML, clasificación usa distribuciones discretas (softmax produce PMF sobre clases), mientras que generación continua (imágenes, audio) usa densidades o las aproxima. Los modelos generativos como VAEs necesitan manejar la distinción cuidadosamente: la ELBO involucra log-densidades que pueden ser negativas, a diferencia de log-probabilidades discretas.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 1: Distribuciones
+    1: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es la distribución Gaussiana (normal) y por qué aparece tan frecuentemente en ML?',
+        expected_answer: 'La distribución Gaussiana N(μ, σ²) es una distribución continua con PDF proporcional a exp(-(x-μ)²/2σ²), parametrizada por su media μ y varianza σ². Aparece frecuentemente en ML por varias razones: (1) el Teorema del Límite Central garantiza que promedios de variables aleatorias convergen a Gaussianas, (2) maximiza la entropía para varianza fija (asunción de máxima ignorancia), (3) es la conjugada de sí misma, simplificando cálculos bayesianos, (4) muchos procesos físicos y de error son aproximadamente Gaussianos. En VAEs, se usa como prior y como distribución del espacio latente.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la relación entre la distribución Beta y la distribución Dirichlet, y dónde se usan en ML?',
+        expected_answer: 'La distribución Beta es una distribución sobre un solo valor en [0,1], parametrizada por α y β, útil como prior para probabilidades binarias. La distribución Dirichlet es la generalización multivariable: una distribución sobre vectores de probabilidad (simplex) de K dimensiones, parametrizada por un vector α de K componentes. Beta es Dirichlet con K=2. En ML, Beta se usa como prior para tasas de éxito (A/B testing, bandit algorithms), y Dirichlet como prior para distribuciones categóricas (topic models como LDA, mezclas bayesianas). Ambas son conjugadas de la multinomial, lo que permite actualizaciones bayesianas analíticas.',
+        difficulty: 2,
+      },
+      {
+        type: 'fact',
+        question_text: '¿Qué establece el Teorema del Límite Central y qué implicaciones prácticas tiene para ML?',
+        expected_answer: 'El Teorema del Límite Central (CLT) establece que la suma (o promedio) de n variables aleatorias independientes e idénticamente distribuidas converge en distribución a una Gaussiana conforme n → ∞, independientemente de la distribución original. En ML, esto implica: (1) promedios de mini-batches se comportan Gaussianamente, justificando supuestos en BatchNorm, (2) errores de predicción agregados tienden a ser Gaussianos, justificando MSE como loss, (3) métricas evaluadas sobre muchos ejemplos tienen intervalos de confianza aproximadamente Gaussianos, (4) gradientes de mini-batch son estimadores cuya distribución es aproximadamente normal.',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 2: Bayes, MLE y MAP
+    2: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es Maximum Likelihood Estimation (MLE) y cuál es su principio fundamental?',
+        expected_answer: 'MLE es un método de estimación de parámetros que busca los valores θ que maximizan la probabilidad de observar los datos: θ_MLE = argmax P(D|θ). El principio es elegir los parámetros bajo los cuales los datos observados serían más probables. En la práctica, se maximiza el log-likelihood (equivalente por monotonía del log) para convertir productos en sumas. En deep learning, minimizar cross-entropy loss es equivalente a MLE asumiendo distribución categórica. MLE es consistente (converge al valor real con suficientes datos) pero puede overfittear con datos escasos.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuáles son las diferencias entre MLE y MAP, y cuándo preferir uno sobre otro?',
+        expected_answer: 'MLE maximiza P(D|θ) — solo la verosimilitud, sin asunciones previas sobre θ. MAP maximiza P(θ|D) ∝ P(D|θ)P(θ) — incorpora un prior P(θ) que codifica creencias previas. MAP con prior Gaussiano N(0, σ²) es equivalente a MLE con regularización L2 (weight decay). MLE es preferible con abundantes datos (el prior se vuelve irrelevante), y MAP con datos escasos donde el prior aporta información útil. MAP reduce overfitting pero introduce sesgo del prior. La diferencia fundamental es filosófica: MLE es frecuentista (parámetros fijos), MAP es bayesiano puntual (parámetros con distribución, pero solo reporta el modo).',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué son los priors conjugados y por qué simplifican la inferencia bayesiana?',
+        expected_answer: 'Un prior es conjugado de una likelihood si la distribución posterior pertenece a la misma familia que el prior. Por ejemplo, Beta es conjugada de Bernoulli: si el prior es Beta(α,β) y observamos k éxitos en n intentos, el posterior es Beta(α+k, β+n-k). Los priors conjugados simplifican enormemente la inferencia porque el posterior tiene forma cerrada (no requiere integración numérica ni MCMC). Sin conjugación, P(D) = ∫P(D|θ)P(θ)dθ suele ser intratable. En ML moderno con millones de parámetros, la conjugación exacta es rara, pero inspira heurísticas como weight decay (motivado por prior Gaussiano conjugado de la Gaussiana).',
+        difficulty: 2,
+      },
+    ],
+
+    // Section 3: Entropía y KL
+    3: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es la entropía de Shannon y qué mide intuitivamente?',
+        expected_answer: 'La entropía de Shannon H(X) = -Σ P(x) log P(x) mide la incertidumbre o cantidad promedio de información (en bits si log₂) contenida en una variable aleatoria. Intuitivamente, es el número mínimo promedio de bits necesarios para comunicar el valor de X. Una distribución uniforme tiene máxima entropía (máxima incertidumbre), mientras que una distribución concentrada en un valor tiene entropía cercana a cero. En ML, la entropía de la distribución de salida de un clasificador indica cuán seguro está el modelo de su predicción.',
+        difficulty: 1,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre cross-entropy y divergencia KL, y por qué en clasificación da igual minimizar una u otra?',
+        expected_answer: 'Cross-entropy H(p,q) = -Σ p(x) log q(x) mide el costo promedio de codificar datos de distribución p usando un código óptimo para q. KL divergence D_KL(p||q) = Σ p(x) log(p(x)/q(x)) = H(p,q) - H(p) mide el costo "extra" de usar q en lugar de p. La diferencia es que KL = cross-entropy - entropía de p. En clasificación, p es la distribución real (etiquetas one-hot, con entropía fija = 0), así que H(p,q) = D_KL(p||q) + constante. Minimizar cross-entropy y minimizar KL son equivalentes porque difieren por una constante respecto a los parámetros del modelo.',
+        difficulty: 2,
+      },
+      {
+        type: 'property',
+        question_text: '¿Por qué la divergencia KL siempre es no negativa y qué implicación tiene esto?',
+        expected_answer: 'La no negatividad de KL (D_KL(p||q) ≥ 0, con igualdad si y solo si p = q casi seguramente) se demuestra mediante la desigualdad de Jensen aplicada a la función convexa -log. Específicamente, D_KL(p||q) = E_p[-log(q/p)] ≥ -log(E_p[q/p]) = -log(1) = 0. La implicación fundamental es que la cross-entropy H(p,q) ≥ H(p): ningún código basado en una distribución incorrecta q puede ser más eficiente que el código óptimo basado en la distribución real p. En ML, esto garantiza que la loss de cross-entropy tiene un límite inferior teórico (la entropía del dataset), y que el modelo óptimo es aquel que iguale la distribución real de los datos.',
+        difficulty: 3,
+      },
+    ],
+
+    // Section 4: Información Mutua y ELBO
+    4: [
+      {
+        type: 'definition',
+        question_text: '¿Qué es la información mutua y qué relación tiene con la entropía?',
+        expected_answer: 'La información mutua I(X;Y) = H(X) - H(X|Y) = H(Y) - H(Y|X) = D_KL(P(X,Y) || P(X)P(Y)) mide cuánta información comparten dos variables aleatorias — cuánto reduce la incertidumbre de una conocer la otra. Es simétrica (I(X;Y) = I(Y;X)), no negativa, y es cero si y solo si X e Y son independientes. En ML se usa para feature selection (seleccionar variables más informativas sobre la target), en InfoGAN (maximizar información mutua entre variables latentes y salidas), y en contrastive learning (InfoNCE es un bound inferior de I(X;Y)).',
+        difficulty: 1,
+      },
+      {
+        type: 'property',
+        question_text: '¿Qué es ELBO (Evidence Lower Bound) y por qué es necesario en modelos generativos como VAEs?',
+        expected_answer: 'ELBO = E_q[log P(X|Z)] - D_KL(q(Z|X) || P(Z)) es un límite inferior de log P(X) (la log-evidencia). Es necesario porque en VAEs, log P(X) = ∫P(X|Z)P(Z)dZ es intratable (la integral sobre el espacio latente Z no tiene forma cerrada). Como log P(X) = ELBO + D_KL(q(Z|X) || P(Z|X)) y KL ≥ 0, maximizar ELBO simultáneamente maximiza la evidencia y hace que q(Z|X) se acerque al verdadero posterior P(Z|X). El primer término de ELBO es la calidad de reconstrucción y el segundo es la regularización del espacio latente.',
+        difficulty: 2,
+      },
+      {
+        type: 'comparison',
+        question_text: '¿Cuál es la diferencia entre comportamiento mode-covering y mode-seeking en divergencias, y cómo afecta a modelos generativos?',
+        expected_answer: 'Minimizar D_KL(q||p) (forward KL) produce comportamiento mode-covering: q intenta cubrir todo el soporte de p, prefiriendo sobreestimar la varianza antes que perder modos. Resulta en distribuciones más difusas. Minimizar D_KL(p||q) (reverse KL) produce comportamiento mode-seeking: q se concentra en los modos principales de p, potencialmente ignorando modos menores. Resulta en distribuciones más concentradas. VAEs usan forward KL (mode-covering) en la ELBO, lo que causa outputs borrosos al promediar modos. GANs implícitamente usan algo parecido a reverse KL, produciendo outputs más nítidos pero con mode collapse (ignoran modos). Diffusion models mejoran esto usando score matching que maneja mejor múltiples modos.',
+        difficulty: 3,
+      },
+    ],
+  },
 };
 
 // ============================================================================

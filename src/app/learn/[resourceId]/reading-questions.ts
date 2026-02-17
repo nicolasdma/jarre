@@ -625,6 +625,146 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
+  'p0-linear-algebra': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué los eigenvalues de una matriz de covarianza representan la varianza capturada en cada dirección principal? Conecta la definición algebraica (Av = λv) con la interpretación geométrica de "estirar" el espacio.',
+      concept: 'Eigenvalues y su significado geométrico',
+      hint: 'Si v es un eigenvector, la transformación A solo escala v por λ. En una matriz de covarianza, eso significa que λ mide cuánta varianza hay en la dirección de v.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué la hipótesis del manifold es fundamental para justificar que deep learning funcione en espacios de alta dimensión? Si los datos de imágenes viven en R^(784) (MNIST), ¿por qué no necesitamos exponencialmente más datos para cubrir ese espacio?',
+      concept: 'Hipótesis del manifold',
+      hint: 'Los datos reales no llenan uniformemente el espacio de alta dimensión — se concentran en subvariedades de dimensión mucho menor.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'SVD funciona para cualquier matriz (m×n), mientras que la eigendecomposición solo aplica a matrices cuadradas. Sin embargo, para matrices simétricas positivas semidefinidas ambas coinciden. ¿Cuándo elegirías SVD sobre eigendecomposición y qué costo computacional adicional tiene?',
+      concept: 'SVD vs eigendecomposición',
+      hint: 'SVD es O(mn²) para m≥n. Eigendecomposición es O(n³). Pero SVD te da información sobre las direcciones tanto de entrada como de salida.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'La norma L1 induce sparsity en regularización mientras que L2 distribuye los pesos uniformemente. ¿Por qué geométricamente L1 produce ceros exactos? Dibuja mentalmente las curvas de nivel de cada norma y piensa en dónde intersectan con las elipses de la loss.',
+      concept: 'Normas en regularización',
+      hint: 'Las curvas de nivel de L1 son diamantes con esquinas en los ejes. La intersección con una elipse tiene alta probabilidad de ocurrir en una esquina (coordenada = 0).',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta la similitud coseno (usada masivamente en embeddings y RAG) con el producto punto y la proyección ortogonal? ¿Por qué normalizar los vectores antes de calcular el producto punto es equivalente a calcular el coseno del ángulo entre ellos?',
+      concept: 'Similitud coseno y producto punto',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"PCA siempre preserva la estructura más importante de los datos porque maximiza la varianza explicada." ¿En qué escenario esta afirmación es engañosa? Piensa en un dataset donde la varianza máxima no corresponde a la señal discriminativa.',
+      concept: 'Limitaciones de PCA',
+      hint: 'Si dos clases están separadas en una dirección de baja varianza, PCA podría descartar exactamente la dimensión que las distingue.',
+    },
+  ],
+
+  'p0-calculus-optimization': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué la chain rule es el principio matemático que hace posible entrenar redes neuronales profundas? Si tienes L = f(g(h(x))), ¿cómo permite la chain rule calcular ∂L/∂x sin necesidad de derivar la composición completa de una vez?',
+      concept: 'Chain rule en backpropagation',
+      hint: 'La chain rule descompone la derivada de una composición en un producto de derivadas locales: ∂L/∂x = (∂L/∂f)(∂f/∂g)(∂g/∂h)(∂h/∂x). Cada factor se calcula localmente.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué los gradientes se desvanecen (vanishing) en redes profundas con activaciones sigmoideas? Calcula mentalmente el rango de σ\'(x) y explica qué pasa cuando multiplicas 50 factores menores a 0.25.',
+      concept: 'Vanishing gradients',
+      hint: 'La derivada máxima de sigmoid es 0.25 (en x=0). Si multiplicas 0.25^50, obtienes un número astronómicamente pequeño.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Adam combina momentum y learning rates adaptativos por parámetro. SGD puro es más simple y a menudo generaliza mejor en la práctica. ¿Cuándo preferirías SGD con momentum sobre Adam, y qué evidencia empírica respalda que SGD puede encontrar mínimos "más planos"?',
+      concept: 'Adam vs SGD',
+      hint: 'Varios papers muestran que Adam converge más rápido pero SGD con schedule apropiado generaliza mejor. Los mínimos planos se correlacionan con mejor generalización.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta el concepto de grafo computacional (DAG de operaciones) con la eficiencia de backpropagation? ¿Por qué calcular gradientes "hacia atrás" es O(n) mientras que la diferenciación numérica sería O(n²)?',
+      concept: 'Grafos computacionales y autodiff',
+      hint: 'En el forward pass guardas los valores intermedios. En el backward pass, cada nodo calcula su gradiente local una sola vez y lo propaga.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Si la función de loss es convexa, gradient descent siempre encuentra el mínimo global, por lo tanto deberíamos diseñar funciones de loss convexas para redes neuronales." ¿Qué está mal con este razonamiento?',
+      concept: 'Convexidad y optimización en deep learning',
+      hint: 'La loss como función de los parámetros de una red neuronal es altamente no-convexa. No puedes hacer convexa la loss respecto a los pesos sin perder la expresividad de la red.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Por qué el learning rate warmup (empezar con lr bajo y subir gradualmente) mejora el entrenamiento de Transformers? ¿Qué tiene que ver con las estadísticas del optimizador Adam en los primeros pasos?',
+      concept: 'Learning rate warmup',
+      hint: 'En los primeros pasos, las estimaciones del segundo momento de Adam son inestables (bias alto). Un lr alto amplifica esta inestabilidad.',
+    },
+  ],
+
+  'p0-probability': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué minimizar cross-entropy como función de loss es equivalente a maximizar la verosimilitud (MLE) del modelo? Demuestra la conexión algebraica entre -Σ p(x) log q(x) y log-likelihood.',
+      concept: 'Cross-entropy como loss',
+      hint: 'Si p es la distribución empírica (one-hot para clasificación), -Σ p log q = -log q(clase_correcta), que es exactamente el negative log-likelihood.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué la KL divergence es asimétrica, es decir, KL(p||q) ≠ KL(q||p)? ¿Qué implicación práctica tiene esto cuando eliges cuál distribución es p y cuál es q en un modelo generativo?',
+      concept: 'Asimetría de KL divergence',
+      hint: 'KL(p||q) penaliza fuertemente cuando q es cercana a 0 pero p no (mode-seeking). KL(q||p) penaliza cuando p es cercana a 0 pero q no (mode-covering).',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'MLE es el estimador más eficiente asintóticamente pero puede overfittear con pocos datos. MAP agrega un prior que regulariza. ¿Cuándo el sesgo introducido por el prior en MAP es preferible a la varianza alta de MLE?',
+      concept: 'MLE vs MAP',
+      hint: 'Con muchos datos, el prior se vuelve irrelevante y MAP ≈ MLE. Con pocos datos, el prior estabiliza la estimación. Es el clásico trade-off sesgo-varianza.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'El enfoque bayesiano completo marginaliza sobre todos los parámetros posibles, mientras que el frequentista estima un solo valor puntual. ¿Por qué en la práctica los modelos de deep learning usan estimación puntual (SGD) en lugar de inferencia bayesiana completa?',
+      concept: 'Bayesiano vs frequentista en la práctica',
+      hint: 'La marginalización requiere integrar sobre millones de dimensiones de parámetros. Las aproximaciones (variational inference, MCMC) son costosas y difíciles de escalar.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conectan la entropía H(X) = -Σ p log p con la cantidad de "sorpresa" o "información" de una distribución? ¿Por qué una distribución uniforme tiene entropía máxima y una distribución degenerada (toda la masa en un punto) tiene entropía cero?',
+      concept: 'Entropía como medida de incertidumbre',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Los conjugate priors se usan porque producen mejores resultados que otros priors." ¿Qué está mal con esta justificación? ¿Cuál es la verdadera razón por la que se usan conjugate priors?',
+      concept: 'Conjugate priors',
+      hint: 'La ventaja es puramente computacional: el posterior pertenece a la misma familia que el prior, así que tiene forma cerrada. No dice nada sobre la calidad del prior.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Por qué el ELBO (Evidence Lower Bound) es central en variational inference? Si queremos maximizar log p(x) pero es intratable, ¿cómo nos ayuda optimizar una cota inferior, y qué gap introduce la distribución variacional q(z|x)?',
+      concept: 'ELBO en variational inference',
+      hint: 'log p(x) = ELBO + KL(q(z|x) || p(z|x)). Como KL ≥ 0, ELBO ≤ log p(x). Maximizar ELBO simultáneamente maximiza la evidence y minimiza la KL entre q y el posterior verdadero.',
+    },
+  ],
+
   'openclaw-casestudy': [
     {
       type: 'why',
