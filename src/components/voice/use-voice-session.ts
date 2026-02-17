@@ -377,15 +377,15 @@ export function useVoiceSession({
       await startMic(client);
       setTutorState('listening');
 
-      // 6. Send a single greeting — phrased so the model jumps straight into a question
-      const greeting = summary
+      // 6. Send a context-only message — the model should jump straight to a question
+      const prompt = summary
         ? (lang === 'es'
-            ? 'Ya leí esta sección. La vez pasada hablamos un poco, preguntame algo nuevo.'
-            : 'I\'ve read this section. We talked about it before, ask me something new.')
+            ? 'Ya leí esta sección y la vez pasada hablamos. Preguntame algo nuevo.'
+            : 'I\'ve read this section and we talked before. Ask me something new.')
         : (lang === 'es'
-            ? 'Terminé de leer esta sección, preguntame lo que quieras.'
-            : 'I just finished reading this section, ask me anything.');
-      client.sendText(greeting);
+            ? 'Ya leí esta sección.'
+            : 'I\'ve read this section.');
+      client.sendText(prompt);
 
       // 7. Start session timer with auto-disconnect
       startTimer();
