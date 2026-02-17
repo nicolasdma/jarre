@@ -55,16 +55,12 @@ function formatRelativeDate(dateString: string, lang: Language): string {
 }
 
 // Corner bracket component for decorative framing
-function CornerBrackets({ className = '' }: { className?: string }) {
+function CornerBrackets({ className = '', hideLeft = false }: { className?: string; hideLeft?: boolean }) {
   return (
     <>
-      {/* Top left */}
-      <div className={`absolute top-0 left-0 w-3 h-3 border-l border-t ${className}`} />
-      {/* Top right */}
+      {!hideLeft && <div className={`absolute top-0 left-0 w-3 h-3 border-l border-t ${className}`} />}
       <div className={`absolute top-0 right-0 w-3 h-3 border-r border-t ${className}`} />
-      {/* Bottom left */}
-      <div className={`absolute bottom-0 left-0 w-3 h-3 border-l border-b ${className}`} />
-      {/* Bottom right */}
+      {!hideLeft && <div className={`absolute bottom-0 left-0 w-3 h-3 border-l border-b ${className}`} />}
       <div className={`absolute bottom-0 right-0 w-3 h-3 border-r border-b ${className}`} />
     </>
   );
@@ -113,8 +109,31 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           : 'cursor-pointer hover:bg-j-bg-hover'
       }`}
     >
-      {/* Corner brackets */}
-      <CornerBrackets className={`border-j-border-input transition-colors duration-300 ${!isLocked ? 'group-hover:border-j-accent' : ''}`} />
+      {/* Left accent line for evaluated resources with corner caps */}
+      {hasEvaluation && (() => {
+        const colorClass = resource.evalStats!.bestScore >= 70
+          ? 'bg-j-accent/40 group-hover:bg-j-accent'
+          : resource.evalStats!.bestScore >= 50
+            ? 'bg-j-warm-dark/40 group-hover:bg-j-warm-dark'
+            : 'bg-j-error/40 group-hover:bg-j-error';
+        return (
+          <>
+            <div className={`absolute left-0 top-0 bottom-0 w-[2px] transition-colors duration-300 ${colorClass}`} />
+            <div className={`absolute left-[2px] top-0 h-[2px] w-[10px] transition-colors duration-300 ${colorClass}`} />
+            <div className={`absolute left-[2px] bottom-0 h-[2px] w-[10px] transition-colors duration-300 ${colorClass}`} />
+          </>
+        );
+      })()}
+
+      {/* Corner brackets — hide left corners when line is present */}
+      <CornerBrackets
+        hideLeft={hasEvaluation}
+        className={`transition-colors duration-300 ${
+          hasEvaluation
+            ? 'border-j-accent/30 group-hover:border-j-accent'
+            : `border-j-border-input ${!isLocked ? 'group-hover:border-j-accent' : ''}`
+        }`}
+      />
 
       {/* Type label */}
       <div className="mb-4">
