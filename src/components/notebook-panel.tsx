@@ -15,7 +15,6 @@ interface NotebookPanelProps {
 }
 
 const SAVE_DEBOUNCE_MS = 600;
-const AUTO_POLISH_CHAR_THRESHOLD = 200;
 const LS_WIDTH_KEY = 'jarre:notebook-width';
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
@@ -39,8 +38,6 @@ export function NotebookPanel({
   const mountedRef = useRef(false);
   const isDraggingRef = useRef(false);
   const [isPolishing, setIsPolishing] = useState(false);
-  const charsSincePolishRef = useRef(0);
-  const lastTextLengthRef = useRef(0);
 
   // Panel width — persisted in localStorage
   const [width, setWidth] = useState(() => {
@@ -91,7 +88,6 @@ export function NotebookPanel({
   useEffect(() => {
     if (editorRef.current && !mountedRef.current) {
       editorRef.current.innerHTML = initialContent;
-      lastTextLengthRef.current = editorRef.current.textContent?.length ?? 0;
       mountedRef.current = true;
     }
   }, [initialContent, editorRef]);
@@ -142,12 +138,10 @@ export function NotebookPanel({
       if (data.content) {
         editor.innerHTML = data.content;
         onContentChange(data.content);
-        lastTextLengthRef.current = editor.textContent?.length ?? 0;
       }
     } catch (error) {
       console.error('[NotesPolish] Failed:', error);
     } finally {
-      charsSincePolishRef.current = 0;
       setIsPolishing(false);
     }
   }, [editorRef, isPolishing, onContentChange]);
@@ -156,25 +150,12 @@ export function NotebookPanel({
     const editor = editorRef.current;
     if (!editor) return;
 
-    // Track character delta for auto-polish
-    const currentLength = editor.textContent?.length ?? 0;
-    const delta = currentLength - lastTextLengthRef.current;
-    if (delta > 0) {
-      charsSincePolishRef.current += delta;
-    }
-    lastTextLengthRef.current = currentLength;
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       onContentChange(editor.innerHTML);
       checkDeletedMarks();
-
-      // Auto-polish when enough new chars accumulated
-      if (charsSincePolishRef.current >= AUTO_POLISH_CHAR_THRESHOLD && !isPolishing) {
-        polishNotes();
-      }
     }, SAVE_DEBOUNCE_MS);
-  }, [editorRef, onContentChange, checkDeletedMarks, isPolishing, polishNotes]);
+  }, [editorRef, onContentChange, checkDeletedMarks]);
 
   // Intercept paste: insert plaintext only
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -254,7 +235,7 @@ export function NotebookPanel({
               }`}
               title="Formatear notas con AI"
             >
-              {isPolishing ? '...' : 'AI'}
+              {isPolishing ? '...' : 'FORMAT'}
             </button>
             <button
               type="button"
