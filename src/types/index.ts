@@ -10,7 +10,7 @@
 
 export type ResourceType = 'paper' | 'book' | 'video' | 'course' | 'article';
 
-export type StudyPhase = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type StudyPhase = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 export type MasteryLevel = 0 | 1 | 2 | 3 | 4;
 // 0 - Exposed: Read/watched the material
@@ -46,7 +46,7 @@ export type ReviewRating = 'wrong' | 'hard' | 'easy';
 
 export type QuestionFormat = 'open' | 'mc' | 'tf';
 
-export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay' | 'micro_test';
+export type MasteryTriggerType = 'evaluation' | 'project' | 'manual' | 'decay' | 'micro_test' | 'voice_evaluation' | 'teach_session';
 
 // ============================================================================
 // CORE ENTITIES
