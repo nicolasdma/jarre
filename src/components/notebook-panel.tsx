@@ -15,6 +15,7 @@ interface NotebookPanelProps {
 }
 
 const SAVE_DEBOUNCE_MS = 600;
+const AUTO_POLISH_CHAR_THRESHOLD = 200;
 const LS_WIDTH_KEY = 'jarre:notebook-width';
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
@@ -37,6 +38,9 @@ export function NotebookPanel({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const mountedRef = useRef(false);
   const isDraggingRef = useRef(false);
+  const [isPolishing, setIsPolishing] = useState(false);
+  const charsSincePolishRef = useRef(0);
+  const lastTextLengthRef = useRef(0);
 
   // Panel width — persisted in localStorage
   const [width, setWidth] = useState(() => {
@@ -87,6 +91,7 @@ export function NotebookPanel({
   useEffect(() => {
     if (editorRef.current && !mountedRef.current) {
       editorRef.current.innerHTML = initialContent;
+      lastTextLengthRef.current = editorRef.current.textContent?.length ?? 0;
       mountedRef.current = true;
     }
   }, [initialContent, editorRef]);
@@ -113,16 +118,63 @@ export function NotebookPanel({
     }
   }, [editorRef, knownAnnotationIds, onMarksDeleted]);
 
+  const polishNotes = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor || isPolishing) return;
+
+    const html = editor.innerHTML.trim();
+    if (!html) return;
+
+    setIsPolishing(true);
+    try {
+      const res = await fetch('/api/section-notes/polish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: html }),
+      });
+
+      if (!res.ok) {
+        console.error('[NotesPolish] API error:', res.status);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.content) {
+        editor.innerHTML = data.content;
+        onContentChange(data.content);
+        lastTextLengthRef.current = editor.textContent?.length ?? 0;
+      }
+    } catch (error) {
+      console.error('[NotesPolish] Failed:', error);
+    } finally {
+      charsSincePolishRef.current = 0;
+      setIsPolishing(false);
+    }
+  }, [editorRef, isPolishing, onContentChange]);
+
   const handleInput = useCallback(() => {
     const editor = editorRef.current;
     if (!editor) return;
+
+    // Track character delta for auto-polish
+    const currentLength = editor.textContent?.length ?? 0;
+    const delta = currentLength - lastTextLengthRef.current;
+    if (delta > 0) {
+      charsSincePolishRef.current += delta;
+    }
+    lastTextLengthRef.current = currentLength;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       onContentChange(editor.innerHTML);
       checkDeletedMarks();
+
+      // Auto-polish when enough new chars accumulated
+      if (charsSincePolishRef.current >= AUTO_POLISH_CHAR_THRESHOLD && !isPolishing) {
+        polishNotes();
+      }
     }, SAVE_DEBOUNCE_MS);
-  }, [editorRef, onContentChange, checkDeletedMarks]);
+  }, [editorRef, onContentChange, checkDeletedMarks, isPolishing, polishNotes]);
 
   // Intercept paste: insert plaintext only
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -190,32 +242,61 @@ export function NotebookPanel({
           <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
             Notas
           </span>
-          <button
-            type="button"
-            onClick={onToggleHighlight}
-            className={`font-mono text-[10px] tracking-wider px-1.5 py-0.5 transition-colors rounded-sm ${
-              highlightMode
-                ? 'bg-j-highlight/60 text-j-text'
-                : 'text-j-text-tertiary hover:text-j-text-secondary'
-            }`}
-            title={highlightMode ? 'Subrayado activo' : 'Subrayado inactivo'}
-          >
-            HL
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={polishNotes}
+              disabled={isPolishing}
+              className={`font-mono text-[10px] tracking-wider px-1.5 py-0.5 transition-colors rounded-sm ${
+                isPolishing
+                  ? 'text-j-accent opacity-60 cursor-wait'
+                  : 'text-j-text-tertiary hover:text-j-text-secondary'
+              }`}
+              title="Formatear notas con AI"
+            >
+              {isPolishing ? '...' : 'AI'}
+            </button>
+            <button
+              type="button"
+              onClick={onToggleHighlight}
+              className={`font-mono text-[10px] tracking-wider px-1.5 py-0.5 transition-colors rounded-sm ${
+                highlightMode
+                  ? 'bg-j-highlight/60 text-j-text'
+                  : 'text-j-text-tertiary hover:text-j-text-secondary'
+              }`}
+              title={highlightMode ? 'Subrayado activo' : 'Subrayado inactivo'}
+            >
+              HL
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Editable notebook surface */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onPaste={handlePaste}
-        className="flex-1 overflow-y-auto px-4 py-3 text-xs text-j-text-body font-[Georgia,_'Times_New_Roman',_serif] italic leading-relaxed outline-none notebook-editor"
-        style={{ whiteSpace: 'pre-wrap', minHeight: '100px' }}
-        data-placeholder="Escribe tus notas aqui..."
-      />
+      {/* Editor wrapper (relative for overlay) */}
+      <div className="relative flex-1 overflow-y-auto">
+        <div
+          ref={editorRef}
+          contentEditable={!isPolishing}
+          suppressContentEditableWarning
+          onInput={handleInput}
+          onPaste={handlePaste}
+          className={`h-full px-4 py-3 text-sm text-j-text-body font-[Georgia,_'Times_New_Roman',_serif] italic leading-relaxed outline-none notebook-editor transition-opacity ${isPolishing ? 'opacity-40' : ''}`}
+          style={{ whiteSpace: 'pre-wrap', minHeight: '100px' }}
+          data-placeholder="Escribe tus notas aqui..."
+        />
+
+        {/* Polish loading overlay */}
+        {isPolishing && (
+          <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-j-bg/90 border border-j-border rounded-full shadow-sm">
+              <div className="w-3 h-3 border-2 border-j-text-tertiary border-t-transparent rounded-full animate-spin" />
+              <span className="font-mono text-[10px] tracking-wider text-j-text-secondary">
+                Formateando notas...
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* CSS for placeholder via :empty pseudo-element */}
       <style>{`
