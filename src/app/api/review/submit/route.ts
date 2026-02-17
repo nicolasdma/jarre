@@ -18,6 +18,7 @@ import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryReco
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';
 import { XP_REWARDS } from '@/lib/constants';
+import { logTokenUsage } from '@/lib/db/token-usage';
 import type { QuestionBankType, ReviewRating } from '@/types';
 import type { createClient } from '@/lib/supabase/server';
 
@@ -208,6 +209,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       isCorrect,
       confidenceLevel,
     });
+
+    logTokenUsage({ userId: user.id, category: 'review', tokens: tokensUsed });
 
     log.info(
       `Open: question=${questionId}, score=${score}, rating=${rating}, interval=${smResult.intervalDays}d, tokens=${tokensUsed}`

@@ -74,7 +74,7 @@ export function LessonGuide({ onRunScenario, onSetScenario, onSetIsolation, onRe
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col px-5 py-4">
       {/* Step indicator */}
       <div className="flex gap-1 mb-4">
         {LESSONS.map((_, i) => (

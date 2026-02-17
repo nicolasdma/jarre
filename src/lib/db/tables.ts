@@ -27,9 +27,13 @@ export const TABLES = {
   learnProgress: 'learn_progress',
   projectProgress: 'project_progress',
   sectionAnnotations: 'section_annotations',
+  sectionNotes: 'section_notes',
   resourceNotes: 'resource_notes',
   xpEvents: 'xp_events',
   exerciseResults: 'exercise_results',
+  voiceSessions: 'voice_sessions',
+  voiceTranscripts: 'voice_transcripts',
+  tokenUsage: 'token_usage',
 } as const;
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES];

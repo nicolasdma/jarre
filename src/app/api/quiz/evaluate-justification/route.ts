@@ -9,6 +9,7 @@ import {
   getRubricSystemPrompt,
 } from '@/lib/llm/review-prompts';
 import { JUSTIFICATION_RUBRIC } from '@/lib/llm/rubrics';
+import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('Quiz/EvalJustification');
 
@@ -101,6 +102,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     } else {
       overallResult = 'incorrect';
     }
+
+    logTokenUsage({ userId: user.id, category: 'quiz', tokens: tokensUsed });
 
     log.info(
       `quiz=${quizId}, mc=${mcCorrect}, justTotal=${justTotal}, ` +

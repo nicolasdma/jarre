@@ -20,17 +20,29 @@ interface UseVoiceSessionParams {
   sectionTitle: string;
   language: Language;
   onSessionComplete?: () => void;
+  /** Override the system instruction (used by eval sessions) */
+  systemInstructionOverride?: string;
+  /** Session type for backend tracking */
+  sessionType?: 'teaching' | 'evaluation' | 'practice';
+  /** Resource ID for evaluation sessions */
+  resourceId?: string;
+  /** Override max session duration in ms (default: 30 min) */
+  maxDurationMs?: number;
+  /** Custom initial text message to send after connecting */
+  initialMessage?: string;
 }
 
-type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-interface VoiceSession {
+export interface VoiceSession {
   connectionState: ConnectionState;
   tutorState: TutorState;
   error: string | null;
   elapsed: number;
   connect: () => Promise<void>;
   disconnect: () => void;
+  /** Current session ID (null before connect) */
+  sessionId: string | null;
 }
 
 // ============================================================================
@@ -53,11 +65,19 @@ export function useVoiceSession({
   sectionTitle,
   language,
   onSessionComplete,
+  systemInstructionOverride,
+  sessionType = 'teaching',
+  resourceId,
+  maxDurationMs,
+  initialMessage,
 }: UseVoiceSessionParams): VoiceSession {
+  const effectiveMaxDuration = maxDurationMs ?? MAX_SESSION_DURATION_MS;
+  const effectiveWarningBefore = Math.min(WARNING_BEFORE_END_MS, effectiveMaxDuration / 2);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const clientRef = useRef<GeminiLiveClientInstance | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -77,8 +97,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage };
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -94,20 +114,25 @@ export function useVoiceSession({
 
     const currentSectionId = sectionId;
 
+    // For evaluation sessions, skip context fetching (no section memory needed)
+    const contextFetch = sessionType === 'evaluation'
+      ? Promise.resolve(null)
+      : fetch(`/api/voice/session/context?sectionId=${currentSectionId}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+
     Promise.all([
       fetch('/api/voice/token', { method: 'POST' })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
-      fetch(`/api/voice/session/context?sectionId=${currentSectionId}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
+      contextFetch,
     ]).then(([tokenData, contextData]) => {
       // Only store if sectionId hasn't changed while fetching
       if (prefetchSectionIdRef.current !== currentSectionId) return;
       if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
       if (contextData) prefetchedContextRef.current = contextData;
     });
-  }, [sectionId]);
+  }, [sectionId, sessionType]);
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 
@@ -279,6 +304,9 @@ export function useVoiceSession({
     const sid = sessionIdRef.current;
     if (!sid) return;
 
+    // TODO: Remove debug log after verifying transcripts arrive
+    console.log(`[Voice/Transcript] ${role}: ${text}`);
+
     fetch('/api/voice/session/transcript', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -304,7 +332,7 @@ export function useVoiceSession({
     setError(null);
 
     try {
-      const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang } = paramsRef.current;
+      const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg } = paramsRef.current;
 
       // Use pre-fetched token if available, otherwise fetch fresh
       const tokenPromise = prefetchedTokenRef.current
@@ -324,11 +352,15 @@ export function useVoiceSession({
             .catch(() => ({}));
 
       // Start session (always fresh) + resolve token/context in parallel
+      const startBody: Record<string, unknown> = { sessionType: sessType };
+      if (secId) startBody.sectionId = secId;
+      if (resId) startBody.resourceId = resId;
+
       const [sessionRes, token, context] = await Promise.all([
         fetch('/api/voice/session/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sectionId: secId }),
+          body: JSON.stringify(startBody),
         }),
         tokenPromise,
         contextPromise,
@@ -340,21 +372,27 @@ export function useVoiceSession({
 
       // Extract session ID (non-blocking if fails)
       if (sessionRes.ok) {
-        const { sessionId } = await sessionRes.json();
-        sessionIdRef.current = sessionId;
+        const { sessionId: sid } = await sessionRes.json();
+        sessionIdRef.current = sid;
+        setSessionId(sid);
       }
 
       const summary = context?.summary;
 
-      // 2. Build system instruction with optional memory summary
-      let systemInstruction = buildVoiceSystemInstruction({
-        sectionContent: sc,
-        sectionTitle: st,
-        language: lang,
-      });
+      // 2. Build system instruction (use override if provided, otherwise build from section content)
+      let systemInstruction: string;
+      if (sysOverride) {
+        systemInstruction = sysOverride;
+      } else {
+        systemInstruction = buildVoiceSystemInstruction({
+          sectionContent: sc,
+          sectionTitle: st,
+          language: lang,
+        });
 
-      if (summary) {
-        systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
+        if (summary) {
+          systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
+        }
       }
 
       // 3. Create Gemini Live client
@@ -390,24 +428,26 @@ export function useVoiceSession({
       await startMic(client);
       setTutorState('listening');
 
-      // 6. Send a context-only message — the model should jump straight to a question
-      const prompt = summary
-        ? (lang === 'es'
-            ? 'Ya leí esta sección y la vez pasada hablamos. Preguntame algo nuevo.'
-            : 'I\'ve read this section and we talked before. Ask me something new.')
-        : (lang === 'es'
-            ? 'Ya leí esta sección.'
-            : 'I\'ve read this section.');
+      // 6. Send initial message — the model should jump straight to a question
+      const prompt = initMsg ?? (
+        summary
+          ? (lang === 'es'
+              ? 'Ya leí esta sección y la vez pasada hablamos. Preguntame algo nuevo.'
+              : 'I\'ve read this section and we talked before. Ask me something new.')
+          : (lang === 'es'
+              ? 'Ya leí esta sección.'
+              : 'I\'ve read this section.')
+      );
       client.sendText(prompt);
 
       // 7. Start session timer with auto-disconnect
       startTimer();
       warningTimerRef.current = setTimeout(() => {
-        setError('La sesión se desconectará en 5 minutos');
-      }, MAX_SESSION_DURATION_MS - WARNING_BEFORE_END_MS);
+        setError(lang === 'es' ? 'La sesión se desconectará pronto' : 'Session will disconnect soon');
+      }, effectiveMaxDuration - effectiveWarningBefore);
       maxTimerRef.current = setTimeout(() => {
         disconnect();
-      }, MAX_SESSION_DURATION_MS);
+      }, effectiveMaxDuration);
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Connection failed';
@@ -429,6 +469,7 @@ export function useVoiceSession({
         body: JSON.stringify({ sessionId: sessionIdRef.current }),
       }).catch(() => {});
       sessionIdRef.current = null;
+      setSessionId(null);
     }
 
     stopMic();
@@ -469,5 +510,6 @@ export function useVoiceSession({
     elapsed,
     connect,
     disconnect,
+    sessionId,
   };
 }

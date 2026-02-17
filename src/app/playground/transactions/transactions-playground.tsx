@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { TabbedSidebar } from '@/components/playground/tabbed-sidebar';
+import { PlaygroundLayout } from '@/components/playground/playground-layout';
 import { LessonGuide } from './lesson-guide';
 
 // ---------------------------------------------------------------------------
@@ -226,9 +226,19 @@ export function TransactionsPlayground() {
   ];
 
   return (
-    <div className="flex h-full">
-      {/* Main area */}
-      <div className="flex-1 overflow-y-auto p-6">
+    <PlaygroundLayout
+      accentColor="#991b1b"
+      disableTutor
+      lessons={
+        <LessonGuide
+          onRunScenario={handleRun}
+          onSetScenario={(s: Scenario) => { setScenario(s); setState(buildScenario(s, isolation)); }}
+          onSetIsolation={(l: IsolationLevel) => { setIsolation(l); setState(buildScenario(scenario, l)); }}
+          onReset={handleReset}
+        />
+      }
+    >
+      <div className="h-full overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Scenario selector */}
           <div>
@@ -357,20 +367,6 @@ export function TransactionsPlayground() {
           </div>
         </div>
       </div>
-
-      {/* Sidebar */}
-      <TabbedSidebar
-        accentColor="#991b1b"
-        disableTutor
-        lessons={
-          <LessonGuide
-            onRunScenario={handleRun}
-            onSetScenario={(s: Scenario) => { setScenario(s); setState(buildScenario(s, isolation)); }}
-            onSetIsolation={(l: IsolationLevel) => { setIsolation(l); setState(buildScenario(scenario, l)); }}
-            onReset={handleReset}
-          />
-        }
-      />
-    </div>
+    </PlaygroundLayout>
   );
 }

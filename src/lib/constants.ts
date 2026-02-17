@@ -15,6 +15,9 @@ export const LEVEL_1_SCORE = 60;
 /** Score threshold for mastery level 2 → 3 advancement */
 export const LEVEL_3_SCORE = 80;
 
+/** Score threshold for mastery level 3 → 4 advancement (teach session) */
+export const LEVEL_4_SCORE = 80;
+
 /** Minimum correct micro-test answers to advance 0 → 1 */
 export const MICRO_TEST_THRESHOLD = 3;
 
@@ -144,6 +147,7 @@ export const XP_REWARDS = {
   REVIEW_STREAK_BONUS: 5,     // every 3-streak on a card
   EVALUATION_COMPLETE: 25,
   EVALUATION_HIGH_SCORE: 15,  // score >= 80%
+  VOICE_EVAL_COMPLETE: 30,    // voice evaluation (harder than text)
   SECTION_COMPLETE: 10,
   MASTERY_ADVANCE: 20,
   DAILY_GOAL_BONUS: 10,       // awarded by DB function

@@ -37,8 +37,9 @@ export const GET = withAuth<{ sectionId: string }>(async (_request, { supabase, 
 
 /**
  * POST /api/annotations/[sectionId]
- * Create a new annotation (highlight + optional note).
- * Body: { selectedText, prefix, suffix, segmentIndex, note? }
+ * Create a new annotation.
+ * - Highlight: { selectedText, prefix, suffix, segmentIndex, note? }
+ * - Free note: { note } (no selectedText)
  */
 export const POST = withAuth<{ sectionId: string }>(async (request, { supabase, user, params }) => {
   try {
@@ -47,12 +48,14 @@ export const POST = withAuth<{ sectionId: string }>(async (request, { supabase, 
     const body = await request.json();
     const { selectedText, prefix, suffix, segmentIndex, note } = body;
 
-    if (!selectedText || typeof selectedText !== 'string') {
-      return NextResponse.json({ error: 'Missing selectedText' }, { status: 400 });
+    const isHighlight = typeof selectedText === 'string' && selectedText.length > 0;
+
+    if (isHighlight && typeof segmentIndex !== 'number') {
+      return NextResponse.json({ error: 'Missing segmentIndex for highlight' }, { status: 400 });
     }
 
-    if (typeof segmentIndex !== 'number') {
-      return NextResponse.json({ error: 'Missing segmentIndex' }, { status: 400 });
+    if (!isHighlight && (!note || typeof note !== 'string')) {
+      return NextResponse.json({ error: 'Free notes require a note body' }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -60,10 +63,10 @@ export const POST = withAuth<{ sectionId: string }>(async (request, { supabase, 
       .insert({
         user_id: user.id,
         section_id: sectionId,
-        selected_text: selectedText,
+        selected_text: selectedText || '',
         prefix: prefix || '',
         suffix: suffix || '',
-        segment_index: segmentIndex,
+        segment_index: segmentIndex ?? 0,
         note: note || null,
       })
       .select()

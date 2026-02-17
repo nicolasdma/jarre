@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-14
+> Last updated: 2026-02-16
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -160,6 +160,29 @@
 
 ---
 
+## Competitive Analysis — Actionable Improvements
+
+> Source: `plan/2026-02-16/competitive-analysis.md`
+> Benchmarked against: Boot.dev, Coursera, Educative.io, LeetCode/AlgoExpert, fast.ai
+
+### Mastery Level Gaps (P1)
+- [ ] `[P1]` **LLM-as-peer-reviewer** — Generate "student responses" with deliberate errors; user evaluates with rubric (mastery 3: Criticized). Inspired by Coursera peer review.
+- [x] `[P1]` **Teach-the-LLM mode** — User explains concept; LLM asks follow-up questions as confused student (mastery 4: Taught). Validates ability to teach. - 2026-02-16
+- [x] `[P1]` **Voice evaluation (Socratic)** — Replace textarea evaluations with oral Socratic assessment via Gemini Live. DeepSeek scores transcripts. - 2026-02-16
+- [ ] `[P1]` **Mini-projects after playgrounds** — Guided design exercises post-playground (e.g., "design replication schema for these constraints"). Validates mastery 2: Applied. Inspired by Boot.dev interleaved projects.
+- [ ] `[P1]` **Grokking template for resources** — Standardize structure: Requirements → Architecture → Deep Dive → Tradeoffs. Apply to all new resources and PDF-to-Course pipeline. Inspired by Educative.io.
+
+### Engagement & Gamification (P2)
+- [ ] `[P2]` **Gem economy for scaffolding** — Earned through reviews/evaluations, spent on hints in practice-eval level 3. Aligns incentives (help available but costly). Inspired by Boot.dev.
+- [ ] `[P2]` **Ambitious ACTIVATE step** — Show full system working (e.g., live RAG pipeline demo) before deconstructing. Top-down "whole game" approach. Inspired by fast.ai.
+- [ ] `[P2]` **Content curation policy** — Define max ~20-30 curated resources per phase. Resist volume when PDF-to-Course scales. Inspired by AlgoExpert's 160-problem curation.
+
+### Future Consideration (P3)
+- [ ] `[P3]` **Portable skill badges/certificates** — Exportable proof of mastery per phase/concept
+- [ ] `[P3]` **Community forum / study groups** — Peer interaction for mastery 3-4 with real humans
+
+---
+
 ## Ideas / Someday
 
 - [ ] Community challenges
@@ -280,3 +303,6 @@
 - [x] `[P0]` Hardening: localStorage drafts, saved flag, LLM timeout, canvas error UI - 2026-02-14
 - [x] `[P0]` Hardening: Vitest + 45 unit tests (spaced-repetition, mastery, grading) - 2026-02-14
 - [x] `[P1]` Hardening: 404 page, dashboard try/catch, review empty states, aria-current, mobile hamburger - 2026-02-14
+- [x] `[P1]` Voice evaluation (Socratic): Gemini Live oral assessment → DeepSeek transcript scoring → same mastery/XP outputs - 2026-02-16
+- [x] `[P1]` Teach-the-Tutor (Level 4): student teaches confused AI junior, score >= 80 advances 3→4 - 2026-02-16
+- [x] `[P1]` Refactor: extract save-results.ts shared between text/voice eval endpoints - 2026-02-16

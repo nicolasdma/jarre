@@ -33,6 +33,7 @@ export interface GeminiLiveCallbacks {
   onInterrupted: () => void;
   onConnectionStateChange: (state: ConnectionState) => void;
   onError: (error: string) => void;
+  onTranscript?: (role: 'user' | 'model', text: string) => void;
 }
 
 // ============================================================================
@@ -96,6 +97,8 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             systemInstruction: {
               parts: [{ text: config.systemInstruction }],
             },
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
           },
           callbacks: {
             onopen: () => {
@@ -109,6 +112,42 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                   if (part.inlineData?.data) {
                     const audioBuffer = base64ToArrayBuffer(part.inlineData.data);
                     callbacks.onAudioResponse(audioBuffer);
+                  }
+                }
+              }
+
+              // Audio transcriptions (both input and output come as separate fields)
+              const serverContent = (message as unknown as Record<string, unknown>).serverContent;
+              if (serverContent && typeof serverContent === 'object') {
+                const sc = serverContent as Record<string, unknown>;
+
+                // Model output audio transcription
+                if ('outputTranscription' in sc) {
+                  const transcription = sc.outputTranscription;
+                  if (
+                    transcription &&
+                    typeof transcription === 'object' &&
+                    'text' in (transcription as Record<string, unknown>)
+                  ) {
+                    const text = (transcription as Record<string, unknown>).text;
+                    if (typeof text === 'string' && text.trim() && callbacks.onTranscript) {
+                      callbacks.onTranscript('model', text.trim());
+                    }
+                  }
+                }
+
+                // User input audio transcription
+                if ('inputTranscription' in sc) {
+                  const transcription = sc.inputTranscription;
+                  if (
+                    transcription &&
+                    typeof transcription === 'object' &&
+                    'text' in (transcription as Record<string, unknown>)
+                  ) {
+                    const text = (transcription as Record<string, unknown>).text;
+                    if (typeof text === 'string' && text.trim() && callbacks.onTranscript) {
+                      callbacks.onTranscript('user', text.trim());
+                    }
                   }
                 }
               }

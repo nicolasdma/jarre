@@ -17,6 +17,7 @@ import type { MasteryLevel, EvaluationType, MasteryTriggerType } from '@/types';
 import {
   LEVEL_1_SCORE,
   LEVEL_3_SCORE,
+  LEVEL_4_SCORE,
   MICRO_TEST_THRESHOLD as MICRO_TEST_THRESHOLD_CONST,
 } from '@/lib/constants';
 
@@ -27,6 +28,7 @@ import {
 export const MASTERY_THRESHOLDS = {
   LEVEL_1_SCORE,
   LEVEL_3_SCORE,
+  LEVEL_4_SCORE,
 } as const;
 
 /** Evaluation types that qualify for level 3 advancement */
@@ -67,6 +69,28 @@ export function canAdvanceToLevel3(
     LEVEL_3_QUESTION_TYPES.includes(questionType) &&
     score >= MASTERY_THRESHOLDS.LEVEL_3_SCORE
   );
+}
+
+/**
+ * Check if a concept can advance to level 4 via a teach-the-tutor session.
+ * Requires: current level is 3 (criticized), score >= 80%.
+ */
+export function canAdvanceToLevel4(currentLevel: number, score: number): boolean {
+  return currentLevel === 3 && score >= MASTERY_THRESHOLDS.LEVEL_4_SCORE;
+}
+
+/**
+ * Determine the new mastery level after a teaching session.
+ * Returns 4 if advancement is possible, or the current level.
+ */
+export function computeNewLevelFromTeaching(
+  currentLevel: number,
+  score: number
+): MasteryLevel {
+  if (canAdvanceToLevel4(currentLevel, score)) {
+    return 4;
+  }
+  return currentLevel as MasteryLevel;
 }
 
 /**
