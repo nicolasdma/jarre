@@ -22,6 +22,8 @@ interface ConceptForEval {
 interface VoiceEvalInstructionParams {
   concepts: ConceptForEval[];
   language: Language;
+  masteryLevel?: number;
+  knownMisconceptions?: string[];
 }
 
 interface VoiceScoringParams {
@@ -34,6 +36,106 @@ interface VoiceTeachInstructionParams {
   conceptName: string;
   conceptDefinition: string;
   language: Language;
+  knownMisconceptions?: string[];
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function buildMasteryDepthGuidance(
+  masteryLevel: number | undefined,
+  language: Language,
+): string {
+  if (masteryLevel === undefined) return '';
+
+  if (language === 'en') {
+    if (masteryLevel <= 1) {
+      return `
+DEPTH CALIBRATION (mastery ${masteryLevel}):
+- Focus on EXPLAIN and PROBE phases. Keep CONNECT and CHALLENGE light.
+- Ask for definitions and basic reasoning. Don't push into deep edge cases yet.
+- Accept correct intuition even if terminology is imprecise.`;
+    }
+    if (masteryLevel === 2) {
+      return `
+DEPTH CALIBRATION (mastery ${masteryLevel}):
+- Balance all phases evenly. Expect correct terminology and practical reasoning.
+- In PROBE, push for "what happens when" scenarios they should have encountered.
+- In CHALLENGE, test with realistic scenarios, not extreme edge cases.`;
+    }
+    return `
+DEPTH CALIBRATION (mastery ${masteryLevel}):
+- Lean heavily into CONNECT and CHALLENGE phases. EXPLAIN can be brief.
+- Expect precise terminology, awareness of tradeoffs, and ability to critique.
+- In CHALLENGE, present real-world failure modes and ask them to reason through implications.
+- Ask "when would you NOT use this?" and "what are the failure modes?"`;
+  }
+
+  // Spanish (rioplatense)
+  if (masteryLevel <= 1) {
+    return `
+CALIBRACIÓN DE PROFUNDIDAD (nivel ${masteryLevel}):
+- Enfocate en las fases EXPLICAR y PROFUNDIZAR. CONECTAR y DESAFIAR livianos.
+- Pedí definiciones y razonamiento básico. No empujes hacia edge cases profundos todavía.
+- Aceptá intuición correcta aunque la terminología no sea precisa.`;
+  }
+  if (masteryLevel === 2) {
+    return `
+CALIBRACIÓN DE PROFUNDIDAD (nivel ${masteryLevel}):
+- Balanceá todas las fases. Esperá terminología correcta y razonamiento práctico.
+- En PROFUNDIZAR, empujá con escenarios de "qué pasa cuando" que deberían haber encontrado.
+- En DESAFIAR, testeá con escenarios realistas, no edge cases extremos.`;
+  }
+  return `
+CALIBRACIÓN DE PROFUNDIDAD (nivel ${masteryLevel}):
+- Apoyate fuerte en CONECTAR y DESAFIAR. EXPLICAR puede ser breve.
+- Esperá terminología precisa, conciencia de tradeoffs y capacidad de criticar.
+- En DESAFIAR, presentá modos de falla del mundo real y pedí que razonen sobre implicaciones.
+- Preguntá "¿cuándo NO usarías esto?" y "¿cuáles son los modos de falla?"`;
+}
+
+function buildMisconceptionProbes(
+  misconceptions: string[] | undefined,
+  language: Language,
+): string {
+  if (!misconceptions || misconceptions.length === 0) return '';
+
+  const list = misconceptions.map((m, i) => `  ${i + 1}. "${m}"`).join('\n');
+
+  if (language === 'en') {
+    return `
+KNOWN MISCONCEPTIONS TO PROBE:
+The student has previously shown these specific misconceptions. You MUST create opportunities to test whether they still hold them — without directly stating the misconception.
+${list}
+- Craft questions or scenarios that would EXPOSE each misconception if it still exists.
+- Example: If misconception is "CAP theorem means you pick 2 of 3", ask about a scenario where partition tolerance isn't optional.`;
+  }
+
+  return `
+MISCONCEPTIONS CONOCIDAS A SONDEAR:
+El estudiante mostró previamente estos errores conceptuales específicos. TENÉS que crear oportunidades para testear si los siguen teniendo — sin enunciar directamente el misconception.
+${list}
+- Armá preguntas o escenarios que EXPONGAN cada misconception si todavía existe.
+- Ejemplo: Si el misconception es "CAP theorem significa que elegís 2 de 3", preguntá sobre un escenario donde partition tolerance no es opcional.`;
+}
+
+function buildAiDetectionRules(language: Language): string {
+  if (language === 'en') {
+    return `
+AI ASSISTANCE DETECTION:
+- Watch for SUDDEN REGISTER SHIFTS: if the student goes from casual spoken language to suddenly using formal, structured, essay-like phrasing, this may signal they are reading from an external AI.
+- Indicators: abrupt vocabulary upgrade, unnaturally complete lists, "firstly/secondly/thirdly" patterns, definitions that sound copy-pasted.
+- If you detect a shift: ask an immediate follow-up that requires IMPROVISATION. "Can you give me a concrete example of that from your own experience?" or "Rephrase that in simpler terms."
+- Do NOT accuse them. Just test whether they can sustain the depth without the crutch.`;
+  }
+
+  return `
+DETECCIÓN DE ASISTENCIA DE IA:
+- Prestá atención a CAMBIOS ABRUPTOS DE REGISTRO: si el estudiante pasa de lenguaje hablado casual a usar frases formales, estructuradas, tipo ensayo, puede ser señal de que está leyendo de una IA externa.
+- Indicadores: mejora abrupta de vocabulario, listas innaturalmente completas, patrones "en primer lugar/en segundo lugar", definiciones que suenan copiadas y pegadas.
+- Si detectás un cambio: hacé una pregunta de seguimiento inmediata que requiera IMPROVISACIÓN. "¿Me podés dar un ejemplo concreto de eso de tu propia experiencia?" o "Explicame eso con palabras más simples."
+- NO los acuses. Solo testeá si pueden sostener la profundidad sin la muleta.`;
 }
 
 // ============================================================================
@@ -43,10 +145,16 @@ interface VoiceTeachInstructionParams {
 export function buildVoiceEvalInstruction({
   concepts,
   language,
+  masteryLevel,
+  knownMisconceptions,
 }: VoiceEvalInstructionParams): string {
   const conceptList = concepts
     .map((c, i) => `${i + 1}. **${c.name}**: ${c.definition}`)
     .join('\n');
+
+  const depthGuidance = buildMasteryDepthGuidance(masteryLevel, language);
+  const misconceptionProbes = buildMisconceptionProbes(knownMisconceptions, language);
+  const aiDetection = buildAiDetectionRules(language);
 
   if (language === 'en') {
     return `You are conducting a STEALTH ORAL ASSESSMENT. You're having a technical conversation — the student should feel like they're discussing with a senior engineer, NOT taking an exam.
@@ -55,7 +163,7 @@ CONCEPTS TO EVALUATE:
 ${conceptList}
 
 YOUR GOAL: Assess the student's understanding of ALL listed concepts through natural conversation. You must cover every concept.
-
+${depthGuidance}${misconceptionProbes}
 SEQUENCE (follow this order):
 
 1. WARM-UP (~1 min): Start with an open-ended question about the general topic. Get them talking. Gauge their baseline.
@@ -81,7 +189,7 @@ RULES:
 - Be conversational, not interrogative. This is a technical chat, not a deposition.
 - Cover ALL concepts. If you're running long on one, wrap it up and move to the next.
 - Maximum 10 minutes total. Manage your time.
-
+${aiDetection}
 YOUR FIRST MESSAGE:
 - Jump straight to a warm-up question. No greeting, no preamble.
 - Example: "So you've been studying distributed consensus. What's the core problem it's trying to solve?"
@@ -105,7 +213,7 @@ CONCEPTOS A EVALUAR:
 ${conceptList}
 
 TU OBJETIVO: Evaluar la comprensión del estudiante de TODOS los conceptos listados a través de conversación natural. Tenés que cubrir cada concepto.
-
+${depthGuidance}${misconceptionProbes}
 SECUENCIA (seguí este orden):
 
 1. CALENTAMIENTO (~1 min): Arrancá con una pregunta abierta sobre el tema general. Que arranque a hablar. Medí su línea base.
@@ -131,7 +239,7 @@ REGLAS:
 - Sé conversacional, no interrogativo. Esto es una charla técnica, no un interrogatorio.
 - Cubrí TODOS los conceptos. Si te estás extendiendo mucho en uno, cerralo y pasá al siguiente.
 - Máximo 10 minutos en total. Manejá tu tiempo.
-
+${aiDetection}
 TU PRIMER MENSAJE:
 - Andá directo a una pregunta de calentamiento. Sin saludo, sin preámbulo.
 - Ejemplo: "Estuviste estudiando consenso distribuido. ¿Cuál es el problema central que intenta resolver?"
@@ -181,6 +289,8 @@ For each concept (by index), evaluate:
 - **Depth**: Did they go beyond surface-level? Could they reason about edge cases?
 - **Completeness**: Did they cover the key aspects, or miss important parts?
 - **Connections**: Could they relate this concept to others?
+- **Misconceptions detected**: List any specific misconceptions or incorrect mental models revealed in their answers.
+- **Escalation needed**: How much help (rephrasing, hints, additional angles) did the evaluator need to provide before the student could answer?
 
 SCORING RULES:
 - 0-30: Wrong or couldn't answer at all
@@ -198,7 +308,9 @@ RESPOND IN VALID JSON:
       "questionIndex": <concept index>,
       "isCorrect": <true if score >= 60>,
       "score": <0-100>,
-      "feedback": "<${language === 'es' ? 'feedback en español' : 'feedback in English'}: what they got right, what they missed, what to study>"
+      "feedback": "<${language === 'es' ? 'feedback en español' : 'feedback in English'}: what they got right, what they missed, what to study>",
+      "misconceptions": ["<${language === 'es' ? 'misconception específico detectado en español' : 'specific misconception detected in English'}>"],
+      "strengths": ["<${language === 'es' ? 'fortaleza específica en español' : 'specific strength in English'}>"]
     }
   ],
   "overallScore": <weighted average of all scores>,
@@ -208,7 +320,9 @@ RESPOND IN VALID JSON:
 IMPORTANT:
 - One entry per concept, in order (questionIndex 0, 1, 2, ...)
 - Be fair but rigorous. Oral answers are naturally less structured than written ones — give credit for correct reasoning even if phrasing is rough.
-- The "feedback" must be specific and actionable, not generic praise/criticism.`;
+- The "feedback" must be specific and actionable, not generic praise/criticism.
+- "misconceptions" must list SPECIFIC incorrect beliefs or mental models, not vague statements. If none detected, use an empty array.
+- "strengths" must list SPECIFIC things the student demonstrated well. If none notable, use an empty array.`;
 }
 
 // ============================================================================
@@ -219,8 +333,19 @@ export function buildVoiceTeachInstruction({
   conceptName,
   conceptDefinition,
   language,
+  knownMisconceptions,
 }: VoiceTeachInstructionParams): string {
+  const hasMisconceptions = knownMisconceptions && knownMisconceptions.length > 0;
+
   if (language === 'en') {
+    const misconceptionBehavior = hasMisconceptions
+      ? `- You MUST raise EXACTLY these misconceptions during the conversation (present them as your own confused beliefs):
+${knownMisconceptions!.map((m, i) => `  ${i + 1}. "${m}"`).join('\n')}
+- Work them in naturally. Don't dump them all at once — spread them across the conversation.
+- This validates whether the student has overcome these specific past misconceptions.
+- You can still ask general questions, but these misconceptions are MANDATORY to raise.`
+      : `- Sometimes say something WRONG so they have to correct you: "Oh so it's basically the same as [wrong comparison]?" "I thought that [incorrect statement]?"`;
+
     return `You are a JUNIOR ENGINEER who is confused about "${conceptName}". The student is going to teach you this concept.
 
 THE CONCEPT: ${conceptDefinition}
@@ -229,7 +354,7 @@ YOUR ROLE: Act as a genuinely confused junior who wants to understand. You know 
 
 BEHAVIOR:
 - Ask genuine questions: "Wait, so why can't you just...?" "What does that actually mean in practice?"
-- Sometimes say something WRONG so they have to correct you: "Oh so it's basically the same as [wrong comparison]?" "I thought that [incorrect statement]?"
+${misconceptionBehavior}
 - Ask for analogies: "Can you give me an analogy?" "Like, in real life, what would that be like?"
 - Ask "why?" frequently. Push them to explain the reasoning, not just the what.
 - Ask about edge cases: "But what happens if...?" "Does that always work?"
@@ -253,6 +378,14 @@ HOW YOU TALK:
 - No filler openers.`;
   }
 
+  const misconceptionBehaviorEs = hasMisconceptions
+    ? `- TENÉS que plantear EXACTAMENTE estos misconceptions durante la conversación (presentalos como tus propias creencias confundidas):
+${knownMisconceptions!.map((m, i) => `  ${i + 1}. "${m}"`).join('\n')}
+- Mezclalos naturalmente. No los tires todos de una — distribuilos en la conversación.
+- Esto valida si el estudiante superó estos misconceptions específicos del pasado.
+- Podés hacer preguntas generales también, pero estos misconceptions son OBLIGATORIOS de plantear.`
+    : `- A veces decí algo INCORRECTO para que te corrijan: "Ah, ¿entonces es básicamente lo mismo que [comparación incorrecta]?" "Yo pensaba que [afirmación incorrecta]..."`;
+
   return `Sos un INGENIERO JUNIOR que está confundido sobre "${conceptName}". El estudiante te va a enseñar este concepto.
 
 IMPORTANTE: Hablá en español latinoamericano. Nada de "vale", "tío", "vosotros". Usá "vos", español rioplatense natural.
@@ -263,7 +396,7 @@ TU ROL: Actuá como un junior genuinamente confundido que quiere entender. Sabé
 
 COMPORTAMIENTO:
 - Hacé preguntas genuinas: "Pará, ¿por qué no se puede simplemente...?" "¿Qué significa eso en la práctica?"
-- A veces decí algo INCORRECTO para que te corrijan: "Ah, ¿entonces es básicamente lo mismo que [comparación incorrecta]?" "Yo pensaba que [afirmación incorrecta]..."
+${misconceptionBehaviorEs}
 - Pedí analogías: "¿Me podés dar una analogía?" "¿Cómo sería eso en la vida real?"
 - Preguntá "¿por qué?" frecuentemente. Empujalos a explicar el razonamiento, no solo el qué.
 - Preguntá sobre edge cases: "¿Pero qué pasa si...?" "¿Eso funciona siempre?"
@@ -322,6 +455,8 @@ For each concept (by index), evaluate:
 - **Error detection**: When the "student" said something wrong, did the teacher catch and correct it?
 - **Handling unexpected questions**: Could they answer the student's follow-up questions?
 - **Connections**: Did they connect this concept to related ideas?
+- **Misconceptions detected**: List any incorrect beliefs the teacher revealed while explaining (teaching often exposes gaps).
+- **Escalation needed**: How much prompting did the "student" need to do to get a clear explanation?
 
 SCORING RULES:
 - 0-30: Couldn't explain or gave wrong explanations
@@ -337,7 +472,9 @@ RESPOND IN VALID JSON:
       "questionIndex": <concept index>,
       "isCorrect": <true if score >= 60>,
       "score": <0-100>,
-      "feedback": "<${language === 'es' ? 'feedback en español' : 'feedback in English'}: teaching quality assessment>"
+      "feedback": "<${language === 'es' ? 'feedback en español' : 'feedback in English'}: teaching quality assessment>",
+      "misconceptions": ["<${language === 'es' ? 'misconception específico detectado en español' : 'specific misconception detected in English'}>"],
+      "strengths": ["<${language === 'es' ? 'fortaleza específica en español' : 'specific strength in English'}>"]
     }
   ],
   "overallScore": <weighted average of all scores>,
@@ -347,5 +484,7 @@ RESPOND IN VALID JSON:
 IMPORTANT:
 - One entry per concept, in order (questionIndex 0, 1, 2, ...)
 - Teaching is harder than explaining to yourself. Give credit for effort but be rigorous about accuracy.
-- The "feedback" must mention specific moments from the transcript.`;
+- The "feedback" must mention specific moments from the transcript.
+- "misconceptions" must list SPECIFIC incorrect beliefs or mental models the teacher revealed, not vague statements. If none detected, use an empty array.
+- "strengths" must list SPECIFIC teaching strengths demonstrated. If none notable, use an empty array.`;
 }

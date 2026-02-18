@@ -19,6 +19,7 @@ import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { VoiceEvalScoringResponseSchema } from '@/lib/llm/schemas';
 import { buildVoiceTeachScoringPrompt } from '@/lib/llm/voice-eval-prompts';
 import { computeNewLevelFromTeaching, buildMasteryHistoryRecord } from '@/lib/mastery';
+import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { awardXP } from '@/lib/xp';
 import { XP_REWARDS } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
@@ -147,6 +148,16 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 
       // Award mastery advance XP
       await awardXP(supabase, user.id, XP_REWARDS.MASTERY_ADVANCE, 'mastery_advance', conceptId);
+    }
+
+    // Update learner concept memory with misconceptions/strengths from teach scoring
+    const teachResponse = parsed.responses[0];
+    if (teachResponse) {
+      await updateLearnerConceptMemory(supabase, user.id, conceptId, {
+        misconceptions: teachResponse.misconceptions || [],
+        strengths: teachResponse.strengths || [],
+        escalationLevel: 'teach',
+      });
     }
 
     // Award XP for completing teach session

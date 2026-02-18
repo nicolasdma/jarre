@@ -12,6 +12,7 @@ export const TABLES = {
   resourceConcepts: 'resource_concepts',
   resourceSections: 'resource_sections',
   questionBank: 'question_bank',
+  conceptCards: 'concept_cards',
   inlineQuizzes: 'inline_quizzes',
   projects: 'projects',
   projectConcepts: 'project_concepts',
@@ -34,4 +35,5 @@ export const TABLES = {
   voiceSessions: 'voice_sessions',
   voiceTranscripts: 'voice_transcripts',
   tokenUsage: 'token_usage',
+  learnerConceptMemory: 'learner_concept_memory',
 } as const;

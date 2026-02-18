@@ -35,6 +35,14 @@ interface UseVoicePracticeSessionParams {
 
 export type VoicePracticeState = 'idle' | 'connecting' | 'practicing' | 'scoring' | 'done' | 'error';
 
+interface ConceptConsolidation {
+  conceptName: string;
+  idealAnswer: string;
+  divergence: string;
+  connections: string;
+  reviewSuggestion: string;
+}
+
 interface PracticeResult {
   responses: Array<{
     questionIndex: number;
@@ -43,10 +51,13 @@ interface PracticeResult {
     feedback: string;
     neededHelp: boolean;
     understood: boolean;
+    misconceptions?: string[];
+    strengths?: string[];
   }>;
   overallScore: number;
   summary: string;
   passedGate: boolean;
+  consolidation: ConceptConsolidation[];
 }
 
 interface VoicePracticeSession {
@@ -115,6 +126,7 @@ export function useVoicePracticeSession({
         overallScore: data.overallScore,
         summary: data.summary,
         passedGate: data.passedGate,
+        consolidation: data.consolidation || [],
       });
       setPracticeState('done');
     } catch (err) {

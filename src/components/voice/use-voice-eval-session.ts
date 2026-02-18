@@ -34,17 +34,28 @@ interface UseVoiceEvalSessionParams {
 
 export type VoiceEvalState = 'idle' | 'connecting' | 'conversing' | 'scoring' | 'done' | 'error';
 
+interface ConceptConsolidation {
+  conceptName: string;
+  idealAnswer: string;
+  divergence: string;
+  connections: string;
+  reviewSuggestion: string;
+}
+
 interface EvaluationResult {
   responses: Array<{
     questionIndex: number;
     isCorrect: boolean;
     score: number;
     feedback: string;
+    misconceptions?: string[];
+    strengths?: string[];
   }>;
   overallScore: number;
   summary: string;
   evaluationId: string | null;
   saved: boolean;
+  consolidation: ConceptConsolidation[];
 }
 
 interface VoiceEvalSession {
@@ -117,6 +128,7 @@ export function useVoiceEvalSession({
         summary: data.summary,
         evaluationId: data.evaluationId,
         saved: data.saved,
+        consolidation: data.consolidation || [],
       });
       setEvalState('done');
     } catch (err) {

@@ -8,6 +8,7 @@ import {
   type ConnectionState,
 } from '@/lib/voice/gemini-live';
 import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
+import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
 
@@ -33,6 +34,8 @@ interface UseVoiceSessionParams {
   maxDurationMs?: number;
   /** Custom initial text message to send after connecting */
   initialMessage?: string;
+  /** Concept IDs for learner memory fetch */
+  conceptIds?: string[];
 }
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -73,6 +76,7 @@ export function useVoiceSession({
   resourceId,
   maxDurationMs,
   initialMessage,
+  conceptIds,
 }: UseVoiceSessionParams): VoiceSession {
   const effectiveMaxDuration = maxDurationMs ?? MAX_SESSION_DURATION_MS;
   const effectiveWarningBefore = Math.min(WARNING_BEFORE_END_MS, effectiveMaxDuration / 2);
@@ -99,12 +103,12 @@ export function useVoiceSession({
 
   // Pre-fetch refs
   const prefetchedTokenRef = useRef<string | null>(null);
-  const prefetchedContextRef = useRef<{ summary?: string } | null>(null);
+  const prefetchedContextRef = useRef<{ summary?: string; learnerMemory?: LearnerConceptMemory[] } | null>(null);
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds };
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -121,9 +125,15 @@ export function useVoiceSession({
     const currentSectionId = sectionId;
 
     // For evaluation sessions, skip context fetching (no section memory needed)
+    const contextUrl = new URL('/api/voice/session/context', window.location.origin);
+    contextUrl.searchParams.set('sectionId', currentSectionId);
+    if (conceptIds?.length) {
+      contextUrl.searchParams.set('conceptIds', conceptIds.join(','));
+    }
+
     const contextFetch = sessionType === 'evaluation'
       ? Promise.resolve(null)
-      : fetch(`/api/voice/session/context?sectionId=${currentSectionId}`)
+      : fetch(contextUrl.toString())
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);
 
@@ -138,7 +148,7 @@ export function useVoiceSession({
     if (prefetchSectionIdRef.current !== currentSectionId) return;
     if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
     if (contextData) prefetchedContextRef.current = contextData;
-  }, [sectionId, sessionType]);
+  }, [sectionId, sessionType, conceptIds]);
 
   useEffect(() => {
     prefetchTokenAndContext();
@@ -342,7 +352,7 @@ export function useVoiceSession({
     setError(null);
 
     try {
-      const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg } = paramsRef.current;
+      const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg, conceptIds: cIds } = paramsRef.current;
 
       // Use pre-fetched token if available, otherwise fetch fresh
       const tokenPromise = prefetchedTokenRef.current
@@ -355,11 +365,16 @@ export function useVoiceSession({
             .then((d) => d.token as string);
 
       // Use pre-fetched context if available, otherwise fetch fresh
-      const contextPromise: Promise<{ summary?: string }> = prefetchedContextRef.current
+      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[] }> = prefetchedContextRef.current
         ? Promise.resolve(prefetchedContextRef.current)
-        : fetch(`/api/voice/session/context?sectionId=${secId}`)
-            .then((r) => (r.ok ? r.json() : {}))
-            .catch(() => ({}));
+        : (() => {
+            const ctxUrl = new URL('/api/voice/session/context', window.location.origin);
+            ctxUrl.searchParams.set('sectionId', secId);
+            if (cIds?.length) ctxUrl.searchParams.set('conceptIds', cIds.join(','));
+            return fetch(ctxUrl.toString())
+              .then((r) => (r.ok ? r.json() : {}))
+              .catch(() => ({}));
+          })();
 
       // Start session (always fresh) + resolve token/context in parallel
       const startBody: Record<string, unknown> = { sessionType: sessType };
@@ -388,6 +403,7 @@ export function useVoiceSession({
       }
 
       const summary = context?.summary;
+      const learnerMemory: LearnerConceptMemory[] = context?.learnerMemory || [];
 
       // 2. Build system instruction (use override if provided, otherwise build from section content)
       let systemInstruction: string;
@@ -398,11 +414,23 @@ export function useVoiceSession({
           sectionContent: sc,
           sectionTitle: st,
           language: lang,
+          previousSessionContext: learnerMemory.length > 0
+            ? {
+                misconceptions: learnerMemory.flatMap((m) => m.misconceptions),
+                strengths: learnerMemory.flatMap((m) => m.strengths),
+              }
+            : undefined,
         });
 
         if (summary) {
           systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
         }
+      }
+
+      // Inject learner memory into any system instruction (including overrides)
+      const memoryText = formatMemoryForPrompt(learnerMemory, lang);
+      if (memoryText) {
+        systemInstruction += `\n\n${memoryText}`;
       }
 
       // 3. Create Gemini Live client

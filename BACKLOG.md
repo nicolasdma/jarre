@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-16
+> Last updated: 2026-02-17
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -306,3 +306,6 @@
 - [x] `[P1]` Voice evaluation (Socratic): Gemini Live oral assessment → DeepSeek transcript scoring → same mastery/XP outputs - 2026-02-16
 - [x] `[P1]` Teach-the-Tutor (Level 4): student teaches confused AI junior, score >= 80 advances 3→4 - 2026-02-16
 - [x] `[P1]` Refactor: extract save-results.ts shared between text/voice eval endpoints - 2026-02-16
+- [x] `[P1]` Tutor model overhaul: AutoTutor escalation, Productive Failure, anti-sycophancy, mastery-adaptive prompts - 2026-02-17
+- [x] `[P1]` Post-evaluation consolidation: ideal answers, divergence analysis, review suggestions per concept - 2026-02-17
+- [x] `[P1]` Learner concept memory: misconceptions/strengths DB table, accumulation across sessions, prompt injection - 2026-02-17

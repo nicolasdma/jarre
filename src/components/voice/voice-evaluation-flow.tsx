@@ -9,7 +9,7 @@
  * Same props as EvaluationFlow for drop-in replacement.
  */
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useVoiceEvalSession, type VoiceEvalState } from './use-voice-eval-session';
@@ -210,10 +210,110 @@ const tr = {
   dimensionBreakdown: { es: 'Desglose por dimension', en: 'Breakdown by dimension' },
   voiceEval: { es: 'Evaluacion por voz', en: 'Voice evaluation' },
   maxDuration: { es: 'Maximo 10 minutos', en: 'Maximum 10 minutes' },
+  consolidation: { es: 'Consolidacion', en: 'Consolidation' },
+  idealAnswer: { es: 'Respuesta ideal', en: 'Ideal answer' },
+  whereDiverged: { es: 'Donde divergio tu razonamiento', en: 'Where your reasoning diverged' },
+  connections: { es: 'Conexiones', en: 'Connections' },
+  whatToReview: { es: 'Que repasar', en: 'What to review' },
+  showConsolidation: { es: 'Ver consolidacion', en: 'Show consolidation' },
+  hideConsolidation: { es: 'Ocultar consolidacion', en: 'Hide consolidation' },
 } as const;
 
 function t(key: keyof typeof tr, lang: Language): string {
   return tr[key]?.[lang] || tr[key]?.en || key;
+}
+
+// ============================================================================
+// Consolidation Section
+// ============================================================================
+
+interface ConsolidationItem {
+  conceptName: string;
+  idealAnswer: string;
+  divergence: string;
+  connections: string;
+  reviewSuggestion: string;
+}
+
+function ConsolidationSection({
+  consolidation,
+  language,
+}: {
+  consolidation: ConsolidationItem[];
+  language: Language;
+}) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  return (
+    <div className="mt-8 border border-j-border p-6">
+      <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-4">
+        {t('consolidation', language)}
+      </p>
+
+      <div className="space-y-3">
+        {consolidation.map((item, index) => {
+          const isExpanded = expandedIndex === index;
+
+          return (
+            <div key={`consolidation-${item.conceptName}`} className="border-l-2 border-j-border pl-4">
+              <button
+                type="button"
+                onClick={() => setExpandedIndex(isExpanded ? null : index)}
+                className="w-full text-left flex items-center justify-between gap-2 py-1 group"
+              >
+                <span className="font-mono text-[10px] tracking-[0.1em] text-j-text-secondary uppercase group-hover:text-j-accent transition-colors">
+                  {item.conceptName}
+                </span>
+                <span className="font-mono text-[10px] text-j-text-tertiary">
+                  {isExpanded ? '\u25B2' : '\u25BC'}
+                </span>
+              </button>
+
+              {isExpanded && (
+                <div className="mt-3 space-y-4 pb-3">
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-accent uppercase mb-1">
+                      {t('idealAnswer', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.idealAnswer}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-error uppercase mb-1">
+                      {t('whereDiverged', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.divergence}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                      {t('connections', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.connections}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase mb-1">
+                      {t('whatToReview', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.reviewSuggestion}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -465,6 +565,7 @@ export function VoiceEvaluationFlow({
   if (evalState === 'done' && evaluationResult) {
     const isHighScore = evaluationResult.overallScore >= 80;
     const isLowScore = evaluationResult.overallScore < 60;
+    const hasConsolidation = evaluationResult.consolidation && evaluationResult.consolidation.length > 0;
 
     return (
       <div>
@@ -552,6 +653,14 @@ export function VoiceEvaluationFlow({
             </div>
           ))}
         </div>
+
+        {/* Consolidation section */}
+        {hasConsolidation && (
+          <ConsolidationSection
+            consolidation={evaluationResult.consolidation}
+            language={language}
+          />
+        )}
 
         {/* Action buttons */}
         <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
