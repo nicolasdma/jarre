@@ -1,6 +1,6 @@
 # Jarre — Phase Projects Reference
 
-Each phase (except Phase 0) has a milestone project that advances concepts to mastery level 2 (Applied).
+Each phase has a milestone project that advances concepts to mastery level 2 (Applied).
 
 ---
 
@@ -22,15 +22,15 @@ Build a simple distributed KV store with replication. Simulate network partition
 ## Phase 2: ML Training Pipeline
 **ID:** `project-ml-pipeline`
 
-Build a data pipeline that prepares training data, tracks experiments, and serves a model. Integrate distributed training concepts.
+Build a data pipeline that prepares training data, tracks experiments, and serves a model. Integrate distributed training concepts. Focus on infrastructure concerns: containerization, experiment tracking, GPU utilization.
 
 **Deliverables:**
 - Data pipeline with versioning
 - Experiment tracking with metrics comparison
-- Model serving endpoint with monitoring
+- Model serving endpoint with monitoring (Docker/BentoML)
 - Written analysis of GPU utilization and bottlenecks
 
-**Concepts:** `gpu-compute-fundamentals`, `data-parallelism`, `distributed-training`, `ml-data-pipelines`, `experiment-tracking`
+**Concepts:** `gpu-compute-fundamentals`, `data-parallelism`, `distributed-training`, `ml-data-pipelines`, `experiment-tracking`, `model-containerization`
 
 ---
 
@@ -86,21 +86,6 @@ Build a knowledge management system that ingests documents (PDF, markdown, web p
 
 ---
 
-## Phase 6: Multimodal RAG System
-**ID:** `project-multimodal-rag`
-
-Build a RAG system that handles text, images, and tables. Cross-modal retrieval and generation.
-
-**Deliverables:**
-- Image + text retrieval working
-- Table extraction and querying
-- Cross-modal search (text query -> image results)
-- Performance comparison: multimodal vs text-only RAG
-
-**Concepts:** `multimodal-embeddings`, `vision-language-models`, `multimodal-rag`, `knowledge-distillation`
-
----
-
 ## Phase 7: LLM Output Validators
 **ID:** `project-validators`
 
@@ -136,10 +121,10 @@ Build a model routing system that classifies requests by complexity and routes t
 
 ---
 
-## Phase 9: Enterprise Workflow Orchestrator
+## Capstone: Enterprise Workflow Orchestrator
 **ID:** `project-system-design`
 
-Design and build a multi-agent workflow orchestration system for a concrete scenario (e.g., automated incident response or document processing pipeline). Must demonstrate production-grade patterns: supervisor-worker agents, audit trail, observability, guardrails, cost tracking, and graceful degradation. This is the capstone that integrates ALL prior phases.
+Design and build a multi-agent workflow orchestration system for a concrete scenario (e.g., automated incident response or document processing pipeline). Must demonstrate production-grade patterns: supervisor-worker agents, audit trail, observability, guardrails, cost tracking, and graceful degradation. This is the capstone that integrates ALL prior phases. Not tied to a specific phase.
 
 **Deliverables:**
 - Multi-agent architecture: supervisor delegates to 3+ specialized worker agents with defined protocol
@@ -155,7 +140,7 @@ Design and build a multi-agent workflow orchestration system for a concrete scen
 
 ---
 
-## Phase 10: AI Strategy & Implementation Proposal
+## Phase 10: AI Strategy & Implementation Proposal *(Alternate track)*
 **ID:** `project-ai-strategy`
 
 Develop a complete AI strategy and implementation proposal for a real or simulated organization. Covers the full consulting arc: assess AI maturity, discover use cases, analyze build vs buy, design governance, plan MLOps architecture, project costs, and drive adoption.
@@ -174,7 +159,7 @@ Develop a complete AI strategy and implementation proposal for a real or simulat
 
 ---
 
-## Phase 11: High-Performance LLM Serving System
+## Phase 11: High-Performance LLM Serving System *(Aspirational)*
 **ID:** `project-llm-serving`
 
 Build a high-performance LLM inference server that demonstrates mastery of GPU systems, memory management, quantization, and serving optimization. Implement or integrate key techniques: continuous batching, PagedAttention, quantized inference, and distributed serving.
