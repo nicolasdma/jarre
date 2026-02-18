@@ -39,12 +39,12 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
     // Get user's mastery levels
     const { data: progressRows } = await supabase
       .from(TABLES.conceptProgress)
-      .select('concept_id, mastery_level')
+      .select('concept_id, level')
       .eq('user_id', user.id);
 
     const masteryMap = new Map<string, number>();
     for (const row of (progressRows || [])) {
-      masteryMap.set(row.concept_id, parseMasteryLevel(row.mastery_level));
+      masteryMap.set(row.concept_id, parseMasteryLevel(row.level));
     }
 
     // Count total cards per concept (both question_bank + concept_cards in review_schedule)

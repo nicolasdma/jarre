@@ -17,11 +17,11 @@ export const POST = withAuth(async (_request, { supabase, user }) => {
     // Get all concepts with mastery >= 1
     const { data: progressRows } = await supabase
       .from(TABLES.conceptProgress)
-      .select('concept_id, mastery_level')
+      .select('concept_id, level')
       .eq('user_id', user.id);
 
     const unlockedConceptIds = (progressRows || [])
-      .filter(row => parseMasteryLevel(row.mastery_level) >= 1)
+      .filter(row => parseMasteryLevel(row.level) >= 1)
       .map(row => row.concept_id);
 
     if (unlockedConceptIds.length === 0) {
