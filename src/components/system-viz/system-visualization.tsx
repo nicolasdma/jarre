@@ -77,12 +77,20 @@ export function SystemVisualization({ concepts, definitions, language }: SystemV
       </div>
 
       {/* SVG diagram */}
-      <div className="overflow-x-auto border border-j-border bg-j-bg">
+      <div className="overflow-x-auto border border-j-border bg-j-bg j-dot-bg">
         <svg
           viewBox={`0 0 ${layout.viewBox.width} ${layout.viewBox.height}`}
           width="100%"
           style={{ minHeight: 950 }}
         >
+          {/* Grid overlay */}
+          <defs>
+            <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--j-grid-color, transparent)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid-pattern)" opacity="0.3" />
+
           {/* Phase bands */}
           {phases.map((phase, i) => {
             const bandY = 40 + i * PHASE_BAND_HEIGHT;
@@ -98,6 +106,8 @@ export function SystemVisualization({ concepts, definitions, language }: SystemV
                   fill={i % 2 === 0 ? 'var(--j-bg)' : 'var(--j-bg-alt)'}
                   opacity={0.5}
                 />
+                {/* Phase color indicator */}
+                <rect x={0} y={bandY} width={3} height={PHASE_BAND_HEIGHT} fill={meta.color} opacity={0.4} />
                 {/* Phase label */}
                 <text
                   x={20}

@@ -64,8 +64,8 @@ export function ConnectionArrows({ edges, nodeMap, highlightedChain }: Connectio
               d={`M ${sx} ${sy} C ${sx + 20} ${sy}, ${ex - 20} ${ey}, ${ex} ${ey}`}
               fill="none"
               stroke={isHighlighted ? 'var(--j-accent)' : 'var(--j-border)'}
-              strokeWidth={isHighlighted ? 1.5 : 0.8}
-              opacity={isHighlighted ? 0.8 : 0.3}
+              strokeWidth={isHighlighted ? 2 : 1.2}
+              opacity={isHighlighted ? 0.9 : 0.4}
               markerEnd={isHighlighted ? 'url(#arrowhead-active)' : 'url(#arrowhead)'}
             />
           );

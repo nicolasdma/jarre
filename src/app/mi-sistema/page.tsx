@@ -65,7 +65,7 @@ export default async function MiSistemaPage() {
     <div className="min-h-screen bg-j-bg">
       <Header currentPage="mi-sistema" />
 
-      <main className="mx-auto max-w-7xl px-8 py-12">
+      <main className="mx-auto max-w-7xl px-8 py-12 j-grid-bg">
         <SectionLabel className="mb-8">
           {lang === 'es' ? 'Tu Sistema Distribuido' : 'Your Distributed System'}
         </SectionLabel>
