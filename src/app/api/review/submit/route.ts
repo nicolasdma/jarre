@@ -419,12 +419,12 @@ async function applyScheduleAndMastery({
 
     const { data: progress } = await supabase
       .from(TABLES.conceptProgress)
-      .select('mastery_level')
+      .select('level')
       .eq('user_id', userId)
       .eq('concept_id', conceptId)
       .single();
 
-    const currentLevel = parseMasteryLevel(progress?.mastery_level);
+    const currentLevel = parseMasteryLevel(progress?.level);
 
     if (canAdvanceFromMicroTests(currentLevel, totalCorrect)) {
       const { error: advanceError } = await supabase
@@ -433,7 +433,7 @@ async function applyScheduleAndMastery({
           {
             user_id: userId,
             concept_id: conceptId,
-            mastery_level: serializeMasteryLevel(1),
+            level: serializeMasteryLevel(1),
           },
           { onConflict: 'user_id,concept_id' }
         );

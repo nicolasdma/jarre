@@ -21,12 +21,12 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     const count = Math.min(20, Math.max(1, parseInt(url.searchParams.get('count') || '10', 10)));
 
     // Get unlocked concept IDs (mastery >= 1)
-    // concept_progress.mastery_level is stored as text like '1', '2', etc.
+    // concept_progress.level is stored as enum text ('0'-'4')
     const { data: unlockedConcepts } = await supabase
       .from(TABLES.conceptProgress)
       .select('concept_id')
       .eq('user_id', user.id)
-      .gte('mastery_level', '1');
+      .gte('level', '1');
 
     const unlockedIds = (unlockedConcepts || []).map(c => c.concept_id);
 
