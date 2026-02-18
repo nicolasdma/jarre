@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorMessage } from '@/components/error-message';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -148,13 +149,13 @@ function RubricSummary({ responses }: { responses: EvaluationResult[] }) {
             {label}
           </span>
           <div className="flex gap-0.5">
-            {[0, 1, 2, 3, 4].map((dotLevel) => (
-              <span
-                key={`dot-${dotLevel}`}
-                className={`text-xs ${dotLevel < dots ? 'text-j-accent' : 'text-j-border-input'}`}
-              >
-                {dotLevel < dots ? '●' : '○'}
-              </span>
+            {[0, 1, 2, 3, 4].map((level) => (
+              <div
+                key={`bar-${level}`}
+                className={`h-2 flex-1 w-4 transition-all duration-300 ${
+                  level < dots ? 'bg-j-accent' : 'bg-j-border'
+                }`}
+              />
             ))}
           </div>
         </div>
@@ -662,14 +663,24 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
         </div>
 
         {/* Score summary */}
-        <div className={`border p-8 mb-4 ${isHighScore ? 'border-j-accent bg-j-accent/5' : 'border-j-border'}`}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className={`border p-8 mb-4 j-glow-accent ${isHighScore ? 'border-j-accent bg-j-accent/5' : 'border-j-border'}`}
+        >
           <div className="flex items-center gap-8">
             <div className="text-center">
-              <p className={`text-4xl font-light ${
-                results.overallScore >= 60 ? 'text-j-accent' : 'text-j-error'
-              }`}>
+              <motion.p
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.4, type: 'spring', stiffness: 120 }}
+                className={`text-5xl font-light ${
+                  results.overallScore >= 60 ? 'text-j-accent' : 'text-j-error'
+                }`}
+              >
                 {results.overallScore}%
-              </p>
+              </motion.p>
               <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
                 {t('eval.overallScore', language)}
               </p>
@@ -687,7 +698,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Discovery framing message */}
         <p className="text-[10px] text-j-text-tertiary font-mono text-center mb-6">
@@ -713,8 +724,11 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
           {results.responses.map((result, index) => {
             const question = questions[index];
             return (
-              <div
+              <motion.div
                 key={`eval-result-${result.questionIndex}`}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + index * 0.08 }}
                 className={`border-l-2 pl-6 ${
                   result.isCorrect ? 'border-j-accent' : 'border-j-error'
                 }`}
@@ -749,7 +763,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
                     <p className="text-sm text-j-text-secondary leading-relaxed">{result.feedback}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

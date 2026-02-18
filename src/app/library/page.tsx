@@ -5,6 +5,7 @@ import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { LanguageSelector } from '@/components/language-selector';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
+import { CornerBrackets } from '@/components/ui/corner-brackets';
 import { LibraryContent } from './library-content';
 
 export const metadata: Metadata = {
@@ -241,7 +242,7 @@ export default async function LibraryPage() {
     <div className="min-h-screen bg-j-bg">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-8 py-12">
+      <main className="mx-auto max-w-6xl px-8 py-12 j-grid-bg">
         {/* Hero Section */}
         <div className="mb-16">
           <SectionLabel>
@@ -273,25 +274,29 @@ export default async function LibraryPage() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-          <div className="text-center">
+          <div className="relative text-center p-4">
+            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
             <p className="text-4xl font-light text-j-text">{totalResources}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.resources', lang)}
             </p>
           </div>
-          <div className="text-center">
+          <div className="relative text-center p-4">
+            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
             <p className="text-4xl font-light text-j-accent">{totalUnlocked}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.unlocked', lang)}
             </p>
           </div>
-          <div className="text-center">
+          <div className="relative text-center p-4">
+            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
             <p className="text-4xl font-light text-j-accent">{totalEvaluated}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.evaluated', lang)}
             </p>
           </div>
-          <div className="text-center">
+          <div className="relative text-center p-4">
+            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
             <p className="text-4xl font-light text-j-warm-dark">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {lang === 'es' ? 'Promedio' : 'Average'}

@@ -59,7 +59,7 @@ export async function Header({ currentPage }: HeaderProps) {
         <div className="flex items-center justify-between relative">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 border border-j-accent flex items-center justify-center">
+            <div className="w-8 h-8 border border-j-accent flex items-center justify-center j-glow-accent">
               <span className="text-j-accent font-mono text-xs">J</span>
             </div>
             <span className="font-mono text-sm tracking-[0.1em] text-j-text uppercase group-hover:text-j-accent transition-colors">
@@ -78,7 +78,8 @@ export async function Header({ currentPage }: HeaderProps) {
                   : 'text-j-text-secondary hover:text-j-text'
               }`}
             >
-              01. {t('nav.library', lang)}
+              <span className="text-j-accent">01</span><span className="mx-1 text-j-text-tertiary">.</span>
+              {t('nav.library', lang)}
             </Link>
 
             {user ? (
@@ -92,7 +93,8 @@ export async function Header({ currentPage }: HeaderProps) {
                       : 'text-j-text-secondary hover:text-j-text'
                   }`}
                 >
-                  02. {t('nav.review', lang)}
+                  <span className="text-j-accent">02</span><span className="mx-1 text-j-text-tertiary">.</span>
+                  {t('nav.review', lang)}
                   {dueCount > 0 && (
                     <span className="bg-j-accent text-j-text-on-accent text-[9px] font-mono px-1.5 py-0.5 min-w-[18px] text-center">
                       {dueCount > 99 ? '99+' : dueCount}
@@ -108,7 +110,8 @@ export async function Header({ currentPage }: HeaderProps) {
                       : 'text-j-text-secondary hover:text-j-text'
                   }`}
                 >
-                  03. {lang === 'es' ? 'Mi Sistema' : 'My System'}
+                  <span className="text-j-accent">03</span><span className="mx-1 text-j-text-tertiary">.</span>
+                  {lang === 'es' ? 'Mi Sistema' : 'My System'}
                 </Link>
                 {/* Engagement badges */}
                 <Link href="/profile" className="flex items-center gap-3 pl-2 border-l border-j-border hover:opacity-80 transition-opacity">

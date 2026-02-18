@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 import { QuickQuiz } from '@/components/quick-quiz';
+import { CornerBrackets } from '@/components/ui/corner-brackets';
 
 // Resources that skip learn and go directly to evaluate (e.g., no content yet)
 const EVALUATE_ONLY_RESOURCES: string[] = [];
@@ -52,18 +53,6 @@ function formatRelativeDate(dateString: string, lang: Language): string {
   }
   const months = Math.floor(diffDays / 30);
   return lang === 'es' ? `Hace ${months} mes${months > 1 ? 'es' : ''}` : `${months}mo ago`;
-}
-
-// Corner bracket component for decorative framing
-function CornerBrackets({ className = '', hideLeft = false }: { className?: string; hideLeft?: boolean }) {
-  return (
-    <>
-      {!hideLeft && <div className={`absolute top-0 left-0 w-3 h-3 border-l border-t ${className}`} />}
-      <div className={`absolute top-0 right-0 w-3 h-3 border-r border-t ${className}`} />
-      {!hideLeft && <div className={`absolute bottom-0 left-0 w-3 h-3 border-l border-b ${className}`} />}
-      <div className={`absolute bottom-0 right-0 w-3 h-3 border-r border-b ${className}`} />
-    </>
-  );
 }
 
 export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardProps) {
@@ -127,6 +116,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
 
       {/* Corner brackets — hide left corners when line is present */}
       <CornerBrackets
+        size="sm"
         hideLeft={hasEvaluation}
         className={`transition-colors duration-300 ${
           hasEvaluation

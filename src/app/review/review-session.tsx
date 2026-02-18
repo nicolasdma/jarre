@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { InlineQuiz } from '@/components/inline-quiz';
 import { ReviewPrediction } from '@/components/review-prediction';
 import { ErrorMessage } from '@/components/error-message';
+import { CornerBrackets } from '@/components/ui/corner-brackets';
 import { categorizeError } from '@/lib/utils/categorize-error';
 import { t, type Language } from '@/lib/translations';
 import type { UnifiedReviewCard, ReviewSubmitResponse } from '@/types';
@@ -388,7 +390,14 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
       <div className="text-center py-16">
         {dueCount > 0 ? (
           <>
-            <p className="text-6xl font-light text-j-accent mb-4">{dueCount}</p>
+            <motion.p
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
+              className="text-6xl font-light text-j-accent mb-4"
+            >
+              {dueCount}
+            </motion.p>
             <p className="text-j-text-secondary mb-2">{t('review.pendingCards', language)}</p>
             <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-8">
               {totalCards} total
@@ -854,19 +863,20 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           {t('review.sessionComplete', language)}
         </h2>
 
-        <div className="grid grid-cols-2 gap-8 max-w-xs mx-auto my-12">
-          <div>
+        <div className="relative grid grid-cols-2 gap-8 max-w-xs mx-auto my-12 p-6">
+          <CornerBrackets size="md" className="border-j-border" />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <p className="text-4xl font-light text-j-accent">{correctCount}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('review.correctCount', language)}
             </p>
-          </div>
-          <div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <p className="text-4xl font-light text-j-error">{incorrectCount}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('review.incorrectCount', language)}
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {prediction != null && (

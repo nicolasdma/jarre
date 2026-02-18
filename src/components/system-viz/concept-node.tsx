@@ -49,7 +49,31 @@ export function ConceptNodeSVG({
         opacity={styles.opacity}
       />
 
-      {/* Level 4: glow effect */}
+      {/* Level 3+: outer glow */}
+      {masteryLevel >= 3 && (
+        <rect
+          x={x - 1}
+          y={y - 1}
+          width={width + 2}
+          height={height + 2}
+          rx={5}
+          fill="none"
+          stroke={styles.stroke}
+          strokeWidth={0.5}
+          opacity={0.15}
+        >
+          {masteryLevel >= 4 && (
+            <animate
+              attributeName="opacity"
+              values="0.15;0.4;0.15"
+              dur="2.5s"
+              repeatCount="indefinite"
+            />
+          )}
+        </rect>
+      )}
+
+      {/* Level 4: inner glow effect */}
       {masteryLevel >= 4 && (
         <rect
           x={x - 2}

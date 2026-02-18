@@ -202,6 +202,16 @@
 
   --j-whisper-cursor: rgba(107, 142, 107, 0.08);
 
+  /* Glow effects (dark-only) */
+  --j-glow-accent: 0 0 20px rgba(107, 142, 107, 0.15);
+  --j-glow-accent-strong: 0 0 30px rgba(107, 142, 107, 0.25), 0 0 60px rgba(107, 142, 107, 0.1);
+  --j-glow-warm: 0 0 20px rgba(212, 184, 150, 0.15);
+
+  /* Grid/dot pattern colors */
+  --j-grid-color: rgba(51, 65, 85, 0.4);
+  --j-grid-size: 40px;
+  --j-dot-color: rgba(71, 85, 105, 0.3);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -233,6 +243,27 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Dark mode patterns — no-op in light mode */
+.dark .j-grid-bg {
+  background-image:
+    linear-gradient(var(--j-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--j-grid-color) 1px, transparent 1px);
+  background-size: var(--j-grid-size) var(--j-grid-size);
+}
+
+.dark .j-dot-bg {
+  background-image: radial-gradient(var(--j-dot-color) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.dark .j-glow-accent {
+  box-shadow: var(--j-glow-accent);
+}
+
+.dark .j-glow-accent-strong {
+  box-shadow: var(--j-glow-accent-strong);
 }
 
 /* Whisper read-along mode */

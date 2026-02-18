@@ -17,7 +17,7 @@ interface JarreButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 // ============================================================================
 
 const VARIANT_CLASSES: Record<JarreButtonVariant, string> = {
-  'j-primary': 'bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover disabled:opacity-50',
+  'j-primary': 'bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover disabled:opacity-50 j-glow-accent',
   'j-secondary': 'border border-j-border-input bg-transparent text-j-text-secondary hover:border-j-accent hover:text-j-text disabled:opacity-50',
   'j-ghost': 'bg-transparent text-j-text-secondary hover:bg-j-bg-alt hover:text-j-text disabled:opacity-50',
   'j-danger': 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50',
