@@ -35,5 +35,3 @@ export const TABLES = {
   voiceTranscripts: 'voice_transcripts',
   tokenUsage: 'token_usage',
 } as const;
-
-export type TableName = (typeof TABLES)[keyof typeof TABLES];

@@ -4,7 +4,7 @@ import type { StorageBackend, BackendState } from '../storage/interface.js';
  * Build a complete debug snapshot of the engine state.
  * This is served as JSON on the debug port for the web UI.
  */
-export interface EngineSnapshot {
+interface EngineSnapshot {
   timestamp: string;
   uptimeMs: number;
   backend: BackendState;

@@ -409,6 +409,46 @@ function FileTreeItem({
   );
 }
 
+function WikiLinkedContent({
+  text,
+  onNavigate,
+}: {
+  text: string;
+  onNavigate: (path: string) => void;
+}) {
+  const parts = text.split(/(\[\[[^\]]+\]\])/g);
+  let textCounter = 0;
+  return (
+    <>
+      {parts.map((part) => {
+        const wikiMatch = part.match(/^\[\[([^\]]+)\]\]$/);
+        if (wikiMatch) {
+          const slug = wikiMatch[1];
+          const targetPath = WIKI_LINK_MAP[slug];
+          const resolved = targetPath && VAULT_FILES[targetPath];
+          return (
+            <button
+              key={`wiki-${slug}`}
+              onClick={() => {
+                if (resolved) onNavigate(targetPath);
+              }}
+              className={`inline font-mono ${
+                resolved
+                  ? 'text-j-accent hover:underline cursor-pointer'
+                  : 'text-red-400/60 line-through cursor-not-allowed'
+              }`}
+            >
+              [[{slug}]]
+            </button>
+          );
+        }
+        const key = `text-${++textCounter}`;
+        return <span key={key}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 function ContentViewer({
   filePath,
   onNavigate,
@@ -424,34 +464,6 @@ function ContentViewer({
       </div>
     );
   }
-
-  const renderContent = (text: string) => {
-    const parts = text.split(/(\[\[[^\]]+\]\])/g);
-    return parts.map((part, i) => {
-      const wikiMatch = part.match(/^\[\[([^\]]+)\]\]$/);
-      if (wikiMatch) {
-        const slug = wikiMatch[1];
-        const targetPath = WIKI_LINK_MAP[slug];
-        const resolved = targetPath && VAULT_FILES[targetPath];
-        return (
-          <button
-            key={i}
-            onClick={() => {
-              if (resolved) onNavigate(targetPath);
-            }}
-            className={`inline font-mono ${
-              resolved
-                ? 'text-j-accent hover:underline cursor-pointer'
-                : 'text-red-400/60 line-through cursor-not-allowed'
-            }`}
-          >
-            [[{slug}]]
-          </button>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -483,7 +495,7 @@ function ContentViewer({
 
         {/* Content */}
         <div className="font-mono text-[12px] leading-relaxed text-j-text whitespace-pre-wrap">
-          {renderContent(file.content)}
+          <WikiLinkedContent text={file.content} onNavigate={onNavigate} />
         </div>
       </div>
     </div>
@@ -549,7 +561,7 @@ function KnowledgeGraph({
       <div className="flex-1 flex items-center justify-center p-2">
         <svg viewBox="0 0 320 280" className="w-full h-full max-h-[280px]">
           {/* Edges */}
-          {edges.map((edge, i) => {
+          {edges.map((edge) => {
             const from = nodePositions[edge.from];
             const to = nodePositions[edge.to];
             if (!from || !to) return null;
@@ -557,7 +569,7 @@ function KnowledgeGraph({
               edge.from === selectedPath || edge.to === selectedPath;
             return (
               <line
-                key={i}
+                key={`${edge.from}-${edge.to}`}
                 x1={from.x}
                 y1={from.y}
                 x2={to.x}
@@ -650,9 +662,9 @@ function BudgetSimulator() {
         {/* Slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="font-mono text-[10px] text-j-text-tertiary tracking-[0.15em] uppercase">
+            <span className="font-mono text-[10px] text-j-text-tertiary tracking-[0.15em] uppercase">
               Context Window Budget
-            </label>
+            </span>
             <span className="font-mono text-[12px] text-j-accent">{budget} tokens</span>
           </div>
           <input

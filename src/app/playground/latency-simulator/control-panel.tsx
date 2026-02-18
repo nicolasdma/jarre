@@ -306,7 +306,8 @@ function LatencyHistogram({
 
           return (
             <rect
-              key={i}
+
+              key={`bin-${i}`}
               x={barX}
               y={barY}
               width={barW}

@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { ReplicationPlayground } from './replication-playground';
+
+export const metadata: Metadata = {
+  title: 'Replication Lab — Jarre',
+  description: 'Interactive replication strategies playground for distributed databases',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

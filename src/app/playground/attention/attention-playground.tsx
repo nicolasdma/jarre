@@ -120,7 +120,7 @@ function MatrixDisplay({
                 {rowLabels && <th className="w-14" />}
                 {colLabels.map((l, i) => (
                   <th
-                    key={i}
+                    key={`col-${l}`}
                     className={`font-mono text-[9px] text-[#aaa] font-normal px-0.5 pb-1 ${
                       highlightCol === i ? 'text-j-text' : ''
                     }`}
@@ -133,7 +133,7 @@ function MatrixDisplay({
           )}
           <tbody>
             {data.map((row, i) => (
-              <tr key={i}>
+              <tr key={`row-${rowLabels?.[i] ?? i}`}>
                 {rowLabels && (
                   <td
                     className={`font-mono text-[9px] pr-2 text-right ${
@@ -149,7 +149,7 @@ function MatrixDisplay({
                     (highlightCol !== undefined && highlightCol === j);
                   return (
                     <td
-                      key={j}
+                      key={`cell-${j}`}
                       className={`${cellSize} text-center font-mono border border-[#1a1a1a]/5 transition-all duration-300 ${
                         isHighlighted ? 'ring-1 ring-[#6366f1]/50' : ''
                       }`}
@@ -223,9 +223,9 @@ function AttentionHeatmap({
           <thead>
             <tr>
               <th className="w-12" />
-              {tokens.map((t, i) => (
+              {tokens.map((t) => (
                 <th
-                  key={i}
+                  key={`hdr-${t}`}
                   className="font-mono text-[9px] text-[#aaa] font-normal px-0.5 pb-1"
                   style={{ writingMode: compact ? 'vertical-rl' : undefined }}
                 >
@@ -236,12 +236,12 @@ function AttentionHeatmap({
           </thead>
           <tbody>
             {weights.map((row, i) => (
-              <tr key={i}>
+              <tr key={`row-${tokens[i]}`}>
                 <td className="font-mono text-[9px] text-[#aaa] pr-2 text-right">
                   {tokens[i]}
                 </td>
                 {row.map((val, j) => (
-                  <td key={j}>
+                  <td key={`cell-${j}`}>
                     <HeatmapCell value={val} maxValue={max} color={color} size={cellSize} />
                   </td>
                 ))}
@@ -390,7 +390,7 @@ function DotProductAnimation({
       </span>
       <div className="flex items-center gap-2 flex-wrap">
         {products.map((p, i) => (
-          <div key={i} className="flex items-center gap-1">
+          <div key={`${p.q}-${p.k}-${p.product}`} className="flex items-center gap-1">
             <span className="font-mono text-[10px] text-[#6366f1]">{p.q.toFixed(2)}</span>
             <span className="font-mono text-[9px] text-[#aaa]">x</span>
             <span className="font-mono text-[10px] text-[#f59e0b]">{p.k.toFixed(2)}</span>
@@ -582,9 +582,9 @@ export function AttentionPlayground() {
         <div className="shrink-0 border-b border-j-border px-6 py-3 flex items-center gap-4 flex-wrap">
           {/* Sentence input */}
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-            <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider shrink-0">
+            <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider shrink-0">
               Input
-            </label>
+            </span>
             <input
               type="text"
               value={inputDraft}
@@ -661,7 +661,7 @@ export function AttentionPlayground() {
           </span>
           {state.tokens.map((t, i) => (
             <span
-              key={i}
+              key={`token-${t}`}
               className="px-2.5 py-1 rounded font-mono text-[11px] border transition-colors"
               style={{
                 borderColor: ACCENT + '40',
@@ -872,7 +872,7 @@ export function AttentionPlayground() {
               <div className="grid grid-cols-2 gap-6">
                 {state.heads.map((h, i) => (
                   <AttentionHeatmap
-                    key={i}
+                    key={HEAD_LABELS[i]}
                     weights={h.weights}
                     tokens={state.tokens}
                     title={HEAD_LABELS[i]}

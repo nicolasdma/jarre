@@ -19,6 +19,7 @@ const LS_WIDTH_KEY = 'jarre:notebook-width';
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 600;
+const POLISH_BOUNDARY = '<!-- polish-boundary -->';
 
 /**
  * Continuous notebook surface using contentEditable.
@@ -121,12 +122,26 @@ export function NotebookPanel({
     const html = editor.innerHTML.trim();
     if (!html) return;
 
+    // Incremental polish: only send content added after the last polish boundary
+    const boundaryIndex = html.lastIndexOf(POLISH_BOUNDARY);
+    let alreadyPolished = '';
+    let newContent = html;
+
+    if (boundaryIndex !== -1) {
+      alreadyPolished = html.substring(0, boundaryIndex);
+      newContent = html.substring(boundaryIndex + POLISH_BOUNDARY.length);
+    }
+
+    // Check if there's actual new text to polish
+    const strippedNew = newContent.replace(/<[^>]*>/g, '').trim();
+    if (!strippedNew) return;
+
     setIsPolishing(true);
     try {
       const res = await fetch('/api/section-notes/polish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: html }),
+        body: JSON.stringify({ content: newContent }),
       });
 
       if (!res.ok) {
@@ -136,8 +151,9 @@ export function NotebookPanel({
 
       const data = await res.json();
       if (data.content) {
-        editor.innerHTML = data.content;
-        onContentChange(data.content);
+        const fullHtml = alreadyPolished + POLISH_BOUNDARY + data.content;
+        editor.innerHTML = fullHtml;
+        onContentChange(fullHtml);
       }
     } catch (error) {
       console.error('[NotesPolish] Failed:', error);
@@ -213,6 +229,8 @@ export function NotebookPanel({
     >
       {/* Drag handle */}
       <div
+        role="separator"
+        aria-orientation="vertical"
         onMouseDown={handleDragStart}
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-j-accent/30 transition-colors z-20"
       />

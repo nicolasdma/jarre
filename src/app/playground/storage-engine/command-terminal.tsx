@@ -105,6 +105,7 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
     <div
       className="h-full flex flex-col bg-[#1a1a1a] cursor-text"
       onClick={() => inputRef.current?.focus()}
+      role="presentation"
     >
       {/* Terminal header */}
       <div className="px-4 py-2 border-b border-[#333] flex items-center justify-between shrink-0">
@@ -140,7 +141,8 @@ export function CommandTerminal({ lines, onCommand, status }: CommandTerminalPro
         )}
 
         {lines.map((line, i) => (
-          <div key={i} className="font-mono text-xs leading-relaxed">
+
+          <div key={`line-${i}`} className="font-mono text-xs leading-relaxed">
             {line.type === 'input' ? (
               <span>
                 <span className="text-j-accent">{'> '}</span>

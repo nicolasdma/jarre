@@ -26,7 +26,7 @@ export interface KeyEntry {
 
 export type PartitionMode = 'simple-hash' | 'consistent-hash' | 'range';
 
-export interface VirtualNode {
+interface VirtualNode {
   hash: number;
   nodeId: string;
 }
@@ -44,7 +44,7 @@ export interface PartitionState {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const NODE_COLORS = [
+const NODE_COLORS = [
   '#059669', '#2563eb', '#d97706', '#dc2626',
   '#7c3aed', '#db2777', '#0891b2', '#65a30d',
 ];
@@ -57,7 +57,7 @@ const MAX_HASH = 0xFFFFFFFF; // 2^32 - 1
 // Hash functions (deterministic)
 // ---------------------------------------------------------------------------
 
-export function simpleHash(key: string): number {
+function simpleHash(key: string): number {
   let hash = 5381;
   for (let i = 0; i < key.length; i++) {
     hash = ((hash << 5) + hash + key.charCodeAt(i)) & 0xFFFFFFFF;
@@ -209,7 +209,7 @@ export function PartitionPlayground() {
   const lastProactiveRef = useRef(0);
 
   // Proactive tutor trigger: fires on rebalance with >30% keys moved
-  useEffect(() => {
+  const fetchProactiveTutor = useCallback(async () => {
     if (!state.lastRebalance) return;
     const { moved, total } = state.lastRebalance;
     if (total === 0 || (moved / total) <= 0.3) return;
@@ -218,21 +218,26 @@ export function PartitionPlayground() {
     if (now - lastProactiveRef.current < 30000) return;
     lastProactiveRef.current = now;
 
-    fetch('/api/playground/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playground: 'partitioning',
-        state,
-        history: [],
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.question) setProactiveQuestion(data.question);
-      })
-      .catch(() => {});
-  }, [state.lastRebalance]);
+    try {
+      const res = await fetch('/api/playground/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playground: 'partitioning',
+          state,
+          history: [],
+        }),
+      });
+      const data = await res.json();
+      if (data.question) setProactiveQuestion(data.question);
+    } catch {
+      // Proactive question is optional — don't block on errors
+    }
+  }, [state.lastRebalance, state]);
+
+  useEffect(() => {
+    fetchProactiveTutor();
+  }, [fetchProactiveTutor]);
 
   // ---- Add Node ----
   const addNode = useCallback(() => {

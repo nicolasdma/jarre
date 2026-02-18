@@ -508,12 +508,17 @@ export function GradientDescentPlayground() {
               viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}
               className="w-full cursor-crosshair"
               style={{ maxHeight: '500px' }}
+              role="img"
+              aria-label="Contour plot - click to place starting point"
+              tabIndex={0}
               onClick={handleSvgClick}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSvgClick(e as unknown as React.MouseEvent<SVGSVGElement>); } }}
             >
               {/* Contour heatmap */}
               {contourData.data.map((row, j) =>
                 row.map((val, i) => (
                   <rect
+
                     key={`${j}-${i}`}
                     x={i * cellSize}
                     y={j * cellSize}
@@ -573,6 +578,7 @@ export function GradientDescentPlayground() {
                       if (crossings.length >= 2) {
                         lines.push(
                           <line
+
                             key={`c-${c}-${j}-${i}`}
                             x1={crossings[0].x}
                             y1={crossings[0].y}

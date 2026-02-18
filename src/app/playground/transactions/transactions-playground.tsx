@@ -311,11 +311,11 @@ export function TransactionsPlayground() {
                     {tx.label}
                   </p>
                   <div className="flex gap-1">
-                    {tx.operations.map((op, i) => {
+                    {tx.operations.map((op) => {
                       const isActive = state.step >= op.timestamp;
                       return (
                         <div
-                          key={i}
+                          key={`op-${op.timestamp}`}
                           className={`flex-1 py-2 px-2 border text-center transition-all duration-300 ${
                             isActive
                               ? 'border-current opacity-100'

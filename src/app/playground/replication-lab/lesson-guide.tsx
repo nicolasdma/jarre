@@ -268,9 +268,9 @@ export function LessonGuide({ actions, config, isPartitioned }: LessonGuideProps
               Acciones
             </p>
             <div className="space-y-1.5">
-              {step.actions.map((a, i) => (
+              {step.actions.map((a) => (
                 <button
-                  key={i}
+                  key={a.label}
                   onClick={() => executeAction(a, actions)}
                   className="w-full text-left group"
                 >

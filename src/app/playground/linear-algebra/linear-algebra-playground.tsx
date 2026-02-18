@@ -328,6 +328,7 @@ export function LinearAlgebraPlayground() {
               {/* Original grid (faint) */}
               {gridLines.map((l, i) => (
                 <line
+
                   key={`og-${i}`}
                   x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
                   stroke="#e5e5e5"
@@ -338,6 +339,7 @@ export function LinearAlgebraPlayground() {
               {/* Transformed grid */}
               {transformedGridLines.map((l, i) => (
                 <line
+
                   key={`tg-${i}`}
                   x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
                   stroke="#93c5fd"
@@ -382,6 +384,7 @@ export function LinearAlgebraPlayground() {
                 const [x2, y2] = toSVG(vec[0] * scaledLen, vec[1] * scaledLen);
                 const color = i === 0 ? '#dc2626' : '#16a34a';
                 return (
+
                   <g key={`eig-${i}`}>
                     <line
                       x1={x1} y1={y1} x2={x2} y2={y2}

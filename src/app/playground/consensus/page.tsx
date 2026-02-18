@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { ConsensusPlayground } from './consensus-playground';
+
+export const metadata: Metadata = {
+  title: 'Consensus Playground — Jarre',
+  description: 'Interactive consensus algorithm stepper for distributed systems',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

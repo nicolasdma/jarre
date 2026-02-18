@@ -34,6 +34,8 @@ export default function RootLayout({
       <head>
         {/* Inline script to prevent FOWT (Flash of Wrong Theme) */}
         <script
+          id="theme-init"
+          // eslint-disable-next-line react/no-danger -- Required to prevent FOWT; content is static and safe
           dangerouslySetInnerHTML={{
             __html: `(function(){try{if(localStorage.getItem('jarre-theme')==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})()`,
           }}

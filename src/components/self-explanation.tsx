@@ -78,10 +78,8 @@ export function SelfExplanation({
     };
   }, [value, saved, required, minLength]);
 
-  // Hide nudge when user starts typing
-  useEffect(() => {
-    if (value.trim().length > 0) setShowNudge(false);
-  }, [value]);
+  // showNudge is gated in JSX by value length — no sync effect needed
+  const effectiveShowNudge = showNudge && value.trim().length < minLength;
 
   const handleSave = () => {
     if (!isValid) return;
@@ -180,7 +178,7 @@ export function SelfExplanation({
           <span className={`font-mono text-[10px] ${isValid ? 'text-j-accent' : 'text-j-text-tertiary'}`}>
             {value.trim().length}/{minLength} {language === 'es' ? 'caracteres mínimos' : 'min characters'}
           </span>
-          {showNudge && (
+          {effectiveShowNudge && (
             <span className="text-[10px] text-j-warm animate-pulse">
               {language === 'es' ? 'Intenta explicar lo que entendiste...' : 'Try explaining what you understood...'}
             </span>

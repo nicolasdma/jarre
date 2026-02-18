@@ -5,7 +5,7 @@
  * Format: [Context] message
  */
 
-export interface Logger {
+interface Logger {
   info: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;

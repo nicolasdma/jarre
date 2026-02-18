@@ -7,7 +7,7 @@ import type { SequenceExercise, ConnectExercise, LabelExercise } from '@/types';
  * vault architecture (folders, YAML frontmatter, wiki-links, index).
  */
 
-export const clawvaultExercise1: SequenceExercise = {
+const clawvaultExercise1: SequenceExercise = {
   id: 'clawvault.1',
   type: 'sequence',
   title: 'Inyección de contexto budget-aware',
@@ -25,7 +25,7 @@ export const clawvaultExercise1: SequenceExercise = {
   correctOrder: ['s1', 's2', 's3', 's4', 's5', 's6'],
 };
 
-export const clawvaultExercise2: ConnectExercise = {
+const clawvaultExercise2: ConnectExercise = {
   id: 'clawvault.2',
   type: 'connect',
   title: 'Tipos de memoria y ejemplos concretos',
@@ -56,7 +56,7 @@ export const clawvaultExercise2: ConnectExercise = {
   ],
 };
 
-export const clawvaultExercise3: LabelExercise = {
+const clawvaultExercise3: LabelExercise = {
   id: 'clawvault.3',
   type: 'label',
   title: 'Arquitectura del ClawVault',

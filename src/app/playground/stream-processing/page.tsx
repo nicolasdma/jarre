@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { StreamPlayground } from './stream-playground';
+
+export const metadata: Metadata = {
+  title: 'Stream Processing Lab — Jarre',
+  description: 'Interactive stream processing playground for event-driven architectures',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

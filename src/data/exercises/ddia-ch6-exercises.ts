@@ -4,7 +4,7 @@ import type { ConnectExercise, LabelExercise, SequenceExercise } from '@/types';
  * Ch6: Partitioning — 3 exercises
  */
 
-export const ch6Exercise1: ConnectExercise = {
+const ch6Exercise1: ConnectExercise = {
   id: 'ddia-6.1',
   type: 'connect',
   title: 'Flujo de request routing',
@@ -26,7 +26,7 @@ export const ch6Exercise1: ConnectExercise = {
   ],
 };
 
-export const ch6Exercise2: LabelExercise = {
+const ch6Exercise2: LabelExercise = {
   id: 'ddia-6.2',
   type: 'label',
   title: 'Consistent hashing ring',
@@ -53,7 +53,7 @@ export const ch6Exercise2: LabelExercise = {
   labels: ['Nodo A', 'Nodo B', 'Nodo C', 'Nodo D', 'Key k1', 'Key k2'],
 };
 
-export const ch6Exercise3: SequenceExercise = {
+const ch6Exercise3: SequenceExercise = {
   id: 'ddia-6.3',
   type: 'sequence',
   title: 'Rebalanceo de particiones',

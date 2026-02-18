@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { StudyView } from './study-view';
 import { t, type Language } from '@/lib/translations';
+
+export async function generateMetadata({ params }: { params: Promise<{ resourceId: string }> }): Promise<Metadata> {
+  const { resourceId } = await params;
+  return {
+    title: `${resourceId} — Jarre`,
+    description: 'Study resource with sections, notes, and evaluations',
+  };
+}
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;

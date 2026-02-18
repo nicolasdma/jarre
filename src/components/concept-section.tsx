@@ -137,9 +137,11 @@ export function ConceptSection({
   }, [preQuestion, preLoading, preFetchFailed, fetchQuestion]);
 
   // Start loading when this section becomes active
-  if (isActive && !preQuestion && !preLoading && !preAttempted && !preFetchFailed) {
-    loadPreQuestion();
-  }
+  useEffect(() => {
+    if (isActive && !preQuestion && !preLoading && !preAttempted && !preFetchFailed) {
+      loadPreQuestion();
+    }
+  }, [isActive, preQuestion, preLoading, preAttempted, preFetchFailed, loadPreQuestion]);
 
   // Submit pre-question attempt (just record, don't evaluate via LLM)
   const handlePreSubmit = () => {
@@ -369,6 +371,7 @@ export function ConceptSection({
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
                 className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field immediately when pre-reading question appears
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey) handlePreSubmit();
@@ -523,6 +526,7 @@ export function ConceptSection({
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
                 className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field immediately when post-reading question appears
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey && postAnswer.trim()) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { LessonGuide } from './lesson-guide';
 import { ControlPanel } from './control-panel';
 import { MetricsPanel } from './metrics-panel';
@@ -240,9 +240,10 @@ function calculatePercentiles(latencies: number[]): Percentiles {
 export function LatencyPlayground() {
   const [config, setConfig] = useState<SimulationConfig>(DEFAULT_CONFIG);
   const [requests, setRequests] = useState<RequestData[]>([]);
-  const [percentiles, setPercentiles] = useState<Percentiles>({
-    p50: 0, p95: 0, p99: 0, p999: 0, avg: 0,
-  });
+  const percentiles = useMemo<Percentiles>(() => {
+    if (requests.length === 0) return { p50: 0, p95: 0, p99: 0, p999: 0, avg: 0 };
+    return calculatePercentiles(requests.map(r => r.latency));
+  }, [requests]);
   const [percentileHistory, setPercentileHistory] = useState<Percentiles[]>([]);
   const [totalRequests, setTotalRequests] = useState(0);
   const [sloViolations, setSloViolations] = useState(0);
@@ -295,7 +296,6 @@ export function LatencyPlayground() {
         ).length;
 
         setRequests(updatedRequests);
-        setPercentiles(newPercentiles);
         setTotalRequests(prev => prev + newRequests.length);
         setSloViolations(prev => prev + batchViolations);
         setPercentileHistory(prev => [...prev, newPercentiles].slice(-MAX_HISTORY));
@@ -316,7 +316,7 @@ export function LatencyPlayground() {
   }, [config.isRunning]);
 
   // Proactive tutor trigger: SLO violation rate >10% or p99 > 3x p50
-  useEffect(() => {
+  const fetchLatencyTutor = useCallback(async () => {
     if (totalRequests < 50) return;
     const violationRate = (sloViolations / totalRequests) * 100;
     const p99TooHigh = percentiles.p50 > 0 && percentiles.p99 > percentiles.p50 * 3;
@@ -326,21 +326,26 @@ export function LatencyPlayground() {
     if (now - lastProactiveRef.current < 30000) return;
     lastProactiveRef.current = now;
 
-    fetch('/api/playground/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playground: 'latency',
-        state: { config, percentiles, totalRequests, sloViolations },
-        history: [],
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.question) setProactiveQuestion(data.question);
-      })
-      .catch(() => {});
-  }, [totalRequests, sloViolations, percentiles]);
+    try {
+      const res = await fetch('/api/playground/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playground: 'latency',
+          state: { config, percentiles, totalRequests, sloViolations },
+          history: [],
+        }),
+      });
+      const data = await res.json();
+      if (data.question) setProactiveQuestion(data.question);
+    } catch {
+      // Proactive question is optional — don't block on errors
+    }
+  }, [totalRequests, sloViolations, percentiles, config]);
+
+  useEffect(() => {
+    fetchLatencyTutor();
+  }, [fetchLatencyTutor]);
 
   const handleConfigChange = useCallback((updates: Partial<SimulationConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
@@ -352,7 +357,6 @@ export function LatencyPlayground() {
 
     // Reset data when applying a preset
     setRequests([]);
-    setPercentiles({ p50: 0, p95: 0, p99: 0, p999: 0, avg: 0 });
     setPercentileHistory([]);
     setTotalRequests(0);
     setSloViolations(0);
@@ -368,7 +372,6 @@ export function LatencyPlayground() {
   const handleReset = useCallback(() => {
     setConfig(prev => ({ ...prev, isRunning: false }));
     setRequests([]);
-    setPercentiles({ p50: 0, p95: 0, p99: 0, p999: 0, avg: 0 });
     setPercentileHistory([]);
     setTotalRequests(0);
     setSloViolations(0);

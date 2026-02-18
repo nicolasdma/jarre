@@ -38,7 +38,7 @@ export interface ReviewState {
   incorrectCount: number;
 }
 
-export interface ReviewResult {
+interface ReviewResult {
   easeFactor: number;
   intervalDays: number;
   repetitionCount: number;

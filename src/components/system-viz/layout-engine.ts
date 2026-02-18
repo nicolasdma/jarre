@@ -27,7 +27,7 @@ export interface Edge {
   to: string;
 }
 
-export interface LayoutResult {
+interface LayoutResult {
   nodes: PositionedNode[];
   edges: Edge[];
   viewBox: { width: number; height: number };

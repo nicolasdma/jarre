@@ -11,7 +11,7 @@ import type { DeepSeekMessage } from './deepseek';
 // 1. System prompt
 // ---------------------------------------------------------------------------
 
-export const TUTOR_SYSTEM_PROMPT = `Eres un tutor socrático experto en sistemas distribuidos.
+const TUTOR_SYSTEM_PROMPT = `Eres un tutor socrático experto en sistemas distribuidos.
 
 REGLAS:
 1. NUNCA des la respuesta directa. Guía con preguntas.
@@ -28,7 +28,7 @@ REGLAS:
 /**
  * Serialize a Raft cluster snapshot (~200 tokens max).
  */
-export function serializeConsensusState(snapshot: unknown): string {
+function serializeConsensusState(snapshot: unknown): string {
   const s = snapshot as {
     nodes?: Array<{
       id?: string;
@@ -86,7 +86,7 @@ export function serializeConsensusState(snapshot: unknown): string {
 /**
  * Serialize replication playground state (~200 tokens max).
  */
-export function serializeReplicationState(state: unknown): string {
+function serializeReplicationState(state: unknown): string {
   const s = state as {
     nodes?: Array<{
       id?: string;
@@ -132,7 +132,7 @@ export function serializeReplicationState(state: unknown): string {
 /**
  * Serialize partitioning playground state (~200 tokens max).
  */
-export function serializePartitionState(state: unknown): string {
+function serializePartitionState(state: unknown): string {
   const s = state as {
     mode?: string;
     nodes?: Array<{ id?: string; label?: string; keys?: string[] }>;
@@ -167,7 +167,7 @@ export function serializePartitionState(state: unknown): string {
 /**
  * Serialize latency playground state (~200 tokens max).
  */
-export function serializeLatencyState(state: unknown): string {
+function serializeLatencyState(state: unknown): string {
   const s = state as {
     config?: {
       distribution?: string;

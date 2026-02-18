@@ -235,9 +235,9 @@ export function ProbabilityPlayground() {
               </p>
               <div className="flex gap-4 items-end">
                 <div>
-                  <label className="font-mono text-[10px] text-j-text-tertiary block mb-1">
+                  <span className="font-mono text-[10px] text-j-text-tertiary block mb-1">
                     α = {priorAlpha}
-                  </label>
+                  </span>
                   <input
                     type="range"
                     min={0.1}
@@ -254,9 +254,9 @@ export function ProbabilityPlayground() {
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-j-text-tertiary block mb-1">
+                  <span className="font-mono text-[10px] text-j-text-tertiary block mb-1">
                     β = {priorBeta}
-                  </label>
+                  </span>
                   <input
                     type="range"
                     min={0.1}
@@ -449,8 +449,9 @@ export function ProbabilityPlayground() {
               </p>
               <div className="flex flex-wrap gap-1">
                 {history.map((h, i) => (
+
                   <span
-                    key={i}
+                    key={`obs-${i}`}
                     className={`w-5 h-5 flex items-center justify-center font-mono text-[10px] text-white ${
                       h === 'S' ? 'bg-[#16a34a]' : 'bg-[#dc2626]'
                     }`}

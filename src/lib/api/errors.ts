@@ -24,20 +24,12 @@ export class ApiError extends Error {
 // FACTORY HELPERS
 // ============================================================================
 
-export function unauthorized(): ApiError {
-  return new ApiError(401, 'Unauthorized');
-}
-
 export function badRequest(message: string): ApiError {
   return new ApiError(400, message);
 }
 
 export function notFound(message: string): ApiError {
   return new ApiError(404, message);
-}
-
-export function forbidden(message: string): ApiError {
-  return new ApiError(403, message);
 }
 
 // ============================================================================

@@ -10,7 +10,7 @@ const CRLF = '\r\n';
  */
 
 /** Serialize any RESP value to its wire format */
-export function serialize(value: RESPValue): string {
+function serialize(value: RESPValue): string {
   switch (value.type) {
     case 'simple':
       return `+${value.value}${CRLF}`;
@@ -52,18 +52,10 @@ export function bulkString(value: string | null): string {
   return serialize({ type: 'bulk', value });
 }
 
-export function nullBulk(): string {
-  return serialize({ type: 'bulk', value: null });
-}
-
 export function integer(value: number): string {
   return serialize({ type: 'integer', value });
 }
 
 export function array(values: RESPValue[]): string {
   return serialize({ type: 'array', value: values });
-}
-
-export function stringArray(values: string[]): string {
-  return array(values.map(v => ({ type: 'bulk' as const, value: v })));
 }

@@ -227,9 +227,9 @@ export function BayesianInferencePlayground() {
                 Distribucion real: N(mu_real, 1)
               </p>
               <div>
-                <label className="font-mono text-[10px] text-j-text-tertiary block mb-1">
+                <span className="font-mono text-[10px] text-j-text-tertiary block mb-1">
                   mu_real = {trueMu.toFixed(1)}
-                </label>
+                </span>
                 <input
                   type="range"
                   min={-5}
@@ -252,9 +252,9 @@ export function BayesianInferencePlayground() {
               </p>
               <div className="flex gap-4 items-end">
                 <div>
-                  <label className="font-mono text-[10px] text-j-text-tertiary block mb-1">
+                  <span className="font-mono text-[10px] text-j-text-tertiary block mb-1">
                     mu_0 = {mu0.toFixed(1)}
-                  </label>
+                  </span>
                   <input
                     type="range"
                     min={-5}
@@ -269,9 +269,9 @@ export function BayesianInferencePlayground() {
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-j-text-tertiary block mb-1">
+                  <span className="font-mono text-[10px] text-j-text-tertiary block mb-1">
                     tau^2 = {tau2.toFixed(2)}
-                  </label>
+                  </span>
                   <input
                     type="range"
                     min={0.05}
@@ -312,10 +312,10 @@ export function BayesianInferencePlayground() {
           <div className="border border-j-border bg-white/30 p-2">
             <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full">
               {/* Y-axis ticks and grid */}
-              {yTicks.map((v, i) => {
+              {yTicks.map((v) => {
                 const y = PAD.top + PLOT_H - (v / maxY) * PLOT_H;
                 return (
-                  <g key={i}>
+                  <g key={`ytick-${v}`}>
                     <line x1={PAD.left} y1={y} x2={PAD.left + PLOT_W} y2={y} stroke="#eee" strokeWidth={0.5} />
                     <text x={PAD.left - 8} y={y + 3} textAnchor="end" className="font-mono" fontSize={9} fill="#999">
                       {v.toFixed(1)}
@@ -429,7 +429,8 @@ export function BayesianInferencePlayground() {
               {/* Data points on x-axis */}
               {samples.map((s, i) => (
                 <circle
-                  key={i}
+
+                  key={`sample-pt-${i}`}
                   cx={xToSVG(s)}
                   cy={PAD.top + PLOT_H}
                   r={2.5}
@@ -489,8 +490,9 @@ export function BayesianInferencePlayground() {
               </p>
               <div className="flex flex-wrap gap-1">
                 {samples.map((s, i) => (
+
                   <span
-                    key={i}
+                    key={`sample-${i}`}
                     className="px-1.5 h-5 flex items-center justify-center font-mono text-[9px] text-white bg-[#059669]"
                   >
                     {s.toFixed(1)}

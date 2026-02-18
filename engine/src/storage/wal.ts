@@ -37,7 +37,7 @@ const RECORD_TYPE_DELETE = 0x02;
 /** Header size: 4 (payloadLen) + 4 (crc32) = 8 bytes */
 const WAL_HEADER_SIZE = 8;
 
-export interface WALEntry {
+interface WALEntry {
   type: 'SET' | 'DEL';
   key: string;
   value: string;
@@ -49,7 +49,7 @@ export interface WALEntry {
   checksumValid: boolean;
 }
 
-export interface WALState {
+interface WALState {
   filePath: string;
   fileSizeBytes: number;
   entryCount: number;

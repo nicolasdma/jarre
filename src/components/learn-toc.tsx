@@ -101,7 +101,7 @@ export function LearnTOC({
               const isComplete = completedSections.has(i);
 
               return (
-                <li key={i}>
+                <li key={section.sectionTitle}>
                   <button
                     onClick={() => handleSectionClick(i)}
                     title={section.sectionTitle}
@@ -149,6 +149,8 @@ export function LearnTOC({
           <div
             className="lg:hidden fixed inset-0 z-[70] bg-black/30"
             onClick={() => setMobileOpen(false)}
+            role="presentation"
+            aria-hidden="true"
           />
           <div className="lg:hidden fixed right-0 top-0 bottom-0 z-[80] w-[280px] bg-j-bg border-l border-j-border overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b border-j-border">

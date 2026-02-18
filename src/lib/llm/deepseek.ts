@@ -15,7 +15,7 @@ export interface DeepSeekMessage {
   content: string;
 }
 
-export interface DeepSeekResponse {
+interface DeepSeekResponse {
   id: string;
   choices: Array<{
     message: {
@@ -39,8 +39,9 @@ export async function callDeepSeek(params: {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: 'json' | 'text';
+  timeoutMs?: number;
 }): Promise<{ content: string; tokensUsed: number }> {
-  const { messages, temperature = 0.3, maxTokens = 2000, responseFormat = 'json' } = params;
+  const { messages, temperature = 0.3, maxTokens = 2000, responseFormat = 'json', timeoutMs = 45_000 } = params;
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
@@ -67,7 +68,7 @@ export async function callDeepSeek(params: {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!response.ok) {
@@ -84,7 +85,7 @@ export async function callDeepSeek(params: {
       lastError = error as Error;
       // Don't retry on timeout - the request already took too long
       if (error instanceof DOMException && error.name === 'TimeoutError') {
-        throw new Error('La solicitud al modelo tardó demasiado (timeout 45s). Intenta de nuevo.');
+        throw new Error(`La solicitud al modelo tardó demasiado (timeout ${Math.round(timeoutMs / 1000)}s). Intenta de nuevo.`);
       }
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('La solicitud al modelo fue cancelada.');

@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+
+export const metadata: Metadata = {
+  title: 'Jarre — Deep Technical Learning',
+  description: 'A learning system for deep technical knowledge validation through AI-generated evaluations',
+};
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
 import { SectionLabel } from '@/components/ui/section-label';

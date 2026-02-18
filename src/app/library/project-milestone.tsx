@@ -78,8 +78,8 @@ export function ProjectMilestone({ project, isLoggedIn, language }: ProjectMiles
             {t('project.deliverables', language)}
           </p>
           <ul className="space-y-1.5">
-            {project.deliverables.map((d, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-j-text">
+            {project.deliverables.map((d) => (
+              <li key={d} className="flex items-start gap-2 text-sm text-j-text">
                 <span className={`mt-1 w-3 h-3 border ${
                   status === 'completed' ? 'bg-j-accent border-j-accent' : 'border-j-border-input'
                 }`} />

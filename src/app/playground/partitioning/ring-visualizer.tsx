@@ -193,14 +193,14 @@ function RingView({ state }: { state: PartitionState }) {
       <circle cx={CX} cy={CY} r={RING_RADIUS} fill="none" stroke="#e8e6e0" strokeWidth="16" />
 
       {/* Arc segments */}
-      {segments.map((seg, i) => {
+      {segments.map((seg) => {
         // Avoid drawing arcs where start === end
         if (Math.abs(seg.endAngle - seg.startAngle) < 0.01) return null;
         // For full circle case (single node)
         if (segments.length === 1) {
           return (
             <circle
-              key={`seg-${i}`}
+              key={`seg-${seg.nodeId}`}
               cx={CX} cy={CY} r={RING_RADIUS}
               fill="none"
               stroke={seg.color}
@@ -211,7 +211,7 @@ function RingView({ state }: { state: PartitionState }) {
         }
         return (
           <path
-            key={`seg-${i}`}
+            key={`seg-${seg.nodeId}-${seg.startAngle.toFixed(2)}`}
             d={describeArc(CX, CY, RING_RADIUS, seg.startAngle, seg.endAngle)}
             fill="none"
             stroke={seg.color}
@@ -235,9 +235,9 @@ function RingView({ state }: { state: PartitionState }) {
       ))}
 
       {/* Key dots */}
-      {keyDots.map((dot, i) => (
+      {keyDots.map((dot) => (
         <circle
-          key={`key-${i}`}
+          key={`key-${dot.key}`}
           cx={dot.x} cy={dot.y}
           r={searchHighlight?.keyPos.x === dot.x && searchHighlight?.keyPos.y === dot.y ? 5 : 2.5}
           fill={dot.color}
@@ -266,8 +266,8 @@ function RingView({ state }: { state: PartitionState }) {
       )}
 
       {/* Node labels */}
-      {nodeLabels.map((nl, i) => (
-        <g key={`label-${i}`}>
+      {nodeLabels.map((nl) => (
+        <g key={`label-${nl.label}`}>
           <circle cx={nl.x} cy={nl.y} r="10" fill={nl.color} opacity={0.9} />
           <text
             x={nl.x} y={nl.y}
@@ -328,9 +328,9 @@ function RangeBarView({ state }: { state: PartitionState }) {
     <div className="px-6 py-4">
       {/* Range labels above the bar */}
       <div className="relative h-6 mb-1">
-        {segments.map((seg, i) => (
+        {segments.map((seg) => (
           <div
-            key={`label-${i}`}
+            key={`label-${seg.node.id}`}
             className="absolute text-center"
             style={{
               left: `${seg.startPct}%`,
@@ -346,9 +346,9 @@ function RangeBarView({ state }: { state: PartitionState }) {
 
       {/* The bar */}
       <div className="relative h-10 flex rounded overflow-hidden border border-j-border">
-        {segments.map((seg, i) => (
+        {segments.map((seg, segIdx) => (
           <div
-            key={`bar-${i}`}
+            key={`bar-${seg.node.id}`}
             className="h-full relative"
             style={{
               width: `${seg.widthPct}%`,
@@ -356,7 +356,7 @@ function RangeBarView({ state }: { state: PartitionState }) {
               opacity: 0.6,
             }}
           >
-            {i > 0 && (
+            {segIdx > 0 && (
               <div className="absolute left-0 top-0 bottom-0 w-px bg-white/50" />
             )}
           </div>
@@ -365,13 +365,13 @@ function RangeBarView({ state }: { state: PartitionState }) {
 
       {/* Key ticks above */}
       <div className="relative h-8 mt-1">
-        {keys.map((entry, i) => {
+        {keys.map((entry) => {
           const pct = (entry.position / 256) * 100;
           const isHighlighted = searchEntry?.key === entry.key;
           const ownerNode = nodes.find(n => n.id === entry.nodeId);
           return (
             <div
-              key={`tick-${i}`}
+              key={`tick-${entry.key}`}
               className="absolute"
               style={{
                 left: `${pct}%`,
@@ -400,9 +400,9 @@ function RangeBarView({ state }: { state: PartitionState }) {
 
       {/* Boundary labels */}
       <div className="relative h-4 mt-1">
-        {segments.map((seg, i) => (
+        {segments.map((seg) => (
           <div
-            key={`bound-${i}`}
+            key={`bound-${seg.node.id}`}
             className="absolute"
             style={{ left: `${seg.startPct}%` }}
           >

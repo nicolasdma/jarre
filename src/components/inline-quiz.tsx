@@ -487,6 +487,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
             onChange={(e) => setJustification(e.target.value)}
             placeholder="Escribe tu justificación..."
             rows={3}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus justification field when user needs to explain their answer
             autoFocus
             className="w-full border border-j-border-input bg-[var(--j-bg)] p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
           />

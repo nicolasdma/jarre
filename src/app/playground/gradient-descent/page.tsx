@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { GradientDescentPlayground } from './gradient-descent-playground';
+
+export const metadata: Metadata = {
+  title: 'Gradient Descent — Jarre',
+  description: 'Interactive gradient descent optimization playground',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

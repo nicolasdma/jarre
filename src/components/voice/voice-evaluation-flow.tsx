@@ -155,12 +155,12 @@ function RubricSummary({ responses }: { responses: Array<{ score: number }> }) {
             {label}
           </span>
           <div className="flex gap-0.5">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4].map((dotLevel) => (
               <span
-                key={i}
-                className={`text-xs ${i < dots ? 'text-j-accent' : 'text-j-border-input'}`}
+                key={`dot-${dotLevel}`}
+                className={`text-xs ${dotLevel < dots ? 'text-j-accent' : 'text-j-border-input'}`}
               >
-                {i < dots ? '\u25CF' : '\u25CB'}
+                {dotLevel < dots ? '\u25CF' : '\u25CB'}
               </span>
             ))}
           </div>
@@ -524,7 +524,7 @@ export function VoiceEvaluationFlow({
         <div className="space-y-6">
           {evaluationResult.responses.map((result, index) => (
             <div
-              key={index}
+              key={`eval-response-${result.questionIndex}`}
               className={`border-l-2 pl-6 ${
                 result.isCorrect ? 'border-j-accent' : 'border-j-error'
               }`}

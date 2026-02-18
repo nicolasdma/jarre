@@ -436,9 +436,9 @@ export function LessonGuide({ onRunCommand, currentBackend }: LessonGuideProps) 
               Haz click para ejecutar
             </p>
             <div className="space-y-1.5">
-              {step.commands.map((c, i) => (
+              {step.commands.map((c) => (
                 <button
-                  key={i}
+                  key={c.cmd}
                   onClick={() => onRunCommand(c.cmd)}
                   className="w-full text-left group"
                 >

@@ -34,7 +34,7 @@ interface UseVoiceEvalSessionParams {
 
 export type VoiceEvalState = 'idle' | 'connecting' | 'conversing' | 'scoring' | 'done' | 'error';
 
-export interface EvaluationResult {
+interface EvaluationResult {
   responses: Array<{
     questionIndex: number;
     isCorrect: boolean;
@@ -47,7 +47,7 @@ export interface EvaluationResult {
   saved: boolean;
 }
 
-export interface VoiceEvalSession {
+interface VoiceEvalSession {
   evalState: VoiceEvalState;
   tutorState: TutorState;
   connectionState: ConnectionState;

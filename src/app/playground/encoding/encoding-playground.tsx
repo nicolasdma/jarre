@@ -214,9 +214,9 @@ export function EncodingPlayground() {
 
                 {/* Bar chart */}
                 <div className="flex h-6 bg-j-bg rounded-sm overflow-hidden">
-                  {result.breakdown.map((b, i) => (
+                  {result.breakdown.map((b) => (
                     <div
-                      key={i}
+                      key={b.label}
                       className="h-full transition-all duration-500"
                       style={{
                         width: `${(b.bytes / maxBytes) * 100}%`,
@@ -230,8 +230,8 @@ export function EncodingPlayground() {
 
                 {/* Legend */}
                 <div className="flex gap-4 mt-2">
-                  {result.breakdown.map((b, i) => (
-                    <div key={i} className="flex items-center gap-1">
+                  {result.breakdown.map((b) => (
+                    <div key={`legend-${b.label}`} className="flex items-center gap-1">
                       <div className="w-2 h-2" style={{ backgroundColor: b.color, opacity: 0.7 }} />
                       <span className="text-[10px] text-j-text-tertiary">{b.label}</span>
                     </div>
@@ -250,8 +250,8 @@ export function EncodingPlayground() {
               <div className="grid grid-cols-2 gap-3">
                 {results
                   .find((r) => r.format === selectedFormat)
-                  ?.features.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                  ?.features.map((f) => (
+                    <div key={f.label} className="flex items-center gap-2">
                       <span className={`text-sm ${f.supported ? 'text-green-700' : 'text-j-text-tertiary'}`}>
                         {f.supported ? '✓' : '✗'}
                       </span>

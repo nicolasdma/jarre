@@ -21,18 +21,8 @@ import {
   MICRO_TEST_THRESHOLD as MICRO_TEST_THRESHOLD_CONST,
 } from '@/lib/constants';
 
-// ============================================================================
-// THRESHOLDS (re-exported from constants for backward compatibility)
-// ============================================================================
-
-export const MASTERY_THRESHOLDS = {
-  LEVEL_1_SCORE,
-  LEVEL_3_SCORE,
-  LEVEL_4_SCORE,
-} as const;
-
 /** Evaluation types that qualify for level 3 advancement */
-export const LEVEL_3_QUESTION_TYPES: EvaluationType[] = ['tradeoff', 'error_detection'];
+const LEVEL_3_QUESTION_TYPES: EvaluationType[] = ['tradeoff', 'error_detection'];
 
 // ============================================================================
 // LEVEL TRANSITION LOGIC
@@ -43,14 +33,14 @@ export const LEVEL_3_QUESTION_TYPES: EvaluationType[] = ['tradeoff', 'error_dete
  * Requires: current level is 0, score >= 60%.
  */
 export function canAdvanceToLevel1(currentLevel: number, score: number): boolean {
-  return currentLevel < 1 && score >= MASTERY_THRESHOLDS.LEVEL_1_SCORE;
+  return currentLevel < 1 && score >= LEVEL_1_SCORE;
 }
 
 /**
  * Check if a concept can advance to level 2 based on project completion.
  * Requires: current level is 1 (understood).
  */
-export function canAdvanceToLevel2(currentLevel: number): boolean {
+function canAdvanceToLevel2(currentLevel: number): boolean {
   return currentLevel === 1;
 }
 
@@ -67,7 +57,7 @@ export function canAdvanceToLevel3(
   return (
     currentLevel === 2 &&
     LEVEL_3_QUESTION_TYPES.includes(questionType) &&
-    score >= MASTERY_THRESHOLDS.LEVEL_3_SCORE
+    score >= LEVEL_3_SCORE
   );
 }
 
@@ -75,8 +65,8 @@ export function canAdvanceToLevel3(
  * Check if a concept can advance to level 4 via a teach-the-tutor session.
  * Requires: current level is 3 (criticized), score >= 80%.
  */
-export function canAdvanceToLevel4(currentLevel: number, score: number): boolean {
-  return currentLevel === 3 && score >= MASTERY_THRESHOLDS.LEVEL_4_SCORE;
+function canAdvanceToLevel4(currentLevel: number, score: number): boolean {
+  return currentLevel === 3 && score >= LEVEL_4_SCORE;
 }
 
 /**

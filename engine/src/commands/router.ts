@@ -6,7 +6,7 @@ import { handleDebugCommand } from './debug-commands.js';
 import * as resp from '../resp/serializer.js';
 
 /** Result of command execution */
-export type CommandResult = string;
+type CommandResult = string;
 
 /** Context passed to all command handlers */
 export interface CommandContext {

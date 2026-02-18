@@ -4,7 +4,7 @@ import type { SequenceExercise, ConnectExercise } from '@/types';
  * Ch9: Consistency & Consensus — 2 exercises
  */
 
-export const ch9Exercise1: SequenceExercise = {
+const ch9Exercise1: SequenceExercise = {
   id: 'ddia-9.1',
   type: 'sequence',
   title: 'Two-phase commit (2PC)',
@@ -20,7 +20,7 @@ export const ch9Exercise1: SequenceExercise = {
   correctOrder: ['t1', 't2', 't3', 't4', 't5'],
 };
 
-export const ch9Exercise2: ConnectExercise = {
+const ch9Exercise2: ConnectExercise = {
   id: 'ddia-9.2',
   type: 'connect',
   title: 'Flujo de elección Raft',

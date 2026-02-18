@@ -21,7 +21,7 @@ export interface LessonGuideColors {
   calloutBg: string;
 }
 
-export interface LessonGuideShellProps {
+interface LessonGuideShellProps {
   steps: LessonStep[];
   colors: LessonGuideColors;
   /** Render prop para la sección de acción custom */
@@ -66,7 +66,8 @@ export function LessonGuideShell({
         <div className="mb-5">
           {step.theory.split('\n\n').map((para, i) => (
             <p
-              key={i}
+
+              key={`theory-para-${i}`}
               className="text-[13px] text-[#444] leading-relaxed mb-2 last:mb-0"
             >
               {para}
@@ -108,9 +109,9 @@ export function LessonGuideShell({
         </button>
 
         <div className="flex gap-1.5">
-          {steps.map((_, i) => (
+          {steps.map((s, i) => (
             <button
-              key={i}
+              key={s.title}
               onClick={() => setCurrentStep(i)}
               className="w-1.5 h-1.5 rounded-full transition-colors"
               style={{
