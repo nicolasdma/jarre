@@ -5,14 +5,15 @@ import { createLogger } from '@/lib/logger';
 import { REVIEW_MAX_OPEN } from '@/lib/constants';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { interleaveByConcept } from '@/lib/interleave';
-import type { ReviewCard, QuestionBankType } from '@/types';
+import type { UnifiedReviewCard } from '@/types';
 
 const log = createLogger('Review/Due');
 
 /**
  * GET /api/review/due
- * Returns up to REVIEW_SESSION_CAP cards that are due for review.
- * Applies format mixing (max 3 open + rest MC/TF) and concept interleaving.
+ * Returns up to REVIEW_SESSION_CAP unified cards (question_bank + concept_cards) due for review.
+ * Only includes cards for concepts with mastery_level >= 1.
+ * Applies format mixing (max 3 open + rest deterministic) and concept interleaving.
  */
 export const GET = withAuth(async (_request, { supabase, user }) => {
   try {
@@ -31,10 +32,10 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
       return NextResponse.json({ cards: [], total: 0 });
     }
 
-    // Fetch more than dailyRemaining so we can apply format mixing
     const fetchLimit = dailyRemaining * 3;
 
-    const { data: dueCards, error } = await supabase
+    // Fetch question_bank-based due cards
+    const { data: questionDue, error: qError } = await supabase
       .from(TABLES.reviewSchedule)
       .select(`
         id,
@@ -42,6 +43,7 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
         streak,
         repetition_count,
         next_review_at,
+        fsrs_state,
         question_bank!inner (
           id,
           concept_id,
@@ -60,17 +62,51 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
       `)
       .eq('user_id', user.id)
       .lte('next_review_at', now)
+      .not('question_id', 'is', null)
       .order('next_review_at', { ascending: true })
       .limit(fetchLimit);
 
-    if (error) {
-      log.error('Error fetching due cards:', error);
+    if (qError) {
+      log.error('Error fetching question due cards:', qError);
       return NextResponse.json({ error: 'Failed to fetch due cards' }, { status: 500 });
     }
 
-    // Map to ReviewCard format
-    const allCards: ReviewCard[] = (dueCards || []).map((card) => {
-      const question = card.question_bank as unknown as {
+    // Fetch concept_card-based due cards
+    const { data: cardDue, error: cError } = await supabase
+      .from(TABLES.reviewSchedule)
+      .select(`
+        id,
+        card_id,
+        streak,
+        repetition_count,
+        next_review_at,
+        fsrs_state,
+        concept_cards!inner (
+          id,
+          concept_id,
+          card_type,
+          front_content,
+          back_content,
+          difficulty,
+          concepts!concept_id (
+            name
+          )
+        )
+      `)
+      .eq('user_id', user.id)
+      .lte('next_review_at', now)
+      .not('card_id', 'is', null)
+      .order('next_review_at', { ascending: true })
+      .limit(fetchLimit);
+
+    if (cError) {
+      log.error('Error fetching concept card due cards:', cError);
+      // Non-fatal: proceed with just questions
+    }
+
+    // Map question_bank cards to UnifiedReviewCard
+    const questionCards: UnifiedReviewCard[] = (questionDue || []).map((row) => {
+      const q = row.question_bank as unknown as {
         id: string;
         concept_id: string;
         question_text: string;
@@ -85,31 +121,81 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
       };
 
       return {
-        questionId: question.id,
-        conceptId: question.concept_id,
-        conceptName: question.concepts.name,
-        questionText: question.question_text,
-        type: question.type as QuestionBankType,
-        format: question.format as 'open' | 'mc' | 'tf',
-        difficulty: question.difficulty as 1 | 2 | 3,
-        streak: card.streak,
-        repetitionCount: card.repetition_count,
-        ...(question.options && { options: question.options }),
-        ...(question.correct_answer && { correctAnswer: question.correct_answer }),
-        ...(question.explanation && { explanation: question.explanation }),
+        id: row.id,
+        source: 'question' as const,
+        sourceId: q.id,
+        conceptId: q.concept_id,
+        conceptName: q.concepts.name,
+        cardType: q.type,
+        format: q.format || 'open',
+        difficulty: q.difficulty as 1 | 2 | 3,
+        content: {
+          questionText: q.question_text,
+          expectedAnswer: q.expected_answer,
+        },
+        fsrsState: (row as unknown as { fsrs_state: number | null }).fsrs_state ?? 0,
+        streak: row.streak,
+        reps: row.repetition_count,
+        ...(q.options && { options: q.options }),
+        ...(q.correct_answer && { correctAnswer: q.correct_answer }),
+        ...(q.explanation && { explanation: q.explanation }),
       };
     });
 
-    // Apply format mixing: max REVIEW_MAX_OPEN open + fill rest with MC/TF
-    const openCards = allCards.filter((c) => c.format === 'open');
-    const closedCards = allCards.filter((c) => c.format === 'mc' || c.format === 'tf');
+    // Map concept_cards to UnifiedReviewCard
+    const conceptCardItems: UnifiedReviewCard[] = (cardDue || []).map((row) => {
+      const c = row.concept_cards as unknown as {
+        id: string;
+        concept_id: string;
+        card_type: string;
+        front_content: Record<string, unknown>;
+        back_content: Record<string, unknown>;
+        difficulty: number;
+        concepts: { name: string };
+      };
+
+      const frontContent = c.front_content;
+      const backContent = c.back_content;
+
+      return {
+        id: row.id,
+        source: 'card' as const,
+        sourceId: c.id,
+        conceptId: c.concept_id,
+        conceptName: c.concepts.name,
+        cardType: c.card_type,
+        format: c.card_type, // recall, fill_blank, etc.
+        difficulty: c.difficulty as 1 | 2 | 3,
+        content: frontContent,
+        back: backContent,
+        fsrsState: (row as unknown as { fsrs_state: number | null }).fsrs_state ?? 0,
+        streak: row.streak,
+        reps: row.repetition_count,
+        // For scenario_micro MC options
+        ...(frontContent.options ? {
+          options: frontContent.options as { label: string; text: string }[],
+        } : {}),
+        ...(backContent.correct ? { correctAnswer: backContent.correct as string } : {}),
+        ...(backContent.explanation ? { explanation: backContent.explanation as string } : {}),
+      };
+    });
+
+    const allCards = [...questionCards, ...conceptCardItems];
+
+    // Apply format mixing: open questions are LLM-evaluated, rest are deterministic
+    const openCards = allCards.filter(
+      (c) => c.source === 'question' && c.format === 'open'
+    );
+    const closedCards = allCards.filter(
+      (c) => c.source !== 'question' || c.format !== 'open'
+    );
 
     const maxOpen = Math.min(REVIEW_MAX_OPEN, dailyRemaining);
     const selectedOpen = openCards.slice(0, maxOpen);
     const remainingSlots = dailyRemaining - selectedOpen.length;
     const selectedClosed = closedCards.slice(0, remainingSlots);
 
-    // If not enough MC/TF, backfill with more open
+    // Backfill if not enough deterministic cards
     let mixed = [...selectedOpen, ...selectedClosed];
     if (mixed.length < dailyRemaining) {
       const additionalOpen = openCards.slice(maxOpen, maxOpen + (dailyRemaining - mixed.length));

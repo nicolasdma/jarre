@@ -8,7 +8,7 @@ import { ReviewPrediction } from '@/components/review-prediction';
 import { ErrorMessage } from '@/components/error-message';
 import { categorizeError } from '@/lib/utils/categorize-error';
 import { t, type Language } from '@/lib/translations';
-import type { ReviewCard, ReviewSubmitResponse } from '@/types';
+import type { UnifiedReviewCard, ReviewSubmitResponse } from '@/types';
 
 type SessionPhase = 'start' | 'card' | 'feedback' | 'summary';
 
@@ -20,7 +20,7 @@ interface ReviewSessionProps {
 }
 
 interface CompletedCard {
-  card: ReviewCard;
+  card: UnifiedReviewCard;
   result: ReviewSubmitResponse;
 }
 
@@ -76,12 +76,55 @@ function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
 // ============================================================================
 
 function FormatBadge({ format }: { format: string }) {
-  if (format === 'open') return null;
-  const label = format === 'mc' ? 'Opcion multiple' : 'Verdadero/Falso';
+  const labels: Record<string, string> = {
+    mc: 'Opcion multiple',
+    tf: 'Verdadero/Falso',
+    recall: 'Recall',
+    fill_blank: 'Fill Blank',
+    true_false: 'V/F',
+    connect: 'Conexion',
+    scenario_micro: 'Escenario',
+  };
+  const label = labels[format];
+  if (!label) return null;
   return (
     <span className="font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-j-warm text-j-warm">
       {label}
     </span>
+  );
+}
+
+// ============================================================================
+// Self-Rating Bar (FSRS: Again/Hard/Good/Easy)
+// ============================================================================
+
+function SelfRatingBar({
+  onRate,
+  disabled,
+}: {
+  onRate: (rating: 'wrong' | 'hard' | 'good' | 'easy') => void;
+  disabled: boolean;
+}) {
+  const buttons = [
+    { rating: 'wrong' as const, label: 'Again', color: 'text-j-error border-j-error hover:bg-j-error/10' },
+    { rating: 'hard' as const, label: 'Hard', color: 'text-j-warm border-j-warm hover:bg-j-warm/10' },
+    { rating: 'good' as const, label: 'Good', color: 'text-j-accent border-j-accent hover:bg-j-accent/10' },
+    { rating: 'easy' as const, label: 'Easy', color: 'text-green-600 border-green-600 hover:bg-green-600/10' },
+  ];
+
+  return (
+    <div className="flex gap-2 justify-center">
+      {buttons.map((btn) => (
+        <button
+          key={btn.rating}
+          onClick={() => onRate(btn.rating)}
+          disabled={disabled}
+          className={`font-mono text-[11px] tracking-[0.1em] uppercase px-4 py-2 border ${btn.color} transition-colors disabled:opacity-50`}
+        >
+          {btn.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -92,7 +135,7 @@ function FormatBadge({ format }: { format: string }) {
 export function ReviewSession({ dueCount, totalCards, language, reviewedToday }: ReviewSessionProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<SessionPhase>('start');
-  const [cards, setCards] = useState<ReviewCard[]>([]);
+  const [cards, setCards] = useState<UnifiedReviewCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -102,9 +145,17 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
   const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [prediction, setPrediction] = useState<number | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
 
-  // Preserved answer for retry on submit failure
-  const pendingAnswerRef = useRef<{ type: 'open'; answer: string } | { type: 'closed'; quizId: string; selectedOption: string; isCorrect: boolean } | null>(null);
+  const pendingAnswerRef = useRef<{
+    type: 'open'; answer: string
+  } | {
+    type: 'closed'; quizId: string; selectedOption: string; isCorrect: boolean
+  } | {
+    type: 'selfRating'; rating: 'wrong' | 'hard' | 'good' | 'easy'
+  } | {
+    type: 'deterministic'; answer: string
+  } | null>(null);
 
   const handleCategorizedError = (err: unknown) => {
     const categorized = categorizeError(err);
@@ -136,7 +187,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     }
   }, [language]);
 
-  // Submit open-ended answer
+  // Submit for question_bank open-ended answer
   const submitOpenAnswer = useCallback(async () => {
     if (!answer.trim() || !cards[currentIndex]) return;
 
@@ -146,11 +197,12 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     pendingAnswerRef.current = { type: 'open', answer: answer.trim() };
 
     try {
+      const card = cards[currentIndex];
       const response = await fetch('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          questionId: cards[currentIndex].questionId,
+          questionId: card.sourceId,
           userAnswer: answer.trim(),
         }),
       });
@@ -159,14 +211,13 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
       const result: ReviewSubmitResponse = await response.json();
 
       setCurrentResult(result);
-      setCompleted((prev) => [...prev, { card: cards[currentIndex], result }]);
+      setCompleted((prev) => [...prev, { card, result }]);
       setShowReasoning(false);
       setPhase('feedback');
       pendingAnswerRef.current = null;
 
       toast.success(language === 'es' ? 'Respuesta registrada' : 'Answer recorded');
 
-      // Micro-progress every 5 cards
       const newCount = completed.length + 1;
       if (newCount > 0 && newCount % 5 === 0 && newCount < cards.length) {
         toast(`${newCount} de ${cards.length} completadas — buen ritmo`);
@@ -178,7 +229,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     }
   }, [answer, cards, currentIndex, completed.length, language]);
 
-  // Submit MC/TF answer (called from InlineQuiz onAnswer)
+  // Submit MC/TF answer (question_bank)
   const submitClosedAnswer = useCallback(async (
     quizId: string,
     selectedOption: string,
@@ -197,15 +248,13 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          questionId: card.questionId,
+          questionId: card.sourceId,
           selectedAnswer: selectedOption,
         }),
       });
 
       if (!response.ok) throw new Error('Failed to submit answer');
       const result: ReviewSubmitResponse = await response.json();
-
-      // Override isCorrect with client-side value (deterministic, should match server)
       const finalResult = { ...result, isCorrect };
 
       setCurrentResult(finalResult);
@@ -216,7 +265,6 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
 
       toast.success(language === 'es' ? 'Respuesta registrada' : 'Answer recorded');
 
-      // Micro-progress every 5 cards
       const newCount = completed.length + 1;
       if (newCount > 0 && newCount % 5 === 0 && newCount < cards.length) {
         toast(`${newCount} de ${cards.length} completadas — buen ritmo`);
@@ -228,19 +276,87 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     }
   }, [cards, currentIndex, completed.length, language]);
 
-  // Retry last failed submission
+  // Submit self-rating for concept cards (recall, connect)
+  const submitSelfRating = useCallback(async (rating: 'wrong' | 'hard' | 'good' | 'easy') => {
+    const card = cards[currentIndex];
+    if (!card) return;
+
+    setIsLoading(true);
+    setError(null);
+    pendingAnswerRef.current = { type: 'selfRating', rating };
+
+    try {
+      const response = await fetch('/api/review/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: card.sourceId,
+          selfRating: rating,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit rating');
+      const result: ReviewSubmitResponse = await response.json();
+
+      setCurrentResult(result);
+      setCompleted((prev) => [...prev, { card, result }]);
+      setPhase('feedback');
+      pendingAnswerRef.current = null;
+    } catch (err) {
+      handleCategorizedError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cards, currentIndex]);
+
+  // Submit deterministic answer for concept cards (true_false, fill_blank, scenario_micro)
+  const submitDeterministicAnswer = useCallback(async (selectedAnswer: string) => {
+    const card = cards[currentIndex];
+    if (!card) return;
+
+    setIsLoading(true);
+    setError(null);
+    pendingAnswerRef.current = { type: 'deterministic', answer: selectedAnswer };
+
+    try {
+      const response = await fetch('/api/review/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: card.sourceId,
+          selectedAnswer,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit');
+      const result: ReviewSubmitResponse = await response.json();
+
+      setCurrentResult(result);
+      setCompleted((prev) => [...prev, { card, result }]);
+      setPhase('feedback');
+      pendingAnswerRef.current = null;
+    } catch (err) {
+      handleCategorizedError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cards, currentIndex]);
+
   const retrySubmit = useCallback(async () => {
     const pending = pendingAnswerRef.current;
     if (!pending) return;
 
     if (pending.type === 'open') {
-      // Restore the answer text in case it was cleared
       setAnswer(pending.answer);
       await submitOpenAnswer();
-    } else {
+    } else if (pending.type === 'closed') {
       await submitClosedAnswer(pending.quizId, pending.selectedOption, pending.isCorrect);
+    } else if (pending.type === 'selfRating') {
+      await submitSelfRating(pending.rating);
+    } else if (pending.type === 'deterministic') {
+      await submitDeterministicAnswer(pending.answer);
     }
-  }, [submitOpenAnswer, submitClosedAnswer]);
+  }, [submitOpenAnswer, submitClosedAnswer, submitSelfRating, submitDeterministicAnswer]);
 
   const nextCard = useCallback(() => {
     setAnswer('');
@@ -248,6 +364,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     setShowReasoning(false);
     setError(null);
     setErrorAction(null);
+    setIsFlipped(false);
 
     if (currentIndex + 1 >= cards.length) {
       setPhase('summary');
@@ -265,7 +382,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     return labels[d as keyof typeof labels] || '●';
   };
 
-  // Start screen
+  // ==== START SCREEN ====
   if (phase === 'start') {
     return (
       <div className="text-center py-16">
@@ -336,10 +453,20 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     );
   }
 
-  // Card display
+  // ==== CARD DISPLAY ====
   if (phase === 'card') {
     const card = cards[currentIndex];
-    const isClosed = card.format === 'mc' || card.format === 'tf';
+    const isQuestionSource = card.source === 'question';
+    const isQuestionClosed = isQuestionSource && (card.format === 'mc' || card.format === 'tf');
+    const isQuestionOpen = isQuestionSource && card.format === 'open';
+
+    // Concept card types
+    const isRecall = card.source === 'card' && card.cardType === 'recall';
+    const isConnect = card.source === 'card' && card.cardType === 'connect';
+    const isTrueFalse = card.source === 'card' && card.cardType === 'true_false';
+    const isFillBlank = card.source === 'card' && card.cardType === 'fill_blank';
+    const isScenarioMicro = card.source === 'card' && card.cardType === 'scenario_micro';
+    const isSelfRated = isRecall || isConnect;
 
     return (
       <div>
@@ -374,14 +501,14 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           )}
         </div>
 
-        {/* MC/TF: render InlineQuiz */}
-        {isClosed && (
+        {/* ---- Question Bank: MC/TF ---- */}
+        {isQuestionClosed && (
           <div className="mb-4">
             <InlineQuiz
               quiz={{
-                id: card.questionId,
+                id: card.sourceId,
                 format: card.format as 'mc' | 'tf',
-                questionText: card.questionText,
+                questionText: (card.content as { questionText: string }).questionText,
                 options: card.options || null,
                 correctAnswer: card.correctAnswer || '',
                 explanation: card.explanation || '',
@@ -396,11 +523,13 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           </div>
         )}
 
-        {/* Open: textarea */}
-        {!isClosed && (
+        {/* ---- Question Bank: Open ---- */}
+        {isQuestionOpen && (
           <>
             <div className="mb-8 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
-              <p className="text-lg text-j-text leading-relaxed">{card.questionText}</p>
+              <p className="text-lg text-j-text leading-relaxed">
+                {(card.content as { questionText: string }).questionText}
+              </p>
             </div>
 
             <textarea
@@ -409,7 +538,6 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
               placeholder={t('review.answerPlaceholder', language)}
               rows={4}
               className="w-full p-4 border border-j-border bg-white dark:bg-j-bg-alt text-j-text placeholder-[#c4c2b8] font-mono text-sm focus:outline-none focus:border-j-accent transition-colors resize-none"
-              // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field during active review session
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.metaKey && answer.trim()) {
@@ -428,6 +556,161 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
               </button>
             </div>
           </>
+        )}
+
+        {/* ---- Concept Card: Recall / Connect (flip + self-rate) ---- */}
+        {isSelfRated && (
+          <div>
+            {!isFlipped ? (
+              <div className="mb-8 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
+                {isRecall && (
+                  <p className="text-lg text-j-text leading-relaxed">
+                    {(card.content as { prompt: string }).prompt}
+                  </p>
+                )}
+                {isConnect && (
+                  <>
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <span className="px-3 py-1 border border-j-accent text-j-accent font-mono text-sm">
+                        {(card.content as { conceptA: string }).conceptA}
+                      </span>
+                      <span className="text-j-text-tertiary text-2xl">?</span>
+                      <span className="px-3 py-1 border border-j-accent text-j-accent font-mono text-sm">
+                        {(card.content as { conceptB: string }).conceptB}
+                      </span>
+                    </div>
+                    <p className="text-lg text-j-text leading-relaxed text-center">
+                      {(card.content as { prompt: string }).prompt}
+                    </p>
+                  </>
+                )}
+
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => setIsFlipped(true)}
+                    className="font-mono text-sm tracking-[0.1em] border border-j-border text-j-text-secondary px-6 py-2.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors"
+                  >
+                    {language === 'es' ? 'Ver respuesta' : 'Show answer'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6 p-6 bg-j-bg-hover border border-j-border">
+                  {card.back && (
+                    <>
+                      {(card.back as { definition?: string }).definition && (
+                        <p className="text-j-text leading-relaxed mb-3">
+                          {(card.back as { definition: string }).definition}
+                        </p>
+                      )}
+                      {(card.back as { keyPoints?: string[] }).keyPoints && (
+                        <ul className="list-disc list-inside text-sm text-j-text-secondary space-y-1 mb-3">
+                          {((card.back as { keyPoints: string[] }).keyPoints).map((point, i) => (
+                            <li key={i}>{point}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {(card.back as { whyItMatters?: string }).whyItMatters && (
+                        <p className="text-xs text-j-text-tertiary italic">
+                          {(card.back as { whyItMatters: string }).whyItMatters}
+                        </p>
+                      )}
+                      {(card.back as { connection?: string }).connection && (
+                        <p className="text-j-text leading-relaxed">
+                          {(card.back as { connection: string }).connection}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase text-center mb-4">
+                  {language === 'es' ? 'Como fue tu recall?' : 'How was your recall?'}
+                </p>
+                <SelfRatingBar onRate={submitSelfRating} disabled={isLoading} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---- Concept Card: True/False ---- */}
+        {isTrueFalse && (
+          <div>
+            <div className="mb-8 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
+              <p className="text-lg text-j-text leading-relaxed">
+                {(card.content as { statement: string }).statement}
+              </p>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => submitDeterministicAnswer('true')}
+                disabled={isLoading}
+                className="font-mono text-sm tracking-[0.1em] border border-green-600 text-green-600 px-8 py-3 uppercase hover:bg-green-600/10 transition-colors disabled:opacity-50"
+              >
+                {language === 'es' ? 'Verdadero' : 'True'}
+              </button>
+              <button
+                onClick={() => submitDeterministicAnswer('false')}
+                disabled={isLoading}
+                className="font-mono text-sm tracking-[0.1em] border border-j-error text-j-error px-8 py-3 uppercase hover:bg-j-error/10 transition-colors disabled:opacity-50"
+              >
+                {language === 'es' ? 'Falso' : 'False'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ---- Concept Card: Fill Blank ---- */}
+        {isFillBlank && (
+          <div>
+            <div className="mb-8 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
+              <p className="text-lg text-j-text leading-relaxed">
+                {(card.content as { template: string }).template}
+              </p>
+            </div>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder={language === 'es' ? 'Escribe las palabras que faltan...' : 'Type the missing words...'}
+              rows={2}
+              className="w-full p-4 border border-j-border bg-white dark:bg-j-bg-alt text-j-text placeholder-[#c4c2b8] font-mono text-sm focus:outline-none focus:border-j-accent transition-colors resize-none"
+              autoFocus
+            />
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => submitDeterministicAnswer(answer.trim())}
+                disabled={!answer.trim() || isLoading}
+                className="font-mono text-sm tracking-[0.1em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+              >
+                {isLoading ? t('common.loading', language) : t('review.verify', language)}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ---- Concept Card: Scenario Micro (MC) ---- */}
+        {isScenarioMicro && (
+          <div>
+            <div className="mb-6 p-6 bg-white border border-j-border dark:bg-j-bg-alt">
+              <p className="text-lg text-j-text leading-relaxed">
+                {(card.content as { scenario: string }).scenario}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {(card.options || []).map((option) => (
+                <button
+                  key={option.label}
+                  onClick={() => submitDeterministicAnswer(option.label)}
+                  disabled={isLoading}
+                  className="w-full text-left p-3 border border-j-border hover:border-j-accent transition-colors disabled:opacity-50"
+                >
+                  <span className="font-mono text-xs text-j-accent mr-2">{option.label}.</span>
+                  <span className="text-sm text-j-text">{option.text}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {error && (
@@ -451,11 +734,10 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     );
   }
 
-  // Feedback display
+  // ==== FEEDBACK DISPLAY ====
   if (phase === 'feedback' && currentResult) {
     const card = cards[currentIndex];
     const isLast = currentIndex + 1 >= cards.length;
-    const isClosed = card.format === 'mc' || card.format === 'tf';
 
     return (
       <div>
@@ -485,22 +767,11 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
             </div>
           ) : (
             <>
-              {isClosed ? (
-                <p className={`text-3xl font-light ${
-                  currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
-                }`}>
-                  {currentResult.isCorrect ? '✓' : '✗'}
-                </p>
-              ) : (
-                <>
-                  <span className={`text-5xl font-light ${
-                    currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
-                  }`}>
-                    {currentResult.score}
-                  </span>
-                  <span className="text-j-text-tertiary text-lg">%</span>
-                </>
-              )}
+              <p className={`text-3xl font-light ${
+                currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
+              }`}>
+                {currentResult.isCorrect ? '✓' : '✗'}
+              </p>
               <p className={`mt-2 font-mono text-[10px] tracking-[0.2em] uppercase ${
                 currentResult.isCorrect ? 'text-j-accent' : 'text-j-error'
               }`}>
@@ -515,13 +786,12 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           {currentResult.feedback && (
             <div className="p-4 bg-white dark:bg-j-bg-alt border border-j-border">
               <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
-                {isClosed ? 'Explicacion' : 'Feedback'}
+                Feedback
               </p>
               <p className="text-sm text-j-text leading-relaxed">{currentResult.feedback}</p>
             </div>
           )}
 
-          {/* Collapsible reasoning (open questions only) */}
           {currentResult.reasoning && (
             <div className="border border-j-border">
               <button
@@ -573,7 +843,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     );
   }
 
-  // Summary screen
+  // ==== SUMMARY SCREEN ====
   if (phase === 'summary') {
     const correctCount = completed.filter((c) => c.result.isCorrect).length;
     const incorrectCount = completed.length - correctCount;
@@ -599,7 +869,6 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           </div>
         </div>
 
-        {/* Prediction comparison */}
         {prediction != null && (
           <div className="max-w-md mx-auto mb-8">
             <ReviewPrediction
@@ -614,8 +883,8 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
 
         {/* Per-card results */}
         <div className="text-left max-w-md mx-auto mb-12">
-          {completed.map((c) => (
-            <div key={c.card.questionId} className="flex items-center gap-3 py-2 border-b border-j-border">
+          {completed.map((c, i) => (
+            <div key={`${c.card.id}-${i}`} className="flex items-center gap-3 py-2 border-b border-j-border">
               <span className={`text-sm ${c.result.isCorrect ? 'text-j-accent' : 'text-j-error'}`}>
                 {c.result.isCorrect ? '✓' : '✗'}
               </span>
@@ -629,7 +898,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
                 <CompactDimensionDots scores={c.result.dimensionScores} />
               ) : (
                 <span className="font-mono text-xs text-j-text-tertiary">
-                  {c.card.format === 'open' ? `${c.result.score}%` : (c.result.isCorrect ? '✓' : '✗')}
+                  {c.result.isCorrect ? '✓' : '✗'}
                 </span>
               )}
               <span className="font-mono text-xs text-j-text-tertiary">

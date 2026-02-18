@@ -76,6 +76,15 @@ export function calculateNextReview(
       correctCount += 1;
       break;
 
+    case 'good':
+      intervalDays = intervalDays === 0
+        ? 1
+        : Math.min(MAX_INTERVAL_DAYS, Math.round(intervalDays * easeFactor));
+      // Good: no ease change (neutral)
+      streak += 1;
+      correctCount += 1;
+      break;
+
     case 'easy':
       intervalDays = intervalDays === 0
         ? 1
@@ -112,6 +121,22 @@ export function calculateNextReview(
 export function scoreToRating(score: number): ReviewRating {
   if (score >= SCORE_RATING_BOUNDARIES.easy) return 'easy';
   if (score >= SCORE_RATING_BOUNDARIES.hard) return 'hard';
+  return 'wrong';
+}
+
+/**
+ * Derive a ReviewRating from a numeric score with 4-level granularity (FSRS-compatible).
+ *
+ * Score mapping:
+ * - score >= 90 → easy
+ * - score >= 70 → good
+ * - score >= 50 → hard
+ * - score < 50  → wrong
+ */
+export function scoreToRating4(score: number): ReviewRating {
+  if (score >= 90) return 'easy';
+  if (score >= 70) return 'good';
+  if (score >= 50) return 'hard';
   return 'wrong';
 }
 
