@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
@@ -7,9 +8,8 @@ export const metadata: Metadata = {
   description: 'A learning system for deep technical knowledge validation through AI-generated evaluations',
 };
 import { Header } from '@/components/header';
-import { LanguageSelector } from '@/components/language-selector';
 import { SectionLabel } from '@/components/ui/section-label';
-import { t, getPhaseNames, getMasteryLevels, type Language } from '@/lib/translations';
+import { getMasteryLevels } from '@/lib/translations';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -86,177 +86,6 @@ export default async function Home() {
     );
   }
 
-  // Authenticated — dashboard
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase row type is dynamic
-  let profile: Record<string, any> | null = null;
-  let progressCounts: { level: string }[] | null = null;
-  let totalConcepts: number | null = 0;
-  let evaluationCount: number | null = 0;
-  let dashboardError = false;
-
-  try {
-    const { data: profileData } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    profile = profileData;
-
-    const { data: progressData } = await supabase
-      .from('concept_progress')
-      .select('level')
-      .eq('user_id', user.id);
-    progressCounts = progressData;
-
-    const { count: conceptCount } = await supabase
-      .from('concepts')
-      .select('*', { count: 'exact', head: true });
-    totalConcepts = conceptCount;
-
-    const { count: evalCount } = await supabase
-      .from('evaluations')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-    evaluationCount = evalCount;
-  } catch {
-    dashboardError = true;
-  }
-
-  const lang = (profile?.language || 'es') as Language;
-  const phaseNames = getPhaseNames(lang);
-  const masteryLevels = getMasteryLevels(lang);
-
-  const levelCounts = { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0 };
-  progressCounts?.forEach((p) => {
-    levelCounts[p.level as keyof typeof levelCounts]++;
-  });
-
-  const currentPhase = profile?.current_phase || '1';
-  const conceptsStarted = Object.values(levelCounts).reduce((a, b) => a + b, 0);
-
-  const streakDays = profile?.streak_days ?? 0;
-
-  return (
-    <div className="min-h-screen bg-j-bg">
-      <Header currentPage="home" />
-
-      <main className="mx-auto max-w-6xl px-8 py-12">
-        {dashboardError && (
-          <div className="bg-yellow-50 border border-yellow-300 p-4 mb-8">
-            <p className="text-sm text-yellow-800">
-              {lang === 'es'
-                ? 'No pudimos cargar todos los datos. Algunos valores pueden estar incompletos.'
-                : 'We could not load all data. Some values may be incomplete.'}
-            </p>
-            <div className="flex gap-4 mt-2">
-              <Link href="/" className="font-mono text-[10px] tracking-[0.15em] text-yellow-800 underline uppercase">
-                {lang === 'es' ? 'Reintentar' : 'Retry'}
-              </Link>
-              <Link href="/library" className="font-mono text-[10px] tracking-[0.15em] text-yellow-800 underline uppercase">
-                {lang === 'es' ? 'Ir a Biblioteca' : 'Go to Library'}
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Hero — personalized */}
-        <div className="mb-12">
-          <SectionLabel>
-            {lang === 'es' ? 'Sistema de Aprendizaje Profundo' : 'Deep Learning System'}
-          </SectionLabel>
-
-          <h2 className="text-4xl font-bold text-j-text mb-1">
-            {t('dashboard.welcome', lang)},
-          </h2>
-          <p className="text-2xl font-light text-j-text-tertiary">
-            {profile?.display_name || user.email}
-          </p>
-
-          <p className="mt-4 text-j-text-secondary max-w-xl leading-relaxed">
-            {t('dashboard.currentPhase', lang)}: <strong className="text-j-text">{phaseNames[currentPhase]}</strong>
-          </p>
-
-          <div className="flex gap-4 mt-6">
-            <Link
-              href="/library"
-              className="font-mono text-[11px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-3 uppercase hover:bg-j-accent-hover transition-colors"
-            >
-              {t('dashboard.browseLibrary', lang)}
-            </Link>
-            <Link
-              href="/mi-sistema"
-              className="font-mono text-[11px] tracking-[0.15em] border border-j-border-input text-j-text px-6 py-3 uppercase hover:border-j-accent transition-colors"
-            >
-              {lang === 'es' ? 'Ver mi sistema' : 'View my system'}
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-          <div className="text-center">
-            <p className="text-4xl font-light text-j-text">{totalConcepts || 0}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('dashboard.totalConcepts', lang)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-4xl font-light text-j-accent">{conceptsStarted}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('dashboard.conceptsStarted', lang)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-4xl font-light text-j-accent">{evaluationCount || 0}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('dashboard.evaluations', lang)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-4xl font-light text-j-warm-dark">{streakDays} {t('dashboard.days', lang)}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('dashboard.streak', lang)}
-            </p>
-          </div>
-        </div>
-
-        {/* Mastery Levels */}
-        <div className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {t('dashboard.masteryProgress', lang)}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
-            {masteryLevels.map((item) => (
-              <div key={item.level} className="border border-j-border p-4">
-                <p className="text-2xl font-light text-j-text mb-1">
-                  {levelCounts[item.level as keyof typeof levelCounts]}
-                </p>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mb-1">
-                  {item.name}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Settings */}
-        <div className="border-t border-j-border pt-8">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
-            {t('dashboard.settings', lang)}
-          </p>
-          <LanguageSelector currentLanguage={lang} />
-        </div>
-      </main>
-
-      <footer className="border-t border-j-border py-8 mt-8">
-        <div className="mx-auto max-w-6xl px-8">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
-            Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
+  // Authenticated — redirect to library
+  redirect('/library');
 }

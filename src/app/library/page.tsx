@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
+import { LanguageSelector } from '@/components/language-selector';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { LibraryContent } from './library-content';
 
@@ -206,14 +207,20 @@ export default async function LibraryPage() {
     'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
     'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
     'hussein-backpressure', 'hussein-latency-throughput', // Unavailable videos
+    // Phase 10 — alternate track, hidden from main view
+    'p10-ai-strategy', 'p10-ai-discovery', 'p10-build-vs-buy',
+    'p10-ai-governance', 'p10-enterprise-arch', 'p10-change-management',
+    'p10-ai-economics', 'p10-ai-consulting', 'p10-aws-ai-cert',
   ];
+  // Phases that should not appear in the library (empty or integrated)
+  const hiddenPhases = ['0', '6', '9', '10'];
   const visibleResources = resourcesWithStatus.filter(
-    r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id)
+    r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
 
   // Supplementary resources (videos, etc.) - shown in collapsible section
   const supplementaryResources = resourcesWithStatus.filter(
-    r => r.type === 'video' && !hiddenIds.includes(r.id)
+    r => r.type === 'video' && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
 
   const byPhase: Record<string, ResourceWithStatus[]> = {};
@@ -302,6 +309,16 @@ export default async function LibraryPage() {
           phaseNames={phaseNames}
         />
       </main>
+
+      {/* Settings */}
+      {user && (
+        <div className="mx-auto max-w-6xl px-8 border-t border-j-border pt-8 mt-8">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
+            {t('dashboard.settings', lang)}
+          </p>
+          <LanguageSelector currentLanguage={lang} />
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-j-border py-8 mt-8">
