@@ -35,7 +35,7 @@ interface UseVoicePracticeSessionParams {
 
 export type VoicePracticeState = 'idle' | 'connecting' | 'practicing' | 'scoring' | 'done' | 'error';
 
-export interface PracticeResult {
+interface PracticeResult {
   responses: Array<{
     questionIndex: number;
     isCorrect: boolean;
@@ -49,7 +49,7 @@ export interface PracticeResult {
   passedGate: boolean;
 }
 
-export interface VoicePracticeSession {
+interface VoicePracticeSession {
   practiceState: VoicePracticeState;
   tutorState: TutorState;
   connectionState: ConnectionState;

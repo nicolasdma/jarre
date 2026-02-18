@@ -366,7 +366,7 @@ export function OpenClawArchitecturePlayground() {
         <div className="flex-1 min-h-[400px] relative border border-j-border bg-j-bg-elevated">
           {/* Connection lines using SVG overlay */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-            {CONNECTIONS.map((conn, i) => {
+            {CONNECTIONS.map((conn) => {
               const fromComp = COMPONENTS.find((c) => c.id === conn.from);
               const toComp = COMPONENTS.find((c) => c.id === conn.to);
               if (!fromComp || !toComp) return null;
@@ -410,7 +410,7 @@ export function OpenClawArchitecturePlayground() {
 
               return (
                 <line
-                  key={i}
+                  key={`${conn.from}-${conn.to}`}
                   x1={`${x1Pct}%`}
                   y1={`${y1Pct}%`}
                   x2={`${x2Pct}%`}

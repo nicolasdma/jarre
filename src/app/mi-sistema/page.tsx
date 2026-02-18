@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -5,6 +6,11 @@ import { SystemVisualization } from '@/components/system-viz/system-visualizatio
 import { redirect } from 'next/navigation';
 import type { Language } from '@/lib/translations';
 import type { ConceptNode } from '@/components/system-viz/layout-engine';
+
+export const metadata: Metadata = {
+  title: 'Mi Sistema — Jarre',
+  description: 'Visualize your knowledge system and concept connections',
+};
 
 export default async function MiSistemaPage() {
   const supabase = await createClient();

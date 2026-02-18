@@ -35,16 +35,3 @@ export function getExercisesForConcept(conceptId: string): Exercise[] {
   return byConceptId.get(conceptId) ?? [];
 }
 
-/**
- * Check if a concept has any exercises.
- */
-export function hasExercises(conceptId: string): boolean {
-  return byConceptId.has(conceptId);
-}
-
-/**
- * Get a single exercise by ID.
- */
-export function getExerciseById(exerciseId: string): Exercise | undefined {
-  return ALL_EXERCISES.find((ex) => ex.id === exerciseId);
-}

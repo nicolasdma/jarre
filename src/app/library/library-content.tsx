@@ -12,7 +12,7 @@ interface EvalStats {
   evalCount: number;
 }
 
-export interface ResourceWithStatus {
+interface ResourceWithStatus {
   id: string;
   title: string;
   type: string;
@@ -28,7 +28,7 @@ export interface ResourceWithStatus {
   evalStats: EvalStats | null;
 }
 
-export interface ProjectWithDetails {
+interface ProjectWithDetails {
   id: string;
   title: string;
   phase: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 type Phase = 'normal' | 'failure' | 'detecting' | 'electing' | 'promoted';
@@ -19,6 +19,7 @@ const STATUS: Record<Phase, string> = {
 };
 
 export function FailoverVisual() {
+  const reduced = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('normal');
   const [countdown, setCountdown] = useState(3);
 
@@ -61,45 +62,47 @@ export function FailoverVisual() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div className="flex gap-6">
-        {NODES.map((id) => (
-          <div key={id} className="flex flex-col items-center gap-1">
-            <motion.div
-              className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-[10px]"
-              animate={nodeStyle(id)}
-              transition={{ duration: 0.3 }}
-            >
-              {id === 'L' && failed ? 'X' : id === 'F1' && promoted ? 'L' : id}
-            </motion.div>
-            <span className="font-mono text-[10px] text-[#9c9a8e]">
-              {id === 'L' ? 'Lider' : id === 'F1' && promoted ? 'Nuevo L' : id}
-            </span>
-          </div>
-        ))}
+    <LazyMotion features={domAnimation}>
+      <div className="flex flex-col items-center gap-5">
+        <div className="flex gap-6">
+          {NODES.map((id) => (
+            <div key={id} className="flex flex-col items-center gap-1">
+              <m.div
+                className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-[10px]"
+                animate={reduced ? undefined : nodeStyle(id)}
+                transition={reduced ? { duration: 0 } : { duration: 0.3 }}
+              >
+                {id === 'L' && failed ? 'X' : id === 'F1' && promoted ? 'L' : id}
+              </m.div>
+              <span className="font-mono text-[10px] text-[#9c9a8e]">
+                {id === 'L' ? 'Lider' : id === 'F1' && promoted ? 'Nuevo L' : id}
+              </span>
+            </div>
+          ))}
+        </div>
+        <m.div
+          className="font-mono text-[10px] tracking-[0.1em] px-3 py-1 border"
+          animate={reduced ? undefined : {
+            borderColor: phase === 'normal' || promoted ? '#4a5d4a' : '#c4a07a',
+            color: phase === 'normal' || promoted ? '#4a5d4a' : '#c4a07a',
+          }}
+          transition={reduced ? { duration: 0 } : { duration: 0.25 }}
+        >
+          {statusLabel}
+        </m.div>
+        <div className="flex gap-1">
+          {PHASES.map(({ phase: p }) => (
+            <m.div
+              key={p} className="w-8 h-1"
+              animate={reduced ? undefined : { backgroundColor: p === phase ? '#c4a07a' : '#e8e6e0' }}
+              transition={reduced ? { duration: 0 } : { duration: 0.2 }}
+            />
+          ))}
+        </div>
+        <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#9c9a8e]">
+          failover automatico
+        </span>
       </div>
-      <motion.div
-        className="font-mono text-[10px] tracking-[0.1em] px-3 py-1 border"
-        animate={{
-          borderColor: phase === 'normal' || promoted ? '#4a5d4a' : '#c4a07a',
-          color: phase === 'normal' || promoted ? '#4a5d4a' : '#c4a07a',
-        }}
-        transition={{ duration: 0.25 }}
-      >
-        {statusLabel}
-      </motion.div>
-      <div className="flex gap-1">
-        {PHASES.map(({ phase: p }) => (
-          <motion.div
-            key={p} className="w-8 h-1"
-            animate={{ backgroundColor: p === phase ? '#c4a07a' : '#e8e6e0' }}
-            transition={{ duration: 0.2 }}
-          />
-        ))}
-      </div>
-      <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#9c9a8e]">
-        failover automatico
-      </span>
-    </div>
+    </LazyMotion>
   );
 }

@@ -465,9 +465,9 @@ function RadarChart({ hoveredAxis }: { hoveredAxis: string | null }) {
   return (
     <svg viewBox="0 0 280 280" className="w-full max-w-[280px]">
       {/* Grid */}
-      {gridLevels.map((pts, i) => (
+      {gridLevels.map((pts) => (
         <polygon
-          key={i}
+          key={pts}
           points={pts}
           fill="none"
           stroke="var(--j-border, #333)"
@@ -477,11 +477,11 @@ function RadarChart({ hoveredAxis }: { hoveredAxis: string | null }) {
       ))}
 
       {/* Axis lines */}
-      {RADAR_AXES.map((_, i) => {
+      {RADAR_AXES.map((axis, i) => {
         const [ex, ey] = getPoint(i, 100);
         return (
           <line
-            key={i}
+            key={axis.label}
             x1={cx}
             y1={cy}
             x2={ex}

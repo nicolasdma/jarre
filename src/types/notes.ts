@@ -16,23 +16,3 @@ export interface NoteSection {
   subsections: NoteSubsection[];
 }
 
-export interface ResourceNotes {
-  id: string;
-  userId: string;
-  resourceId: string;
-  sections: NoteSection[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Database row type (snake_case)
-export interface ResourceNotesRow {
-  id: string;
-  user_id: string;
-  resource_id: string;
-  sections: NoteSection[];
-  canvas_data: unknown;
-  split_position: number;
-  created_at: string;
-  updated_at: string;
-}

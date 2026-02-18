@@ -58,7 +58,7 @@ export function createAnchor(
  * Find the position of an anchor's text within a segment's textContent.
  * Returns the character offset, or -1 if not found.
  */
-export function findAnchorPosition(
+function findAnchorPosition(
   anchor: HighlightAnchor,
   segmentText: string
 ): number {
@@ -129,28 +129,6 @@ export function buildRangeForAnchor(
   return null;
 }
 
-/**
- * Apply CSS Custom Highlight API for a set of ranges under a highlight name.
- * Returns true if the API is supported and highlights were applied.
- */
-export function applyHighlightsCSS(
-  name: string,
-  ranges: Range[]
-): boolean {
-  if (typeof CSS === 'undefined' || !('highlights' in CSS)) return false;
-
-  const highlight = new Highlight(...ranges);
-  (CSS as { highlights: Map<string, Highlight> }).highlights.set(name, highlight);
-  return true;
-}
-
-/**
- * Remove a CSS Custom Highlight by name.
- */
-export function removeHighlightCSS(name: string): void {
-  if (typeof CSS === 'undefined' || !('highlights' in CSS)) return;
-  (CSS as { highlights: Map<string, Highlight> }).highlights.delete(name);
-}
 
 /**
  * Check if the CSS Custom Highlight API is supported.

@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { LibraryContent } from './library-content';
+
+export const metadata: Metadata = {
+  title: 'Library — Jarre',
+  description: 'Browse and manage your learning resources',
+};
 
 export default async function LibraryPage() {
   const supabase = await createClient();
@@ -115,18 +121,15 @@ export default async function LibraryPage() {
   let projectsByPhase: Record<string, ProjectWithDetails> = {};
 
   if (user) {
-    const { data: allProjects } = await supabase
-      .from('projects')
-      .select('*');
-
-    const { data: projectConcepts } = await supabase
-      .from('project_concepts')
-      .select('project_id, concept_id');
-
-    const { data: projectProgress } = await supabase
-      .from('project_progress')
-      .select('project_id, status')
-      .eq('user_id', user.id);
+    const [
+      { data: allProjects },
+      { data: projectConcepts },
+      { data: projectProgress },
+    ] = await Promise.all([
+      supabase.from('projects').select('*'),
+      supabase.from('project_concepts').select('project_id, concept_id'),
+      supabase.from('project_progress').select('project_id, status').eq('user_id', user.id),
+    ]);
 
     // Fetch concept names for display
     const pcConceptIds = [...new Set((projectConcepts || []).map((pc) => pc.concept_id))];

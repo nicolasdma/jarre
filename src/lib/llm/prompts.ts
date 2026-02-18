@@ -214,6 +214,3 @@ Respondé en formato JSON:
   "summary": "evaluación general breve en español"
 }`;
 }
-
-// Legacy export for backwards compatibility
-export const SYSTEM_PROMPT_EVALUATOR = SYSTEM_PROMPTS.es;

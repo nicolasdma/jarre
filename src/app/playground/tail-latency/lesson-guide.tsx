@@ -10,7 +10,7 @@ interface TailLatencyStep extends LessonStep {
   action: string;
 }
 
-export interface LessonGuideProps {
+interface LessonGuideProps {
   onRunBatch: () => void;
   onSetFanout: (k: number) => void;
   onToggleHedging: () => void;

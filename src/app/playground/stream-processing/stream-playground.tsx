@@ -460,15 +460,17 @@ function ConsumerGroupPanel({
                   )}
                 </div>
                 {consumers.length > 1 && (
-                  <span
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemoveConsumer(consumer.id);
                     }}
-                    className="font-mono text-[10px] text-j-text-tertiary hover:text-red-500 cursor-pointer transition-colors"
+                    className="font-mono text-[10px] text-j-text-tertiary hover:text-red-500 transition-colors bg-transparent border-none p-0"
+                    aria-label="Remove consumer"
                   >
                     x
-                  </span>
+                  </button>
                 )}
               </div>
 
@@ -537,8 +539,8 @@ function EventLog({ events }: { events: Array<{ timestamp: number; message: stri
             Sin eventos aun. Produce un mensaje para comenzar.
           </p>
         ) : (
-          events.slice(-50).map((entry, i) => (
-            <div key={i} className="flex gap-2 py-0.5">
+          events.slice(-50).map((entry) => (
+            <div key={`event-${entry.timestamp}`} className="flex gap-2 py-0.5">
               <span className="font-mono text-[9px] text-j-text-tertiary shrink-0 w-16">
                 {new Date(entry.timestamp).toLocaleTimeString('es', {
                   hour12: false,

@@ -420,7 +420,7 @@ export function VoicePracticeFlow({
         <div className="space-y-6 mt-8">
           {practiceResult.responses.map((result, index) => (
             <div
-              key={index}
+              key={`response-${result.questionIndex}`}
               className={`border-l-2 pl-6 ${
                 result.understood ? 'border-j-accent' : 'border-j-error'
               }`}

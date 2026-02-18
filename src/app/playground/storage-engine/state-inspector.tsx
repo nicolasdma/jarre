@@ -284,7 +284,8 @@ function AppendLogViz({ details }: { details: Record<string, unknown> }) {
 
             return (
               <div
-                key={i}
+
+                key={`record-${i}`}
                 className={`px-2 py-1.5 font-mono text-[11px] ${
                   isDeleted
                     ? 'bg-[#fdf5f5]'
@@ -402,9 +403,9 @@ function HashIndexViz({ details }: { details: Record<string, unknown> }) {
               <span className="w-14 shrink-0 text-right">Offset</span>
               <span className="w-14 shrink-0 text-right">Bytes</span>
             </div>
-            {entries.map((entry, i) => (
+            {entries.map((entry) => (
               <div
-                key={i}
+                key={entry.key}
                 className="flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eef3ee] last:border-0"
               >
                 <span className="w-20 shrink-0 text-j-text truncate font-medium">
@@ -628,9 +629,9 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
               <span className="flex-1">Value</span>
               <span className="w-12 shrink-0 text-right">Estado</span>
             </div>
-            {memtable.entries.map((entry, i) => (
+            {memtable.entries.map((entry) => (
               <div
-                key={i}
+                key={entry.key}
                 className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eeedf8] last:border-0 ${
                   entry.deleted ? 'bg-[#fdf5f5]' : ''
                 }`}
@@ -676,7 +677,7 @@ function LSMTreeViz({ details }: { details: Record<string, unknown> }) {
               const isCompacted = sst.level > 0;
               return (
                 <div
-                  key={i}
+                  key={sst.filePath}
                   className={`border px-3 py-2 ${
                     isCompacted
                       ? 'border-[#d0d8e8] bg-[#f8faff]'
@@ -806,9 +807,9 @@ function WALViz({ walState, lastRecoveryCount }: {
             <span className="flex-1">Key = Value</span>
             <span className="w-10 shrink-0 text-right">CRC</span>
           </div>
-          {walState.entries.map((entry, i) => (
+          {walState.entries.map((entry) => (
             <div
-              key={i}
+              key={`wal-${entry.offset}`}
               className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] border-b border-[#eeedf8] last:border-0 ${
                 entry.checksumValid ? '' : 'bg-[#fdf5f5]'
               }`}
@@ -1056,13 +1057,13 @@ function BTreeNodeBox({ node, maxKeys }: {
       {/* Keys */}
       {node.keys.length > 0 ? (
         <div className="space-y-0.5 mb-1.5">
-          {node.keys.map((key, i) => (
-            <div key={i} className="flex items-center gap-1.5 font-mono text-[10px]">
+          {node.keys.map((key, keyIdx) => (
+            <div key={key} className="flex items-center gap-1.5 font-mono text-[10px]">
               <span className="text-j-text font-medium">{key}</span>
               {isLeaf && node.values && (
                 <>
                   <span className="text-[#ccc]">=</span>
-                  <span className="text-[#666] truncate">{node.values[i]}</span>
+                  <span className="text-[#666] truncate">{node.values[keyIdx]}</span>
                 </>
               )}
             </div>
@@ -1075,8 +1076,8 @@ function BTreeNodeBox({ node, maxKeys }: {
       {/* Child pointers for internal nodes */}
       {!isLeaf && node.childIds && (
         <div className="flex gap-1 mb-1.5">
-          {node.childIds.map((childId, i) => (
-            <span key={i} className="font-mono text-[8px] text-[#2d6a7a] bg-[#e0eef2] px-1 py-0.5">
+          {node.childIds.map((childId) => (
+            <span key={childId} className="font-mono text-[8px] text-[#2d6a7a] bg-[#e0eef2] px-1 py-0.5">
               →{childId}
             </span>
           ))}

@@ -73,5 +73,3 @@ export function ErrorMessage({ message, variant = 'inline', onRetry }: ErrorMess
     </div>
   );
 }
-
-export type { ErrorVariant, ErrorMessageProps };

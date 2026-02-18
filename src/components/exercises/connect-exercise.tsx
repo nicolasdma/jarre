@@ -85,7 +85,7 @@ export function ConnectExerciseComponent({ exercise, onSubmit }: Props) {
             if (!from || !to) return null;
             return (
               <line
-                key={i}
+                key={`${fromId}-${toId}`}
                 x1={from.x}
                 y1={from.y}
                 x2={to.x}

@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { PartitionPlayground } from './partition-playground';
+
+export const metadata: Metadata = {
+  title: 'Partition Visualizer — Jarre',
+  description: 'Interactive partition strategy visualizer for distributed databases',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

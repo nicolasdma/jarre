@@ -4,7 +4,7 @@ import type { SequenceExercise, LabelExercise } from '@/types';
  * Ch5: Replication — 3 exercises
  */
 
-export const ch5Exercise1: SequenceExercise = {
+const ch5Exercise1: SequenceExercise = {
   id: 'ddia-5.1',
   type: 'sequence',
   title: 'Pasos de replicación líder-seguidor',
@@ -20,7 +20,7 @@ export const ch5Exercise1: SequenceExercise = {
   correctOrder: ['s1', 's2', 's3', 's4', 's5'],
 };
 
-export const ch5Exercise2: LabelExercise = {
+const ch5Exercise2: LabelExercise = {
   id: 'ddia-5.2',
   type: 'label',
   title: 'Topología multi-líder',
@@ -51,7 +51,7 @@ export const ch5Exercise2: LabelExercise = {
   ],
 };
 
-export const ch5Exercise3: SequenceExercise = {
+const ch5Exercise3: SequenceExercise = {
   id: 'ddia-5.3',
   type: 'sequence',
   title: 'Pasos de failover automático',

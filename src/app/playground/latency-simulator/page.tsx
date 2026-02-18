@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { LatencyPlayground } from './latency-playground';
+
+export const metadata: Metadata = {
+  title: 'Latency Simulator — Jarre',
+  description: 'Interactive latency simulation for understanding system performance',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

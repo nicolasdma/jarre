@@ -50,74 +50,76 @@ export function AnnotatedContent({
 
   // Fetch annotations + notebook content in parallel on mount.
   // Reconcile: inject <mark> for any annotation not already in the notebook HTML.
-  useEffect(() => {
-    let cancelled = false;
+  const cancelledRef = useRef(false);
 
-    async function fetchData() {
-      try {
-        const [annotationsRes, notebookRes] = await Promise.all([
-          fetch(`/api/annotations/${sectionId}`),
-          fetch(`/api/section-notes/${sectionId}`),
-        ]);
+  const fetchAnnotationsAndNotes = useCallback(async () => {
+    cancelledRef.current = false;
 
-        if (cancelled) return;
+    try {
+      const [annotationsRes, notebookRes] = await Promise.all([
+        fetch(`/api/annotations/${sectionId}`),
+        fetch(`/api/section-notes/${sectionId}`),
+      ]);
 
-        let fetchedAnnotations: Annotation[] = [];
-        let notebookContent = '';
+      if (cancelledRef.current) return;
 
-        if (annotationsRes.ok) {
-          const data = await annotationsRes.json();
-          fetchedAnnotations = data.map(mapDbAnnotation);
-        }
-        if (notebookRes.ok) {
-          const data = await notebookRes.json();
-          notebookContent = data.content || '';
-        }
+      let fetchedAnnotations: Annotation[] = [];
+      let notebookContent = '';
 
-        // Reconcile: inject marks for highlights missing from notebook
-        const highlightsToInject = fetchedAnnotations.filter(
-          (a) => a.selectedText && !notebookContent.includes(`data-annotation-id="${a.id}"`)
-        );
-
-        if (highlightsToInject.length > 0) {
-          const marksHtml = highlightsToInject
-            .map((a) => `<mark data-annotation-id="${a.id}">${escapeHtml(a.selectedText)}</mark>`)
-            .join(' ');
-
-          const separator = notebookContent.length > 0 ? ' ' : '';
-          notebookContent = notebookContent + separator + marksHtml;
-
-          // Persist the reconciled notebook
-          fetch(`/api/section-notes/${sectionId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: notebookContent }),
-          }).catch((err) => {
-            console.error('[AnnotatedContent] Failed to save reconciled notebook:', err);
-          });
-        }
-
-        // Update the set of mark IDs present in the notebook
-        const markIds = new Set<string>();
-        const markRegex = /data-annotation-id="([^"]+)"/g;
-        let match;
-        while ((match = markRegex.exec(notebookContent)) !== null) {
-          markIds.add(match[1]);
-        }
-        markAnnotationIds.current = markIds;
-
-        setAnnotations(fetchedAnnotations);
-        setNotebookHtml(notebookContent);
-        setLoaded(true);
-      } catch (err) {
-        console.error('[AnnotatedContent] Failed to fetch data:', err);
-        if (!cancelled) setLoaded(true);
+      if (annotationsRes.ok) {
+        const data = await annotationsRes.json();
+        fetchedAnnotations = data.map(mapDbAnnotation);
       }
-    }
+      if (notebookRes.ok) {
+        const data = await notebookRes.json();
+        notebookContent = data.content || '';
+      }
 
-    fetchData();
-    return () => { cancelled = true; };
+      // Reconcile: inject marks for highlights missing from notebook
+      const highlightsToInject = fetchedAnnotations.filter(
+        (a) => a.selectedText && !notebookContent.includes(`data-annotation-id="${a.id}"`)
+      );
+
+      if (highlightsToInject.length > 0) {
+        const marksHtml = highlightsToInject
+          .map((a) => `<mark data-annotation-id="${a.id}">${escapeHtml(a.selectedText)}</mark>`)
+          .join(' ');
+
+        const separator = notebookContent.length > 0 ? ' ' : '';
+        notebookContent = notebookContent + separator + marksHtml;
+
+        // Persist the reconciled notebook
+        fetch(`/api/section-notes/${sectionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: notebookContent }),
+        }).catch((err) => {
+          console.error('[AnnotatedContent] Failed to save reconciled notebook:', err);
+        });
+      }
+
+      // Update the set of mark IDs present in the notebook
+      const markIds = new Set<string>();
+      const markRegex = /data-annotation-id="([^"]+)"/g;
+      let match;
+      while ((match = markRegex.exec(notebookContent)) !== null) {
+        markIds.add(match[1]);
+      }
+      markAnnotationIds.current = markIds;
+
+      setAnnotations(fetchedAnnotations);
+      setNotebookHtml(notebookContent);
+      setLoaded(true);
+    } catch (err) {
+      console.error('[AnnotatedContent] Failed to fetch data:', err);
+      if (!cancelledRef.current) setLoaded(true);
+    }
   }, [sectionId]);
+
+  useEffect(() => {
+    fetchAnnotationsAndNotes();
+    return () => { cancelledRef.current = true; };
+  }, [fetchAnnotationsAndNotes]);
 
   // Save notebook HTML to API (debounced)
   const saveNotebook = useCallback((html: string) => {

@@ -14,7 +14,7 @@ import type { QuestionBankType, EvaluationType } from '@/types';
 // Types
 // ============================================================================
 
-export interface RubricLevel {
+interface RubricLevel {
   score: 0 | 1 | 2;
   es: string;
   en: string;

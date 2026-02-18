@@ -17,7 +17,7 @@ export interface RaftNode {
   votesReceived: Set<string>;
 }
 
-export interface LogEntry {
+interface LogEntry {
   term: number;
   command: string;
   index: number;

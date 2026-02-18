@@ -97,6 +97,7 @@ const markdownComponents = {
   hr: () => <div className="h-px bg-j-border my-8" />,
   img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <figure className="my-8 -mx-4">
+      {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic markdown images from arbitrary domains; next/image requires allowlisted domains */}
       <img
         src={typeof props.src === 'string' ? props.src : undefined}
         alt={props.alt || ''}
@@ -188,7 +189,7 @@ function InterleavedContent({
           : [];
 
         return (
-          <div key={i} data-segment-index={i}>
+          <div key={segment.heading ?? `segment-${i}`} data-segment-index={i}>
             {segment.heading && (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}

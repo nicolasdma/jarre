@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { AttentionPlayground } from './attention-playground';
+
+export const metadata: Metadata = {
+  title: 'Attention Visualizer — Jarre',
+  description: 'Interactive transformer attention mechanism visualizer',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

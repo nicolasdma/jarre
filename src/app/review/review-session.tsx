@@ -55,8 +55,8 @@ function DimensionDots({ scores }: { scores: Record<string, number> }) {
 function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
   return (
     <div className="flex gap-1.5">
-      {Object.values(scores).map((value, i) => (
-        <span key={i} className="text-[10px]">
+      {Object.entries(scores).map(([dimension, value]) => (
+        <span key={dimension} className="text-[10px]">
           {[0, 1].map((dotIndex) => (
             <span
               key={dotIndex}
@@ -409,6 +409,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
               placeholder={t('review.answerPlaceholder', language)}
               rows={4}
               className="w-full p-4 border border-j-border bg-white dark:bg-j-bg-alt text-j-text placeholder-[#c4c2b8] font-mono text-sm focus:outline-none focus:border-j-accent transition-colors resize-none"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field during active review session
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.metaKey && answer.trim()) {
@@ -613,8 +614,8 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
 
         {/* Per-card results */}
         <div className="text-left max-w-md mx-auto mb-12">
-          {completed.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 py-2 border-b border-j-border">
+          {completed.map((c) => (
+            <div key={c.card.questionId} className="flex items-center gap-3 py-2 border-b border-j-border">
               <span className={`text-sm ${c.result.isCorrect ? 'text-j-accent' : 'text-j-error'}`}>
                 {c.result.isCorrect ? '✓' : '✗'}
               </span>

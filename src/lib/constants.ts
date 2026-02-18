@@ -21,9 +21,6 @@ export const LEVEL_4_SCORE = 80;
 /** Minimum correct micro-test answers to advance 0 → 1 */
 export const MICRO_TEST_THRESHOLD = 3;
 
-/** Confidence scale levels */
-export const CONFIDENCE_LEVELS = [1, 2, 3] as const;
-
 // ============================================================================
 // SM-2 SPACED REPETITION
 // ============================================================================
@@ -36,16 +33,6 @@ export const SM2_MAX_EASE = 2.5;
 
 /** Maximum interval between reviews (days) */
 export const SM2_MAX_INTERVAL_DAYS = 180;
-
-/** Default initial ease factor for new cards */
-export const SM2_DEFAULT_EASE = 2.5;
-
-/** Ease factor adjustments per rating */
-export const SM2_EASE_DELTAS = {
-  wrong: -0.2,
-  hard: -0.15,
-  easy: 0.1,
-} as const;
 
 /** Score boundaries for rating derivation */
 export const SCORE_RATING_BOUNDARIES = {
@@ -76,16 +63,6 @@ export const REVIEW_SESSION_CAP = 12;
 export const REVIEW_MAX_OPEN = 3;
 
 // ============================================================================
-// EVALUATION
-// ============================================================================
-
-/** Default number of generated questions per evaluation */
-export const EVAL_DEFAULT_QUESTION_COUNT = 5;
-
-/** Max evaluations per page in history */
-export const EVAL_HISTORY_PAGE_SIZE = 50;
-
-// ============================================================================
 // TEXT ANCHORING
 // ============================================================================
 
@@ -99,15 +76,9 @@ export const ANCHOR_CONTEXT_LENGTH = 50;
 /** Maximum canvas data size (bytes) */
 export const MAX_CANVAS_SIZE = 10 * 1024 * 1024; // 10MB
 
-/** Annotation save debounce (ms) */
-export const ANNOTATION_DEBOUNCE_MS = 500;
-
 // ============================================================================
 // SELF-EXPLANATION
 // ============================================================================
-
-/** Minimum character length for self-explanation validation */
-export const SELF_EXPLANATION_MIN_LENGTH = 30;
 
 /** Length above which self-explanation is auto-considered genuine */
 export const SELF_EXPLANATION_AUTO_GENUINE_LENGTH = 120;
@@ -130,13 +101,6 @@ export const ENGINE_COMMAND_TIMEOUT_MS = 5000;
 export const ENGINE_DEBUG_TIMEOUT_MS = 3000;
 
 // ============================================================================
-// TTS
-// ============================================================================
-
-/** Word boundary sizes for TTS chunking */
-export const TTS_CHUNK_WORDS = { large: 60, small: 50 } as const;
-
-// ============================================================================
 // XP SYSTEM
 // ============================================================================
 
@@ -152,9 +116,6 @@ export const XP_REWARDS = {
   MASTERY_ADVANCE: 20,
   DAILY_GOAL_BONUS: 10,       // awarded by DB function
 } as const;
-
-/** Default daily XP target for new users */
-export const DEFAULT_DAILY_XP_TARGET = 50;
 
 // ============================================================================
 // EXERCISES

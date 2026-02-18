@@ -131,15 +131,16 @@ export function ReplicationPlayground() {
   const isPartitionedRef = useRef(isPartitioned);
   const globalVersionRef = useRef(globalVersion);
 
-  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-  useEffect(() => { eventsRef.current = events; }, [events]);
-  useEffect(() => { configRef.current = config; }, [config]);
-  useEffect(() => { isPartitionedRef.current = isPartitioned; }, [isPartitioned]);
-  useEffect(() => { globalVersionRef.current = globalVersion; }, [globalVersion]);
+  // Assign during render (not in useEffect) to avoid stale-closure issues
+  nodesRef.current = nodes;
+  messagesRef.current = messages;
+  eventsRef.current = events;
+  configRef.current = config;
+  isPartitionedRef.current = isPartitioned;
+  globalVersionRef.current = globalVersion;
 
   // Proactive tutor trigger: fires on violation, crash, or split brain events
-  useEffect(() => {
+  const fetchReplicationTutor = useCallback(async () => {
     if (events.length === 0) return;
     const lastEvent = events[events.length - 1];
     const isSignificant = lastEvent.type === 'violation' || lastEvent.type === 'crash' || lastEvent.description.includes('SPLIT BRAIN');
@@ -149,21 +150,27 @@ export function ReplicationPlayground() {
     if (now - lastProactiveRef.current < 30000) return;
     lastProactiveRef.current = now;
 
-    fetch('/api/playground/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playground: 'replication',
-        state: { nodes, events: events.slice(-10), config, isPartitioned, violations },
-        history: [],
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.question) setProactiveQuestion(data.question);
-      })
-      .catch(() => {});
+    try {
+      const res = await fetch('/api/playground/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playground: 'replication',
+          state: { nodes, events: events.slice(-10), config, isPartitioned, violations },
+          history: [],
+        }),
+      });
+      const data = await res.json();
+      if (data.question) setProactiveQuestion(data.question);
+    } catch {
+      // Proactive question is optional — don't block on errors
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.length]);
+
+  useEffect(() => {
+    fetchReplicationTutor();
+  }, [fetchReplicationTutor]);
 
   // ------------------------------------------------------------------
   // Simulation tick

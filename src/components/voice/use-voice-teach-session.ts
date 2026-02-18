@@ -28,9 +28,9 @@ interface UseVoiceTeachSessionParams {
   language: Language;
 }
 
-export type VoiceTeachState = 'idle' | 'connecting' | 'teaching' | 'scoring' | 'done' | 'error';
+type VoiceTeachState = 'idle' | 'connecting' | 'teaching' | 'scoring' | 'done' | 'error';
 
-export interface TeachResult {
+interface TeachResult {
   responses: Array<{
     questionIndex: number;
     isCorrect: boolean;
@@ -44,7 +44,7 @@ export interface TeachResult {
   newLevel: number;
 }
 
-export interface VoiceTeachSession {
+interface VoiceTeachSession {
   teachState: VoiceTeachState;
   tutorState: TutorState;
   connectionState: ConnectionState;

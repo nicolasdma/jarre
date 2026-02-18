@@ -367,7 +367,8 @@ function Histogram({
           const th = tiedBuckets && maxCount > 0 ? (tiedBuckets[i] / maxCount) * 100 : 0;
 
           return (
-            <div key={i} className="flex-1 flex flex-col items-stretch justify-end h-full relative group">
+
+            <div key={`bucket-${i}`} className="flex-1 flex flex-col items-stretch justify-end h-full relative group">
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-j-bg border border-j-border rounded px-2 py-1 shadow-sm whitespace-nowrap">
@@ -470,7 +471,8 @@ function FanoutImpactChart({ results }: { results: SimulationResult[] }) {
             ? (r.hedgedPercentiles.p99 / maxP99) * 100
             : 0;
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+
+            <div key={`fanout-${i}`} className="flex-1 flex flex-col items-center gap-1">
               <span className="font-mono text-[8px] text-[#888]">
                 {r.percentiles.p99.toFixed(0)}ms
               </span>
@@ -552,9 +554,9 @@ function ControlsPanel({
     <div className="px-4 py-3 flex flex-wrap items-center gap-4">
       {/* Servers */}
       <div className="flex items-center gap-2">
-        <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
+        <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
           Servers
-        </label>
+        </span>
         <input
           type="range"
           min={2}
@@ -568,9 +570,9 @@ function ControlsPanel({
 
       {/* Fan-out */}
       <div className="flex items-center gap-2">
-        <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
+        <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
           Fan-out
-        </label>
+        </span>
         <input
           type="range"
           min={1}
@@ -584,9 +586,9 @@ function ControlsPanel({
 
       {/* Batch size */}
       <div className="flex items-center gap-2">
-        <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
+        <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
           Batch
-        </label>
+        </span>
         <select
           value={batchSize}
           onChange={(e) => onBatchSizeChange(Number(e.target.value))}
@@ -601,9 +603,9 @@ function ControlsPanel({
 
       {/* Base mean */}
       <div className="flex items-center gap-2">
-        <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
+        <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
           Base ms
-        </label>
+        </span>
         <input
           type="range"
           min={5}
@@ -633,9 +635,9 @@ function ControlsPanel({
       {/* Hedge timeout */}
       {hedging && (
         <div className="flex items-center gap-2">
-          <label className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
+          <span className="font-mono text-[10px] text-[#888] uppercase tracking-wider">
             Timeout
-          </label>
+          </span>
           <input
             type="range"
             min={10}

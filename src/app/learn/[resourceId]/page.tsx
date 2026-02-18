@@ -1,7 +1,16 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { DDIAChapter1 } from './ddia-ch1';
+
+export async function generateMetadata({ params }: { params: Promise<{ resourceId: string }> }): Promise<Metadata> {
+  const { resourceId } = await params;
+  return {
+    title: `Learn ${resourceId} — Jarre`,
+    description: 'Interactive learning content with sections and exercises',
+  };
+}
 import { DDIAChapter2 } from './ddia-ch2';
 import { DDIAChapter3 } from './ddia-ch3';
 import { DDIAChapter5 } from './ddia-ch5';

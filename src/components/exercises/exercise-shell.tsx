@@ -23,9 +23,10 @@ export function ExerciseShell({ exercises, onAllComplete, language }: ExerciseSh
   const startTimeRef = useRef(Date.now());
 
   const exercise = exercises[currentIndex];
-  if (!exercise) return null;
 
   const handleResult = useCallback((res: ExerciseResult) => {
+    const ex = exercises[currentIndex];
+    if (!ex) return;
     setResult(res);
     // Save result to DB (fire-and-forget)
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
@@ -34,16 +35,16 @@ export function ExerciseShell({ exercises, onAllComplete, language }: ExerciseSh
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         exerciseId: res.exerciseId,
-        exerciseType: exercise.type,
-        conceptId: exercise.conceptId,
-        sectionId: exercise.sectionId,
+        exerciseType: ex.type,
+        conceptId: ex.conceptId,
+        sectionId: ex.sectionId,
         score: res.score,
         isCorrect: res.isCorrect,
         details: res.details,
         timeSpentSeconds: timeSpent,
       }),
     }).catch(() => {});
-  }, [exercise]);
+  }, [exercises, currentIndex]);
 
   const handleNext = useCallback(() => {
     if (result) {
@@ -65,6 +66,8 @@ export function ExerciseShell({ exercises, onAllComplete, language }: ExerciseSh
     startTimeRef.current = Date.now();
   }, []);
 
+  if (!exercise) return null;
+
   return (
     <div className="bg-j-bg-alt border border-j-border p-6">
       {/* Progress indicator */}
@@ -73,9 +76,9 @@ export function ExerciseShell({ exercises, onAllComplete, language }: ExerciseSh
           {language === 'es' ? 'Ejercicio' : 'Exercise'} {currentIndex + 1}/{exercises.length}
         </span>
         <div className="flex gap-1">
-          {exercises.map((_, i) => (
+          {exercises.map((ex, i) => (
             <div
-              key={i}
+              key={ex.id}
               className={`w-4 h-1 ${
                 i < currentIndex ? 'bg-j-accent' : i === currentIndex ? 'bg-j-warm' : 'bg-j-border'
               }`}

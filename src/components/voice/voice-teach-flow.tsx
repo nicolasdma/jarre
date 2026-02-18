@@ -369,8 +369,8 @@ export function VoiceTeachFlow({
         </p>
 
         {/* Per-concept feedback */}
-        {teachResult.responses.map((result, index) => (
-          <div key={index} className="border-l-2 border-j-border pl-4 mb-4">
+        {teachResult.responses.map((result) => (
+          <div key={`teach-response-${result.questionIndex}`} className="border-l-2 border-j-border pl-4 mb-4">
             <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
               {t('feedback', language)}
             </p>

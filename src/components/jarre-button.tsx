@@ -60,4 +60,3 @@ const JarreButton = React.forwardRef<HTMLButtonElement, JarreButtonProps>(
 JarreButton.displayName = 'JarreButton';
 
 export { JarreButton };
-export type { JarreButtonVariant, JarreButtonSize, JarreButtonProps };

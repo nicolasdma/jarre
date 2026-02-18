@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { PlaygroundShell } from '@/components/playground/playground-shell';
 import { EncodingPlayground } from './encoding-playground';
+
+export const metadata: Metadata = {
+  title: 'Encoding Explorer — Jarre',
+  description: 'Interactive playground for exploring data encoding formats',
+};
 
 interface Props {
   searchParams: Promise<{ embed?: string }>;

@@ -1,9 +1,18 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { t, type Language } from '@/lib/translations';
 import type { EvaluationType } from '@/types';
+
+export async function generateMetadata({ params }: { params: Promise<{ evaluationId: string }> }): Promise<Metadata> {
+  const { evaluationId } = await params;
+  return {
+    title: `Evaluation ${evaluationId} — Jarre`,
+    description: 'View evaluation results and detailed feedback',
+  };
+}
 
 interface PageProps {
   params: Promise<{ evaluationId: string }>;

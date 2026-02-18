@@ -148,12 +148,12 @@ function RubricSummary({ responses }: { responses: EvaluationResult[] }) {
             {label}
           </span>
           <div className="flex gap-0.5">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4].map((dotLevel) => (
               <span
-                key={i}
-                className={`text-xs ${i < dots ? 'text-j-accent' : 'text-j-border-input'}`}
+                key={`dot-${dotLevel}`}
+                className={`text-xs ${dotLevel < dots ? 'text-j-accent' : 'text-j-border-input'}`}
               >
-                {i < dots ? '●' : '○'}
+                {dotLevel < dots ? '●' : '○'}
               </span>
             ))}
           </div>
@@ -714,7 +714,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
             const question = questions[index];
             return (
               <div
-                key={index}
+                key={`eval-result-${result.questionIndex}`}
                 className={`border-l-2 pl-6 ${
                   result.isCorrect ? 'border-j-accent' : 'border-j-error'
                 }`}

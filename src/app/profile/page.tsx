@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/header';
 import { TABLES } from '@/lib/db/tables';
+
+export const metadata: Metadata = {
+  title: 'Profile — Jarre',
+  description: 'View your learning profile and token usage statistics',
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   evaluation: 'Evaluaciones',

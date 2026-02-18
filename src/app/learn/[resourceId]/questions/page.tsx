@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -7,6 +8,14 @@ import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_COLORS,
 } from '../reading-questions';
+
+export async function generateMetadata({ params }: { params: Promise<{ resourceId: string }> }): Promise<Metadata> {
+  const { resourceId } = await params;
+  return {
+    title: `Questions ${resourceId} — Jarre`,
+    description: 'Reading comprehension questions for the resource',
+  };
+}
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -119,7 +128,7 @@ export default async function QuestionsPage({ params }: PageProps) {
         <div className="space-y-8">
           {questions.map((q, i) => (
             <section
-              key={i}
+              key={q.question}
               className="border-l-2 border-j-border pl-6 py-1"
             >
               <div className="flex items-center gap-3 mb-3">

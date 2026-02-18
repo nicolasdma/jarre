@@ -19,7 +19,7 @@ const log = createLogger('GeminiLive');
 // Types
 // ============================================================================
 
-export interface GeminiLiveConfig {
+interface GeminiLiveConfig {
   model: string;
   systemInstruction: string;
   voiceName?: string;
@@ -27,7 +27,7 @@ export interface GeminiLiveConfig {
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
-export interface GeminiLiveCallbacks {
+interface GeminiLiveCallbacks {
   onAudioResponse: (pcmData: ArrayBuffer) => void;
   onTurnComplete: () => void;
   onInterrupted: () => void;

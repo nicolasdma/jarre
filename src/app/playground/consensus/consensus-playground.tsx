@@ -153,7 +153,7 @@ export function ConsensusPlayground() {
   }, [mode, speed]);
 
   // Proactive tutor trigger: fires on significant events
-  useEffect(() => {
+  const fetchConsensusTutor = useCallback(async () => {
     if (!snapshot) return;
     const recentEvents = snapshot.events.slice(-5);
     const hasSignificantEvent = recentEvents.some(
@@ -165,21 +165,27 @@ export function ConsensusPlayground() {
     if (now - lastProactiveRef.current < 30000) return;
     lastProactiveRef.current = now;
 
-    fetch('/api/playground/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playground: 'consensus',
-        state: snapshot,
-        history: [],
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.question) setProactiveQuestion(data.question);
-      })
-      .catch(() => {});
+    try {
+      const res = await fetch('/api/playground/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playground: 'consensus',
+          state: snapshot,
+          history: [],
+        }),
+      });
+      const data = await res.json();
+      if (data.question) setProactiveQuestion(data.question);
+    } catch {
+      // Proactive question is optional — don't block on errors
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot?.events.length]);
+
+  useEffect(() => {
+    fetchConsensusTutor();
+  }, [fetchConsensusTutor]);
 
   // Don't render until cluster is initialized on the client
   if (!snapshot) {

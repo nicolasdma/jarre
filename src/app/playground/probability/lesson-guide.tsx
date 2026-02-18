@@ -107,9 +107,9 @@ export function LessonGuide({ onSetPrior, onObserve, onBulkObserve, onReset }: L
     <div className="h-full flex flex-col px-5 py-4">
       {/* Step indicator */}
       <div className="flex gap-1 mb-4">
-        {LESSONS.map((_, i) => (
+        {LESSONS.map((lesson, i) => (
           <button
-            key={i}
+            key={lesson.title}
             onClick={() => setCurrentStep(i)}
             className={`h-1 flex-1 transition-colors ${
               i === currentStep ? 'bg-[#7c3aed]' : i < currentStep ? 'bg-[#c4b5fd]' : 'bg-j-border'

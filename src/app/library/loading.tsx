@@ -27,7 +27,7 @@ export default function LibraryLoading() {
         {/* Stats skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="text-center">
+            <div key={`stat-skeleton-${i}`} className="text-center">
               <div className="h-10 w-12 bg-j-border animate-pulse mx-auto mb-2" />
               <div className="h-3 w-20 bg-j-border animate-pulse mx-auto" />
             </div>
@@ -36,7 +36,7 @@ export default function LibraryLoading() {
 
         {/* Phase skeleton */}
         {Array.from({ length: 2 }).map((_, phaseIdx) => (
-          <section key={phaseIdx} className="mb-16">
+          <section key={`phase-skeleton-${phaseIdx}`} className="mb-16">
             <div className="flex items-center gap-4 mb-8">
               <div className="h-12 w-12 bg-j-border animate-pulse" />
               <div>
@@ -48,7 +48,7 @@ export default function LibraryLoading() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, cardIdx) => (
                 <div
-                  key={cardIdx}
+                  key={`card-skeleton-${cardIdx}`}
                   className="border border-j-border p-6"
                 >
                   <div className="h-4 w-3/4 bg-j-border animate-pulse mb-3" />

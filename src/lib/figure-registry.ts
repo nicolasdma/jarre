@@ -8,7 +8,3 @@ interface FigureInfo {
 export type FigureRegistry = Record<string, FigureInfo>;
 
 export const FIGURE_REGISTRY: FigureRegistry = figureData;
-
-export function getFigure(id: string): FigureInfo | null {
-  return FIGURE_REGISTRY[id] ?? null;
-}

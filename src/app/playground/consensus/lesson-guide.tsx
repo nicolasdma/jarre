@@ -13,7 +13,7 @@ interface ConsensusStep extends LessonStep {
   action: string;
 }
 
-export interface LessonGuideProps {
+interface LessonGuideProps {
   onReset: () => void;
   onStep: () => void;
   onStepUntilElection: () => void;

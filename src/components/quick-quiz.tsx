@@ -146,6 +146,7 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
               placeholder={t('review.answerPlaceholder', language)}
               rows={3}
               className="w-full border border-j-border-input bg-[var(--j-bg)] p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field when quiz question is presented
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.metaKey && answer.trim()) {

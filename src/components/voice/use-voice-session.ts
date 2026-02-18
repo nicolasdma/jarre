@@ -37,7 +37,7 @@ interface UseVoiceSessionParams {
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-export interface VoiceSession {
+interface VoiceSession {
   connectionState: ConnectionState;
   tutorState: TutorState;
   error: string | null;
@@ -112,7 +112,7 @@ export function useVoiceSession({
 
   // ---- Pre-fetch token + context on mount / sectionId change ----
 
-  useEffect(() => {
+  const prefetchTokenAndContext = useCallback(async () => {
     // Invalidate previous pre-fetch if section changed
     prefetchedTokenRef.current = null;
     prefetchedContextRef.current = null;
@@ -127,18 +127,22 @@ export function useVoiceSession({
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);
 
-    Promise.all([
+    const [tokenData, contextData] = await Promise.all([
       fetch('/api/voice/token', { method: 'POST' })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
       contextFetch,
-    ]).then(([tokenData, contextData]) => {
-      // Only store if sectionId hasn't changed while fetching
-      if (prefetchSectionIdRef.current !== currentSectionId) return;
-      if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
-      if (contextData) prefetchedContextRef.current = contextData;
-    });
+    ]);
+
+    // Only store if sectionId hasn't changed while fetching
+    if (prefetchSectionIdRef.current !== currentSectionId) return;
+    if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
+    if (contextData) prefetchedContextRef.current = contextData;
   }, [sectionId, sessionType]);
+
+  useEffect(() => {
+    prefetchTokenAndContext();
+  }, [prefetchTokenAndContext]);
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 

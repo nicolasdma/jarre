@@ -42,6 +42,7 @@ export const POST = withAuth(async (request, { user }) => {
       temperature: 0.2,
       maxTokens: 3000,
       responseFormat: 'text',
+      timeoutMs: 90_000,
     });
 
     logTokenUsage({ userId: user.id, category: 'notes_polish', tokens: tokensUsed });

@@ -45,7 +45,7 @@ export default function DashboardLoading() {
         {/* Stats skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="text-center">
+            <div key={`stat-skeleton-${i}`} className="text-center">
               <div className="h-10 w-12 bg-j-border animate-pulse mx-auto mb-2" />
               <div className="h-3 w-24 bg-j-border animate-pulse mx-auto" />
             </div>
@@ -57,7 +57,7 @@ export default function DashboardLoading() {
           <div className="h-3 w-36 bg-j-border animate-pulse mb-6" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="border border-j-border p-4 text-center">
+              <div key={`mastery-skeleton-${i}`} className="border border-j-border p-4 text-center">
                 <div className="h-7 w-8 bg-j-border animate-pulse mx-auto mb-2" />
                 <div className="h-3 w-16 bg-j-border animate-pulse mx-auto" />
               </div>

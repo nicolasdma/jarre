@@ -13,7 +13,7 @@ import type { User } from '@supabase/supabase-js';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-export interface AuthContext<P = undefined> {
+interface AuthContext<P = undefined> {
   supabase: SupabaseClient;
   user: User;
   params: P;

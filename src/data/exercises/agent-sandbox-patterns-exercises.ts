@@ -7,7 +7,7 @@ import type { SequenceExercise, ConnectExercise, LabelExercise } from '@/types';
  * Pattern 2: Sandbox as Tool — el agente corre localmente, ejecuta codigo remotamente via API
  */
 
-export const sandboxExercise1: SequenceExercise = {
+const sandboxExercise1: SequenceExercise = {
   id: 'agent-sandbox.1',
   type: 'sequence',
   title: 'Flujo de decisión: elegir entre Pattern 1 y Pattern 2',
@@ -39,7 +39,7 @@ export const sandboxExercise1: SequenceExercise = {
   correctOrder: ['s1', 's2', 's3', 's4', 's5'],
 };
 
-export const sandboxExercise2: ConnectExercise = {
+const sandboxExercise2: ConnectExercise = {
   id: 'agent-sandbox.2',
   type: 'connect',
   title: 'Características de cada patrón de sandbox',
@@ -67,7 +67,7 @@ export const sandboxExercise2: ConnectExercise = {
   ],
 };
 
-export const sandboxExercise3: LabelExercise = {
+const sandboxExercise3: LabelExercise = {
   id: 'agent-sandbox.3',
   type: 'label',
   title: 'Arquitectura de Pattern 2: Sandbox as Tool',

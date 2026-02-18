@@ -10,7 +10,7 @@
 import type { SupportedLanguage } from './prompts';
 import type { Rubric } from './rubrics';
 
-export interface JustificationPromptParams {
+interface JustificationPromptParams {
   questionText: string;
   options: { label: string; text: string }[];
   correctAnswer: string;
@@ -20,8 +20,6 @@ export interface JustificationPromptParams {
   rubric: Rubric;
   language?: SupportedLanguage;
 }
-
-export const REVIEW_PROMPT_VERSION = 'review-v2.0.0';
 
 /**
  * Build the prompt for evaluating a single review answer.

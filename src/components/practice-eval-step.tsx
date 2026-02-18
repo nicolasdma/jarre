@@ -108,39 +108,40 @@ export function PracticeEvalStep({
   const scaffoldLevel = evalState.currentScaffoldLevel;
 
   // Fetch 2-3 high-order questions for this resource
-  useEffect(() => {
-    async function fetchQuestions() {
-      try {
-        const params = new URLSearchParams();
-        params.set('resourceId', resourceId);
-        params.set('types', 'scenario,limitation,error_spot');
-        params.set('limit', '3');
+  const fetchPracticeQuestions = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('resourceId', resourceId);
+      params.set('types', 'scenario,limitation,error_spot');
+      params.set('limit', '3');
 
-        const res = await fetch(`/api/review/by-resource?${params.toString()}`);
-        if (!res.ok) throw new Error('Failed to fetch practice questions');
-        const data = await res.json();
+      const res = await fetch(`/api/review/by-resource?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch practice questions');
+      const data = await res.json();
 
-        // Filter to only high-order types
-        const highOrder = (data.questions || []).filter(
-          (q: BankQuestion) => ['scenario', 'limitation', 'error_spot'].includes(q.type)
-        );
+      // Filter to only high-order types
+      const highOrder = (data.questions || []).filter(
+        (q: BankQuestion) => ['scenario', 'limitation', 'error_spot'].includes(q.type)
+      );
 
-        // If no high-order questions available, fall back to comparison
-        if (highOrder.length === 0) {
-          const allQuestions = data.questions || [];
-          const comparisons = allQuestions.filter((q: BankQuestion) => q.type === 'comparison');
-          setQuestions(comparisons.slice(0, 3));
-        } else {
-          setQuestions(highOrder.slice(0, 3));
-        }
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
+      // If no high-order questions available, fall back to comparison
+      if (highOrder.length === 0) {
+        const allQuestions = data.questions || [];
+        const comparisons = allQuestions.filter((q: BankQuestion) => q.type === 'comparison');
+        setQuestions(comparisons.slice(0, 3));
+      } else {
+        setQuestions(highOrder.slice(0, 3));
       }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
-    fetchQuestions();
   }, [resourceId]);
+
+  useEffect(() => {
+    fetchPracticeQuestions();
+  }, [fetchPracticeQuestions]);
 
   const updateState = useCallback(
     (next: PracticeEvalState) => {

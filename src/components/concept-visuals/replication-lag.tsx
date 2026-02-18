@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m, useReducedMotion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 const BAR_WIDTH = 320;
@@ -8,6 +8,7 @@ const MAX_LAG = 80; // px representing max lag gap
 const CYCLE_MS = 80;
 
 export function ReplicationLagVisual() {
+  const reduced = useReducedMotion();
   const [lagPx, setLagPx] = useState(0);
   const [direction, setDirection] = useState(1);
   const [readPos, setReadPos] = useState(0.7); // 0-1 normalized position along follower bar
@@ -42,76 +43,78 @@ export function ReplicationLagVisual() {
   const isStale = readPosAbsolute > followerWidth;
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      {/* Leader bar */}
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-[10px] text-[#9c9a8e] w-14 text-right">Lider</span>
-          <div className="relative" style={{ width: BAR_WIDTH, height: 12 }}>
-            <motion.div
-              className="absolute top-0 left-0 h-full"
-              style={{ backgroundColor: '#4a5d4a', width: leaderWidth }}
-            />
-          </div>
-        </div>
-
-        {/* Follower bar */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-[10px] text-[#9c9a8e] w-14 text-right">Seguidor</span>
-          <div className="relative" style={{ width: BAR_WIDTH, height: 12 }}>
-            <div className="absolute top-0 left-0 h-full w-full" style={{ backgroundColor: '#e8e6e0' }} />
-            <motion.div
-              className="absolute top-0 left-0 h-full"
-              style={{ backgroundColor: 'rgba(74, 93, 74, 0.5)' }}
-              animate={{ width: followerWidth }}
-              transition={{ duration: 0.08 }}
-            />
-            {/* Read marker */}
-            <motion.div
-              className="absolute top-0 flex flex-col items-center"
-              animate={{ left: readPosAbsolute }}
-              transition={{ duration: 0.1 }}
-              style={{ top: -16 }}
-            >
-              <span
-                className="font-mono text-[10px] whitespace-nowrap"
-                style={{ color: isStale ? '#7d6b6b' : '#4a5d4a' }}
-              >
-                {isStale ? 'STALE' : 'OK'}
-              </span>
-              <div
-                className="w-px h-7"
-                style={{ backgroundColor: isStale ? '#7d6b6b' : '#4a5d4a' }}
+    <LazyMotion features={domAnimation}>
+      <div className="flex flex-col items-center gap-5">
+        {/* Leader bar */}
+        <div className="w-full max-w-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] text-[#9c9a8e] w-14 text-right">Lider</span>
+            <div className="relative" style={{ width: BAR_WIDTH, height: 12 }}>
+              <m.div
+                className="absolute top-0 left-0 h-full"
+                style={{ backgroundColor: '#4a5d4a', width: leaderWidth }}
               />
-            </motion.div>
-            {/* Lag zone label */}
-            {lagPx > 20 && (
-              <div
-                className="absolute top-0 h-full flex items-center justify-center"
-                style={{ left: followerWidth, width: lagPx }}
+            </div>
+          </div>
+
+          {/* Follower bar */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] text-[#9c9a8e] w-14 text-right">Seguidor</span>
+            <div className="relative" style={{ width: BAR_WIDTH, height: 12 }}>
+              <div className="absolute top-0 left-0 h-full w-full" style={{ backgroundColor: '#e8e6e0' }} />
+              <m.div
+                className="absolute top-0 left-0 h-full"
+                style={{ backgroundColor: 'rgba(74, 93, 74, 0.5)' }}
+                animate={reduced ? { width: followerWidth } : { width: followerWidth }}
+                transition={reduced ? { duration: 0 } : { duration: 0.08 }}
+              />
+              {/* Read marker */}
+              <m.div
+                className="absolute top-0 flex flex-col items-center"
+                animate={reduced ? { left: readPosAbsolute } : { left: readPosAbsolute }}
+                transition={reduced ? { duration: 0 } : { duration: 0.1 }}
+                style={{ top: -16 }}
               >
-                <span className="font-mono text-[8px] text-[#7d6b6b]">lag</span>
-              </div>
-            )}
+                <span
+                  className="font-mono text-[10px] whitespace-nowrap"
+                  style={{ color: isStale ? '#7d6b6b' : '#4a5d4a' }}
+                >
+                  {isStale ? 'STALE' : 'OK'}
+                </span>
+                <div
+                  className="w-px h-7"
+                  style={{ backgroundColor: isStale ? '#7d6b6b' : '#4a5d4a' }}
+                />
+              </m.div>
+              {/* Lag zone label */}
+              {lagPx > 20 && (
+                <div
+                  className="absolute top-0 h-full flex items-center justify-center"
+                  style={{ left: followerWidth, width: lagPx }}
+                >
+                  <span className="font-mono text-[8px] text-[#7d6b6b]">lag</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Lag counter */}
+        <m.div
+          className="font-mono text-[10px] tracking-[0.1em] px-3 py-1 border"
+          animate={reduced ? undefined : {
+            borderColor: isStale ? '#7d6b6b' : '#e8e6e0',
+            color: isStale ? '#7d6b6b' : '#9c9a8e',
+          }}
+          transition={reduced ? { duration: 0 } : { duration: 0.15 }}
+        >
+          retraso: {lagSeconds}s
+        </m.div>
+
+        <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#9c9a8e]">
+          retraso de replicacion
+        </span>
       </div>
-
-      {/* Lag counter */}
-      <motion.div
-        className="font-mono text-[10px] tracking-[0.1em] px-3 py-1 border"
-        animate={{
-          borderColor: isStale ? '#7d6b6b' : '#e8e6e0',
-          color: isStale ? '#7d6b6b' : '#9c9a8e',
-        }}
-        transition={{ duration: 0.15 }}
-      >
-        retraso: {lagSeconds}s
-      </motion.div>
-
-      <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#9c9a8e]">
-        retraso de replicacion
-      </span>
-    </div>
+    </LazyMotion>
   );
 }

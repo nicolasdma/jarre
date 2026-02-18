@@ -153,7 +153,7 @@ export function PdfViewer({ url, title, language, startPage, endPage }: PdfViewe
       setCurrentPage(currentPageNum);
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, [pdf]);
 

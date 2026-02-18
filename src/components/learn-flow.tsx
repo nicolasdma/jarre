@@ -133,18 +133,16 @@ export function LearnFlow({
   const [practiceMode, setPracticeMode] = useState<'voice' | 'text'>('voice');
 
   // Focus mode: compress header on scroll > 200px during LEARN step
-  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [scrolledPast200, setScrolledPast200] = useState(false);
   useEffect(() => {
-    if (currentStep !== 'learn') {
-      setIsFocusMode(false);
-      return;
-    }
+    if (currentStep !== 'learn') return;
     const handleScroll = () => {
-      setIsFocusMode(window.scrollY > 200);
+      setScrolledPast200(window.scrollY > 200);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentStep]);
+  const isFocusMode = currentStep === 'learn' && scrolledPast200;
 
   const allSectionsComplete = useMemo(
     () => sections.every((_, i) => completedSections.has(i)),
@@ -396,9 +394,9 @@ export function LearnFlow({
 
               {/* Section progress */}
               <div className="flex items-center gap-2">
-                {sections.map((_, i) => (
+                {sections.map((section, i) => (
                   <button
-                    key={i}
+                    key={section.id}
                     type="button"
                     onClick={() => navigateToSection(i)}
                     className={`h-1 flex-1 transition-colors cursor-pointer hover:opacity-80 ${
