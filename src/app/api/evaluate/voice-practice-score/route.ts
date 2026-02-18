@@ -6,13 +6,16 @@
  *
  * Unlike voice-score, this does NOT save to evaluations or update mastery.
  * It only returns scores to determine if the student passes the gate (>=70%).
+ * Now also returns consolidation content and updates learner memory.
  *
  * Flow:
  * 1. Fetch transcripts from voice_transcripts
  * 2. Fetch concepts from the linked resource
  * 3. Validate minimum conversation (>=3 user turns, >=2 min — less strict than eval)
  * 4. Call DeepSeek with practice scoring prompt
- * 5. Return: { responses, overallScore, summary, passedGate }
+ * 5. Generate consolidation content
+ * 6. Update learner concept memory
+ * 7. Return: { responses, overallScore, summary, passedGate, consolidation }
  */
 
 import { withAuth } from '@/lib/api/middleware';
@@ -21,8 +24,10 @@ import { TABLES } from '@/lib/db/tables';
 import { getUserLanguage } from '@/lib/db/queries/user';
 import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
-import { VoicePracticeScoringResponseSchema } from '@/lib/llm/schemas';
+import { VoicePracticeScoringResponseSchema, ConsolidationResponseSchema } from '@/lib/llm/schemas';
 import { buildVoicePracticeScoringPrompt } from '@/lib/llm/voice-practice-prompts';
+import { buildConsolidationPrompt } from '@/lib/llm/consolidation-prompts';
+import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('Evaluate/VoicePracticeScore');
@@ -129,7 +134,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: scoringPrompt },
       ],
       temperature: 0.1,
-      maxTokens: 3000,
+      maxTokens: 4000,
       responseFormat: 'json',
     });
 
@@ -139,18 +144,66 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 
     logTokenUsage({ userId: user.id, category: 'voice_practice_score', tokens: tokensUsed });
 
+    // 7. Update learner concept memory (parallel with consolidation)
+    const memoryPromises = parsed.responses.map((r, i) => {
+      const concept = concepts[i];
+      if (!concept) return Promise.resolve();
+      return updateLearnerConceptMemory(supabase, user.id, concept.id, {
+        misconceptions: r.misconceptions || [],
+        strengths: r.strengths || [],
+      });
+    });
+
+    // 8. Generate simplified consolidation for practice
+    const transcriptText = transcripts
+      .map((t: { role: string; text: string }) =>
+        `[${t.role === 'user' ? 'STUDENT' : 'MENTOR'}]: ${t.text}`
+      )
+      .join('\n');
+
+    const consolidationPromise = callDeepSeek({
+      messages: [{
+        role: 'user',
+        content: buildConsolidationPrompt({
+          transcript: transcriptText,
+          conceptScores: parsed.responses.map((r, i) => ({
+            conceptName: concepts[i]?.name || `Concept ${i}`,
+            conceptDefinition: concepts[i]?.definition || '',
+            score: r.score,
+            feedback: r.feedback,
+            misconceptions: r.misconceptions || [],
+          })),
+          language,
+        }),
+      }],
+      temperature: 0.3,
+      maxTokens: 3000,
+      responseFormat: 'json',
+    }).then(({ content: consolContent, tokensUsed: consolTokens }) => {
+      logTokenUsage({ userId: user.id, category: 'voice_practice_consolidation', tokens: consolTokens });
+      return parseJsonResponse(consolContent, ConsolidationResponseSchema);
+    }).catch((err) => {
+      log.error('Failed to generate practice consolidation:', err);
+      return null;
+    });
+
+    const [, consolidationResult] = await Promise.all([
+      Promise.all(memoryPromises),
+      consolidationPromise,
+    ]);
+
     log.info(
       `Voice practice scored for session ${voiceSessionId}, ` +
       `score: ${overallScore}, passedGate: ${passedGate}, concepts: ${concepts.length}, tokens: ${tokensUsed}`
     );
 
-    // NO saveEvaluationResults — practice scores are ephemeral
     return jsonOk({
       responses: parsed.responses,
       overallScore,
       summary: parsed.summary,
       passedGate,
       tokensUsed,
+      consolidation: consolidationResult?.consolidation || [],
     });
   } catch (error) {
     log.error('Error scoring voice practice:', error);

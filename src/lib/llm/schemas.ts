@@ -63,9 +63,22 @@ export const RubricEvaluationSchema = z.object({
 
 /**
  * Schema for voice evaluation scoring (DeepSeek analysis of transcripts).
- * Same shape as EvaluateAnswersResponseSchema for compatibility with save-results.
+ * Includes misconceptions/strengths per concept for learner memory.
  */
-export const VoiceEvalScoringResponseSchema = EvaluateAnswersResponseSchema;
+export const VoiceEvalScoringResponseSchema = z.object({
+  responses: z.array(z.object({
+    questionIndex: z.number().int().min(0),
+    isCorrect: z.boolean(),
+    score: z.number().min(0).max(100),
+    feedback: z.string().min(1),
+    misconceptions: z.array(z.string()).optional().default([]),
+    strengths: z.array(z.string()).optional().default([]),
+  })).min(1),
+  overallScore: z.number().min(0).max(100),
+  summary: z.string().min(1),
+});
+
+export type VoiceEvalScoringResponse = z.infer<typeof VoiceEvalScoringResponseSchema>;
 
 /**
  * Schema for voice practice scoring (DeepSeek analysis of guided practice transcripts).
@@ -80,8 +93,30 @@ export const VoicePracticeScoringResponseSchema = z.object({
     feedback: z.string().min(1),
     neededHelp: z.boolean(),
     understood: z.boolean(),
+    misconceptions: z.array(z.string()).optional().default([]),
+    strengths: z.array(z.string()).optional().default([]),
   })).min(1),
   overallScore: z.number().min(0).max(100),
   summary: z.string().min(1),
 });
+
+export type VoicePracticeScoringResponse = z.infer<typeof VoicePracticeScoringResponseSchema>;
+
+/**
+ * Schema for consolidation data generated post-scoring.
+ */
+export const ConceptConsolidationSchema = z.object({
+  conceptName: z.string().min(1),
+  idealAnswer: z.string().min(1),
+  divergence: z.string().min(1),
+  connections: z.string().min(1),
+  reviewSuggestion: z.string().min(1),
+});
+
+export const ConsolidationResponseSchema = z.object({
+  consolidation: z.array(ConceptConsolidationSchema).min(1),
+});
+
+export type ConceptConsolidation = z.infer<typeof ConceptConsolidationSchema>;
+export type ConsolidationResponse = z.infer<typeof ConsolidationResponseSchema>;
 

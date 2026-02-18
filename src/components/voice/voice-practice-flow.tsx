@@ -13,7 +13,7 @@
  * - Score is NOT saved to evaluations
  */
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useVoicePracticeSession, type VoicePracticeState } from './use-voice-practice-session';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Language } from '@/lib/translations';
@@ -157,10 +157,87 @@ const tr = {
     es: 'Necesitas >=70% para avanzar a la evaluacion',
     en: 'You need >=70% to advance to the evaluation',
   },
+  consolidation: { es: 'Consolidacion', en: 'Consolidation' },
+  idealAnswer: { es: 'Respuesta ideal', en: 'Ideal answer' },
+  whatToReview: { es: 'Que repasar', en: 'What to review' },
 } as const;
 
 function t(key: keyof typeof tr, lang: Language): string {
   return tr[key]?.[lang] || tr[key]?.en || key;
+}
+
+// ============================================================================
+// Simplified Consolidation for Practice
+// ============================================================================
+
+interface ConsolidationItem {
+  conceptName: string;
+  idealAnswer: string;
+  divergence: string;
+  connections: string;
+  reviewSuggestion: string;
+}
+
+function PracticeConsolidation({
+  consolidation,
+  language,
+}: {
+  consolidation: ConsolidationItem[];
+  language: Language;
+}) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  return (
+    <div className="mt-6 border border-j-border p-4">
+      <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-3">
+        {t('consolidation', language)}
+      </p>
+
+      <div className="space-y-2">
+        {consolidation.map((item, index) => {
+          const isExpanded = expandedIndex === index;
+
+          return (
+            <div key={`practice-consol-${item.conceptName}`} className="border-l-2 border-j-border pl-3">
+              <button
+                type="button"
+                onClick={() => setExpandedIndex(isExpanded ? null : index)}
+                className="w-full text-left flex items-center justify-between gap-2 py-1 group"
+              >
+                <span className="font-mono text-[10px] text-j-text-secondary group-hover:text-j-warm transition-colors">
+                  {item.conceptName}
+                </span>
+                <span className="font-mono text-[10px] text-j-text-tertiary">
+                  {isExpanded ? '\u25B2' : '\u25BC'}
+                </span>
+              </button>
+
+              {isExpanded && (
+                <div className="mt-2 space-y-3 pb-2">
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase mb-1">
+                      {t('idealAnswer', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.idealAnswer}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                      {t('whatToReview', language)}
+                    </p>
+                    <p className="text-sm text-j-text-secondary leading-relaxed">
+                      {item.reviewSuggestion}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -466,6 +543,14 @@ export function VoicePracticeFlow({
             </div>
           ))}
         </div>
+
+        {/* Consolidation */}
+        {practiceResult.consolidation && practiceResult.consolidation.length > 0 && (
+          <PracticeConsolidation
+            consolidation={practiceResult.consolidation}
+            language={language}
+          />
+        )}
 
         {/* Action buttons */}
         <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
