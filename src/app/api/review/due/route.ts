@@ -43,7 +43,6 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
         streak,
         repetition_count,
         next_review_at,
-        fsrs_state,
         question_bank!inner (
           id,
           concept_id,
@@ -80,7 +79,6 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
         streak,
         repetition_count,
         next_review_at,
-        fsrs_state,
         concept_cards!inner (
           id,
           concept_id,
@@ -133,7 +131,7 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
           questionText: q.question_text,
           expectedAnswer: q.expected_answer,
         },
-        fsrsState: (row as unknown as { fsrs_state: number | null }).fsrs_state ?? 0,
+        fsrsState: 0,
         streak: row.streak,
         reps: row.repetition_count,
         ...(q.options && { options: q.options }),
@@ -168,7 +166,7 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
         difficulty: c.difficulty as 1 | 2 | 3,
         content: frontContent,
         back: backContent,
-        fsrsState: (row as unknown as { fsrs_state: number | null }).fsrs_state ?? 0,
+        fsrsState: 0,
         streak: row.streak,
         reps: row.repetition_count,
         // For scenario_micro MC options

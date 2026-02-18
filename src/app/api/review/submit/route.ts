@@ -452,6 +452,9 @@ async function applyScheduleAndMastery({
           })
         );
 
+        // Auto-enroll concept cards for this concept
+        await enrollConceptCards(supabase, userId, conceptId);
+
         log.info(
           `Mastery advanced: ${conceptId} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
         );
@@ -694,4 +697,68 @@ async function applyCardScheduleAndMastery({
     intervalDays,
     masteryAdvanced: false,
   };
+}
+
+// ============================================================================
+// Auto-enrollment: create review_schedule entries for concept_cards
+// ============================================================================
+
+/**
+ * Enroll all active concept_cards for a concept into review_schedule.
+ * Called when a user reaches mastery >= 1 for a concept.
+ * Skips cards that are already enrolled.
+ */
+async function enrollConceptCards(
+  supabase: SupabaseClient,
+  userId: string,
+  conceptId: string
+) {
+  // Get all active concept cards for this concept
+  const { data: cards } = await supabase
+    .from(TABLES.conceptCards)
+    .select('id')
+    .eq('concept_id', conceptId)
+    .eq('is_active', true);
+
+  if (!cards || cards.length === 0) return;
+
+  // Get already enrolled card IDs
+  const { data: existing } = await supabase
+    .from(TABLES.reviewSchedule)
+    .select('card_id')
+    .eq('user_id', userId)
+    .in('card_id', cards.map(c => c.id));
+
+  const enrolledIds = new Set((existing || []).map(e => e.card_id));
+  const now = new Date().toISOString();
+
+  // Create schedule entries for unenrolled cards
+  const newEntries = cards
+    .filter(c => !enrolledIds.has(c.id))
+    .map(c => ({
+      user_id: userId,
+      card_id: c.id,
+      ease_factor: 2.5,
+      interval_days: 0,
+      repetition_count: 0,
+      streak: 0,
+      correct_count: 0,
+      incorrect_count: 0,
+      next_review_at: now,
+      fsrs_state: 0,
+      fsrs_reps: 0,
+      fsrs_lapses: 0,
+    }));
+
+  if (newEntries.length === 0) return;
+
+  const { error } = await supabase
+    .from(TABLES.reviewSchedule)
+    .insert(newEntries);
+
+  if (error) {
+    log.error(`Error enrolling concept cards for ${conceptId}:`, error);
+  } else {
+    log.info(`Enrolled ${newEntries.length} concept cards for ${conceptId}`);
+  }
 }
