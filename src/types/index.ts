@@ -34,7 +34,37 @@ export type QuestionBankType =
   | 'limitation'
   | 'error_spot';
 
-export type ReviewRating = 'wrong' | 'hard' | 'easy';
+export type ReviewRating = 'wrong' | 'hard' | 'good' | 'easy';
+
+export type ConceptCardType =
+  | 'recall'
+  | 'fill_blank'
+  | 'true_false'
+  | 'connect'
+  | 'scenario_micro';
+
+/**
+ * A unified review card returned by the due endpoint.
+ * Supports both question_bank and concept_cards sources.
+ */
+export interface UnifiedReviewCard {
+  id: string;                    // review_schedule.id
+  source: 'question' | 'card';
+  sourceId: string;              // question_bank.id or concept_cards.id
+  conceptId: string;
+  conceptName: string;
+  cardType: string;              // QuestionBankType | ConceptCardType
+  format: string;                // open | mc | tf | recall | fill_blank | true_false | connect | scenario_micro
+  difficulty: 1 | 2 | 3;
+  content: Record<string, unknown>;  // front_content or question fields
+  back?: Record<string, unknown>;    // for client-side grading
+  fsrsState: number;
+  streak: number;
+  reps: number;
+  options?: { label: string; text: string }[];
+  correctAnswer?: string;
+  explanation?: string;
+}
 
 export type QuestionFormat = 'open' | 'mc' | 'tf';
 

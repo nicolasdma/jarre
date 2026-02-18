@@ -63,6 +63,20 @@ export const REVIEW_SESSION_CAP = 12;
 export const REVIEW_MAX_OPEN = 3;
 
 // ============================================================================
+// FSRS SPACED REPETITION
+// ============================================================================
+
+/** Desired retention rate for FSRS scheduling (90% = review before 10% forgetting chance) */
+export const FSRS_DESIRED_RETENTION = 0.9;
+
+/** Score boundaries for FSRS rating derivation (from numeric scores) */
+export const FSRS_SCORE_BOUNDARIES = {
+  easy: 90,
+  good: 70,
+  hard: 50,
+} as const;
+
+// ============================================================================
 // TEXT ANCHORING
 // ============================================================================
 

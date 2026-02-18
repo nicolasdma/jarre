@@ -13,7 +13,16 @@ import {
   getRubricSystemPrompt,
   getDomainForPhase,
 } from '@/lib/llm/review-prompts';
-import { calculateNextReview, scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
+import { scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
+import {
+  scheduleFSRS,
+  createNewFSRSCard,
+  migrateFromSM2,
+  extractFSRSCard,
+  fsrsCardToDbColumns,
+  intervalDaysFromDue,
+  reviewRatingToFSRSGrade,
+} from '@/lib/fsrs';
 import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';
@@ -28,21 +37,36 @@ const log = createLogger('Review/Submit');
 
 /**
  * POST /api/review/submit
- * Evaluates user answer. Two paths:
- * - MC/TF: deterministic grading (no LLM call), instant feedback
- * - Open: rubric-based DeepSeek evaluation with legacy fallback
+ * Evaluates user answer. Supports both question_bank and concept_cards.
  *
- * Body: { questionId: string, userAnswer?: string, selectedAnswer?: string, confidence?: number }
+ * Body:
+ *   For questions: { questionId, userAnswer?, selectedAnswer?, confidence? }
+ *   For concept cards: { cardId, selfRating?, selectedAnswer?, userAnswer? }
+ *
  * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays,
  *            dimensionScores?, reasoning?, masteryAdvanced? }
  */
 export const POST = withAuth(async (request, { supabase, user }) => {
   try {
     const body = await request.json();
-    const { questionId, userAnswer, selectedAnswer, confidence } = body;
+    const { questionId, cardId, userAnswer, selectedAnswer, selfRating, confidence } = body;
 
-    if (!questionId) {
-      return NextResponse.json({ error: 'Missing questionId' }, { status: 400 });
+    if (!questionId && !cardId) {
+      return NextResponse.json({ error: 'Missing questionId or cardId' }, { status: 400 });
+    }
+
+    // ========================================================================
+    // CONCEPT CARD PATH: deterministic or self-rated grading
+    // ========================================================================
+    if (cardId) {
+      return handleConceptCardSubmit({
+        supabase,
+        userId: user.id,
+        cardId,
+        selfRating,
+        selectedAnswer,
+        userAnswer,
+      });
     }
 
     // Validate optional confidence (1-3)
@@ -79,8 +103,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       const score = isCorrect ? 100 : 0;
       const feedback = question.explanation || '';
 
-      // SM-2 update
-      const smResult = await applySM2AndMastery({
+      // FSRS schedule update
+      const smResult = await applyScheduleAndMastery({
         supabase,
         userId: user.id,
         questionId,
@@ -199,8 +223,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       rating = scoreToRating(legacyResult.score);
     }
 
-    // SM-2 update + mastery check
-    const smResult = await applySM2AndMastery({
+    // FSRS schedule update + mastery check
+    const smResult = await applyScheduleAndMastery({
       supabase,
       userId: user.id,
       questionId,
@@ -248,10 +272,10 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 });
 
 // ============================================================================
-// Shared SM-2 + Mastery Logic (extracted to avoid duplication between paths)
+// Shared FSRS + Mastery Logic (extracted to avoid duplication between paths)
 // ============================================================================
 
-interface SM2Params {
+interface ScheduleParams {
   supabase: SupabaseClient;
   userId: string;
   questionId: string;
@@ -261,7 +285,7 @@ interface SM2Params {
   confidenceLevel: number | null;
 }
 
-async function applySM2AndMastery({
+async function applyScheduleAndMastery({
   supabase,
   userId,
   questionId,
@@ -269,47 +293,96 @@ async function applySM2AndMastery({
   rating,
   isCorrect,
   confidenceLevel,
-}: SM2Params) {
-  // Fetch or create review_schedule state
-  const { data: schedule } = await supabase
+}: ScheduleParams) {
+  const now = new Date();
+
+  // Fetch existing review_schedule state (including FSRS columns)
+  // Cast needed because Supabase types don't know about new FSRS columns yet
+  interface ScheduleRow {
+    ease_factor: number;
+    interval_days: number;
+    repetition_count: number;
+    streak: number;
+    correct_count: number;
+    incorrect_count: number;
+    fsrs_stability: number | null;
+    fsrs_difficulty: number | null;
+    fsrs_state: number | null;
+    fsrs_reps: number | null;
+    fsrs_lapses: number | null;
+    fsrs_last_review: string | null;
+    next_review_at: string;
+    last_reviewed_at: string | null;
+  }
+
+  const { data: rawSchedule } = await supabase
     .from(TABLES.reviewSchedule)
-    .select('ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count')
+    .select(
+      'ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count, ' +
+      'fsrs_stability, fsrs_difficulty, fsrs_state, fsrs_reps, fsrs_lapses, fsrs_last_review, ' +
+      'next_review_at, last_reviewed_at'
+    )
     .eq('user_id', userId)
     .eq('question_id', questionId)
     .single();
 
-  const currentState = schedule || {
-    ease_factor: 2.5,
-    interval_days: 0,
-    repetition_count: 0,
-    streak: 0,
-    correct_count: 0,
-    incorrect_count: 0,
-  };
+  const schedule = rawSchedule as unknown as ScheduleRow | null;
 
-  const result = calculateNextReview(
-    {
-      easeFactor: currentState.ease_factor,
-      intervalDays: currentState.interval_days,
-      repetitionCount: currentState.repetition_count,
-      streak: currentState.streak,
-      correctCount: currentState.correct_count,
-      incorrectCount: currentState.incorrect_count,
-    },
-    rating
-  );
+  // Get or create FSRS card
+  let fsrsCard = schedule ? extractFSRSCard({
+    ...schedule,
+    next_review_at: schedule.next_review_at ?? now.toISOString(),
+  }) : null;
+
+  // Lazy migration: if has SM-2 state but no FSRS state, migrate
+  if (!fsrsCard && schedule && schedule.repetition_count > 0) {
+    fsrsCard = migrateFromSM2({
+      ease_factor: schedule.ease_factor,
+      interval_days: schedule.interval_days,
+      repetition_count: schedule.repetition_count,
+      streak: schedule.streak,
+      correct_count: schedule.correct_count,
+      incorrect_count: schedule.incorrect_count,
+      last_reviewed_at: schedule.last_reviewed_at,
+    });
+    log.info(`Lazy migrated SM-2 → FSRS for question=${questionId}`);
+  }
+
+  // If still no card (first ever review), create new
+  if (!fsrsCard) {
+    fsrsCard = createNewFSRSCard(now);
+  }
+
+  // Schedule with FSRS
+  const grade = reviewRatingToFSRSGrade(rating);
+  const result = scheduleFSRS(fsrsCard, grade, now);
+  const newCard = result.card;
+  const intervalDays = intervalDaysFromDue(newCard.due, now);
+
+  // Update streak/counts (maintained separately from FSRS)
+  const currentStreak = schedule?.streak ?? 0;
+  const currentCorrect = schedule?.correct_count ?? 0;
+  const currentIncorrect = schedule?.incorrect_count ?? 0;
+
+  const newStreak = rating === 'wrong' ? 0 : currentStreak + 1;
+  const newCorrect = isCorrect ? currentCorrect + 1 : currentCorrect;
+  const newIncorrect = isCorrect ? currentIncorrect : currentIncorrect + 1;
 
   const upsertData: Record<string, unknown> = {
     user_id: userId,
     question_id: questionId,
-    ease_factor: result.easeFactor,
-    interval_days: result.intervalDays,
-    repetition_count: result.repetitionCount,
-    streak: result.streak,
-    correct_count: result.correctCount,
-    incorrect_count: result.incorrectCount,
-    next_review_at: result.nextReviewAt.toISOString(),
-    last_reviewed_at: new Date().toISOString(),
+    // SM-2 columns (maintained for backward compat)
+    ease_factor: schedule?.ease_factor ?? 2.5,
+    interval_days: intervalDays,
+    repetition_count: (schedule?.repetition_count ?? 0) + 1,
+    streak: newStreak,
+    correct_count: newCorrect,
+    incorrect_count: newIncorrect,
+    // FSRS columns
+    ...fsrsCardToDbColumns(newCard),
+    // Shared columns
+    next_review_at: newCard.due.toISOString(),
+    last_reviewed_at: now.toISOString(),
     last_rating: rating,
   };
   if (confidenceLevel !== null) {
@@ -387,8 +460,238 @@ async function applySM2AndMastery({
   }
 
   return {
-    nextReviewAt: result.nextReviewAt.toISOString(),
-    intervalDays: result.intervalDays,
+    nextReviewAt: newCard.due.toISOString(),
+    intervalDays,
     masteryAdvanced,
+  };
+}
+
+// ============================================================================
+// Concept Card Submit Handler
+// ============================================================================
+
+interface ConceptCardSubmitParams {
+  supabase: SupabaseClient;
+  userId: string;
+  cardId: string;
+  selfRating?: string;
+  selectedAnswer?: string;
+  userAnswer?: string;
+}
+
+async function handleConceptCardSubmit({
+  supabase,
+  userId,
+  cardId,
+  selfRating,
+  selectedAnswer,
+}: ConceptCardSubmitParams) {
+  // Fetch the concept card
+  const { data: card, error: cardError } = await supabase
+    .from(TABLES.conceptCards)
+    .select('id, concept_id, card_type, front_content, back_content, difficulty')
+    .eq('id', cardId)
+    .single();
+
+  if (cardError || !card) {
+    return NextResponse.json({ error: 'Card not found' }, { status: 404 });
+  }
+
+  const cardType = card.card_type as string;
+  const backContent = card.back_content as Record<string, unknown>;
+  let rating: ReviewRating;
+  let isCorrect: boolean;
+  let score: number;
+  let feedback = '';
+
+  // Grade based on card type
+  switch (cardType) {
+    case 'recall':
+    case 'connect': {
+      // Self-rated: user rates their own recall
+      if (!selfRating || !['wrong', 'hard', 'good', 'easy'].includes(selfRating)) {
+        return NextResponse.json({ error: 'Missing or invalid selfRating for recall/connect card' }, { status: 400 });
+      }
+      rating = selfRating as ReviewRating;
+      isCorrect = rating !== 'wrong';
+      score = rating === 'easy' ? 100 : rating === 'good' ? 80 : rating === 'hard' ? 60 : 0;
+      feedback = (backContent.connection as string) || '';
+      break;
+    }
+
+    case 'true_false': {
+      if (!selectedAnswer) {
+        return NextResponse.json({ error: 'Missing selectedAnswer for true_false card' }, { status: 400 });
+      }
+      const frontContent = card.front_content as { isTrue: boolean };
+      const expectedAnswer = frontContent.isTrue ? 'true' : 'false';
+      isCorrect = selectedAnswer.toLowerCase() === expectedAnswer;
+      rating = isCorrect ? 'good' : 'wrong';
+      score = isCorrect ? 100 : 0;
+      feedback = (backContent.explanation as string) || '';
+      break;
+    }
+
+    case 'fill_blank': {
+      if (!selectedAnswer) {
+        return NextResponse.json({ error: 'Missing selectedAnswer for fill_blank card' }, { status: 400 });
+      }
+      const expectedBlanks = backContent.blanks as string[];
+      // Simple match: check if user answer contains the key terms (case-insensitive)
+      const userLower = selectedAnswer.toLowerCase();
+      const matchCount = expectedBlanks.filter(
+        (blank) => userLower.includes(blank.toLowerCase())
+      ).length;
+      isCorrect = matchCount >= Math.ceil(expectedBlanks.length / 2);
+      rating = matchCount === expectedBlanks.length ? 'good' : isCorrect ? 'hard' : 'wrong';
+      score = Math.round((matchCount / expectedBlanks.length) * 100);
+      feedback = (backContent.explanation as string) || '';
+      break;
+    }
+
+    case 'scenario_micro': {
+      if (!selectedAnswer) {
+        return NextResponse.json({ error: 'Missing selectedAnswer for scenario_micro card' }, { status: 400 });
+      }
+      const correctAnswer = backContent.correct as string;
+      isCorrect = selectedAnswer === correctAnswer;
+      rating = isCorrect ? 'good' : 'wrong';
+      score = isCorrect ? 100 : 0;
+      feedback = (backContent.explanation as string) || '';
+      break;
+    }
+
+    default:
+      return NextResponse.json({ error: `Unknown card type: ${cardType}` }, { status: 400 });
+  }
+
+  // FSRS schedule update for concept card
+  const scheduleResult = await applyCardScheduleAndMastery({
+    supabase,
+    userId,
+    cardId,
+    conceptId: card.concept_id,
+    rating,
+    isCorrect,
+  });
+
+  log.info(
+    `ConceptCard: card=${cardId}, type=${cardType}, rating=${rating}, interval=${scheduleResult.intervalDays}d`
+  );
+
+  // Award XP for correct answers
+  let xpResult = null;
+  if (isCorrect) {
+    xpResult = await awardXP(supabase, userId, XP_REWARDS.REVIEW_CORRECT, 'review_correct', cardId);
+  }
+
+  return NextResponse.json({
+    score,
+    feedback,
+    isCorrect,
+    expectedAnswer: backContent.correct || JSON.stringify(backContent.blanks) || '',
+    rating,
+    nextReviewAt: scheduleResult.nextReviewAt,
+    intervalDays: scheduleResult.intervalDays,
+    masteryAdvanced: scheduleResult.masteryAdvanced,
+    xp: xpResult,
+  });
+}
+
+// ============================================================================
+// Card-specific FSRS scheduling (similar to question-based but uses card_id)
+// ============================================================================
+
+interface CardScheduleParams {
+  supabase: SupabaseClient;
+  userId: string;
+  cardId: string;
+  conceptId: string;
+  rating: ReviewRating;
+  isCorrect: boolean;
+}
+
+async function applyCardScheduleAndMastery({
+  supabase,
+  userId,
+  cardId,
+  conceptId,
+  rating,
+  isCorrect,
+}: CardScheduleParams) {
+  const now = new Date();
+
+  interface CardScheduleRow {
+    fsrs_stability: number | null;
+    fsrs_difficulty: number | null;
+    fsrs_state: number | null;
+    fsrs_reps: number | null;
+    fsrs_lapses: number | null;
+    fsrs_last_review: string | null;
+    next_review_at: string;
+    streak: number;
+    correct_count: number;
+    incorrect_count: number;
+    repetition_count: number;
+  }
+
+  const { data: rawSchedule } = await supabase
+    .from(TABLES.reviewSchedule)
+    .select(
+      'fsrs_stability, fsrs_difficulty, fsrs_state, fsrs_reps, fsrs_lapses, fsrs_last_review, ' +
+      'next_review_at, streak, correct_count, incorrect_count, repetition_count'
+    )
+    .eq('user_id', userId)
+    .eq('card_id', cardId)
+    .single();
+
+  const schedule = rawSchedule as unknown as CardScheduleRow | null;
+
+  let fsrsCard = schedule ? extractFSRSCard({
+    ...schedule,
+    next_review_at: schedule.next_review_at ?? now.toISOString(),
+  }) : null;
+
+  if (!fsrsCard) {
+    fsrsCard = createNewFSRSCard(now);
+  }
+
+  const grade = reviewRatingToFSRSGrade(rating);
+  const result = scheduleFSRS(fsrsCard, grade, now);
+  const newCard = result.card;
+  const intervalDays = intervalDaysFromDue(newCard.due, now);
+
+  const newStreak = rating === 'wrong' ? 0 : (schedule?.streak ?? 0) + 1;
+  const newCorrect = isCorrect ? (schedule?.correct_count ?? 0) + 1 : (schedule?.correct_count ?? 0);
+  const newIncorrect = isCorrect ? (schedule?.incorrect_count ?? 0) : (schedule?.incorrect_count ?? 0) + 1;
+
+  const upsertData: Record<string, unknown> = {
+    user_id: userId,
+    card_id: cardId,
+    ease_factor: 2.5,
+    interval_days: intervalDays,
+    repetition_count: (schedule?.repetition_count ?? 0) + 1,
+    streak: newStreak,
+    correct_count: newCorrect,
+    incorrect_count: newIncorrect,
+    ...fsrsCardToDbColumns(newCard),
+    next_review_at: newCard.due.toISOString(),
+    last_reviewed_at: now.toISOString(),
+    last_rating: rating,
+  };
+
+  // Use card_id unique constraint for upsert
+  const { error: upsertError } = await supabase
+    .from(TABLES.reviewSchedule)
+    .upsert(upsertData, { onConflict: 'user_id,card_id' });
+
+  if (upsertError) {
+    log.error('Error upserting card schedule:', upsertError);
+  }
+
+  return {
+    nextReviewAt: newCard.due.toISOString(),
+    intervalDays,
+    masteryAdvanced: false,
   };
 }
