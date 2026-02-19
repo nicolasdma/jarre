@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
@@ -16,7 +16,7 @@ import { saveLearnProgress, type LearnProgress, type SectionState, type Practice
 import { WhisperProvider } from '@/lib/whisper/whisper-context';
 import { WhisperToggle } from './whisper-toggle';
 import type { FigureRegistry } from '@/lib/figure-registry';
-import type { InlineQuiz } from '@/types';
+import type { InlineQuiz, Exercise } from '@/types';
 import { getExercisesForConcept } from '@/lib/exercises/registry';
 
 // ============================================================================
@@ -88,6 +88,168 @@ const Q_TYPE_COLORS: Record<string, string> = {
 };
 
 // ============================================================================
+// ConceptSection wrapper — stabilizes callbacks to prevent re-renders
+// ============================================================================
+
+interface ConceptSectionWrapperProps {
+  section: Section;
+  index: number;
+  language: Language;
+  activeSection: number;
+  onComplete: (index: number) => void;
+  onActivate: (index: number) => void;
+  initialState?: SectionState;
+  onStateChange: (conceptId: string, state: SectionState) => void;
+  figureRegistry?: FigureRegistry;
+  quizzesBySectionId?: Record<string, InlineQuiz[]>;
+  exercises?: Exercise[];
+}
+
+const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
+  section,
+  index,
+  language,
+  activeSection,
+  onComplete,
+  onActivate,
+  initialState,
+  onStateChange,
+  figureRegistry,
+  quizzesBySectionId,
+  exercises,
+}: ConceptSectionWrapperProps) {
+  const handleComplete = useCallback(() => onComplete(index), [onComplete, index]);
+  const handleActivate = useCallback(() => onActivate(index), [onActivate, index]);
+  const handleStateChange = useCallback(
+    (state: SectionState) => onStateChange(section.id, state),
+    [onStateChange, section.id]
+  );
+
+  return (
+    <ConceptSection
+      section={section}
+      language={language}
+      isActive={index === activeSection}
+      onComplete={handleComplete}
+      onActivate={handleActivate}
+      initialState={initialState}
+      onStateChange={handleStateChange}
+      figureRegistry={figureRegistry}
+      inlineQuizzes={quizzesBySectionId?.[section.id]}
+      exercises={exercises}
+    />
+  );
+});
+
+ConceptSectionWrapper.displayName = 'ConceptSectionWrapper';
+
+// ============================================================================
+// Sticky header — owns scroll state to avoid re-rendering siblings
+// ============================================================================
+
+interface StickyHeaderProps {
+  language: Language;
+  currentStep: Step;
+  resourceTitle: string;
+  activeSection: number;
+  sectionsCount: number;
+  onStepChange: (step: Step) => void;
+}
+
+function StickyHeader({
+  language,
+  currentStep,
+  resourceTitle,
+  activeSection,
+  sectionsCount,
+  onStepChange,
+}: StickyHeaderProps) {
+  const [scrolledPast200, setScrolledPast200] = useState(false);
+
+  useEffect(() => {
+    if (currentStep !== 'learn') {
+      setScrolledPast200(false);
+      return;
+    }
+    const handleScroll = () => {
+      setScrolledPast200(window.scrollY > 200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentStep]);
+
+  const isFocusMode = currentStep === 'learn' && scrolledPast200;
+
+  return (
+    <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm transition-all duration-300 ${
+      isFocusMode ? 'py-0' : ''
+    }`}>
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-8 transition-all duration-300 ${
+        isFocusMode ? 'py-2' : 'py-4'
+      }`}>
+        <Link
+          href="/library"
+          className={`text-j-text-tertiary hover:text-j-text transition-all duration-300 ${
+            isFocusMode ? 'text-xs' : 'text-sm'
+          }`}
+        >
+          ← {isFocusMode ? '' : t('learn.backToLibrary', language)}
+        </Link>
+
+        {/* Step indicators: visible sm-lg only */}
+        <div className="hidden sm:flex lg:hidden items-center gap-1">
+          {STEP_ORDER.map((step, i) => {
+            const isActive = step === currentStep;
+            const isPast =
+              STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(currentStep);
+
+            return (
+              <div key={step} className="flex items-center">
+                {i > 0 && (
+                  <span className="text-j-border-dot mx-1.5">·</span>
+                )}
+                <button
+                  onClick={() => onStepChange(step)}
+                  className={`font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer ${
+                    isActive
+                      ? 'text-j-text font-medium'
+                      : isPast
+                        ? 'text-j-accent hover:text-j-text'
+                        : 'text-j-text-tertiary hover:text-j-text-secondary'
+                  }`}
+                >
+                  {t(STEP_LABELS[step].key, language)}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Whisper toggle */}
+        <WhisperToggle language={language} />
+
+        {/* Right side: resource title + step info on desktop (lg+) */}
+        <div className="hidden lg:flex items-center gap-3">
+          <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
+            {resourceTitle}
+          </span>
+          <span className="text-j-border">·</span>
+          <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+            {t(STEP_LABELS[currentStep].key, language)}
+          </span>
+          {currentStep === 'learn' && (
+            <span className="font-mono text-[10px] text-j-text-tertiary">
+              {activeSection + 1}/{sectionsCount}
+            </span>
+          )}
+        </div>
+        <div className="lg:hidden w-16" />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -131,18 +293,6 @@ export function LearnFlow({
 
   // Practice mode: voice (default) or text fallback
   const [practiceMode, setPracticeMode] = useState<'voice' | 'text'>('voice');
-
-  // Focus mode: compress header on scroll > 200px during LEARN step
-  const [scrolledPast200, setScrolledPast200] = useState(false);
-  useEffect(() => {
-    if (currentStep !== 'learn') return;
-    const handleScroll = () => {
-      setScrolledPast200(window.scrollY > 200);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentStep]);
-  const isFocusMode = currentStep === 'learn' && scrolledPast200;
 
   const allSectionsComplete = useMemo(
     () => sections.every((_, i) => completedSections.has(i)),
@@ -205,94 +355,40 @@ export function LearnFlow({
     [resourceId, buildProgress]
   );
 
-  const handleSectionComplete = (index: number) => {
-    setCompletedSections((prev) => {
-      const next = new Set(prev);
-      next.add(index);
+  const handleSectionComplete = useCallback(
+    (index: number) => {
+      setCompletedSections((prev) => {
+        const next = new Set(prev);
+        next.add(index);
 
-      const nextActiveSection =
-        index < sections.length - 1 ? index + 1 : activeSection;
-      setActiveSection(nextActiveSection);
+        const nextActiveSection =
+          index < sections.length - 1 ? index + 1 : activeSection;
+        setActiveSection(nextActiveSection);
 
-      saveLearnProgress(
-        resourceId,
-        buildProgress({ completed: next, section: nextActiveSection })
-      );
-      return next;
-    });
-  };
+        saveLearnProgress(
+          resourceId,
+          buildProgress({ completed: next, section: nextActiveSection })
+        );
+        return next;
+      });
+    },
+    [sections.length, activeSection, resourceId, buildProgress]
+  );
 
   return (
     <WhisperProvider activeStep={currentStep}>
     <div className="min-h-screen bg-j-bg">
       <ScrollProgress />
 
-      {/* Sticky step navigator — compresses in focus mode during LEARN */}
-      <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm transition-all duration-300 ${
-        isFocusMode ? 'py-0' : ''
-      }`}>
-        <div className={`mx-auto flex max-w-6xl items-center justify-between px-8 transition-all duration-300 ${
-          isFocusMode ? 'py-2' : 'py-4'
-        }`}>
-          <Link
-            href="/library"
-            className={`text-j-text-tertiary hover:text-j-text transition-all duration-300 ${
-              isFocusMode ? 'text-xs' : 'text-sm'
-            }`}
-          >
-            ← {isFocusMode ? '' : t('learn.backToLibrary', language)}
-          </Link>
-
-          {/* Step indicators: visible sm-lg only (on lg+ the sidebar handles this) */}
-          <div className="hidden sm:flex lg:hidden items-center gap-1">
-            {STEP_ORDER.map((step, i) => {
-              const isActive = step === currentStep;
-              const isPast =
-                STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(currentStep);
-
-              return (
-                <div key={step} className="flex items-center">
-                  {i > 0 && (
-                    <span className="text-j-border-dot mx-1.5">·</span>
-                  )}
-                  <button
-                    onClick={() => changeStep(step)}
-                    className={`font-mono text-[10px] tracking-[0.15em] uppercase transition-colors cursor-pointer ${
-                      isActive
-                        ? 'text-j-text font-medium'
-                        : isPast
-                          ? 'text-j-accent hover:text-j-text'
-                          : 'text-j-text-tertiary hover:text-j-text-secondary'
-                    }`}
-                  >
-                    {t(STEP_LABELS[step].key, language)}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Whisper toggle */}
-          <WhisperToggle language={language} />
-
-          {/* Right side: resource title + step info on desktop (lg+) */}
-          <div className="hidden lg:flex items-center gap-3">
-            <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
-              {resourceTitle}
-            </span>
-            <span className="text-j-border">·</span>
-            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-              {t(STEP_LABELS[currentStep].key, language)}
-            </span>
-            {currentStep === 'learn' && (
-              <span className="font-mono text-[10px] text-j-text-tertiary">
-                {activeSection + 1}/{sections.length}
-              </span>
-            )}
-          </div>
-          <div className="lg:hidden w-16" />
-        </div>
-      </div>
+      {/* Sticky step navigator — owns its own scroll state */}
+      <StickyHeader
+        language={language}
+        currentStep={currentStep}
+        resourceTitle={resourceTitle}
+        activeSection={activeSection}
+        sectionsCount={sections.length}
+        onStepChange={changeStep}
+      />
 
       {/* TOC sidebar (fixed, doesn't affect content flow) */}
       <LearnTOC
@@ -414,19 +510,18 @@ export function LearnFlow({
             {/* Concept sections */}
             <div className="space-y-4">
               {sections.map((section, i) => (
-                <ConceptSection
+                <ConceptSectionWrapper
                   key={section.id}
                   section={section}
+                  index={i}
                   language={language}
-                  isActive={i === activeSection}
-                  onComplete={() => handleSectionComplete(i)}
-                  onActivate={() => navigateToSection(i)}
+                  activeSection={activeSection}
+                  onComplete={handleSectionComplete}
+                  onActivate={navigateToSection}
                   initialState={sectionState[section.id]}
-                  onStateChange={(state) =>
-                    handleSectionStateChange(section.id, state)
-                  }
+                  onStateChange={handleSectionStateChange}
                   figureRegistry={figureRegistry}
-                  inlineQuizzes={quizzesBySectionId?.[section.id]}
+                  quizzesBySectionId={quizzesBySectionId}
                   exercises={getExercisesForConcept(section.conceptId)}
                 />
               ))}
@@ -464,19 +559,31 @@ export function LearnFlow({
                 concepts={concepts}
                 onComplete={() => changeStep('evaluate')}
                 onSwitchToText={() => setPracticeMode('text')}
+                onReviewMaterial={() => changeStep('learn')}
               />
             ) : (
-              <PracticeEvalStep
-                language={language}
-                resourceId={resourceId}
-                conceptIds={sections.map((s) => s.conceptId)}
-                initialState={practiceEvalState}
-                onStateChange={(next) => {
-                  setPracticeEvalState(next);
-                  saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
-                }}
-                onComplete={() => changeStep('evaluate')}
-              />
+              <>
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setPracticeMode('voice')}
+                    className="font-mono text-[10px] text-j-text-tertiary hover:text-j-warm transition-colors underline underline-offset-2"
+                  >
+                    ← {language === 'es' ? 'Volver a practica de voz' : 'Back to voice practice'}
+                  </button>
+                </div>
+                <PracticeEvalStep
+                  language={language}
+                  resourceId={resourceId}
+                  conceptIds={sections.map((s) => s.conceptId)}
+                  initialState={practiceEvalState}
+                  onStateChange={(next) => {
+                    setPracticeEvalState(next);
+                    saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
+                  }}
+                  onComplete={() => changeStep('evaluate')}
+                />
+              </>
             )}
           </div>
         )}
