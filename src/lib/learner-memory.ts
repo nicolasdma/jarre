@@ -106,7 +106,7 @@ export async function updateLearnerConceptMemory(
     // Fetch existing memory for this concept
     const { data: existing } = await supabase
       .from(TABLES.learnerConceptMemory)
-      .select('misconceptions, strengths, analogies, open_questions, personal_examples, connections_made')
+      .select('misconceptions, strengths, escalation_level, analogies, open_questions, personal_examples, connections_made')
       .eq('user_id', userId)
       .eq('concept_id', conceptId)
       .single();
@@ -164,7 +164,7 @@ export async function updateLearnerConceptMemory(
           concept_id: conceptId,
           misconceptions: mergedMisconceptions,
           strengths: mergedStrengths,
-          escalation_level: updates.escalationLevel || 'pump',
+          escalation_level: updates.escalationLevel ?? existing?.escalation_level ?? 'pump',
           analogies: mergedAnalogies,
           open_questions: mergedOpenQuestions,
           personal_examples: mergedPersonalExamples,

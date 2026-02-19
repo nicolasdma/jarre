@@ -63,6 +63,9 @@ const WARNING_BEFORE_END_MS = 5 * 60 * 1000; // warn at 25 min
 const COMPRESS_THRESHOLD_TURNS = 25;
 const KEEP_RECENT_TURNS = 5;
 
+// Session end signal: the voice prompt instructs the tutor to say this word when wrapping up
+const SESSION_END_KEYWORD = /quiz/i;
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -378,9 +381,6 @@ export function useVoiceSession({
     const sid = sessionIdRef.current;
     if (!sid) return;
 
-    // TODO: Remove debug log after verifying transcripts arrive
-    console.log(`[Voice/Transcript] ${role}: ${text}`);
-
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
@@ -400,7 +400,7 @@ export function useVoiceSession({
     // Detect AI-driven session completion: the prompt instructs the tutor
     // to say "quiz" when wrapping up. When we see it in the model's
     // transcript, wait for the audio to finish, then auto-disconnect.
-    if (role === 'model' && /quiz/i.test(text)) {
+    if (role === 'model' && SESSION_END_KEYWORD.test(text)) {
       setTimeout(() => {
         disconnectRef.current();
         onSessionCompleteRef.current?.();

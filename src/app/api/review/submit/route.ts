@@ -13,7 +13,7 @@ import {
   getRubricSystemPrompt,
   getDomainForPhase,
 } from '@/lib/llm/review-prompts';
-import { scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
+import { scoreToRating, deriveFromRubric } from '@/lib/review-scoring';
 import { applyScheduleAndMastery } from '@/lib/review/apply-schedule';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';

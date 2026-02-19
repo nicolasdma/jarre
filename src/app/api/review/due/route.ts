@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api/middleware';
 import { TABLES } from '@/lib/db/tables';
 import { createLogger } from '@/lib/logger';
 import { REVIEW_MAX_OPEN } from '@/lib/constants';
-import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
+import { REVIEW_SESSION_CAP, todayStart } from '@/lib/review-scoring';
 import { interleaveByConcept } from '@/lib/interleave';
 import {
   mapQuestionToUnifiedCard,

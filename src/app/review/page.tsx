@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
 import { t, type Language } from '@/lib/translations';
-import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
+import { REVIEW_SESSION_CAP, todayStart } from '@/lib/review-scoring';
 import { ReviewSession } from './review-session';
 
 export const metadata: Metadata = {
