@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mic, MicOff, Loader2, Clock } from 'lucide-react';
+import { Mic, MicOff, Loader2, Clock, RefreshCw } from 'lucide-react';
 import { useVoiceExplorationSession } from '@/components/voice/use-voice-exploration-session';
 import type { Language } from '@/lib/translations';
 
@@ -33,6 +33,28 @@ export function DiscussWithTutorButton({
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  if (exploration.state === 'error') {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-j-error">{exploration.error}</p>
+        <p className="text-xs text-j-text-tertiary">
+          {isEs
+            ? 'La conversación está guardada. Podemos reintentar el resumen.'
+            : 'The conversation is saved. We can retry the summary.'}
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={exploration.retrySummary}
+            className="flex items-center gap-2 px-4 py-2 border border-j-accent text-j-accent rounded font-mono text-sm hover:bg-j-accent/10 transition-colors"
+          >
+            <RefreshCw size={14} />
+            {isEs ? 'Reintentar resumen' : 'Retry summary'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (exploration.state === 'summarizing') {
     return (

@@ -67,6 +67,7 @@ interface VoiceEvalSession {
   evaluationResult: EvaluationResult | null;
   connect: () => Promise<void>;
   disconnect: () => void;
+  retryScoring: () => void;
 }
 
 // ============================================================================
@@ -193,6 +194,11 @@ export function useVoiceEvalSession({
     }
   }, [voiceSession.disconnect, scoreSession]);
 
+  const retryScoring = useCallback(() => {
+    const sid = sessionIdForScoring.current;
+    if (sid) scoreSession(sid);
+  }, [scoreSession]);
+
   return {
     evalState: derivedEvalState,
     tutorState: voiceSession.tutorState,
@@ -202,5 +208,6 @@ export function useVoiceEvalSession({
     evaluationResult,
     connect,
     disconnect,
+    retryScoring,
   };
 }

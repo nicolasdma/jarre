@@ -69,6 +69,7 @@ interface VoicePracticeSession {
   practiceResult: PracticeResult | null;
   connect: () => Promise<void>;
   disconnect: () => void;
+  retryScoring: () => void;
 }
 
 // ============================================================================
@@ -185,6 +186,11 @@ export function useVoicePracticeSession({
     }
   }, [voiceSession.disconnect, scoreSession]);
 
+  const retryScoring = useCallback(() => {
+    const sid = sessionIdForScoring.current;
+    if (sid) scoreSession(sid);
+  }, [scoreSession]);
+
   return {
     practiceState: derivedPracticeState,
     tutorState: voiceSession.tutorState,
@@ -194,5 +200,6 @@ export function useVoicePracticeSession({
     practiceResult,
     connect,
     disconnect,
+    retryScoring,
   };
 }

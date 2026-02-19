@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Loader2, ExternalLink, Link2, ArrowRight } from 'lucide-react';
+import { X, Plus, Loader2, ExternalLink, Link2, ArrowRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Language } from '@/lib/translations';
@@ -225,7 +225,12 @@ export function AddResourceModal({ isOpen, onClose, language, onResourceAdded }:
 
                 {/* Error */}
                 {error && (
-                  <p className="text-sm text-j-error">{error}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-j-error">{error}</p>
+                    <p className="text-xs text-j-text-tertiary">
+                      {isEs ? 'Podés volver a intentar con el botón de abajo.' : 'You can try again with the button below.'}
+                    </p>
+                  </div>
                 )}
 
                 {/* Submit */}
@@ -238,6 +243,11 @@ export function AddResourceModal({ isOpen, onClose, language, onResourceAdded }:
                     <>
                       <Loader2 size={16} className="animate-spin" />
                       {isEs ? 'Analizando...' : 'Analyzing...'}
+                    </>
+                  ) : error ? (
+                    <>
+                      <RefreshCw size={16} />
+                      {isEs ? 'Reintentar análisis' : 'Retry analysis'}
                     </>
                   ) : (
                     <>

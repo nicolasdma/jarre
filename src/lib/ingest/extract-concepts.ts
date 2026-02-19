@@ -71,7 +71,8 @@ The root keys MUST be "summary" and "concepts" (not "technical_concepts" or any 
     temperature: 0.2,
     maxTokens: 2000,
     responseFormat: 'json',
-    timeoutMs: 60000,
+    timeoutMs: 90_000,
+    retryOnTimeout: true,
   });
 
   const parsed = parseJsonResponse(responseText, ExtractionResponseSchema);

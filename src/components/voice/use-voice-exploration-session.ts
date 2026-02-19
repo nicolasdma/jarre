@@ -30,6 +30,7 @@ interface VoiceExplorationSession {
   start: () => Promise<void>;
   stop: () => void;
   result: ExplorationResult | null;
+  retrySummary: () => void;
 }
 
 export function useVoiceExplorationSession({
@@ -45,6 +46,7 @@ export function useVoiceExplorationSession({
   const [conceptIds, setConceptIds] = useState<string[]>([]);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const savedSessionIdRef = useRef<string | null>(null);
 
   // Use the base voice session hook once we have the system instruction
   const voiceSession = useVoiceSession({
@@ -146,37 +148,57 @@ export function useVoiceExplorationSession({
     }
   }, [userResourceId, language, voiceSession]);
 
-  const stop = useCallback(async () => {
-    voiceSession.disconnect();
+  const generateSummary = useCallback(async (sessionId: string) => {
+    setState('summarizing');
+    try {
+      const res = await fetch('/api/resources/exploration-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, userResourceId }),
+      });
 
-    // Generate summary if we had a session
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate exploration summary');
+      }
+
+      const data = await res.json();
+      const explorationResult: ExplorationResult = {
+        summary: data.summary,
+        discoveredConnections: data.discoveredConnections?.length || 0,
+        openQuestions: data.openQuestions || [],
+      };
+      setResult(explorationResult);
+      setState('done');
+      onCompleteRef.current?.(explorationResult);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Summary generation failed';
+      log.error('Exploration summary failed:', msg);
+      setExplorationError(msg);
+      setState('error');
+    }
+  }, [userResourceId]);
+
+  const stop = useCallback(async () => {
+    // Save sessionId before disconnect (disconnect may clear it)
     const sessionId = voiceSession.sessionId;
     if (sessionId) {
-      setState('summarizing');
-      try {
-        const res = await fetch('/api/resources/exploration-summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, userResourceId }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const explorationResult: ExplorationResult = {
-            summary: data.summary,
-            discoveredConnections: data.discoveredConnections?.length || 0,
-            openQuestions: data.openQuestions || [],
-          };
-          setResult(explorationResult);
-          onCompleteRef.current?.(explorationResult);
-        }
-      } catch (err) {
-        log.error('Exploration summary failed:', err);
-      }
+      savedSessionIdRef.current = sessionId;
     }
+    voiceSession.disconnect();
 
-    setState('done');
-  }, [voiceSession, userResourceId]);
+    const sid = savedSessionIdRef.current;
+    if (sid) {
+      await generateSummary(sid);
+    } else {
+      setState('done');
+    }
+  }, [voiceSession, generateSummary]);
+
+  const retrySummary = useCallback(() => {
+    const sid = savedSessionIdRef.current;
+    if (sid) generateSummary(sid);
+  }, [generateSummary]);
 
   return {
     state,
@@ -185,5 +207,6 @@ export function useVoiceExplorationSession({
     start,
     stop,
     result,
+    retrySummary,
   };
 }

@@ -155,6 +155,7 @@ export function VoiceTeachFlow({
     teachResult,
     connect,
     disconnect,
+    retryScoring,
   } = useVoiceTeachSession({
     conceptId,
     conceptName,
@@ -316,13 +317,27 @@ export function VoiceTeachFlow({
     return (
       <div className="p-6 flex flex-col items-center gap-4">
         <p className="text-sm text-j-error">{error}</p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
-        >
-          {t('close', language)}
-        </button>
+        <p className="text-xs text-j-text-tertiary max-w-xs text-center">
+          {language === 'es'
+            ? 'La conversación está guardada. Podemos reintentar el análisis.'
+            : 'The conversation is saved. We can retry the analysis.'}
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={retryScoring}
+            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+          >
+            {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
+          >
+            {t('close', language)}
+          </button>
+        </div>
       </div>
     );
   }
