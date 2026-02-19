@@ -35,6 +35,7 @@ interface GeminiLiveCallbacks {
   onConnectionStateChange: (state: ConnectionState) => void;
   onError: (error: string) => void;
   onTranscript?: (role: 'user' | 'model', text: string) => void;
+  onInputTranscriptionComplete?: () => void;
   onReconnectNeeded?: (attempt: number) => void;
   onGoAway?: (timeLeftMs: number) => void;
   onResumptionUpdate?: (handle: string, resumable: boolean, lastIndex?: string) => void;
@@ -122,10 +123,9 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             ...(config.resumptionHandle ? {
               sessionResumption: { handle: config.resumptionHandle },
             } : {}),
-            contextWindowCompression: {
-              triggerTokens: '25000',
-              slidingWindow: { targetTokens: '5000' },
-            },
+            // NOTE: contextWindowCompression removed — not supported on native audio models
+            // (causes WebSocket 1008 "Operation is not implemented"). Sessions limited to ~15 min
+            // without compression. Our 3-layer reconnection handles this gracefully.
           },
           callbacks: {
             onopen: () => {
@@ -176,6 +176,8 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                       callbacks.onTranscript('user', text.trim());
                     }
                   }
+                  // Signal that user speech has been processed — model is now "thinking"
+                  callbacks.onInputTranscriptionComplete?.();
                 }
               }
 

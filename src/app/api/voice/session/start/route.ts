@@ -52,7 +52,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     session_type: sessionType,
   };
 
-  if (sectionId) {
+  // Only include section_id for teaching sessions (it's a UUID FK)
+  if (sectionId && sessionType === 'teaching') {
     insertData.section_id = sectionId;
   }
   if (resourceId) {
