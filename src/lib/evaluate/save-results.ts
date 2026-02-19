@@ -16,6 +16,9 @@ import { XP_REWARDS } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
 import type { EvaluationType, MasteryTriggerType } from '@/types';
 import type { EvaluateAnswersResponse } from '@/lib/llm/schemas';
+import type { createClient } from '@/lib/supabase/server';
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 const log = createLogger('Evaluate/SaveResults');
 
@@ -32,7 +35,7 @@ interface QuestionInput {
 }
 
 interface SaveEvaluationParams {
-  supabase: any; // SupabaseClient — we use `any` to avoid coupling to specific generics
+  supabase: SupabaseClient;
   userId: string;
   resourceId: string;
   parsed: EvaluateAnswersResponse;
@@ -47,7 +50,7 @@ interface SaveEvaluationParams {
 interface SaveEvaluationResult {
   evaluationId: string | null;
   saved: boolean;
-  xp: any;
+  xp: Awaited<ReturnType<typeof awardXP>>;
 }
 
 // ============================================================================
@@ -150,6 +153,23 @@ export async function saveEvaluationResults({
     await awardXP(supabase, userId, XP_REWARDS.EVALUATION_HIGH_SCORE, 'evaluation_high_score', evaluation?.id);
   }
 
+  // 4. Log to consumption_log (fire-and-forget)
+  supabase
+    .from(TABLES.consumptionLog)
+    .insert({
+      user_id: userId,
+      resource_id: resourceId,
+      event_type: 'evaluated',
+      metadata: {
+        score: Math.round(parsed.overallScore),
+        evalMethod,
+        evaluationId: evaluation?.id,
+      },
+    })
+    .then(({ error: logError }: { error: any }) => {
+      if (logError) console.error('[Evaluate/SaveResults] Failed to log consumption:', logError.message);
+    });
+
   return {
     evaluationId: evaluation?.id ?? null,
     saved: !evalError,
@@ -170,7 +190,7 @@ async function updateConceptMastery({
   evaluationId,
   triggerType,
 }: {
-  supabase: any;
+  supabase: SupabaseClient;
   userId: string;
   conceptName: string;
   questionType: EvaluationType;

@@ -5,6 +5,12 @@ import { createLogger } from '@/lib/logger';
 import { REVIEW_MAX_OPEN } from '@/lib/constants';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/spaced-repetition';
 import { interleaveByConcept } from '@/lib/interleave';
+import {
+  mapQuestionToUnifiedCard,
+  mapConceptCardToUnifiedCard,
+  type QuestionBankJoinRow,
+  type ConceptCardJoinRow,
+} from '@/lib/review/map-review-cards';
 import type { UnifiedReviewCard } from '@/types';
 
 const log = createLogger('Review/Due');
@@ -102,80 +108,15 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
       // Non-fatal: proceed with just questions
     }
 
-    // Map question_bank cards to UnifiedReviewCard
+    // Map to UnifiedReviewCard using shared helpers
     const questionCards: UnifiedReviewCard[] = (questionDue || []).map((row) => {
-      const q = row.question_bank as unknown as {
-        id: string;
-        concept_id: string;
-        question_text: string;
-        type: string;
-        difficulty: number;
-        format: string;
-        options: { label: string; text: string }[] | null;
-        correct_answer: string | null;
-        explanation: string | null;
-        expected_answer: string | null;
-        concepts: { name: string };
-      };
-
-      return {
-        id: row.id,
-        source: 'question' as const,
-        sourceId: q.id,
-        conceptId: q.concept_id,
-        conceptName: q.concepts.name,
-        cardType: q.type,
-        format: q.format || 'open',
-        difficulty: q.difficulty as 1 | 2 | 3,
-        content: {
-          questionText: q.question_text,
-          expectedAnswer: q.expected_answer,
-        },
-        fsrsState: 0,
-        streak: row.streak,
-        reps: row.repetition_count,
-        ...(q.options && { options: q.options }),
-        ...(q.correct_answer && { correctAnswer: q.correct_answer }),
-        ...(q.explanation && { explanation: q.explanation }),
-      };
+      const q = row.question_bank as unknown as QuestionBankJoinRow;
+      return mapQuestionToUnifiedCard(row, q);
     });
 
-    // Map concept_cards to UnifiedReviewCard
     const conceptCardItems: UnifiedReviewCard[] = (cardDue || []).map((row) => {
-      const c = row.concept_cards as unknown as {
-        id: string;
-        concept_id: string;
-        card_type: string;
-        front_content: Record<string, unknown>;
-        back_content: Record<string, unknown>;
-        difficulty: number;
-        concepts: { name: string };
-      };
-
-      const frontContent = c.front_content;
-      const backContent = c.back_content;
-
-      return {
-        id: row.id,
-        source: 'card' as const,
-        sourceId: c.id,
-        conceptId: c.concept_id,
-        conceptName: c.concepts.name,
-        cardType: c.card_type,
-        format: c.card_type, // recall, fill_blank, etc.
-        difficulty: c.difficulty as 1 | 2 | 3,
-        content: frontContent,
-        back: backContent,
-        fsrsState: 0,
-        streak: row.streak,
-        reps: row.repetition_count,
-        // For scenario_micro MC options
-        ...(frontContent.options ? {
-          options: frontContent.options as { label: string; text: string }[],
-        } : {}),
-        ...(backContent.correct ? { correctAnswer: backContent.correct as string } : {}),
-        ...(backContent.explanation ? { explanation: backContent.explanation as string } : {}),
-      };
+      const c = row.concept_cards as unknown as ConceptCardJoinRow;
+      return mapConceptCardToUnifiedCard(row, c);
     });
 
     const allCards = [...questionCards, ...conceptCardItems];
