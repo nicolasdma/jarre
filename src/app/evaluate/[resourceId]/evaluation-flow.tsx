@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -188,6 +188,11 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
 
   const draftKey = `eval-draft-${resource.id}`;
 
+  // Stable handler for textarea changes — avoids creating new functions on every render
+  const handleAnswerChange = useCallback((index: number, value: string) => {
+    setAnswers((prev) => ({ ...prev, [index.toString()]: value }));
+  }, []);
+
   // Restore draft on mount
   useEffect(() => {
     try {
@@ -203,22 +208,33 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
     }
   }, [draftKey]);
 
-  // Persist draft on change
+  // Persist draft on change (debounced to avoid blocking main thread on every keystroke)
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (Object.keys(answers).length > 0) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(answers));
-      } catch {
-        // Storage full or unavailable, ignore
-      }
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        try {
+          localStorage.setItem(draftKey, JSON.stringify(answers));
+        } catch {
+          // Storage full or unavailable, ignore
+        }
+      }, 1000);
     }
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
   }, [answers, draftKey]);
 
-  // Clean up timers on unmount
+  // Clean up timers on unmount and flush draft
   useEffect(() => {
     return () => {
       if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
       if (abortControllerRef.current) abortControllerRef.current.abort();
+      // Flush pending draft save on unmount
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+      }
     };
   }, []);
 
@@ -561,9 +577,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
                 rows={4}
                 placeholder={t('eval.placeholder', language)}
                 value={answers[index.toString()] || ''}
-                onChange={(e) =>
-                  setAnswers((prev) => ({ ...prev, [index.toString()]: e.target.value }))
-                }
+                onChange={(e) => handleAnswerChange(index, e.target.value)}
               />
 
               {/* Expected length hint */}

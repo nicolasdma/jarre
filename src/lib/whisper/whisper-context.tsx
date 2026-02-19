@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   type ReactNode,
 } from 'react';
 import { useSpeechEngine } from './use-speech-engine';
@@ -286,13 +287,13 @@ export function WhisperProvider({ activeStep, children }: WhisperProviderProps) 
     currentIndexRef.current = -1;
   }, [engine, clearActiveAttr]);
 
-  const contextValue: WhisperContextValue = {
+  const contextValue: WhisperContextValue = useMemo(() => ({
     isEnabled,
     isReady: engine.isReady,
     isPlaying: engine.isSpeaking && !engine.isPaused,
     toggle,
     cancel,
-  };
+  }), [isEnabled, engine.isReady, engine.isSpeaking, engine.isPaused, toggle, cancel]);
 
   return (
     <WhisperContext.Provider value={contextValue}>
