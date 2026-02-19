@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { SectionLabel } from '@/components/ui/section-label';
-import { SystemVisualization } from '@/components/system-viz/system-visualization';
+import { ForceGraphVisualization } from '@/components/system-viz/force-graph-visualization';
 import { redirect } from 'next/navigation';
 import type { Language } from '@/lib/translations';
-import type { ConceptNode } from '@/components/system-viz/layout-engine';
+import type { ConceptInput, ResourceInput, ResourceConceptLinkInput } from '@/components/system-viz/graph-types';
 
 export const metadata: Metadata = {
   title: 'Mi Sistema — Jarre',
@@ -21,13 +21,23 @@ export default async function MiSistemaPage() {
 
   if (!user) redirect('/login');
 
-  // Parallel queries
-  const [profileRes, conceptsRes, prereqsRes, progressRes] = await Promise.all([
-    supabase.from('user_profiles').select('language').eq('id', user.id).single(),
-    supabase.from('concepts').select('id, name, phase, canonical_definition').order('phase'),
-    supabase.from('concept_prerequisites').select('concept_id, prerequisite_id'),
-    supabase.from('concept_progress').select('concept_id, level').eq('user_id', user.id),
-  ]);
+  // Parallel queries: concepts + user resources
+  const [profileRes, conceptsRes, prereqsRes, progressRes, resourcesRes, resourceLinksRes] =
+    await Promise.all([
+      supabase.from('user_profiles').select('language').eq('id', user.id).single(),
+      supabase.from('concepts').select('id, name, phase, canonical_definition').order('phase'),
+      supabase.from('concept_prerequisites').select('concept_id, prerequisite_id'),
+      supabase.from('concept_progress').select('concept_id, level').eq('user_id', user.id),
+      supabase
+        .from('user_resources')
+        .select('id, title, type, url')
+        .eq('user_id', user.id)
+        .eq('status', 'completed'),
+      supabase
+        .from('user_resource_concepts')
+        .select('user_resource_id, concept_id, relevance_score, relationship')
+        .eq('source', 'ingestion'),
+    ]);
 
   const lang = (profileRes.data?.language || 'es') as Language;
 
@@ -45,9 +55,8 @@ export default async function MiSistemaPage() {
     masteryMap.set(row.concept_id, parseInt(row.level, 10) || 0);
   }
 
-  // Build concept nodes for visualization
-  // phase comes as string enum from Supabase, coerce to number
-  const concepts: ConceptNode[] = (conceptsRes.data ?? []).map((c) => ({
+  // Build concept nodes
+  const concepts: ConceptInput[] = (conceptsRes.data ?? []).map((c) => ({
     id: c.id,
     name: c.name,
     phase: typeof c.phase === 'string' ? parseInt(c.phase, 10) : c.phase,
@@ -60,6 +69,21 @@ export default async function MiSistemaPage() {
   for (const c of conceptsRes.data ?? []) {
     definitions[c.id] = c.canonical_definition;
   }
+
+  // Build resource data
+  const resources: ResourceInput[] = (resourcesRes.data ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    type: r.type,
+    url: r.url,
+  }));
+
+  const resourceLinks: ResourceConceptLinkInput[] = (resourceLinksRes.data ?? []).map((rl) => ({
+    userResourceId: rl.user_resource_id,
+    conceptId: rl.concept_id,
+    relevanceScore: rl.relevance_score ?? 0.5,
+    relationship: rl.relationship ?? 'relates',
+  }));
 
   return (
     <div className="min-h-screen bg-j-bg">
@@ -79,9 +103,11 @@ export default async function MiSistemaPage() {
             : 'Each concept you master grows your system. Ghost nodes materialize as you progress.'}
         </p>
 
-        <SystemVisualization
+        <ForceGraphVisualization
           concepts={concepts}
           definitions={definitions}
+          resources={resources}
+          resourceLinks={resourceLinks}
           language={lang}
         />
       </main>
