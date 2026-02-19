@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-17
+> Last updated: 2026-02-19
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -22,6 +22,7 @@
 - [ ] `[P0]` Run `npx tsx scripts/seed-high-order-questions.ts` to seed ~35 Bloom 4-5 questions
 - [ ] `[P1]` Seed mc2 inline quizzes for Ch5 (convert some existing MC to mc2)
 - [ ] `[P1]` End-to-end test new learn flow (activate → learn → apply → review → practice-eval → evaluate)
+- [ ] `[P0]` Run 4 new Reactive Knowledge System migrations against Supabase
 
 ---
 
@@ -183,6 +184,94 @@
 
 ---
 
+## Content Pipeline — Nuevos Recursos
+
+### "Build a Large Language Model (From Scratch)" — Sebastian Raschka (Nueva Phase 3)
+> Libro principal + playlist YouTube como complemento. Mismo pipeline que DDIA.
+> Manning 2024, ISBN 978-1633437166 | [GitHub](https://github.com/rasbt/LLMs-from-scratch)
+> Playlist: https://www.youtube.com/playlist?list=PLTKMiZHVd_2IIEsoJrWACkIxLRdfMlw11
+
+#### Paso 1: Reestructuración de fases (cascade)
+> Raschka pasa a ser Phase 3 ("Build an LLM"). Current Phase 3 (papers/Karpathy) pasa a Phase 4 ("Transformer Deep Dive").
+> Cascade: Phase 4→5, 5→6, 6→7, 7→8, 8→9, 9→10, 10→11, 11→12.
+- [ ] `[P2]` Migración: expandir enum `study_phase` a `'12'`
+- [ ] `[P2]` Migración: cascade renumeración (Phase 11→12, 10→11, 9→10, 8→9, 7→8, 6→7, 5→6, 4→5, 3→4) — orden inverso para evitar colisiones
+- [ ] `[P2]` Migración: insertar nueva Phase 3 con recurso `raschka-llm-from-scratch` (type: book, ~25h)
+- [ ] `[P2]` Actualizar `src/` phase labels/traducciones si los hay hardcodeados
+- [ ] `[P2]` Verificar que no haya cascade bugs (lección de `fix_curriculum_cascade.sql`)
+
+#### Paso 2: Content pipeline (mismo que DDIA)
+- [ ] `[P2]` Conseguir PDF del libro (Manning / O'Reilly)
+- [ ] `[P2]` Mapear capítulos → páginas → conceptos (tokenization, self-attention, transformer-architecture, etc.)
+- [ ] `[P2]` Extraer capítulos con `extract-chapter.py` (agregar rangos de páginas)
+- [ ] `[P2]` Traducir con `translate-chapter.py` + glosario `ml-ai.json` (~$2 DeepSeek V3)
+- [ ] `[P2]` Seed secciones a Supabase con `seed-sections.ts`
+
+#### Paso 3: Complementos
+- [ ] `[P2]` Crear migración: recurso `raschka-llm-videos` (type: video, phase: 3, ~15h) — 7 videos YouTube
+- [ ] `[P3]` Seed inline quizzes por capítulo
+- [ ] `[P3]` Extraer figuras del PDF (si las tiene)
+
+---
+
+## Reactive Knowledge System — IMPLEMENTED 2026-02-19
+
+> Plan completo: `plan/reactive-knowledge-system.md`
+> Feature: Usuario agrega recursos externos → LLM extrae conceptos → linking orgánico al currículo → conversación de voz exploratoria → bitácora unificada → insight engine proactivo
+
+### Etapa 1: Fundamentos — Data Model + Pipeline ✅
+- [x] `[P1]` Migración: `user_resources`, `user_resource_concepts`, `consumption_log` tables (con RLS) - 2026-02-19
+- [x] `[P1]` Types: `src/lib/ingest/types.ts` + tipos en `src/types/index.ts` - 2026-02-19
+- [x] `[P1]` Content resolver: YouTube transcript + fallback a notas - 2026-02-19
+- [x] `[P1]` Concept extractor: DeepSeek + Zod schema - 2026-02-19
+- [x] `[P1]` Curriculum linker: DeepSeek + Zod schema (~150 conceptos en contexto) - 2026-02-19
+- [x] `[P1]` API route: `POST /api/resources/ingest` - 2026-02-19
+- [x] `[P1]` `AddResourceModal` component + integración Library - 2026-02-19
+
+### Etapa 2: Bitácora + Vista de Recurso ✅
+- [x] `[P1]` API route: `GET/DELETE /api/resources/[id]` - 2026-02-19
+- [x] `[P1]` Página `/resources/[id]` (vista recurso externo con links al currículo) - 2026-02-19
+- [x] `[P1]` Página `/journal` (timeline cronológico inverso) - 2026-02-19
+- [x] `[P1]` Auto-logging: `saveEvaluationResults` → `consumption_log` - 2026-02-19
+
+### Etapa 3: Voice Exploration ✅
+- [x] `[P1]` Migración: `voice_sessions` con 'exploration' type + `user_resource_id` - 2026-02-19
+- [x] `[P1]` `buildVoiceExplorationInstruction` — system prompt peer-to-peer - 2026-02-19
+- [x] `[P1]` `useVoiceExplorationSession` hook - 2026-02-19
+- [x] `[P1]` `ExplorationSummaryResponseSchema` + API route - 2026-02-19
+- [x] `[P1]` Extended voice session routes (start/end/context) - 2026-02-19
+- [x] `[P1]` `DiscussWithTutorButton` component en vista recurso - 2026-02-19
+
+### Etapa 4: Enriched Learner Memory ✅
+- [x] `[P1]` Migración: analogies, open_questions, personal_examples, connections_made - 2026-02-19
+- [x] `[P1]` Updated `updateLearnerConceptMemory` + `formatMemoryForPrompt` - 2026-02-19
+- [x] `[P1]` Updated `LearnerConceptMemory` interface - 2026-02-19
+
+### Etapa 5: Freeform + Debate ✅
+- [x] `[P1]` Migración: freeform + debate session types - 2026-02-19
+- [x] `[P1]` `buildVoiceFreeformInstruction` — system prompt - 2026-02-19
+- [x] `[P1]` `buildVoiceDebateInstruction` — system prompt - 2026-02-19
+- [x] `[P1]` `useVoiceFreeformSession` + `useVoiceDebateSession` hooks - 2026-02-19
+- [x] `[P1]` `GET /api/voice/freeform/context` — full concept graph + activity + memory - 2026-02-19
+
+### Etapa 6: Insight Engine ✅
+- [x] `[P1]` Migración: `insight_suggestions` table (con RLS) - 2026-02-19
+- [x] `[P1]` Mastery catalyst: suggest exploration when external resource links to low-mastery concepts - 2026-02-19
+- [x] `[P1]` Gap detection: stale concepts, unresolved misconceptions, open questions - 2026-02-19
+- [x] `[P1]` Debate topic generation via DeepSeek - 2026-02-19
+- [x] `[P1]` `GET/POST/PATCH /api/insights` — fetch, generate, manage suggestions - 2026-02-19
+- [x] `[P1]` Auto-trigger insights after resource ingestion - 2026-02-19
+
+### Pending Polish
+- [ ] `[P2]` Backfill retroactivo de `consumption_log` desde datos históricos
+- [ ] `[P2]` Insights dashboard widget (mostrar sugerencias proactivas en dashboard)
+- [ ] `[P2]` Consolidation insight (DeepSeek analiza actividad reciente, sugiere sesión de síntesis)
+- [ ] `[P3]` Vista de grafo mental (d3-force o react-flow: conceptos como nodos, recursos como satélites)
+- [ ] `[P3]` Auto-logging en learn flow + voice session end
+- [ ] `[P3]` Concept definitions API for debate context
+
+---
+
 ## Ideas / Someday
 
 - [ ] Community challenges
@@ -309,3 +398,4 @@
 - [x] `[P1]` Tutor model overhaul: AutoTutor escalation, Productive Failure, anti-sycophancy, mastery-adaptive prompts - 2026-02-17
 - [x] `[P1]` Post-evaluation consolidation: ideal answers, divergence analysis, review suggestions per concept - 2026-02-17
 - [x] `[P1]` Learner concept memory: misconceptions/strengths DB table, accumulation across sessions, prompt injection - 2026-02-17
+- [x] `[P1]` Reactive Knowledge System: complete 6-stage implementation (resources, journal, voice exploration, enriched memory, freeform/debate, insight engine) - 2026-02-19

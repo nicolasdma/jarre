@@ -120,3 +120,28 @@ export const ConsolidationResponseSchema = z.object({
 export type ConceptConsolidation = z.infer<typeof ConceptConsolidationSchema>;
 export type ConsolidationResponse = z.infer<typeof ConsolidationResponseSchema>;
 
+/**
+ * Schema for voice exploration session summary (post-exploration DeepSeek analysis).
+ * Analyzes transcript to extract summary, discovered connections, and open questions.
+ */
+export const ExplorationSummaryResponseSchema = z.object({
+  summary: z.string().min(10),
+  discoveredConnections: z.array(z.object({
+    extractedConceptName: z.string().min(1),
+    curriculumConceptName: z.string().min(1),
+    relationship: z.enum(['extends', 'applies', 'contrasts', 'exemplifies', 'relates']),
+    explanation: z.string().min(5),
+  })),
+  openQuestions: z.array(z.string()),
+  perConcept: z.array(z.object({
+    conceptName: z.string().min(1),
+    misconceptions: z.array(z.string()).optional().default([]),
+    strengths: z.array(z.string()).optional().default([]),
+    analogies: z.array(z.string()).optional().default([]),
+    personalExamples: z.array(z.string()).optional().default([]),
+    connectionsMade: z.array(z.string()).optional().default([]),
+  })).optional().default([]),
+});
+
+export type ExplorationSummaryResponse = z.infer<typeof ExplorationSummaryResponseSchema>;
+

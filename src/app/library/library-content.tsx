@@ -1,9 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
+import { UserResourceCard } from './user-resource-card';
 import { ProjectMilestone } from './project-milestone';
+import { AddResourceModal } from '@/components/resources/AddResourceModal';
+import { InsightBar } from '@/components/insights/InsightBar';
+import { VoiceModeLauncher } from '@/components/voice/VoiceModeLauncher';
 
 interface EvalStats {
   resourceId: string;
@@ -38,27 +44,42 @@ interface ProjectWithDetails {
   concepts: Array<{ id: string; name: string }>;
 }
 
+interface UserResource {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  summary: string | null;
+  coverage_score: number | null;
+  created_at: string;
+  url: string | null;
+}
+
 interface LibraryContentProps {
   byPhase: Record<string, ResourceWithStatus[]>;
   projectsByPhase: Record<string, ProjectWithDetails>;
   supplementaryResources: ResourceWithStatus[];
+  userResources: UserResource[];
   isLoggedIn: boolean;
   language: Language;
   phaseNames: Record<string, string>;
 }
 
-type ActivePhase = 'all' | string;
+type ActivePhase = 'all' | 'external' | string;
 
 export function LibraryContent({
   byPhase,
   projectsByPhase,
   supplementaryResources,
+  userResources,
   isLoggedIn,
   language,
   phaseNames,
 }: LibraryContentProps) {
+  const router = useRouter();
   const [activePhase, setActivePhase] = useState<ActivePhase>('all');
   const [hydrated, setHydrated] = useState(false);
+  const [showAddResource, setShowAddResource] = useState(false);
   const phases = Object.keys(byPhase);
 
   useEffect(() => {
@@ -104,11 +125,63 @@ export function LibraryContent({
               />
             );
           })}
+          {isLoggedIn && (
+            <button
+              onClick={() => setShowAddResource(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[11px] tracking-[0.15em] uppercase border-b-2 border-transparent text-j-accent hover:text-j-accent/80 transition-colors ml-auto"
+            >
+              <Plus size={14} />
+              {language === 'es' ? 'Recurso' : 'Resource'}
+            </button>
+          )}
+          {isLoggedIn && userResources.length > 0 && (
+            <TabButton
+              active={activePhase === 'external'}
+              onClick={() => setActivePhase('external')}
+              label="✦"
+              badge={userResources.length}
+            />
+          )}
         </div>
       </div>
 
+      {/* Insight suggestions */}
+      {isLoggedIn && <InsightBar language={language} />}
+
+      {/* External resources view */}
+      {activePhase === 'external' && isLoggedIn && (
+        <section className="mb-16">
+          <div className="flex items-center gap-4 mb-8">
+            <span className="font-mono text-5xl font-light text-j-border">
+              ✦
+            </span>
+            <div>
+              <h2 className="text-xl font-medium text-j-text">
+                {language === 'es' ? 'Mis Recursos' : 'My Resources'}
+              </h2>
+              <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
+                {userResources.length} {language === 'es' ? 'externos' : 'external'}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {userResources.map((ur) => (
+              <UserResourceCard key={ur.id} resource={ur} language={language} />
+            ))}
+          </div>
+          <div className="mt-10">
+            <VoiceModeLauncher
+              language={language}
+              showFreeform
+              showDebate={false}
+              freeformLabel={language === 'es' ? 'Sesión libre' : 'Freeform session'}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Resources by Phase */}
-      {visiblePhases.map((phase) => {
+      {activePhase !== 'external' && visiblePhases.map((phase) => {
         const phaseResources = byPhase[phase];
         if (!phaseResources) return null;
 
@@ -204,6 +277,14 @@ export function LibraryContent({
           </div>
         </details>
       )}
+
+      {/* Add Resource Modal */}
+      <AddResourceModal
+        isOpen={showAddResource}
+        onClose={() => setShowAddResource(false)}
+        language={language}
+        onResourceAdded={() => router.refresh()}
+      />
     </>
   );
 }
@@ -213,11 +294,13 @@ function TabButton({
   onClick,
   label,
   dot,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   dot?: 'complete' | 'partial';
+  badge?: number;
 }) {
   return (
     <button
@@ -239,6 +322,11 @@ function TabButton({
               dot === 'complete' ? 'bg-j-accent' : 'bg-j-warm-dark'
             }`}
           />
+        )}
+        {badge !== undefined && (
+          <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-mono bg-j-accent/20 text-j-accent rounded-full">
+            {badge}
+          </span>
         )}
       </span>
     </button>

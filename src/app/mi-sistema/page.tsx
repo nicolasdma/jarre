@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
-import { SectionLabel } from '@/components/ui/section-label';
 import { ForceGraphVisualization } from '@/components/system-viz/force-graph-visualization';
 import { redirect } from 'next/navigation';
 import type { Language } from '@/lib/translations';
@@ -86,23 +85,10 @@ export default async function MiSistemaPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-j-bg">
+    <div className="h-screen bg-[#050a15] flex flex-col overflow-hidden">
       <Header currentPage="mi-sistema" />
 
-      <main className="mx-auto max-w-7xl px-8 py-12 j-grid-bg">
-        <SectionLabel className="mb-8">
-          {lang === 'es' ? 'Tu Sistema Distribuido' : 'Your Distributed System'}
-        </SectionLabel>
-
-        <h2 className="text-3xl font-bold text-j-text mb-2">
-          {lang === 'es' ? 'Mi Sistema' : 'My System'}
-        </h2>
-        <p className="text-j-text-secondary mb-8 max-w-xl">
-          {lang === 'es'
-            ? 'Cada concepto que dominas hace crecer tu sistema. Los nodos fantasma se materializan conforme avanzas.'
-            : 'Each concept you master grows your system. Ghost nodes materialize as you progress.'}
-        </p>
-
+      <main className="flex-1 relative">
         <ForceGraphVisualization
           concepts={concepts}
           definitions={definitions}
