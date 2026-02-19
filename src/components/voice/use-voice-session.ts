@@ -60,11 +60,12 @@ const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
 const MAX_SESSION_DURATION_MS = 30 * 60 * 1000; // 30 min
 const WARNING_BEFORE_END_MS = 5 * 60 * 1000; // warn at 25 min
-const COMPRESS_THRESHOLD_TURNS = 25;
-const KEEP_RECENT_TURNS = 5;
 
-// Session end signal: the voice prompt instructs the tutor to say this word when wrapping up
-const SESSION_END_KEYWORD = /quiz/i;
+// Session end signal: the voice prompt instructs the tutor to say this exact phrase when done.
+// Must be specific enough to never appear in normal explanations — "quiz" alone caused false positives.
+const SESSION_END_KEYWORD = /session complete/i;
+// Minimum elapsed seconds before session end detection activates (prevents false triggers)
+const MIN_ELAPSED_FOR_END_S = 120;
 
 // ============================================================================
 // Hook
@@ -103,6 +104,16 @@ export function useVoiceSession({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
+  // State logging: track last logged state to avoid repetitive logs (e.g., every audio chunk)
+  const lastLoggedStateRef = useRef<TutorState>('idle');
+
+  const logTransition = useCallback((next: TutorState, reason: string) => {
+    const prev = lastLoggedStateRef.current;
+    if (prev === next) return; // Skip duplicate transitions
+    log.info(`[State] ${prev} → ${next} (${reason})`);
+    lastLoggedStateRef.current = next;
+  }, []);
+
   // Reconnect refs
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,10 +121,6 @@ export function useVoiceSession({
   const resumptionHandleRef = useRef<string | null>(null);
   // Layer 2: Local transcript buffer for fallback context reconstruction
   const transcriptBufferRef = useRef<{ role: 'user' | 'model'; text: string; ts: number }[]>([]);
-  // Layer 2: Running compressed summary of older turns
-  const runningContextSummaryRef = useRef<string | null>(null);
-  // Guard to prevent concurrent compression requests
-  const compressingRef = useRef(false);
 
   // Pre-fetch refs
   const prefetchedTokenRef = useRef<string | null>(null);
@@ -332,49 +339,6 @@ export function useVoiceSession({
   // Ref for disconnect so saveTranscript can call it without circular dependency
   const disconnectRef = useRef<() => void>(() => {});
 
-  // ---- Progressive compression (Layer 2) ----
-
-  const compressOlderTurns = useCallback(() => {
-    if (compressingRef.current) return;
-
-    const buffer = transcriptBufferRef.current;
-    if (buffer.length <= COMPRESS_THRESHOLD_TURNS) return;
-
-    compressingRef.current = true;
-    const turnsToCompress = buffer.slice(0, buffer.length - KEEP_RECENT_TURNS);
-    const { sectionTitle: st } = paramsRef.current;
-
-    const conversation = turnsToCompress
-      .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
-      .join('\n');
-
-    // Include existing summary as prefix for continuity
-    const fullConversation = runningContextSummaryRef.current
-      ? `PREVIOUS SUMMARY:\n${runningContextSummaryRef.current}\n\nNEW TURNS:\n${conversation}`
-      : conversation;
-
-    fetch('/api/voice/session/compress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversation: fullConversation, sectionTitle: st }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.summary) {
-          runningContextSummaryRef.current = data.summary;
-          // Keep only recent turns in buffer
-          transcriptBufferRef.current = transcriptBufferRef.current.slice(-KEEP_RECENT_TURNS);
-          log.info(`Compressed ${turnsToCompress.length} turns → ${data.summary.length} chars`);
-        }
-      })
-      .catch((err) => {
-        log.error('Compression failed (buffer continues growing):', err);
-      })
-      .finally(() => {
-        compressingRef.current = false;
-      });
-  }, []);
-
   // ---- Transcript saving (fire-and-forget) ----
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
@@ -383,11 +347,6 @@ export function useVoiceSession({
 
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
-
-    // Trigger progressive compression if buffer exceeds threshold
-    if (transcriptBufferRef.current.length > COMPRESS_THRESHOLD_TURNS) {
-      compressOlderTurns();
-    }
 
     fetch('/api/voice/session/transcript', {
       method: 'POST',
@@ -398,45 +357,44 @@ export function useVoiceSession({
     });
 
     // Detect AI-driven session completion: the prompt instructs the tutor
-    // to say "quiz" when wrapping up. When we see it in the model's
-    // transcript, wait for the audio to finish, then auto-disconnect.
+    // to say "session complete" when wrapping up. Only activates after
+    // MIN_ELAPSED_FOR_END_S to prevent false triggers early in the session.
     if (role === 'model' && SESSION_END_KEYWORD.test(text)) {
-      setTimeout(() => {
-        disconnectRef.current();
-        onSessionCompleteRef.current?.();
-      }, 3000);
+      const elapsedS = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      if (elapsedS >= MIN_ELAPSED_FOR_END_S) {
+        log.info(`[Session] End keyword detected after ${elapsedS}s, auto-disconnecting in 3s`);
+        setTimeout(() => {
+          disconnectRef.current();
+          onSessionCompleteRef.current?.();
+        }, 3000);
+      } else {
+        log.info(`[Session] End keyword detected but too early (${elapsedS}s < ${MIN_ELAPSED_FOR_END_S}s), ignoring`);
+      }
     }
-  }, [compressOlderTurns]);
+  }, []);
 
   // ---- Build fallback context from buffer (Layer 2) ----
 
   const buildFallbackContext = useCallback((): string | null => {
-    const summary = runningContextSummaryRef.current;
     const buffer = transcriptBufferRef.current;
-    const recentTurns = buffer.slice(-KEEP_RECENT_TURNS);
     const { language: lang } = paramsRef.current;
 
-    if (!summary && recentTurns.length === 0) return null;
+    if (buffer.length === 0) return null;
 
-    const parts: string[] = [];
+    // Simple trim for large buffers: keep first 30 (topic) + last 70 (recent context)
+    const entries = buffer.length > 100
+      ? [...buffer.slice(0, 30), ...buffer.slice(-70)]
+      : buffer;
 
-    if (summary) {
-      parts.push(`CONVERSATION SO FAR:\n${summary}`);
-    }
-
-    if (recentTurns.length > 0) {
-      const recentText = recentTurns
-        .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
-        .join('\n');
-      parts.push(`LAST EXCHANGES:\n${recentText}`);
-    }
+    const transcript = entries
+      .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
+      .join('\n');
 
     const instruction = lang === 'es'
       ? 'Hubo una reconexión. Continuá la conversación desde donde se interrumpió.'
       : 'There was a reconnection. Continue the conversation from where it was interrupted.';
 
-    parts.push(instruction);
-    return parts.join('\n\n');
+    return `CONVERSATION SO FAR:\n${transcript}\n\n${instruction}`;
   }, []);
 
   // ---- Connect ----
@@ -447,8 +405,7 @@ export function useVoiceSession({
     // Reset resilience refs for fresh session
     resumptionHandleRef.current = null;
     transcriptBufferRef.current = [];
-    runningContextSummaryRef.current = null;
-    compressingRef.current = false;
+    lastLoggedStateRef.current = 'idle';
 
     try {
       const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg, conceptIds: cIds } = paramsRef.current;
@@ -477,7 +434,11 @@ export function useVoiceSession({
 
       // Start session (always fresh) + resolve token/context in parallel
       const startBody: Record<string, unknown> = { sessionType: sessType };
-      if (secId) startBody.sectionId = secId;
+      // Route sectionId to the correct API field based on session type
+      if (secId) {
+        if (sessType === 'teaching') startBody.sectionId = secId;
+        else if (sessType === 'exploration') startBody.userResourceId = secId;
+      }
       if (resId) startBody.resourceId = resId;
 
       const [sessionRes, token, context] = await Promise.all([
@@ -535,18 +496,33 @@ export function useVoiceSession({
       // 3. Create Gemini Live client
       const client = createGeminiLiveClient({
         onAudioResponse: (audioChunk) => {
-          setTutorState('speaking');
+          setTutorState((prev) => {
+            if (prev !== 'speaking') logTransition('speaking', 'first_audio_chunk');
+            return 'speaking';
+          });
           playAudioChunk(audioChunk);
         },
         onTurnComplete: () => {
+          logTransition('listening', 'turn_complete');
           setTutorState('listening');
         },
         onInterrupted: () => {
           stopPlayback();
+          logTransition('listening', 'interrupted');
           setTutorState('listening');
+        },
+        onInputTranscriptionComplete: () => {
+          setTutorState((prev) => {
+            if (prev === 'listening') {
+              logTransition('thinking', 'input_transcription');
+              return 'thinking';
+            }
+            return prev;
+          });
         },
         onConnectionStateChange: setConnectionState,
         onError: (err) => {
+          logTransition('idle', `error: ${err}`);
           setError(err);
           setTutorState('idle');
         },
@@ -572,17 +548,18 @@ export function useVoiceSession({
               if (!c) return;
               await c.reconnect(freshToken, handle);
               c.resetRetryCount();
-              log.info('Proactive reconnect via GoAway succeeded (session resumed)');
+              log.info('[Reconnect] Proactive GoAway succeeded (session resumed)');
+              logTransition('listening', 'goaway_reconnect');
               setTutorState('listening');
             } catch (err) {
-              log.error('Proactive GoAway reconnect failed, onclose will handle:', err);
+              log.error('[Reconnect] Proactive GoAway failed, onclose will handle:', err);
               // Don't set error — let onclose trigger the normal 3-layer flow
             }
           })();
         },
         onReconnectNeeded: (attempt) => {
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-          log.info(`Reconnecting in ${delay}ms (attempt ${attempt + 1})`);
+          log.info(`[Reconnect] Scheduling in ${delay}ms (attempt ${attempt + 1})`);
 
           // Clear stale playback
           stopPlayback();
@@ -603,11 +580,12 @@ export function useVoiceSession({
                 try {
                   await c.reconnect(freshToken, handle);
                   c.resetRetryCount();
-                  log.info('Layer 1 reconnect succeeded (session resumed with handle)');
+                  log.info('[Reconnect] Layer 1 succeeded (session resumed with handle)');
+                  logTransition('listening', 'layer1_reconnect');
                   setTutorState('listening');
                   return;
                 } catch (layer1Err) {
-                  log.info('Layer 1 failed (handle expired?), falling back to Layer 2:', layer1Err);
+                  log.info('[Reconnect] Layer 1 failed (handle expired?), falling back to Layer 2:', layer1Err);
                   resumptionHandleRef.current = null;
                   // Need a fresh token since the previous one was consumed
                   const res2 = await fetch('/api/voice/token', { method: 'POST' });
@@ -620,7 +598,8 @@ export function useVoiceSession({
                   if (fallbackContext) {
                     c.sendText(fallbackContext);
                   }
-                  log.info('Layer 2 reconnect succeeded (context reconstructed from buffer)');
+                  log.info('[Reconnect] Layer 2 succeeded (context reconstructed from buffer)');
+                  logTransition('listening', 'layer2_reconnect');
                   setTutorState('listening');
                   return;
                 }
@@ -633,7 +612,8 @@ export function useVoiceSession({
               if (fallbackContext) {
                 c.sendText(fallbackContext);
               }
-              log.info('Layer 2 reconnect succeeded (no handle, context from buffer)');
+              log.info('[Reconnect] Layer 2 succeeded (no handle, context from buffer)');
+              logTransition('listening', 'layer2_reconnect');
               setTutorState('listening');
             } catch (err) {
               // Layer 3: All reconnect attempts exhausted — show honest error
@@ -641,7 +621,8 @@ export function useVoiceSession({
               const msg = currentLang === 'es'
                 ? 'La sesión se interrumpió. Tu progreso está guardado.'
                 : 'The session was interrupted. Your progress is saved.';
-              log.error('All reconnect layers failed:', err);
+              log.error('[Reconnect] All layers exhausted:', err);
+              logTransition('idle', 'reconnect_exhausted');
               setError(msg);
               setConnectionState('error');
               setTutorState('idle');
@@ -660,6 +641,7 @@ export function useVoiceSession({
 
       // 5. Start mic
       await startMic(client);
+      logTransition('listening', 'session_started');
       setTutorState('listening');
 
       // 6. Send initial message — the model should jump straight to a question
@@ -690,7 +672,7 @@ export function useVoiceSession({
       setTutorState('idle');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript, buildFallbackContext]);
+  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript, buildFallbackContext, logTransition]);
 
   // ---- Disconnect ----
 
@@ -722,9 +704,8 @@ export function useVoiceSession({
     // Reset resilience refs
     resumptionHandleRef.current = null;
     transcriptBufferRef.current = [];
-    runningContextSummaryRef.current = null;
-    compressingRef.current = false;
 
+    logTransition('idle', 'disconnect');
     setTutorState('idle');
     setConnectionState('disconnected');
     setError(null);
