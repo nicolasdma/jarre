@@ -23,6 +23,7 @@ interface GeminiLiveConfig {
   model: string;
   systemInstruction: string;
   voiceName?: string;
+  resumptionHandle?: string;
 }
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
@@ -35,6 +36,8 @@ interface GeminiLiveCallbacks {
   onError: (error: string) => void;
   onTranscript?: (role: 'user' | 'model', text: string) => void;
   onReconnectNeeded?: (attempt: number) => void;
+  onGoAway?: (timeLeftMs: number) => void;
+  onResumptionUpdate?: (handle: string, resumable: boolean, lastIndex?: string) => void;
 }
 
 // ============================================================================
@@ -59,6 +62,15 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+/** Parse GoAway time string (e.g., "60s", "120s") to milliseconds */
+function parseTimeLeft(timeStr: string): number {
+  const match = timeStr.match(/^(\d+(?:\.\d+)?)s$/);
+  if (match) return Math.round(parseFloat(match[1]) * 1000);
+  // Fallback: try parsing as raw seconds
+  const num = parseFloat(timeStr);
+  return isNaN(num) ? 0 : Math.round(num * 1000);
 }
 
 // ============================================================================
@@ -107,6 +119,14 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
+            sessionResumption: {
+              transparent: true,
+              ...(config.resumptionHandle ? { handle: config.resumptionHandle } : {}),
+            },
+            contextWindowCompression: {
+              triggerTokens: '25000',
+              slidingWindow: { targetTokens: '5000' },
+            },
           },
           callbacks: {
             onopen: () => {
@@ -169,6 +189,31 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               if (message.serverContent?.turnComplete) {
                 callbacks.onTurnComplete();
               }
+
+              // GoAway: server is about to close the session
+              const msg = message as unknown as Record<string, unknown>;
+              if (msg.goAway && callbacks.onGoAway) {
+                const goAway = msg.goAway as Record<string, unknown>;
+                const timeLeft = typeof goAway.timeLeft === 'string'
+                  ? parseTimeLeft(goAway.timeLeft)
+                  : 0;
+                log.info(`GoAway received, time left: ${timeLeft}ms`);
+                callbacks.onGoAway(timeLeft);
+              }
+
+              // Session resumption update: new handle available
+              if (msg.sessionResumptionUpdate && callbacks.onResumptionUpdate) {
+                const update = msg.sessionResumptionUpdate as Record<string, unknown>;
+                const handle = typeof update.newHandle === 'string' ? update.newHandle : '';
+                const resumable = update.resumable === true;
+                const lastIndex = typeof update.lastContentIndex === 'string'
+                  ? update.lastContentIndex
+                  : undefined;
+                if (handle) {
+                  log.info(`Resumption handle updated (resumable: ${resumable})`);
+                  callbacks.onResumptionUpdate(handle, resumable, lastIndex);
+                }
+              }
             },
             onerror: (error) => {
               log.error('Session error:', error);
@@ -225,14 +270,17 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       }
     },
 
-    async reconnect(ephemeralToken: string): Promise<void> {
+    async reconnect(ephemeralToken: string, resumptionHandle?: string): Promise<void> {
       if (!lastConfig) {
         throw new Error('No previous config to reconnect with');
       }
       retryCount++;
       const savedRetryCount = retryCount;
-      // Reuse the stored config for a fresh connection
-      await this.connect(ephemeralToken, lastConfig);
+      // Reuse the stored config, injecting resumption handle if provided
+      const reconnectConfig = resumptionHandle
+        ? { ...lastConfig, resumptionHandle }
+        : lastConfig;
+      await this.connect(ephemeralToken, reconnectConfig);
       // Restore retry count (connect() resets it, but during reconnect we need to keep tracking)
       retryCount = savedRetryCount;
     },
