@@ -119,17 +119,30 @@ export async function saveEvaluationResults({
         });
       }
 
+      // Resolve conceptId: use provided value, or fallback to DB lookup by name
+      const resolvedConceptId = q.conceptId || await resolveConceptId(supabase, resourceId, q.conceptName);
+
+      // Use resolvedConceptId for question insert too
+      if (savedQuestion && resolvedConceptId && !q.conceptId) {
+        await supabase
+          .from(TABLES.evaluationQuestions)
+          .update({ concept_id: resolvedConceptId })
+          .eq('id', savedQuestion.id);
+      }
+
       // Update concept progress with mastery logic
-      if (r && q.conceptId) {
+      if (r && resolvedConceptId) {
         await updateConceptMastery({
           supabase,
           userId,
-          conceptId: q.conceptId,
+          conceptId: resolvedConceptId,
           questionType: q.type as EvaluationType,
           score: r.score,
           evaluationId: evaluation.id,
           triggerType,
         });
+      } else if (r && !resolvedConceptId && q.conceptName) {
+        log.warn(`Could not resolve conceptId for "${q.conceptName}" in resource ${resourceId}`);
       }
     }
 
@@ -181,7 +194,51 @@ export async function saveEvaluationResults({
 // Helpers
 // ============================================================================
 
-async function updateConceptMastery({
+/**
+ * Resolve a conceptId from the database when only conceptName is available.
+ * Uses resource_concepts JOIN concepts for case-insensitive matching.
+ * Returns null if no match found.
+ */
+async function resolveConceptId(
+  supabase: SupabaseClient,
+  resourceId: string,
+  conceptName?: string,
+): Promise<string | null> {
+  if (!conceptName) return null;
+
+  const trimmed = conceptName.trim();
+  if (!trimmed) return null;
+
+  const { data: resourceConcepts } = await supabase
+    .from(TABLES.resourceConcepts)
+    .select('concept_id, concepts!inner(id, name)')
+    .eq('resource_id', resourceId);
+
+  if (!resourceConcepts?.length) return null;
+
+  const lowerName = trimmed.toLowerCase();
+
+  // Exact match (case-insensitive)
+  for (const rc of resourceConcepts) {
+    const concept = rc.concepts as unknown as { id: string; name: string };
+    if (concept.name.trim().toLowerCase() === lowerName) {
+      return concept.id;
+    }
+  }
+
+  // Partial match (includes)
+  for (const rc of resourceConcepts) {
+    const concept = rc.concepts as unknown as { id: string; name: string };
+    const conceptLower = concept.name.trim().toLowerCase();
+    if (conceptLower.includes(lowerName) || lowerName.includes(conceptLower)) {
+      return concept.id;
+    }
+  }
+
+  return null;
+}
+
+export async function updateConceptMastery({
   supabase,
   userId,
   conceptId,
