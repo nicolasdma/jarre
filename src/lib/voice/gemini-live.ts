@@ -119,10 +119,9 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            sessionResumption: {
-              transparent: true,
-              ...(config.resumptionHandle ? { handle: config.resumptionHandle } : {}),
-            },
+            ...(config.resumptionHandle ? {
+              sessionResumption: { handle: config.resumptionHandle },
+            } : {}),
             contextWindowCompression: {
               triggerTokens: '25000',
               slidingWindow: { targetTokens: '5000' },
