@@ -3,9 +3,10 @@
  *
  * Two node types: concepts (curriculum) and resources (user-added).
  * Two edge types: prerequisite (concept→concept) and resource-concept link.
+ *
+ * Compatible with react-force-graph-3d's {nodes, links} format.
  */
 
-import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3-force';
 import type { UserResourceType, ConceptRelationship } from '@/types';
 
 export type { UserResourceType } from '@/types';
@@ -34,10 +35,14 @@ export interface ResourceNodeData {
 
 export type GraphNodeData = ConceptNodeData | ResourceNodeData;
 
-/** Runtime node with simulation position (mutated by d3-force). */
-export interface GraphNode extends SimulationNodeDatum {
+/** Graph node — react-force-graph-3d adds x/y/z at runtime. */
+export interface GraphNode {
   id: string;
   data: GraphNodeData;
+  // Added by react-force-graph at runtime
+  x?: number;
+  y?: number;
+  z?: number;
 }
 
 // ============================================================================
@@ -60,8 +65,10 @@ export interface ResourceConceptEdge {
 
 export type GraphEdge = PrerequisiteEdge | ResourceConceptEdge;
 
-/** Runtime link with resolved node references (mutated by d3-force). */
-export interface GraphLink extends SimulationLinkDatum<GraphNode> {
+/** Graph link — source/target are node IDs (resolved by the library at runtime). */
+export interface GraphLink {
+  source: string;
+  target: string;
   data: GraphEdge;
 }
 
@@ -199,72 +206,31 @@ export const PHASE_META: Record<number, { label: string; labelEs: string; color:
 };
 
 // ============================================================================
-// MASTERY STYLES (reusable)
+// MASTERY COLORS (for Three.js materials)
 // ============================================================================
 
-export interface MasteryStyle {
-  fill: string;
-  stroke: string;
-  dasharray: string;
+export interface MasteryColor {
+  color: string;
+  glowColor: string;
   opacity: number;
-  textFill: string;
+  radius: number;
+  wireframe: boolean;
 }
 
-export function getMasteryStyle(
-  level: number,
-  isSelected: boolean,
-  isHighlighted: boolean
-): MasteryStyle {
-  const boost = isSelected || isHighlighted;
-
+/** Mastery color palette for 3D rendering. */
+export function getMasteryColor(level: number): MasteryColor {
   switch (level) {
     case 0:
-      return {
-        fill: 'var(--j-bg)',
-        stroke: 'var(--j-border)',
-        dasharray: '4 3',
-        opacity: boost ? 0.7 : 0.35,
-        textFill: 'var(--j-text-tertiary)',
-      };
+      return { color: '#374151', glowColor: '#374151', opacity: 0.3, radius: 3, wireframe: true };
     case 1:
-      return {
-        fill: 'var(--j-accent-light)',
-        stroke: 'var(--j-accent)',
-        dasharray: '',
-        opacity: boost ? 1 : 0.9,
-        textFill: 'var(--j-text)',
-      };
+      return { color: '#06b6d4', glowColor: '#06b6d4', opacity: 0.9, radius: 4, wireframe: false };
     case 2:
-      return {
-        fill: 'var(--j-accent-light)',
-        stroke: 'var(--j-accent)',
-        dasharray: '',
-        opacity: 1,
-        textFill: 'var(--j-text)',
-      };
+      return { color: '#3b82f6', glowColor: '#3b82f6', opacity: 1, radius: 5, wireframe: false };
     case 3:
-      return {
-        fill: 'var(--j-warm-light)',
-        stroke: 'var(--j-warm)',
-        dasharray: '',
-        opacity: 1,
-        textFill: 'var(--j-text)',
-      };
+      return { color: '#f59e0b', glowColor: '#f59e0b', opacity: 1, radius: 6, wireframe: false };
     case 4:
-      return {
-        fill: 'var(--j-accent-light)',
-        stroke: 'var(--j-accent)',
-        dasharray: '',
-        opacity: 1,
-        textFill: 'var(--j-accent)',
-      };
+      return { color: '#fbbf24', glowColor: '#fbbf24', opacity: 1, radius: 7, wireframe: false };
     default:
-      return {
-        fill: 'var(--j-bg)',
-        stroke: 'var(--j-border)',
-        dasharray: '4 3',
-        opacity: 0.35,
-        textFill: 'var(--j-text-tertiary)',
-      };
+      return { color: '#374151', glowColor: '#374151', opacity: 0.3, radius: 3, wireframe: true };
   }
 }
