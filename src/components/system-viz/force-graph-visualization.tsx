@@ -28,7 +28,7 @@ import type {
   ResourceInput,
   ResourceConceptLinkInput,
 } from './graph-types';
-import { buildGraphData, getNodeStyle, getPhaseColor, PHASE_META } from './graph-types';
+import { buildGraphData, getNodeStyle, getPhaseColor, PHASE_META, INACTIVE_COLOR } from './graph-types';
 import { ConceptDetailPanel } from './concept-detail-panel';
 
 // react-force-graph-3d requires `window` — dynamic import with SSR disabled
@@ -229,24 +229,28 @@ export function ForceGraphVisualization({
   // Pre-computed link metadata: linkKey → { isResource, bothStudied, phaseColor }
   // Avoids repeated endpoint data resolution in per-link accessors
   const linkMetaMap = useMemo(() => {
-    const meta = new Map<string, { isResource: boolean; bothStudied: boolean; phaseColor: string }>();
+    const meta = new Map<string, { isResource: boolean; bothStudied: boolean; bothActive: boolean; phaseColor: string }>();
     for (const link of graphData.links) {
       const key = `${link.source}→${link.target}`;
       const isResource = link.data.type === 'resource-concept';
 
       let bothStudied = false;
+      let bothActive = false;
       let phaseColor = '#94A3B8';
 
       if (!isResource) {
         const srcConcept = conceptMap.get(link.source);
         const tgtConcept = conceptMap.get(link.target);
-        bothStudied = (srcConcept?.masteryLevel ?? 0) >= 1 && (tgtConcept?.masteryLevel ?? 0) >= 1;
+        const srcMastery = srcConcept?.masteryLevel ?? 0;
+        const tgtMastery = tgtConcept?.masteryLevel ?? 0;
+        bothActive = srcMastery >= 1 && tgtMastery >= 1;
+        bothStudied = bothActive;
         if (srcConcept) {
           phaseColor = getPhaseColor(srcConcept.phase);
         }
       }
 
-      meta.set(key, { isResource, bothStudied, phaseColor });
+      meta.set(key, { isResource, bothStudied, bothActive, phaseColor });
     }
     return meta;
   }, [graphData.links, conceptMap]);
@@ -356,7 +360,7 @@ export function ForceGraphVisualization({
     const srcId = resolveEndpointId(link.source);
     const tgtId = resolveEndpointId(link.target);
     const key = `${srcId}→${tgtId}`;
-    return linkMetaMap.get(key) ?? { isResource: false, bothStudied: false, phaseColor: '#94A3B8' };
+    return linkMetaMap.get(key) ?? { isResource: false, bothStudied: false, bothActive: false, phaseColor: '#94A3B8' };
   }, [linkMetaMap]);
 
   /** Check if a link is connected to the currently hovered node. */
@@ -377,6 +381,7 @@ export function ForceGraphVisualization({
     if (meta.isResource) {
       return isLinkConnectedToHover(link) ? '#a78bfa' : '#8b5cf6';
     }
+    if (!meta.bothActive) return INACTIVE_COLOR;
     return meta.phaseColor;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getLinkMeta, isLinkConnectedToHover, hoverTick]);
@@ -400,6 +405,7 @@ export function ForceGraphVisualization({
     if (meta.isResource) {
       return isHovered ? 3 : 0;
     }
+    if (!meta.bothActive) return 0;
     if (isHovered) return HOVER_LINK_PARTICLES;
     return meta.bothStudied ? 3 : 1;
     // eslint-disable-next-line react-hooks/exhaustive-deps
