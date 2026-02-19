@@ -34,6 +34,7 @@ interface Props {
   concepts: Concept[];
   onComplete: () => void;
   onSwitchToText: () => void;
+  onReviewMaterial: () => void;
 }
 
 // ============================================================================
@@ -250,6 +251,7 @@ export function VoicePracticeFlow({
   concepts,
   onComplete,
   onSwitchToText,
+  onReviewMaterial,
 }: Props) {
   const {
     practiceState,
@@ -579,16 +581,22 @@ export function VoicePracticeFlow({
           ) : (
             <>
               <button
-                onClick={onSwitchToText}
+                onClick={connect}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
+              >
+                {t('practiceAgain', language)}
+              </button>
+              <button
+                onClick={onReviewMaterial}
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
               >
                 {t('reviewMaterial', language)}
               </button>
               <button
-                onClick={() => window.location.reload()}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
+                onClick={onSwitchToText}
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
               >
-                {t('practiceAgain', language)}
+                {t('preferText', language)}
               </button>
             </>
           )}
