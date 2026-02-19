@@ -226,13 +226,16 @@ export interface NodeStyle {
   labelColor: string;
 }
 
+/** Grey used for concepts not yet activated (mastery 0). */
+export const INACTIVE_COLOR = '#4A5568';
+
 /** Combine phase (color) + mastery (opacity, radius, wireframe) into a single style. */
 export function getNodeStyle(phase: number, masteryLevel: number): NodeStyle {
   const color = getPhaseColor(phase);
 
   switch (masteryLevel) {
     case 0:
-      return { color, opacity: 0.12, radius: 3, wireframe: true, glowOpacity: 0.02, labelColor: '#475569' };
+      return { color: INACTIVE_COLOR, opacity: 0.25, radius: 3, wireframe: true, glowOpacity: 0.03, labelColor: '#64748B' };
     case 1:
       return { color, opacity: 0.75, radius: 4, wireframe: false, glowOpacity: 0.12, labelColor: '#F1F5F9' };
     case 2:
@@ -242,6 +245,6 @@ export function getNodeStyle(phase: number, masteryLevel: number): NodeStyle {
     case 4:
       return { color, opacity: 1.0, radius: 7, wireframe: false, glowOpacity: 0.25, labelColor: '#FFFFFF' };
     default:
-      return { color, opacity: 0.12, radius: 3, wireframe: true, glowOpacity: 0.02, labelColor: '#475569' };
+      return { color: INACTIVE_COLOR, opacity: 0.25, radius: 3, wireframe: true, glowOpacity: 0.03, labelColor: '#64748B' };
   }
 }
