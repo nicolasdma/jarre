@@ -136,7 +136,8 @@ ${curriculumList}`,
     temperature: 0.2,
     maxTokens: 3000,
     responseFormat: 'json',
-    timeoutMs: 60000,
+    timeoutMs: 90_000,
+    retryOnTimeout: true,
   });
 
   const parsed: LinkingResponse = parseJsonResponse(responseText, LinkingResponseSchema);
