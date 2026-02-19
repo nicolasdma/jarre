@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { TABLES } from '@/lib/db/tables';
 import { getUserLanguage } from '@/lib/db/queries/user';
-import { extractConceptData, parseMasteryLevel, serializeMasteryLevel } from '@/lib/db/helpers';
+import { extractConceptData } from '@/lib/db/helpers';
 import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { ReviewEvaluationSchema, RubricEvaluationSchema } from '@/lib/llm/schemas';
@@ -14,16 +14,7 @@ import {
   getDomainForPhase,
 } from '@/lib/llm/review-prompts';
 import { scoreToRating, deriveFromRubric } from '@/lib/spaced-repetition';
-import {
-  scheduleFSRS,
-  createNewFSRSCard,
-  migrateFromSM2,
-  extractFSRSCard,
-  fsrsCardToDbColumns,
-  intervalDaysFromDue,
-  reviewRatingToFSRSGrade,
-} from '@/lib/fsrs';
-import { canAdvanceFromMicroTests, MICRO_TEST_THRESHOLD, buildMasteryHistoryRecord } from '@/lib/mastery';
+import { applyScheduleAndMastery } from '@/lib/review/apply-schedule';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';
 import { XP_REWARDS } from '@/lib/constants';
@@ -107,7 +98,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       const smResult = await applyScheduleAndMastery({
         supabase,
         userId: user.id,
-        questionId,
+        itemType: 'question',
+        itemId: questionId,
         conceptId: question.concept_id,
         rating,
         isCorrect,
@@ -227,7 +219,8 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     const smResult = await applyScheduleAndMastery({
       supabase,
       userId: user.id,
-      questionId,
+      itemType: 'question',
+      itemId: questionId,
       conceptId: question.concept_id,
       rating,
       isCorrect,
@@ -270,204 +263,6 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     );
   }
 });
-
-// ============================================================================
-// Shared FSRS + Mastery Logic (extracted to avoid duplication between paths)
-// ============================================================================
-
-interface ScheduleParams {
-  supabase: SupabaseClient;
-  userId: string;
-  questionId: string;
-  conceptId: string;
-  rating: ReviewRating;
-  isCorrect: boolean;
-  confidenceLevel: number | null;
-}
-
-async function applyScheduleAndMastery({
-  supabase,
-  userId,
-  questionId,
-  conceptId,
-  rating,
-  isCorrect,
-  confidenceLevel,
-}: ScheduleParams) {
-  const now = new Date();
-
-  // Fetch existing review_schedule state (including FSRS columns)
-  // Cast needed because Supabase types don't know about new FSRS columns yet
-  interface ScheduleRow {
-    ease_factor: number;
-    interval_days: number;
-    repetition_count: number;
-    streak: number;
-    correct_count: number;
-    incorrect_count: number;
-    fsrs_stability: number | null;
-    fsrs_difficulty: number | null;
-    fsrs_state: number | null;
-    fsrs_reps: number | null;
-    fsrs_lapses: number | null;
-    fsrs_last_review: string | null;
-    next_review_at: string;
-    last_reviewed_at: string | null;
-  }
-
-  const { data: rawSchedule } = await supabase
-    .from(TABLES.reviewSchedule)
-    .select(
-      'ease_factor, interval_days, repetition_count, streak, correct_count, incorrect_count, ' +
-      'fsrs_stability, fsrs_difficulty, fsrs_state, fsrs_reps, fsrs_lapses, fsrs_last_review, ' +
-      'next_review_at, last_reviewed_at'
-    )
-    .eq('user_id', userId)
-    .eq('question_id', questionId)
-    .single();
-
-  const schedule = rawSchedule as unknown as ScheduleRow | null;
-
-  // Get or create FSRS card
-  let fsrsCard = schedule ? extractFSRSCard({
-    ...schedule,
-    next_review_at: schedule.next_review_at ?? now.toISOString(),
-  }) : null;
-
-  // Lazy migration: if has SM-2 state but no FSRS state, migrate
-  if (!fsrsCard && schedule && schedule.repetition_count > 0) {
-    fsrsCard = migrateFromSM2({
-      ease_factor: schedule.ease_factor,
-      interval_days: schedule.interval_days,
-      repetition_count: schedule.repetition_count,
-      streak: schedule.streak,
-      correct_count: schedule.correct_count,
-      incorrect_count: schedule.incorrect_count,
-      last_reviewed_at: schedule.last_reviewed_at,
-    });
-    log.info(`Lazy migrated SM-2 → FSRS for question=${questionId}`);
-  }
-
-  // If still no card (first ever review), create new
-  if (!fsrsCard) {
-    fsrsCard = createNewFSRSCard(now);
-  }
-
-  // Schedule with FSRS
-  const grade = reviewRatingToFSRSGrade(rating);
-  const result = scheduleFSRS(fsrsCard, grade, now);
-  const newCard = result.card;
-  const intervalDays = intervalDaysFromDue(newCard.due, now);
-
-  // Update streak/counts (maintained separately from FSRS)
-  const currentStreak = schedule?.streak ?? 0;
-  const currentCorrect = schedule?.correct_count ?? 0;
-  const currentIncorrect = schedule?.incorrect_count ?? 0;
-
-  const newStreak = rating === 'wrong' ? 0 : currentStreak + 1;
-  const newCorrect = isCorrect ? currentCorrect + 1 : currentCorrect;
-  const newIncorrect = isCorrect ? currentIncorrect : currentIncorrect + 1;
-
-  const upsertData: Record<string, unknown> = {
-    user_id: userId,
-    question_id: questionId,
-    // SM-2 columns (maintained for backward compat)
-    ease_factor: schedule?.ease_factor ?? 2.5,
-    interval_days: intervalDays,
-    repetition_count: (schedule?.repetition_count ?? 0) + 1,
-    streak: newStreak,
-    correct_count: newCorrect,
-    incorrect_count: newIncorrect,
-    // FSRS columns
-    ...fsrsCardToDbColumns(newCard),
-    // Shared columns
-    next_review_at: newCard.due.toISOString(),
-    last_reviewed_at: now.toISOString(),
-    last_rating: rating,
-  };
-  if (confidenceLevel !== null) {
-    upsertData.confidence_level = confidenceLevel;
-  }
-
-  const { error: upsertError } = await supabase
-    .from(TABLES.reviewSchedule)
-    .upsert(upsertData, { onConflict: 'user_id,question_id' });
-
-  if (upsertError) {
-    log.error('Error upserting schedule:', upsertError);
-  }
-
-  // Check micro-test mastery advancement (0->1) if answer was correct
-  let masteryAdvanced = false;
-  if (isCorrect) {
-    const { count: correctCount } = await supabase
-      .from(TABLES.reviewSchedule)
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('correct_count', 1)
-      .in(
-        'question_id',
-        (
-          await supabase
-            .from(TABLES.questionBank)
-            .select('id')
-            .eq('concept_id', conceptId)
-        ).data?.map((q) => q.id) || []
-      );
-
-    const totalCorrect = correctCount || 0;
-
-    const { data: progress } = await supabase
-      .from(TABLES.conceptProgress)
-      .select('level')
-      .eq('user_id', userId)
-      .eq('concept_id', conceptId)
-      .single();
-
-    const currentLevel = parseMasteryLevel(progress?.level);
-
-    if (canAdvanceFromMicroTests(currentLevel, totalCorrect)) {
-      const { error: advanceError } = await supabase
-        .from(TABLES.conceptProgress)
-        .upsert(
-          {
-            user_id: userId,
-            concept_id: conceptId,
-            level: serializeMasteryLevel(1),
-          },
-          { onConflict: 'user_id,concept_id' }
-        );
-
-      if (!advanceError) {
-        masteryAdvanced = true;
-
-        await supabase.from(TABLES.masteryHistory).insert(
-          buildMasteryHistoryRecord({
-            userId,
-            conceptId,
-            oldLevel: currentLevel,
-            newLevel: 1,
-            triggerType: 'micro_test',
-            triggerId: questionId,
-          })
-        );
-
-        // Auto-enroll concept cards for this concept
-        await enrollConceptCards(supabase, userId, conceptId);
-
-        log.info(
-          `Mastery advanced: ${conceptId} 0->1 (${totalCorrect}/${MICRO_TEST_THRESHOLD} correct micro-tests)`
-        );
-      }
-    }
-  }
-
-  return {
-    nextReviewAt: newCard.due.toISOString(),
-    intervalDays,
-    masteryAdvanced,
-  };
-}
 
 // ============================================================================
 // Concept Card Submit Handler
@@ -569,10 +364,11 @@ async function handleConceptCardSubmit({
   }
 
   // FSRS schedule update for concept card
-  const scheduleResult = await applyCardScheduleAndMastery({
+  const scheduleResult = await applyScheduleAndMastery({
     supabase,
     userId,
-    cardId,
+    itemType: 'card',
+    itemId: cardId,
     conceptId: card.concept_id,
     rating,
     isCorrect,
@@ -601,164 +397,3 @@ async function handleConceptCardSubmit({
   });
 }
 
-// ============================================================================
-// Card-specific FSRS scheduling (similar to question-based but uses card_id)
-// ============================================================================
-
-interface CardScheduleParams {
-  supabase: SupabaseClient;
-  userId: string;
-  cardId: string;
-  conceptId: string;
-  rating: ReviewRating;
-  isCorrect: boolean;
-}
-
-async function applyCardScheduleAndMastery({
-  supabase,
-  userId,
-  cardId,
-  conceptId,
-  rating,
-  isCorrect,
-}: CardScheduleParams) {
-  const now = new Date();
-
-  interface CardScheduleRow {
-    fsrs_stability: number | null;
-    fsrs_difficulty: number | null;
-    fsrs_state: number | null;
-    fsrs_reps: number | null;
-    fsrs_lapses: number | null;
-    fsrs_last_review: string | null;
-    next_review_at: string;
-    streak: number;
-    correct_count: number;
-    incorrect_count: number;
-    repetition_count: number;
-  }
-
-  const { data: rawSchedule } = await supabase
-    .from(TABLES.reviewSchedule)
-    .select(
-      'fsrs_stability, fsrs_difficulty, fsrs_state, fsrs_reps, fsrs_lapses, fsrs_last_review, ' +
-      'next_review_at, streak, correct_count, incorrect_count, repetition_count'
-    )
-    .eq('user_id', userId)
-    .eq('card_id', cardId)
-    .single();
-
-  const schedule = rawSchedule as unknown as CardScheduleRow | null;
-
-  let fsrsCard = schedule ? extractFSRSCard({
-    ...schedule,
-    next_review_at: schedule.next_review_at ?? now.toISOString(),
-  }) : null;
-
-  if (!fsrsCard) {
-    fsrsCard = createNewFSRSCard(now);
-  }
-
-  const grade = reviewRatingToFSRSGrade(rating);
-  const result = scheduleFSRS(fsrsCard, grade, now);
-  const newCard = result.card;
-  const intervalDays = intervalDaysFromDue(newCard.due, now);
-
-  const newStreak = rating === 'wrong' ? 0 : (schedule?.streak ?? 0) + 1;
-  const newCorrect = isCorrect ? (schedule?.correct_count ?? 0) + 1 : (schedule?.correct_count ?? 0);
-  const newIncorrect = isCorrect ? (schedule?.incorrect_count ?? 0) : (schedule?.incorrect_count ?? 0) + 1;
-
-  const upsertData: Record<string, unknown> = {
-    user_id: userId,
-    card_id: cardId,
-    ease_factor: 2.5,
-    interval_days: intervalDays,
-    repetition_count: (schedule?.repetition_count ?? 0) + 1,
-    streak: newStreak,
-    correct_count: newCorrect,
-    incorrect_count: newIncorrect,
-    ...fsrsCardToDbColumns(newCard),
-    next_review_at: newCard.due.toISOString(),
-    last_reviewed_at: now.toISOString(),
-    last_rating: rating,
-  };
-
-  // Use card_id unique constraint for upsert
-  const { error: upsertError } = await supabase
-    .from(TABLES.reviewSchedule)
-    .upsert(upsertData, { onConflict: 'user_id,card_id' });
-
-  if (upsertError) {
-    log.error('Error upserting card schedule:', upsertError);
-  }
-
-  return {
-    nextReviewAt: newCard.due.toISOString(),
-    intervalDays,
-    masteryAdvanced: false,
-  };
-}
-
-// ============================================================================
-// Auto-enrollment: create review_schedule entries for concept_cards
-// ============================================================================
-
-/**
- * Enroll all active concept_cards for a concept into review_schedule.
- * Called when a user reaches mastery >= 1 for a concept.
- * Skips cards that are already enrolled.
- */
-async function enrollConceptCards(
-  supabase: SupabaseClient,
-  userId: string,
-  conceptId: string
-) {
-  // Get all active concept cards for this concept
-  const { data: cards } = await supabase
-    .from(TABLES.conceptCards)
-    .select('id')
-    .eq('concept_id', conceptId)
-    .eq('is_active', true);
-
-  if (!cards || cards.length === 0) return;
-
-  // Get already enrolled card IDs
-  const { data: existing } = await supabase
-    .from(TABLES.reviewSchedule)
-    .select('card_id')
-    .eq('user_id', userId)
-    .in('card_id', cards.map(c => c.id));
-
-  const enrolledIds = new Set((existing || []).map(e => e.card_id));
-  const now = new Date().toISOString();
-
-  // Create schedule entries for unenrolled cards
-  const newEntries = cards
-    .filter(c => !enrolledIds.has(c.id))
-    .map(c => ({
-      user_id: userId,
-      card_id: c.id,
-      ease_factor: 2.5,
-      interval_days: 0,
-      repetition_count: 0,
-      streak: 0,
-      correct_count: 0,
-      incorrect_count: 0,
-      next_review_at: now,
-      fsrs_state: 0,
-      fsrs_reps: 0,
-      fsrs_lapses: 0,
-    }));
-
-  if (newEntries.length === 0) return;
-
-  const { error } = await supabase
-    .from(TABLES.reviewSchedule)
-    .insert(newEntries);
-
-  if (error) {
-    log.error(`Error enrolling concept cards for ${conceptId}:`, error);
-  } else {
-    log.info(`Enrolled ${newEntries.length} concept cards for ${conceptId}`);
-  }
-}
