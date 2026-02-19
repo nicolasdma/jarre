@@ -190,47 +190,58 @@ export function buildGraphData(
 }
 
 // ============================================================================
-// PHASE METADATA
+// PHASE METADATA & COLORS
 // ============================================================================
 
 export const PHASE_META: Record<number, { label: string; labelEs: string; color: string }> = {
-  1: { label: 'Distributed', labelEs: 'Distribuidos', color: 'var(--j-accent)' },
-  2: { label: 'ML Infra', labelEs: 'Infra ML', color: 'var(--j-info)' },
-  3: { label: 'Transformers', labelEs: 'Transformers', color: 'var(--j-warm)' },
-  4: { label: 'Agents', labelEs: 'Agentes', color: 'var(--j-accent-muted)' },
-  5: { label: 'RAG & Memory', labelEs: 'RAG + Memoria', color: 'var(--j-info)' },
-  6: { label: 'Multimodal', labelEs: 'Multimodal', color: 'var(--j-warm-dark)' },
-  7: { label: 'Safety', labelEs: 'Seguridad', color: 'var(--j-error)' },
-  8: { label: 'Inference', labelEs: 'Inferencia', color: 'var(--j-warm)' },
-  9: { label: 'Integration', labelEs: 'Integracion', color: 'var(--j-accent)' },
+  0: { label: 'Math', labelEs: 'Matemáticas', color: '#94A3B8' },
+  1: { label: 'Distributed', labelEs: 'Distribuidos', color: '#6B8E6B' },
+  2: { label: 'ML Infra', labelEs: 'Infra ML', color: '#60A5FA' },
+  3: { label: 'Transformers', labelEs: 'Transformers', color: '#D4B896' },
+  4: { label: 'Agents', labelEs: 'Agentes', color: '#4a6b4a' },
+  5: { label: 'RAG & Memory', labelEs: 'RAG + Memoria', color: '#60A5FA' },
+  6: { label: 'Multimodal', labelEs: 'Multimodal', color: '#c4a07a' },
+  7: { label: 'Safety', labelEs: 'Seguridad', color: '#FCD34D' },
+  8: { label: 'Inference', labelEs: 'Inferencia', color: '#D4B896' },
+  9: { label: 'Integration', labelEs: 'Integración', color: '#7DA07D' },
+  10: { label: 'Enterprise', labelEs: 'Enterprise', color: '#8B7355' },
+  11: { label: 'LLM Systems', labelEs: 'Sistemas LLM', color: '#6B8E6B' },
 };
 
+/** Get the hex color for a phase number. */
+export function getPhaseColor(phase: number): string {
+  return PHASE_META[phase]?.color ?? '#94A3B8';
+}
+
 // ============================================================================
-// MASTERY COLORS (for Three.js materials)
+// NODE STYLE (phase color + mastery affects opacity/radius)
 // ============================================================================
 
-export interface MasteryColor {
+export interface NodeStyle {
   color: string;
-  glowColor: string;
   opacity: number;
   radius: number;
   wireframe: boolean;
+  glowOpacity: number;
+  labelColor: string;
 }
 
-/** Mastery color palette for 3D rendering. */
-export function getMasteryColor(level: number): MasteryColor {
-  switch (level) {
+/** Combine phase (color) + mastery (opacity, radius, wireframe) into a single style. */
+export function getNodeStyle(phase: number, masteryLevel: number): NodeStyle {
+  const color = getPhaseColor(phase);
+
+  switch (masteryLevel) {
     case 0:
-      return { color: '#374151', glowColor: '#374151', opacity: 0.3, radius: 3, wireframe: true };
+      return { color, opacity: 0.12, radius: 3, wireframe: true, glowOpacity: 0.02, labelColor: '#475569' };
     case 1:
-      return { color: '#06b6d4', glowColor: '#06b6d4', opacity: 0.9, radius: 4, wireframe: false };
+      return { color, opacity: 0.75, radius: 4, wireframe: false, glowOpacity: 0.12, labelColor: '#F1F5F9' };
     case 2:
-      return { color: '#3b82f6', glowColor: '#3b82f6', opacity: 1, radius: 5, wireframe: false };
+      return { color, opacity: 0.9, radius: 5, wireframe: false, glowOpacity: 0.15, labelColor: '#F8FAFC' };
     case 3:
-      return { color: '#f59e0b', glowColor: '#f59e0b', opacity: 1, radius: 6, wireframe: false };
+      return { color, opacity: 1.0, radius: 6, wireframe: false, glowOpacity: 0.22, labelColor: '#FFFFFF' };
     case 4:
-      return { color: '#fbbf24', glowColor: '#fbbf24', opacity: 1, radius: 7, wireframe: false };
+      return { color, opacity: 1.0, radius: 7, wireframe: false, glowOpacity: 0.25, labelColor: '#FFFFFF' };
     default:
-      return { color: '#374151', glowColor: '#374151', opacity: 0.3, radius: 3, wireframe: true };
+      return { color, opacity: 0.12, radius: 3, wireframe: true, glowOpacity: 0.02, labelColor: '#475569' };
   }
 }
