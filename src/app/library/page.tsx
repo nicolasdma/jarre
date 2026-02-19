@@ -171,6 +171,29 @@ export default async function LibraryPage() {
     }
   }
 
+  // Fetch user's external resources
+  type UserResourceRow = {
+    id: string;
+    title: string;
+    type: string;
+    status: string;
+    summary: string | null;
+    coverage_score: number | null;
+    created_at: string;
+    url: string | null;
+  };
+  let userResources: UserResourceRow[] = [];
+
+  if (user) {
+    const { data: ur } = await supabase
+      .from('user_resources')
+      .select('id, title, type, status, summary, coverage_score, created_at, url')
+      .eq('user_id', user.id)
+      .in('status', ['completed', 'processing'])
+      .order('created_at', { ascending: false });
+    userResources = ur || [];
+  }
+
   type ResourceWithStatus = NonNullable<typeof resources>[number] & {
     isUnlocked: boolean;
     missingPrerequisites: string[];
@@ -309,6 +332,7 @@ export default async function LibraryPage() {
           byPhase={byPhase}
           projectsByPhase={projectsByPhase}
           supplementaryResources={supplementaryResources}
+          userResources={userResources}
           isLoggedIn={!!user}
           language={lang}
           phaseNames={phaseNames}

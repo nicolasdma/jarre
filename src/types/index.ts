@@ -246,3 +246,59 @@ export interface ExerciseResult {
   isCorrect: boolean;
   details: Record<string, unknown>;
 }
+
+// ============================================================================
+// REACTIVE KNOWLEDGE SYSTEM
+// ============================================================================
+
+export type UserResourceType = 'youtube' | 'article' | 'paper' | 'book' | 'podcast' | 'other';
+export type UserResourceStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ConceptRelationship = 'extends' | 'applies' | 'contrasts' | 'exemplifies' | 'relates';
+export type ConceptLinkSource = 'ingestion' | 'voice_discovery' | 'manual';
+export type ConsumptionEventType = 'started' | 'completed' | 'evaluated' | 'discussed' | 'added' | 'reviewed';
+
+export interface UserResource {
+  id: string;
+  userId: string;
+  title: string;
+  url: string | null;
+  type: UserResourceType;
+  rawContent: string | null;
+  userNotes: string | null;
+  summary: string | null;
+  extractedConcepts: ExtractedConcept[];
+  coverageScore: number | null;
+  status: UserResourceStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExtractedConcept {
+  name: string;
+  description: string;
+  relevance: number;
+}
+
+export interface UserResourceConceptLink {
+  id: string;
+  userResourceId: string;
+  conceptId: string;
+  relationship: ConceptRelationship;
+  relevanceScore: number;
+  extractedConceptName: string;
+  explanation: string | null;
+  source: ConceptLinkSource;
+  createdAt: string;
+}
+
+export interface ConsumptionLogEntry {
+  id: string;
+  userId: string;
+  resourceId: string | null;
+  userResourceId: string | null;
+  eventType: ConsumptionEventType;
+  conceptsTouched: string[];
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}

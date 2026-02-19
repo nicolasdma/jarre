@@ -35,7 +35,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
   // Get session start time and section_id to calculate duration + generate summary
   const { data: session } = await supabase
     .from(TABLES.voiceSessions)
-    .select('started_at, section_id')
+    .select('started_at, section_id, session_type, user_resource_id')
     .eq('id', sessionId)
     .eq('user_id', user.id)
     .single();
@@ -65,10 +65,12 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 
   log.info(`Voice session ended: ${sessionId} (${durationSeconds}s, ${count ?? 0} turns)`);
 
-  // Generate summary in background (don't block the response)
-  generateSummaryCached(sessionId, session.section_id, user.id).catch((err) => {
-    log.error('Background summary generation failed:', err);
-  });
+  // Generate summary in background (skip for exploration — handled by exploration-summary endpoint)
+  if (session.session_type !== 'exploration') {
+    generateSummaryCached(sessionId, session.section_id, user.id).catch((err) => {
+      log.error('Background summary generation failed:', err);
+    });
+  }
 
   return jsonOk({ ok: true });
 });
