@@ -1,13 +1,16 @@
 /**
- * Force-directed knowledge graph compositor.
+ * 3D Force-directed knowledge graph using react-force-graph-3d (Three.js/WebGL).
  *
- * SVG fullwidth, 70vh. ResizeObserver for responsive dimensions.
- * Zoom/pan/drag. Stats bar. Detail panel on click.
+ * Immersive dark experience: orbital rotation, depth, luminous glow nodes,
+ * glassmorphism overlays. Full viewport, cinematic entrance.
  */
 
 'use client';
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import * as THREE from 'three';
+import SpriteText from 'three-spritetext';
 import type {
   GraphData,
   GraphNode,
@@ -17,13 +20,15 @@ import type {
   ResourceInput,
   ResourceConceptLinkInput,
 } from './graph-types';
-import { buildGraphData, PHASE_META } from './graph-types';
-import { useForceSimulation } from './force-graph-engine';
-import { useGraphZoom, useNodeDrag } from './use-graph-interactions';
-import { GraphConceptNode } from './graph-concept-node';
-import { GraphResourceNode } from './graph-resource-node';
-import { GraphEdges } from './graph-edges';
+import { buildGraphData, getMasteryColor } from './graph-types';
 import { ConceptDetailPanel } from './concept-detail-panel';
+
+// react-force-graph-3d requires `window` — dynamic import with SSR disabled
+const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false });
+
+// ============================================================================
+// TYPES — the library uses `any`-based node/link objects at runtime
+// ============================================================================
 
 interface ForceGraphVisualizationProps {
   concepts: ConceptInput[];
@@ -33,6 +38,136 @@ interface ForceGraphVisualizationProps {
   language: 'es' | 'en';
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** Extract our typed data from the library's runtime node object. */
+function getNodeData(node: any): ConceptNodeData | ResourceNodeData | null {
+  return node?.data ?? null;
+}
+
+/** Resolve a link endpoint (string before simulation, object after). */
+function resolveEndpointData(ref: any): ConceptNodeData | ResourceNodeData | null {
+  if (typeof ref === 'object' && ref !== null) return getNodeData(ref);
+  return null;
+}
+
+// ============================================================================
+// THREE.JS NODE FACTORY
+// ============================================================================
+
+function createNodeObject(node: any): THREE.Object3D {
+  const group = new THREE.Group();
+  const data = getNodeData(node);
+  if (!data) return group;
+
+  if (data.type === 'concept') {
+    const mastery = getMasteryColor(data.masteryLevel);
+
+    // Main sphere
+    const geometry = new THREE.SphereGeometry(mastery.radius, 24, 16);
+    const material = new THREE.MeshLambertMaterial({
+      color: mastery.color,
+      transparent: true,
+      opacity: mastery.opacity,
+      wireframe: mastery.wireframe,
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+    group.add(sphere);
+
+    // Glow halo for L1+
+    if (data.masteryLevel >= 1) {
+      const glowScale = 1.6;
+      const glowGeometry = new THREE.SphereGeometry(mastery.radius * glowScale, 16, 12);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: mastery.glowColor,
+        transparent: true,
+        opacity: data.masteryLevel >= 3 ? 0.12 : 0.07,
+        side: THREE.BackSide,
+      });
+      group.add(new THREE.Mesh(glowGeometry, glowMaterial));
+    }
+
+    // Label for L1+ concepts
+    if (data.masteryLevel >= 1) {
+      const label = new SpriteText(data.name, 2.5, '#e2e8f0');
+      label.fontFace = 'Inter, system-ui, sans-serif';
+      label.fontWeight = '500';
+      label.backgroundColor = 'rgba(0,0,0,0.5)';
+      label.padding = 1.5;
+      label.borderRadius = 2;
+      label.position.set(0, -(mastery.radius + 4), 0);
+      group.add(label);
+    }
+  } else {
+    // Resource node — octahedron (diamond shape)
+    const geometry = new THREE.OctahedronGeometry(2.5);
+    const material = new THREE.MeshLambertMaterial({
+      color: '#8b5cf6',
+      transparent: true,
+      opacity: 0.8,
+    });
+    group.add(new THREE.Mesh(geometry, material));
+
+    // Subtle glow
+    const glowGeometry = new THREE.OctahedronGeometry(4);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: '#8b5cf6',
+      transparent: true,
+      opacity: 0.06,
+      side: THREE.BackSide,
+    });
+    group.add(new THREE.Mesh(glowGeometry, glowMaterial));
+  }
+
+  return group;
+}
+
+// ============================================================================
+// LINK HELPERS
+// ============================================================================
+
+function getLinkMasteryLevel(link: any): number {
+  const sourceData = resolveEndpointData(link.source);
+  const targetData = resolveEndpointData(link.target);
+
+  const sourceLevel = sourceData?.type === 'concept' ? sourceData.masteryLevel : 0;
+  const targetLevel = targetData?.type === 'concept' ? targetData.masteryLevel : 0;
+
+  return Math.min(sourceLevel, targetLevel);
+}
+
+function getLinkColor(link: any): string {
+  const minLevel = getLinkMasteryLevel(link);
+  if (minLevel >= 1) {
+    const sourceData = resolveEndpointData(link.source);
+    if (sourceData?.type === 'concept') {
+      return getMasteryColor(sourceData.masteryLevel).color;
+    }
+    return '#06b6d4';
+  }
+  return '#1e293b';
+}
+
+function getLinkWidth(link: any): number {
+  return getLinkMasteryLevel(link) >= 1 ? 1.5 : 0.3;
+}
+
+function getLinkParticles(link: any): number {
+  return getLinkMasteryLevel(link) >= 1 ? 2 : 0;
+}
+
+function getNodeLabel(node: any): string {
+  const data = getNodeData(node);
+  if (!data) return '';
+  return data.type === 'concept' ? data.name : data.title;
+}
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 export function ForceGraphVisualization({
   concepts,
   definitions,
@@ -40,13 +175,14 @@ export function ForceGraphVisualization({
   resourceLinks,
   language,
 }: ForceGraphVisualizationProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fgRef = useRef<any>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-  // ResizeObserver
+  // Measure container
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -71,204 +207,178 @@ export function ForceGraphVisualization({
     [concepts, definitions, resources, resourceLinks]
   );
 
-  // Force simulation
-  const { nodes, links, reheat } = useForceSimulation(graphData, dimensions);
+  // Node map for detail panel lookups
+  const nodeMap = useMemo(
+    () => new Map(graphData.nodes.map((n) => [n.id, n])),
+    [graphData.nodes]
+  );
 
-  // Zoom/pan
-  const { transform, zoomIn, zoomOut, resetZoom } = useGraphZoom(svgRef);
-
-  // Drag
-  const dragBehavior = useNodeDrag(reheat);
-
-  // Node map for lookups
-  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-
-  // Prerequisite chain highlight
-  const highlightedChain = useMemo(() => {
-    const target = hoveredId ?? selectedId;
-    if (!target) return new Set<string>();
-
-    const chain = new Set<string>();
-    const queue = [target];
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-      if (chain.has(current)) continue;
-      chain.add(current);
-
-      const node = nodeMap.get(current);
-      if (!node) continue;
-
-      if (node.data.type === 'concept') {
-        for (const prereq of node.data.prerequisites) {
-          queue.push(prereq);
-        }
-      }
-
-      // Also highlight connected resource-concept edges
-      for (const link of links) {
-        if (link.data.type === 'resource-concept') {
-          const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : String(link.source);
-          const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : String(link.target);
-          if (sourceId === current && !chain.has(targetId)) queue.push(targetId);
-          if (targetId === current && !chain.has(sourceId)) queue.push(sourceId);
-        }
-      }
-    }
-    return chain;
-  }, [hoveredId, selectedId, nodeMap, links]);
-
-  // Selected node data for detail panel
+  // Selected node for detail panel
   const selectedNode = selectedId ? nodeMap.get(selectedId) ?? null : null;
 
-  const handleNodeClick = useCallback((id: string) => {
-    setSelectedId((prev) => (prev === id ? null : id));
+  // Handlers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleNodeClick = useCallback((node: any) => {
+    const id = node?.id as string | undefined;
+    if (id) setSelectedId((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleHover = useCallback((id: string | null) => {
-    setHoveredId(id);
+  const handleBackgroundClick = useCallback(() => {
+    setSelectedId(null);
   }, []);
+
+  const handleEngineStop = useCallback(() => {
+    if (!isReady) {
+      setIsReady(true);
+      setTimeout(() => {
+        fgRef.current?.zoomToFit(800, 80);
+      }, 200);
+    }
+  }, [isReady]);
 
   // Stats
   const totalConcepts = concepts.length;
   const totalMastered = concepts.filter((c) => c.masteryLevel >= 1).length;
   const totalResources = resources.length;
 
-  // Separate nodes by type for render order
-  const conceptNodes = nodes.filter((n) => n.data.type === 'concept');
-  const resourceNodes = nodes.filter((n) => n.data.type === 'resource');
-
   return (
-    <div className="relative">
-      {/* Stats bar */}
-      <div className="flex items-center gap-6 mb-4">
-        <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-          {totalMastered}/{totalConcepts} {language === 'es' ? 'conceptos activos' : 'concepts active'}
-        </span>
-        {totalResources > 0 && (
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-info uppercase">
-            {totalResources} {language === 'es' ? 'recursos' : 'resources'}
-          </span>
+    <div className="relative" style={{ height: 'calc(100vh - 64px)' }}>
+      {/* Dark background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 50%, #0a1628 0%, #050a15 70%)',
+        }}
+      />
+
+      {/* 3D graph container */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 1.5s ease-out',
+        }}
+      >
+        {dimensions.width > 0 && dimensions.height > 0 && (
+          <ForceGraph3D
+            ref={fgRef}
+            graphData={graphData}
+            width={dimensions.width}
+            height={dimensions.height}
+            backgroundColor="#050a15"
+            nodeThreeObject={createNodeObject}
+            nodeLabel={getNodeLabel}
+            onNodeClick={handleNodeClick}
+            enableNodeDrag={true}
+            linkColor={getLinkColor}
+            linkWidth={getLinkWidth}
+            linkOpacity={0.6}
+            linkDirectionalParticles={getLinkParticles}
+            linkDirectionalParticleSpeed={0.004}
+            linkDirectionalParticleWidth={1.5}
+            linkDirectionalParticleColor={getLinkColor}
+            warmupTicks={100}
+            cooldownTime={3000}
+            onEngineStop={handleEngineStop}
+            onBackgroundClick={handleBackgroundClick}
+            showNavInfo={false}
+          />
         )}
-        <div className="flex-1 h-1 bg-j-border">
+      </div>
+
+      {/* Loading indicator */}
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="font-mono text-[11px] tracking-[0.2em] text-slate-500 uppercase animate-pulse">
+            {language === 'es' ? 'Construyendo grafo...' : 'Building graph...'}
+          </div>
+        </div>
+      )}
+
+      {/* Glassmorphism stats overlay — top left */}
+      <div
+        className="absolute top-4 left-4 px-4 py-3 rounded-lg pointer-events-none"
+        style={{
+          backdropFilter: 'blur(8px)',
+          background: 'rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 0.5s ease-out',
+        }}
+      >
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-[10px] tracking-[0.2em] text-slate-400 uppercase">
+            {totalMastered}/{totalConcepts} {language === 'es' ? 'activos' : 'active'}
+          </span>
+          {totalResources > 0 && (
+            <span className="font-mono text-[10px] tracking-[0.2em] text-purple-400 uppercase">
+              {totalResources} {language === 'es' ? 'recursos' : 'resources'}
+            </span>
+          )}
+        </div>
+        <div className="mt-2 h-1 rounded-full bg-white/10" style={{ width: 120 }}>
           <div
-            className="h-full bg-j-accent transition-all duration-500"
-            style={{ width: `${totalConcepts > 0 ? (totalMastered / totalConcepts) * 100 : 0}%` }}
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${totalConcepts > 0 ? (totalMastered / totalConcepts) * 100 : 0}%`,
+              background: 'linear-gradient(90deg, #06b6d4, #3b82f6)',
+            }}
           />
         </div>
       </div>
 
-      {/* Graph container */}
+      {/* Glassmorphism legend — top right */}
       <div
-        ref={containerRef}
-        className="relative border border-j-border bg-j-bg j-dot-bg overflow-hidden"
-        style={{ height: '70vh', minHeight: 500 }}
+        className="absolute top-4 right-4 px-3 py-2 rounded-lg flex gap-3 font-mono text-[9px] pointer-events-none"
+        style={{
+          backdropFilter: 'blur(8px)',
+          background: 'rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 0.5s ease-out',
+        }}
       >
-        <svg
-          ref={svgRef}
-          width={dimensions.width}
-          height={dimensions.height}
-          style={{ display: 'block' }}
-        >
-          {/* Background grid */}
-          <defs>
-            <pattern id="fg-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--j-grid-color, transparent)" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#fg-grid)" opacity="0.3" />
+        <span className="flex items-center gap-1.5 text-gray-500">
+          <span className="w-2 h-2 rounded-full border border-gray-600" />
+          L0
+        </span>
+        <span className="flex items-center gap-1.5 text-cyan-400">
+          <span className="w-2 h-2 rounded-full bg-cyan-500" />
+          L1
+        </span>
+        <span className="flex items-center gap-1.5 text-blue-400">
+          <span className="w-2 h-2 rounded-full bg-blue-500" />
+          L2
+        </span>
+        <span className="flex items-center gap-1.5 text-amber-400">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          L3
+        </span>
+        <span className="flex items-center gap-1.5 text-yellow-300">
+          <span className="w-2 h-2 rounded-full bg-yellow-400" />
+          L4
+        </span>
+        <span className="flex items-center gap-1.5 text-purple-400">
+          <span className="w-2 h-2 rotate-45 bg-purple-500" style={{ width: 7, height: 7 }} />
+          {language === 'es' ? 'Recurso' : 'Resource'}
+        </span>
+      </div>
 
-          {/* Zoomable group */}
-          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
-            {/* Phase Y labels (subtle) */}
-            {dimensions.height > 0 &&
-              Object.entries(PHASE_META).map(([phaseStr, meta]) => {
-                const phase = parseInt(phaseStr, 10);
-                const padding = 60;
-                const usable = dimensions.height - padding * 2;
-                const yPos = padding + usable * ((9 - phase) / 8);
-                return (
-                  <text
-                    key={phase}
-                    x={12}
-                    y={yPos}
-                    fontSize="8"
-                    fontFamily="monospace"
-                    fill="var(--j-text-tertiary)"
-                    opacity={0.4}
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
-                  >
-                    {language === 'es' ? meta.labelEs : meta.label}
-                  </text>
-                );
-              })}
-
-            {/* Edges (behind nodes) */}
-            <GraphEdges links={links} highlightedChain={highlightedChain} />
-
-            {/* Resource nodes (behind concepts) */}
-            {resourceNodes.map((node) => (
-              <GraphResourceNode
-                key={node.id}
-                node={node}
-                isSelected={node.id === selectedId}
-                isHighlighted={highlightedChain.has(node.id)}
-                onClick={handleNodeClick}
-                onHover={handleHover}
-                dragBehavior={dragBehavior}
-              />
-            ))}
-
-            {/* Concept nodes */}
-            {conceptNodes.map((node) => (
-              <GraphConceptNode
-                key={node.id}
-                node={node}
-                isSelected={node.id === selectedId}
-                isHighlighted={highlightedChain.has(node.id)}
-                onClick={handleNodeClick}
-                onHover={handleHover}
-                dragBehavior={dragBehavior}
-              />
-            ))}
-          </g>
-        </svg>
-
-        {/* Zoom controls */}
-        <div className="absolute bottom-4 right-4 flex flex-col gap-1">
-          <button
-            onClick={zoomIn}
-            className="w-8 h-8 bg-j-bg border border-j-border text-j-text-secondary hover:text-j-text hover:border-j-accent transition-colors flex items-center justify-center font-mono text-sm"
-            title="Zoom in"
-          >
-            +
-          </button>
-          <button
-            onClick={zoomOut}
-            className="w-8 h-8 bg-j-bg border border-j-border text-j-text-secondary hover:text-j-text hover:border-j-accent transition-colors flex items-center justify-center font-mono text-sm"
-            title="Zoom out"
-          >
-            −
-          </button>
-          <button
-            onClick={resetZoom}
-            className="w-8 h-8 bg-j-bg border border-j-border text-j-text-secondary hover:text-j-text hover:border-j-accent transition-colors flex items-center justify-center font-mono text-[9px]"
-            title="Reset zoom"
-          >
-            ⟲
-          </button>
-        </div>
-
-        {/* Legend */}
-        <div className="absolute top-3 right-3 flex gap-4 font-mono text-[9px] text-j-text-tertiary">
-          <span className="flex items-center gap-1">
-            <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="var(--j-accent-light)" stroke="var(--j-accent)" strokeWidth="1" /></svg>
-            {language === 'es' ? 'Concepto' : 'Concept'}
-          </span>
-          <span className="flex items-center gap-1">
-            <svg width="10" height="10"><path d="M5 1 L9 5 L5 9 L1 5 Z" fill="var(--j-info)" fillOpacity="0.15" stroke="var(--j-info)" strokeWidth="1" /></svg>
-            {language === 'es' ? 'Recurso' : 'Resource'}
-          </span>
-        </div>
+      {/* Controls hint — bottom right */}
+      <div
+        className="absolute bottom-4 right-4 px-3 py-2 rounded-lg font-mono text-[9px] text-slate-500 pointer-events-none"
+        style={{
+          backdropFilter: 'blur(8px)',
+          background: 'rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 0.5s ease-out',
+        }}
+      >
+        {language === 'es'
+          ? 'Arrastra para rotar · Scroll para zoom · Click en nodo para detalles'
+          : 'Drag to rotate · Scroll to zoom · Click node for details'}
       </div>
 
       {/* Detail panel */}
