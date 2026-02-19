@@ -346,12 +346,15 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
         body: JSON.stringify({
           resourceId: resource.id,
           resourceTitle: resource.title,
-          questions: questions.map((q, i) => ({
-            ...q,
-            conceptDefinition:
-              concepts.find((c) => c.name === q.conceptName)?.canonical_definition || '',
-            userAnswer: answers[i.toString()] || '',
-          })),
+          questions: questions.map((q, i) => {
+            const matchedConcept = concepts.find((c) => c.name === q.conceptName);
+            return {
+              ...q,
+              conceptId: matchedConcept?.id || undefined,
+              conceptDefinition: matchedConcept?.canonical_definition || '',
+              userAnswer: answers[i.toString()] || '',
+            };
+          }),
           userId,
           predictedScore: null,
         }),

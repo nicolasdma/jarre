@@ -1,5 +1,6 @@
 import { withAuth } from '@/lib/api/middleware';
 import { ApiError, badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
+import { TABLES } from '@/lib/db/tables';
 import { getUserLanguage } from '@/lib/db/queries/user';
 import { createLogger } from '@/lib/logger';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
@@ -60,19 +61,61 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     // Parse and validate response
     const parsed = parseJsonResponse(content, EvaluateAnswersResponseSchema);
 
+    // Resolve conceptIds server-side: build name→id map from resource_concepts
+    const { data: resourceConcepts } = await supabase
+      .from(TABLES.resourceConcepts)
+      .select('concept_id, concepts!inner(id, name)')
+      .eq('resource_id', resourceId);
+
+    const conceptNameToId = new Map<string, string>();
+    if (resourceConcepts) {
+      for (const rc of resourceConcepts) {
+        const concept = rc.concepts as unknown as { id: string; name: string };
+        conceptNameToId.set(concept.name.trim().toLowerCase(), concept.id);
+      }
+    }
+
+    const resolvedQuestions = questions.map((q: { conceptId?: string; conceptName?: string; type: string; question: string; userAnswer: string }) => {
+      let resolvedConceptId = q.conceptId || undefined;
+
+      if (!resolvedConceptId && q.conceptName) {
+        const lowerName = q.conceptName.trim().toLowerCase();
+        // Exact match
+        resolvedConceptId = conceptNameToId.get(lowerName);
+
+        // Partial match fallback
+        if (!resolvedConceptId) {
+          for (const [name, id] of conceptNameToId) {
+            if (name.includes(lowerName) || lowerName.includes(name)) {
+              resolvedConceptId = id;
+              break;
+            }
+          }
+        }
+
+        if (!resolvedConceptId) {
+          log.warn(`Server-side: could not resolve conceptId for "${q.conceptName}" in resource ${resourceId}`);
+        } else {
+          log.info(`Server-side: resolved "${q.conceptName}" → ${resolvedConceptId}`);
+        }
+      }
+
+      return {
+        conceptId: resolvedConceptId,
+        conceptName: q.conceptName,
+        type: q.type,
+        question: q.question,
+        userAnswer: q.userAnswer,
+      };
+    });
+
     // Save evaluation + update mastery + award XP (shared logic)
     const { evaluationId, saved, xp } = await saveEvaluationResults({
       supabase,
       userId: user.id,
       resourceId,
       parsed,
-      questions: questions.map((q: { conceptId?: string; conceptName?: string; type: string; question: string; userAnswer: string }) => ({
-        conceptId: q.conceptId,
-        conceptName: q.conceptName,
-        type: q.type,
-        question: q.question,
-        userAnswer: q.userAnswer,
-      })),
+      questions: resolvedQuestions,
       predictedScore,
       promptVersion: PROMPT_VERSIONS.EVALUATE_ANSWERS,
       evalMethod: 'text',
