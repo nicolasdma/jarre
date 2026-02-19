@@ -120,11 +120,11 @@ export async function saveEvaluationResults({
       }
 
       // Update concept progress with mastery logic
-      if (r && q.conceptName) {
+      if (r && q.conceptId) {
         await updateConceptMastery({
           supabase,
           userId,
-          conceptName: q.conceptName,
+          conceptId: q.conceptId,
           questionType: q.type as EvaluationType,
           score: r.score,
           evaluationId: evaluation.id,
@@ -184,7 +184,7 @@ export async function saveEvaluationResults({
 async function updateConceptMastery({
   supabase,
   userId,
-  conceptName,
+  conceptId,
   questionType,
   score,
   evaluationId,
@@ -192,25 +192,17 @@ async function updateConceptMastery({
 }: {
   supabase: SupabaseClient;
   userId: string;
-  conceptName: string;
+  conceptId: string;
   questionType: EvaluationType;
   score: number;
   evaluationId: string;
   triggerType: MasteryTriggerType;
 }) {
-  const { data: concept } = await supabase
-    .from(TABLES.concepts)
-    .select('id')
-    .eq('name', conceptName)
-    .single();
-
-  if (!concept) return;
-
   const { data: existingProgress } = await supabase
     .from(TABLES.conceptProgress)
     .select('level')
     .eq('user_id', userId)
-    .eq('concept_id', concept.id)
+    .eq('concept_id', conceptId)
     .single();
 
   const currentLevel = parseMasteryLevel(existingProgress?.level);
@@ -219,7 +211,7 @@ async function updateConceptMastery({
   if (newLevel > currentLevel) {
     const updateFields: Record<string, unknown> = {
       user_id: userId,
-      concept_id: concept.id,
+      concept_id: conceptId,
       level: serializeMasteryLevel(newLevel),
       last_evaluated_at: new Date().toISOString(),
     };
@@ -239,7 +231,7 @@ async function updateConceptMastery({
     await supabase.from(TABLES.masteryHistory).insert(
       buildMasteryHistoryRecord({
         userId,
-        conceptId: concept.id,
+        conceptId: conceptId,
         oldLevel: currentLevel,
         newLevel,
         triggerType,
@@ -252,7 +244,7 @@ async function updateConceptMastery({
       const { data: bankQuestions } = await supabase
         .from(TABLES.questionBank)
         .select('id')
-        .eq('concept_id', concept.id)
+        .eq('concept_id', conceptId)
         .eq('is_active', true);
 
       if (bankQuestions && bankQuestions.length > 0) {
@@ -269,7 +261,7 @@ async function updateConceptMastery({
         if (schedError) {
           log.error('Error creating review schedule:', schedError);
         } else {
-          log.info(`Created ${scheduleEntries.length} review cards for concept ${concept.id}`);
+          log.info(`Created ${scheduleEntries.length} review cards for concept ${conceptId}`);
         }
       }
     }
@@ -278,7 +270,7 @@ async function updateConceptMastery({
     await supabase.from(TABLES.conceptProgress).upsert(
       {
         user_id: userId,
-        concept_id: concept.id,
+        concept_id: conceptId,
         level: serializeMasteryLevel(0),
         last_evaluated_at: new Date().toISOString(),
       },
