@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Language } from '@/lib/translations';
+import { TutorDialog } from './tutor-entity/TutorDialog';
 
 const TutorEntity = dynamic(
   () => import('./tutor-entity/TutorEntity').then((m) => ({ default: m.TutorEntity })),
@@ -24,6 +25,11 @@ interface AppShellProps {
   language: Language;
 }
 
+// Placeholder messages — will be replaced with real tutor state
+const TUTOR_GREETING = [
+  'Ready when you are. Click me to start a session.',
+];
+
 export function AppShell({ children, language }: AppShellProps) {
   const [voiceOpen, setVoiceOpen] = useState(false);
 
@@ -36,11 +42,21 @@ export function AppShell({ children, language }: AppShellProps) {
         </div>
 
         {/* Right panel — persistent tutor entity (desktop only) */}
-        <aside className="hidden lg:flex w-[420px] shrink-0 h-screen border-l border-j-accent/30 bg-j-bg">
-          <TutorEntity
-            onStartVoice={() => setVoiceOpen(true)}
-            hidden={voiceOpen}
-          />
+        <aside className="hidden lg:flex lg:flex-col w-[420px] shrink-0 h-screen border-l border-j-accent/30 bg-j-bg">
+          {/* Torus entity — fills remaining space */}
+          <div className="flex-1 min-h-0">
+            <TutorEntity
+              onStartVoice={() => setVoiceOpen(true)}
+              hidden={voiceOpen}
+            />
+          </div>
+
+          {/* Dialog box — pinned to bottom */}
+          <div className={`shrink-0 px-3 pb-3 transition-opacity duration-500 ${
+            voiceOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}>
+            <TutorDialog messages={TUTOR_GREETING} />
+          </div>
         </aside>
       </div>
 
