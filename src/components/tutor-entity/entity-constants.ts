@@ -1,122 +1,92 @@
 // ============================================================================
-// Tutor Entity — Volumetric ASCII energy field constants
+// Tutor Entity — 3D ASCII Torus constants
 // ============================================================================
 
-/**
- * Extended luminance ramp — 20 levels for smoother shading.
- * Chars chosen to suggest curved, flowing density rather than hard edges.
- * Index 0 is empty space; higher indices are denser/brighter.
- */
+/** Luminance ramp — smooth gradient from dim to bright */
 export const LUMINANCE_CHARS = ' .`\':,~-_"^;!><+?)(}{=*#%@';
 
-// Warm orange palette — soft tones
+/**
+ * Surface inscription chars — scattered on the torus at regular (theta, phi)
+ * intervals, replacing the luminance char. Mix of letters + original symbols.
+ */
+export const SURFACE_GLYPHS = 'AaBbCcDdEeFfGgHhJjKkNnRrSsTtWwXxZz.,:;=!*#%@><+?)(}{~-';
+
+// Warm orange palette
 const WARM_DIM: [number, number, number] = [140, 70, 15];
 const WARM_MID: [number, number, number] = [200, 110, 30];
 const WARM_BRIGHT: [number, number, number] = [255, 165, 60];
-
-// ---------------------------------------------------------------------------
-// Energy node definition — each node is a soft 3D gaussian blob
-// ---------------------------------------------------------------------------
-
-export interface EnergyNode {
-  /** Orbit radius (fraction of field radius) */
-  orbitRadius: number;
-  /** Orbit speed multiplier */
-  orbitSpeed: number;
-  /** Phase offset (radians) */
-  phase: number;
-  /** Orbit tilt — angle of orbit plane from XY (radians) */
-  tilt: number;
-  /** Gaussian falloff sigma (fraction of field) */
-  sigma: number;
-  /** Intensity multiplier */
-  intensity: number;
-}
-
-/**
- * Energy nodes — no single bright core.
- * Instead, 3 offset "hearts" create a diffuse center with no focal point.
- * Layers have asymmetric tilts/speeds to break frontal symmetry.
- */
-export const ENERGY_NODES: EnergyNode[] = [
-  // Diffuse core — 3 overlapping off-center blobs (no eye)
-  { orbitRadius: 0.06, orbitSpeed: 0.08, phase: 0.0,  tilt: 0.3,  sigma: 0.40, intensity: 0.55 },
-  { orbitRadius: 0.08, orbitSpeed: 0.06, phase: 2.2,  tilt: -0.4, sigma: 0.38, intensity: 0.50 },
-  { orbitRadius: 0.07, orbitSpeed: 0.10, phase: 4.5,  tilt: 0.5,  sigma: 0.36, intensity: 0.50 },
-
-  // Inner cloud — medium blobs, gentle drift, asymmetric tilts
-  { orbitRadius: 0.20, orbitSpeed: 0.22, phase: 0.5,  tilt: 0.7,  sigma: 0.28, intensity: 0.55 },
-  { orbitRadius: 0.24, orbitSpeed: 0.18, phase: 2.8,  tilt: -0.6, sigma: 0.26, intensity: 0.50 },
-  { orbitRadius: 0.18, orbitSpeed: 0.25, phase: 4.9,  tilt: 1.0,  sigma: 0.30, intensity: 0.48 },
-  { orbitRadius: 0.22, orbitSpeed: 0.20, phase: 1.4,  tilt: -0.9, sigma: 0.27, intensity: 0.45 },
-
-  // Outer halo — wide, soft, gives the aura its extent
-  { orbitRadius: 0.38, orbitSpeed: 0.12, phase: 0.8,  tilt: 1.1,  sigma: 0.24, intensity: 0.35 },
-  { orbitRadius: 0.42, orbitSpeed: 0.14, phase: 3.2,  tilt: -0.8, sigma: 0.22, intensity: 0.32 },
-  { orbitRadius: 0.36, orbitSpeed: 0.16, phase: 5.4,  tilt: 0.5,  sigma: 0.26, intensity: 0.34 },
-  { orbitRadius: 0.40, orbitSpeed: 0.11, phase: 2.0,  tilt: -1.2, sigma: 0.23, intensity: 0.30 },
-
-  // Wisps — gentle tendrils, not fast/sharp
-  { orbitRadius: 0.52, orbitSpeed: 0.18, phase: 0.3,  tilt: 1.3,  sigma: 0.18, intensity: 0.20 },
-  { orbitRadius: 0.50, orbitSpeed: 0.20, phase: 2.7,  tilt: -1.1, sigma: 0.16, intensity: 0.18 },
-  { orbitRadius: 0.55, orbitSpeed: 0.15, phase: 5.0,  tilt: 0.6,  sigma: 0.17, intensity: 0.19 },
-];
 
 // ---------------------------------------------------------------------------
 // State parameters
 // ---------------------------------------------------------------------------
 
 export interface EntityStateParams {
-  /** Rotation speed around tilted axis A (rad/s) */
+  /** Torus major radius R (fraction of viewport min-dim) */
+  majorRadius: number;
+  /** Torus minor radius r (fraction of viewport min-dim) */
+  minorRadius: number;
+  /** Rotation speed around X axis (rad/s) */
   rotSpeedA: number;
-  /** Rotation speed around tilted axis B (rad/s) */
+  /** Rotation speed around Z axis (rad/s) */
   rotSpeedB: number;
-  /** Rotation speed around Y axis — adds diagonal tilt (rad/s) */
-  rotSpeedC: number;
-  /** Pulsation amplitude (0-1) — breathing */
-  pulseAmp: number;
-  /** Pulsation speed (Hz) */
-  pulseSpeed: number;
+  /** Surface sampling step for theta (smaller = denser) */
+  thetaStep: number;
+  /** Surface sampling step for phi (smaller = denser) */
+  phiStep: number;
   /** Base char opacity */
   charOpacity: number;
   /** CSS glow filter opacity */
   glowOpacity: number;
-  /** Primary color (dim regions) */
+  /** Primary color (dim faces) */
   color: [number, number, number];
-  /** Accent color (bright regions) */
+  /** Accent color (bright faces) */
   accentColor: [number, number, number];
-  /** Font size in px — smaller = denser grid */
+  /** Font size in px */
   fontSize: number;
-  /** Noise texture intensity (0-1) */
-  noiseIntensity: number;
 }
 
 export const ENTITY_STATES = {
-  idle: {
-    rotSpeedA: 0.18,
-    rotSpeedB: 0.12,
-    rotSpeedC: 0.08,
-    pulseAmp: 0.06,
-    pulseSpeed: 0.10,
-    charOpacity: 0.45,
-    glowOpacity: 0.30,
-    color: WARM_DIM,
-    accentColor: WARM_MID,
-    fontSize: 11,
-    noiseIntensity: 0.10,
-  },
-  hover: {
-    rotSpeedA: 0.30,
-    rotSpeedB: 0.20,
-    rotSpeedC: 0.14,
-    pulseAmp: 0.09,
-    pulseSpeed: 0.14,
-    charOpacity: 0.58,
-    glowOpacity: 0.40,
+  /** Entrance — big and fast, plays on mount */
+  intro: {
+    majorRadius: 0.32,
+    minorRadius: 0.16,
+    rotSpeedA: 0.5,
+    rotSpeedB: 0.25,
+    thetaStep: 0.07,
+    phiStep: 0.02,
+    charOpacity: 0.55,
+    glowOpacity: 0.35,
     color: WARM_MID,
     accentColor: WARM_BRIGHT,
-    fontSize: 11,
-    noiseIntensity: 0.14,
+    fontSize: 12,
+  },
+  /** Settled idle — small, calm */
+  idle: {
+    majorRadius: 0.08,
+    minorRadius: 0.04,
+    rotSpeedA: 0.15,
+    rotSpeedB: 0.08,
+    thetaStep: 0.07,
+    phiStep: 0.02,
+    charOpacity: 0.40,
+    glowOpacity: 0.20,
+    color: WARM_DIM,
+    accentColor: WARM_MID,
+    fontSize: 12,
+  },
+  /** Hover — grows a bit, brighter */
+  hover: {
+    majorRadius: 0.12,
+    minorRadius: 0.06,
+    rotSpeedA: 0.35,
+    rotSpeedB: 0.18,
+    thetaStep: 0.06,
+    phiStep: 0.02,
+    charOpacity: 0.6,
+    glowOpacity: 0.38,
+    color: WARM_MID,
+    accentColor: WARM_BRIGHT,
+    fontSize: 12,
   },
 } as const satisfies Record<string, EntityStateParams>;
 
@@ -128,7 +98,12 @@ export type EntityState = keyof typeof ENTITY_STATES;
 
 export const IDLE_FPS = 30;
 export const FRAME_INTERVAL = 1000 / IDLE_FPS;
+/** Lerp speed for hover transitions */
 export const LERP_SPEED = 2.5;
+/** Slower lerp for intro → idle shrink (seconds to ~settle) */
+export const INTRO_LERP_SPEED = 0.8;
+/** How long the intro plays at full size before shrinking (seconds) */
+export const INTRO_HOLD_DURATION = 2.0;
 export const MINI_SIZE = 44;
 
 /** Char aspect ratio — monospace chars are taller than wide */

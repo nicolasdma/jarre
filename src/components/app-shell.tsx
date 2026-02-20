@@ -36,7 +36,7 @@ export function AppShell({ children, language }: AppShellProps) {
         </div>
 
         {/* Right panel — persistent tutor entity (desktop only) */}
-        <aside className="hidden lg:flex w-[420px] shrink-0 h-screen border-l border-j-border bg-j-bg">
+        <aside className="hidden lg:flex w-[420px] shrink-0 h-screen border-l border-j-accent/30 bg-j-bg">
           <TutorEntity
             onStartVoice={() => setVoiceOpen(true)}
             hidden={voiceOpen}
