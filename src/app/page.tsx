@@ -21,14 +21,14 @@ export default async function Home() {
   // Unauthenticated — landing page
   if (!user) {
     return (
-      <div className="min-h-screen bg-j-bg">
+      <div className="min-h-screen bg-j-bg j-bg-texture">
         <Header currentPage="home" />
 
-        <main className="mx-auto max-w-6xl px-8 py-16 j-hero-gradient">
+        <main className="mx-auto max-w-6xl px-8 pt-24 pb-16 j-hero-gradient">
           <div className="mb-16">
             <SectionLabel>Deep Learning System</SectionLabel>
 
-            <h2 className="text-6xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
+            <h2 className="text-7xl md:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
               Master Complex
             </h2>
             <p className="text-3xl font-light text-j-text-tertiary">

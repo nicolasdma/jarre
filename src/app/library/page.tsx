@@ -262,17 +262,17 @@ export default async function LibraryPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-j-bg">
+    <div className="min-h-screen bg-j-bg j-bg-texture">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-8 py-12 j-grid-bg j-hero-gradient">
+      <main className="mx-auto max-w-6xl px-8 pt-24 pb-16 j-grid-bg j-hero-gradient">
         {/* Hero Section */}
         <div className="mb-16">
           <SectionLabel>
             {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
           </SectionLabel>
 
-          <h1 className="text-6xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
+          <h1 className="text-7xl md:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
             {t('library.title', lang)}
           </h1>
           <p className="text-3xl font-light text-j-text-tertiary">
