@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { createClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/app-shell";
+import type { Language } from "@/lib/translations";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,11 +34,28 @@ export const metadata: Metadata = {
   description: "Validate real understanding of complex papers, books, and concepts through AI-generated evaluations.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Detect user language for voice overlay
+  let language: Language = 'es';
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('language')
+        .eq('id', user.id)
+        .single();
+      language = (profile?.language || 'es') as Language;
+    }
+  } catch {
+    // Not authenticated or DB error — default to 'es'
+  }
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -57,9 +77,11 @@ export default function RootLayout({
         >
           Saltar al contenido principal
         </a>
-        <main id="main-content">
-          {children}
-        </main>
+        <AppShell language={language}>
+          <main id="main-content">
+            {children}
+          </main>
+        </AppShell>
         <Toaster
           position="bottom-right"
           toastOptions={{
