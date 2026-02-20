@@ -74,14 +74,14 @@ export const ENTITY_STATES = {
     accentColor: WARM_MID,
     fontSize: 12,
   },
-  /** Hover — contemplative, slows down to listen */
+  /** Hover — gentle awareness, slightly warmer, subtle cursor response */
   hover: {
-    majorRadius: 0.10,
-    minorRadius: 0.05,
-    rotSpeedA: 0.04,
-    rotSpeedB: 0.02,
+    majorRadius: 0.09,
+    minorRadius: 0.045,
+    rotSpeedA: 0.10,
+    rotSpeedB: 0.05,
     thetaStep: 0.06,
-    phiStep: 0.02,
+    phiStep: 0.018,
     charOpacity: 0.55,
     glowOpacity: 0.30,
     color: WARM_MID,
@@ -98,10 +98,12 @@ export type EntityState = keyof typeof ENTITY_STATES;
 
 export const IDLE_FPS = 30;
 export const FRAME_INTERVAL = 1000 / IDLE_FPS;
-/** Lerp speed for hover transitions */
+/** Lerp speed for normal transitions (hover→idle, etc.) */
 export const LERP_SPEED = 2.5;
 /** Slower lerp for intro → idle shrink (seconds to ~settle) */
 export const INTRO_LERP_SPEED = 0.8;
+/** Very gentle lerp for idle → hover (~4s to settle) */
+export const HOVER_LERP_SPEED = 0.4;
 /** How long the intro plays at full size before shrinking (seconds) */
 export const INTRO_HOLD_DURATION = 2.0;
 export const MINI_SIZE = 44;

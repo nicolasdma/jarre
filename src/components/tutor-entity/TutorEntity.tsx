@@ -6,11 +6,12 @@ import {
   FRAME_INTERVAL,
   LERP_SPEED,
   INTRO_LERP_SPEED,
+  HOVER_LERP_SPEED,
   INTRO_HOLD_DURATION,
   type EntityStateParams,
 } from './entity-constants';
 import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
-import { getCurrentGeometryName, setContemplativeMode } from './geometries';
+import { getCurrentGeometryName } from './geometries';
 
 interface TutorEntityProps {
   onStartVoice: () => void;
@@ -47,6 +48,7 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
   const sizeRef = useRef({ w: 0, h: 0 });
   const [hovered, setHovered] = useState(false);
   const [debugName, setDebugName] = useState('');
+  const mouseRef = useRef<{ x: number; y: number } | null>(null);
   const introPhaseRef = useRef(true);
   const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.intro });
 
@@ -91,8 +93,8 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
       }
     } else {
       target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
-      // Slow transition into hover (contemplation), normal speed out
-      speed = hovered ? INTRO_LERP_SPEED : LERP_SPEED;
+      // Gentle transition into hover, normal speed out
+      speed = hovered ? HOVER_LERP_SPEED : LERP_SPEED;
     }
 
     const lerpT = Math.min(1, speed * dt);
@@ -101,9 +103,10 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
     const { w, h } = sizeRef.current;
 
     // Compute geometry ONCE, paint to BOTH canvases
+    const focal = mouseRef.current;
     computeEntityFrame(w, h, currentParamsRef.current, timeRef.current);
-    paintEntityFrame(glowCtx, w, h, currentParamsRef.current);
-    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current);
+    paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
+    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
 
     // Debug: update geometry name label
     setDebugName(getCurrentGeometryName());
@@ -163,8 +166,16 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
       className={`relative w-full h-full cursor-pointer transition-opacity duration-500 ${
         hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
-      onMouseEnter={() => { setHovered(true); setContemplativeMode(true); }}
-      onMouseLeave={() => { setHovered(false); setContemplativeMode(false); }}
+      onMouseEnter={() => { setHovered(true); }}
+      onMouseMove={(e) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        mouseRef.current = {
+          x: (e.clientX - rect.left) / rect.width,
+          y: (e.clientY - rect.top) / rect.height,
+        };
+      }}
+      onMouseLeave={() => { setHovered(false); mouseRef.current = null; }}
       onClick={onStartVoice}
       role="button"
       tabIndex={0}
