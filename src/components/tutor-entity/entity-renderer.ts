@@ -257,6 +257,7 @@ export function paintEntityFrame(
   width: number,
   height: number,
   params: EntityStateParams,
+  focalPoint?: { x: number; y: number } | null,
 ): void {
   ctx.clearRect(0, 0, width, height);
   if (!_frameValid) return;
@@ -275,6 +276,11 @@ export function paintEntityFrame(
   const [ar, ag, ab] = params.accentColor;
   const charOpacity = params.charOpacity;
 
+  // Precompute focal point availability
+  const hasFocal = focalPoint != null;
+  const fx = hasFocal ? focalPoint!.x : 0;
+  const fy = hasFocal ? focalPoint!.y : 0;
+
   for (let row = 0; row < rows; row++) {
     const rowOffset = row * cols;
     const cy = row * charH + charH * 0.5;
@@ -291,10 +297,21 @@ export function paintEntityFrame(
         ? SURFACE_GLYPHS[gi]
         : LUMINANCE_CHARS[Math.min(lumIndex, maxLum)];
 
-      const normalized = lumIndex / maxLum;
-      const opacity = charOpacity * (0.35 + 0.65 * normalized);
+      // Focal boost: soft Gaussian halo centered on cursor
+      let focalBoost = 1.0;
+      if (hasFocal) {
+        const dx = (col / cols) - fx;
+        const dy = (row / rows) - fy;
+        const dist2 = dx * dx + dy * dy;
+        // Gentle peak ~1.5x at cursor, wide falloff (~40% of canvas)
+        focalBoost = 1.0 + 0.5 * Math.exp(-dist2 * 8);
+      }
 
-      const blend = normalized * normalized;
+      const normalized = lumIndex / maxLum;
+      const boostedNorm = Math.min(1, normalized * focalBoost);
+      const opacity = charOpacity * (0.35 + 0.65 * boostedNorm);
+
+      const blend = boostedNorm * boostedNorm;
       const r = (cr + (ar - cr) * blend + 0.5) | 0;
       const g = (cg + (ag - cg) * blend + 0.5) | 0;
       const b = (cb + (ab - cb) * blend + 0.5) | 0;
@@ -315,9 +332,10 @@ export function renderEntityFrame(
   height: number,
   params: EntityStateParams,
   time: number,
+  focalPoint?: { x: number; y: number } | null,
 ): void {
   computeEntityFrame(width, height, params, time);
-  paintEntityFrame(ctx, width, height, params);
+  paintEntityFrame(ctx, width, height, params, focalPoint);
 }
 
 // ---------------------------------------------------------------------------
