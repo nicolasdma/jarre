@@ -97,6 +97,31 @@ Generar contenido directamente (no hay traduccion de PDF):
 - Contenido de nivel postgrado, con formulas, datos especificos, contexto historico
 - Tono de libro de texto tecnico, no tutorial basico
 
+### Para articulos web / blog posts
+
+Traducir fielmente el articulo original al espanol:
+- **Fetch completo** del articulo via WebFetch antes de escribir cualquier contenido
+- **Traduccion fiel**, NO resumen ni generacion libre. Preservar estructura, argumentos y nivel de detalle del original
+- Preservar TODAS las formulas, numeros especificos, benchmarks y referencias academicas [Autor et al., Año]
+- Preservar TODAS las figuras: descargar a `public/figures/{slug}/` y referenciar como `![caption](/figures/{slug}/filename.png)`
+- Resegmentar en 4-6 secciones tematicas, minimo 6000 caracteres cada una
+- El componente `section-content.tsx` renderiza `![alt](src)` como `<figure>` + `<figcaption>` automaticamente
+
+### ANTI-PATRON: Resumenes
+
+**NUNCA** generar resumenes inventados como contenido de secciones. El contenido debe ser una traduccion fiel del material fuente, no una interpretacion libre. Especificamente:
+- NO inventar datos, numeros o cifras no presentes en el original
+- NO omitir figuras, formulas o referencias del original
+- NO simplificar el nivel tecnico del material
+- NO agregar ejemplos de modelos posteriores al articulo (e.g., no mencionar GPT-4 en un articulo de 2021)
+
+### Manejo de figuras para articulos
+
+1. Crear directorio: `mkdir -p public/figures/{slug}/`
+2. Descargar todas las figuras del articulo original con `curl`
+3. Referenciar en el markdown como: `![Fig N. Caption descriptivo. (Fuente: Autor, Año)](/figures/{slug}/filename.png)`
+4. El alt text se usa como figcaption — hacerlo descriptivo
+
 ### Criterios de calidad por seccion
 - **6,000-12,000 caracteres** de markdown
 - Comienza con `**{Titulo de la seccion}**` en bold
