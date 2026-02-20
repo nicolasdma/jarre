@@ -483,7 +483,7 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
-  'tail-scale-paper': [
+  'tail-at-scale-paper': [
     {
       type: 'why',
       question:

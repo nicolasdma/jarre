@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { SectionLabel } from '@/components/ui/section-label';
 import { t, type Language } from '@/lib/translations';
 import type { PracticeEvalState, PracticeEvalAnswer } from '@/lib/learn-progress';
@@ -85,6 +85,164 @@ const TYPE_BADGE_CONFIG: Record<string, { label: string; className: string }> = 
 };
 
 // ============================================================================
+// Memoized question card — isolates input state per question
+// ============================================================================
+
+interface QuestionCardProps {
+  question: BankQuestion;
+  language: Language;
+  scaffoldLevel: 1 | 2 | 3;
+  savedAnswer?: PracticeEvalAnswer;
+  isEvaluating: boolean;
+  onSubmit: (questionId: string, answer: string) => void;
+}
+
+const QuestionCard = memo(function QuestionCard({
+  question: q,
+  language,
+  scaffoldLevel,
+  savedAnswer,
+  isEvaluating,
+  onSubmit,
+}: QuestionCardProps) {
+  const [input, setInput] = useState('');
+  const badge = TYPE_BADGE_CONFIG[q.type];
+
+  const handleSubmit = useCallback(() => {
+    if (input.trim()) onSubmit(q.questionId, input.trim());
+  }, [input, onSubmit, q.questionId]);
+
+  return (
+    <div className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-warm p-6">
+      {/* Type badge + concept */}
+      <div className="flex items-center gap-2 mb-3">
+        {badge && (
+          <span className={`font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border ${badge.className}`}>
+            {badge.label}
+          </span>
+        )}
+        <span className="font-mono text-[9px] text-j-text-tertiary">
+          {q.conceptName}
+        </span>
+      </div>
+
+      {/* Question */}
+      <p className="text-sm text-j-text leading-relaxed mb-4">
+        {q.questionText}
+      </p>
+
+      {/* Scaffold: dimension hints (level 1) */}
+      {scaffoldLevel === 1 && !savedAnswer && DIMENSION_HINTS[q.type] && (
+        <div className="border border-j-warm/30 bg-j-warm/5 p-3 mb-4">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase mb-1">
+            {language === 'es' ? 'Pista' : 'Hint'}
+          </p>
+          <p className="text-xs text-j-text-secondary leading-relaxed">
+            {DIMENSION_HINTS[q.type][language]}
+          </p>
+        </div>
+      )}
+
+      {/* Scaffold: rubric visible (level 2) */}
+      {scaffoldLevel === 2 && !savedAnswer && (
+        <div className="border border-j-border p-3 mb-4 bg-j-bg-white">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
+            {language === 'es' ? 'Dimensiones de evaluación' : 'Evaluation dimensions'}
+          </p>
+          <p className="text-xs text-j-text-secondary">
+            {DIMENSION_HINTS[q.type]?.[language] ?? (
+              language === 'es'
+                ? 'Precisión, completitud, y profundidad.'
+                : 'Precision, completeness, and depth.'
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Result display */}
+      {savedAnswer && (
+        <div className="space-y-3 mb-4">
+          {savedAnswer.dimensionScores && (
+            <div className="flex gap-3">
+              {Object.entries(savedAnswer.dimensionScores).map(([key, value]) => (
+                <div key={key} className="flex items-center gap-1">
+                  <span className="font-mono text-[9px] text-j-text-tertiary uppercase">{key}</span>
+                  <span className="text-[10px]">
+                    {[0, 1].map((dotIndex) => (
+                      <span
+                        key={dotIndex}
+                        className={dotIndex < (value ?? 0) ? 'text-j-accent' : 'text-j-border-input'}
+                      >
+                        {dotIndex < (value ?? 0) ? '●' : '○'}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+                savedAnswer.isCorrect ? 'text-j-accent' : 'text-j-error'
+              }`}
+            >
+              {savedAnswer.score}% · {savedAnswer.isCorrect
+                ? (language === 'es' ? 'Bien hecho' : 'Well done')
+                : (language === 'es' ? 'Aún no' : 'Not yet')}
+            </span>
+          </div>
+
+          {savedAnswer.feedback && (
+            <p className="text-sm text-j-text-secondary leading-relaxed">
+              {savedAnswer.feedback}
+            </p>
+          )}
+
+          <div className="border border-j-border p-3 bg-j-bg-white">
+            <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+              {language === 'es' ? 'Tu respuesta' : 'Your answer'}
+            </p>
+            <p className="text-sm text-j-text">{savedAnswer.userAnswer}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Input area */}
+      {!savedAnswer && (
+        <div className="space-y-3">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
+            }
+            rows={4}
+            className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.metaKey) handleSubmit();
+            }}
+          />
+
+          <button
+            onClick={handleSubmit}
+            disabled={!input.trim() || isEvaluating}
+            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+          >
+            {isEvaluating
+              ? (language === 'es' ? 'Evaluando...' : 'Evaluating...')
+              : (language === 'es' ? 'Verificar' : 'Verify')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
+
+QuestionCard.displayName = 'QuestionCard';
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -102,7 +260,6 @@ export function PracticeEvalStep({
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inputs, setInputs] = useState<Record<string, string>>({});
   const [evaluating, setEvaluating] = useState<Set<string>>(new Set());
 
   const scaffoldLevel = evalState.currentScaffoldLevel;
@@ -152,8 +309,7 @@ export function PracticeEvalStep({
   );
 
   const handleSubmit = useCallback(
-    async (questionId: string) => {
-      const answer = inputs[questionId]?.trim();
+    async (questionId: string, answer: string) => {
       if (!answer) return;
 
       setEvaluating((prev) => new Set(prev).add(questionId));
@@ -196,7 +352,7 @@ export function PracticeEvalStep({
         });
       }
     },
-    [inputs, evalState, scaffoldLevel, updateState]
+    [evalState, scaffoldLevel, updateState]
   );
 
   const answeredCount = Object.keys(evalState.answers).length;
@@ -280,145 +436,17 @@ export function PracticeEvalStep({
 
       {/* Questions */}
       <div className="space-y-8">
-        {questions.map((q) => {
-          const savedAnswer = evalState.answers[q.questionId];
-          const isEvaluating = evaluating.has(q.questionId);
-          const badge = TYPE_BADGE_CONFIG[q.type];
-
-          return (
-            <div
-              key={q.questionId}
-              className="bg-j-bg-alt border border-j-border border-l-2 border-l-j-warm p-6"
-            >
-              {/* Type badge + concept */}
-              <div className="flex items-center gap-2 mb-3">
-                {badge && (
-                  <span className={`font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border ${badge.className}`}>
-                    {badge.label}
-                  </span>
-                )}
-                <span className="font-mono text-[9px] text-j-text-tertiary">
-                  {q.conceptName}
-                </span>
-              </div>
-
-              {/* Question */}
-              <p className="text-sm text-j-text leading-relaxed mb-4">
-                {q.questionText}
-              </p>
-
-              {/* Scaffold: dimension hints (level 1) */}
-              {scaffoldLevel === 1 && !savedAnswer && DIMENSION_HINTS[q.type] && (
-                <div className="border border-j-warm/30 bg-j-warm/5 p-3 mb-4">
-                  <p className="font-mono text-[9px] tracking-[0.15em] text-j-warm uppercase mb-1">
-                    {language === 'es' ? 'Pista' : 'Hint'}
-                  </p>
-                  <p className="text-xs text-j-text-secondary leading-relaxed">
-                    {DIMENSION_HINTS[q.type][language]}
-                  </p>
-                </div>
-              )}
-
-              {/* Scaffold: rubric visible (level 2) */}
-              {scaffoldLevel === 2 && !savedAnswer && (
-                <div className="border border-j-border p-3 mb-4 bg-j-bg-white">
-                  <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
-                    {language === 'es' ? 'Dimensiones de evaluación' : 'Evaluation dimensions'}
-                  </p>
-                  <p className="text-xs text-j-text-secondary">
-                    {DIMENSION_HINTS[q.type]?.[language] ?? (
-                      language === 'es'
-                        ? 'Precisión, completitud, y profundidad.'
-                        : 'Precision, completeness, and depth.'
-                    )}
-                  </p>
-                </div>
-              )}
-
-              {/* Result display */}
-              {savedAnswer && (
-                <div className="space-y-3 mb-4">
-                  {savedAnswer.dimensionScores && (
-                    <div className="flex gap-3">
-                      {Object.entries(savedAnswer.dimensionScores).map(([key, value]) => (
-                        <div key={key} className="flex items-center gap-1">
-                          <span className="font-mono text-[9px] text-j-text-tertiary uppercase">{key}</span>
-                          <span className="text-[10px]">
-                            {[0, 1].map((dotIndex) => (
-                              <span
-                                key={dotIndex}
-                                className={dotIndex < (value ?? 0) ? 'text-j-accent' : 'text-j-border-input'}
-                              >
-                                {dotIndex < (value ?? 0) ? '●' : '○'}
-                              </span>
-                            ))}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
-                        savedAnswer.isCorrect ? 'text-j-accent' : 'text-j-error'
-                      }`}
-                    >
-                      {savedAnswer.score}% · {savedAnswer.isCorrect
-                        ? (language === 'es' ? 'Bien hecho' : 'Well done')
-                        : (language === 'es' ? 'Aún no' : 'Not yet')}
-                    </span>
-                  </div>
-
-                  {savedAnswer.feedback && (
-                    <p className="text-sm text-j-text-secondary leading-relaxed">
-                      {savedAnswer.feedback}
-                    </p>
-                  )}
-
-                  <div className="border border-j-border p-3 bg-j-bg-white">
-                    <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
-                      {language === 'es' ? 'Tu respuesta' : 'Your answer'}
-                    </p>
-                    <p className="text-sm text-j-text">{savedAnswer.userAnswer}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Input area */}
-              {!savedAnswer && (
-                <div className="space-y-3">
-                  <textarea
-                    value={inputs[q.questionId] ?? ''}
-                    onChange={(e) =>
-                      setInputs((prev) => ({ ...prev, [q.questionId]: e.target.value }))
-                    }
-                    placeholder={
-                      language === 'es' ? 'Escribe tu respuesta...' : 'Write your answer...'
-                    }
-                    rows={4}
-                    className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.metaKey) {
-                        handleSubmit(q.questionId);
-                      }
-                    }}
-                  />
-
-                  <button
-                    onClick={() => handleSubmit(q.questionId)}
-                    disabled={!inputs[q.questionId]?.trim() || isEvaluating}
-                    className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
-                  >
-                    {isEvaluating
-                      ? (language === 'es' ? 'Evaluando...' : 'Evaluating...')
-                      : (language === 'es' ? 'Verificar' : 'Verify')}
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {questions.map((q) => (
+          <QuestionCard
+            key={q.questionId}
+            question={q}
+            language={language}
+            scaffoldLevel={scaffoldLevel}
+            savedAnswer={evalState.answers[q.questionId]}
+            isEvaluating={evaluating.has(q.questionId)}
+            onSubmit={handleSubmit}
+          />
+        ))}
       </div>
 
       {/* Summary + CTA */}

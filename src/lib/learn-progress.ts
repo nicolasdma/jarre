@@ -71,18 +71,24 @@ export interface LearnProgress {
 // ============================================================================
 
 /**
- * Persists learn progress to the server. Fire-and-forget: failures are
- * logged but don't block the UI.
+ * Persists learn progress to the server. Debounced (1s) fire-and-forget:
+ * rapid state changes coalesce into a single POST.
  */
+let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function saveLearnProgress(
   resourceId: string,
   progress: LearnProgress
 ): void {
-  fetch('/api/learn/progress', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resourceId, ...progress }),
-  }).catch((err) => {
-    console.error('[Learn/Progress] Failed to save:', err);
-  });
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveTimer = null;
+    fetch('/api/learn/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resourceId, ...progress }),
+    }).catch((err) => {
+      console.error('[Learn/Progress] Failed to save:', err);
+    });
+  }, 1000);
 }

@@ -13,8 +13,11 @@
  * - Score is NOT saved to evaluations
  */
 
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { useVoicePracticeSession, type VoicePracticeState } from './use-voice-practice-session';
+import { useEffect, useCallback, useState } from 'react';
+import { useUnifiedVoiceSession } from './use-unified-voice-session';
+import { TutorGlow } from './tutor-glow';
+import { TranscriptLine } from './transcript-line';
+import { useAudioLevel } from './use-audio-level';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Language } from '@/lib/translations';
 
@@ -45,79 +48,6 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// ============================================================================
-// Waveform visualizer
-// ============================================================================
-
-function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const BAR_COUNT = 32;
-    const BAR_WIDTH = 3;
-    const GAP = 3;
-    const MAX_HEIGHT = 40;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < BAR_COUNT; i++) {
-        let height: number;
-        let color: string;
-
-        switch (state) {
-          case 'speaking':
-            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
-            color = 'var(--j-accent, #6b7280)';
-            break;
-          case 'listening':
-            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
-            color = 'var(--j-warm, #d97706)';
-            break;
-          case 'thinking':
-            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
-            color = 'var(--j-text-tertiary, #9ca3af)';
-            break;
-          default:
-            height = 3;
-            color = 'var(--j-border, #e5e7eb)';
-        }
-
-        const x = i * (BAR_WIDTH + GAP);
-        const y = (canvas.height - height) / 2;
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
-        ctx.fill();
-      }
-
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [state]);
-
-  const totalWidth = 32 * 3 + 31 * 3;
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={totalWidth}
-      height={48}
-      className="mx-auto"
-    />
-  );
 }
 
 // ============================================================================
@@ -253,38 +183,35 @@ export function VoicePracticeFlow({
   onSwitchToText,
   onReviewMaterial,
 }: Props) {
-  const {
-    practiceState,
-    tutorState,
-    error,
-    elapsed,
-    practiceResult,
-    connect,
-    disconnect,
-    retryScoring,
-  } = useVoicePracticeSession({
-    resourceId,
-    concepts,
+  const session = useUnifiedVoiceSession({
+    mode: 'practice',
     language,
+    resourceId,
+    concepts: concepts.map((c) => ({ id: c.id, name: c.name, definition: c.canonical_definition })),
   });
 
+  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const practiceResult = result?.mode === 'practice' ? result.practiceResult : null;
+  const audioLevel = useAudioLevel(stream);
+  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
+
   const handleDisconnect = useCallback(() => {
-    disconnect();
-  }, [disconnect]);
+    session.stop();
+  }, [session]);
 
   // Keyboard shortcut: Escape to disconnect during session
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && practiceState === 'practicing') {
+      if (e.key === 'Escape' && state === 'active') {
         handleDisconnect();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [practiceState, handleDisconnect]);
+  }, [state, handleDisconnect]);
 
   // ---- INTRO ----
-  if (practiceState === 'idle') {
+  if (state === 'idle') {
     return (
       <div>
         <SectionLabel className="mb-8">
@@ -323,7 +250,7 @@ export function VoicePracticeFlow({
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={connect}
+            onClick={session.start}
             className="group relative w-16 h-16 flex items-center justify-center rounded-full bg-j-warm text-white hover:bg-j-warm/90 transition-all duration-300"
             aria-label={t('startPractice', language)}
           >
@@ -357,7 +284,7 @@ export function VoicePracticeFlow({
   }
 
   // ---- CONNECTING ----
-  if (practiceState === 'connecting') {
+  if (state === 'connecting') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <div className="w-16 h-16 flex items-center justify-center rounded-full bg-j-warm text-white opacity-50">
@@ -373,7 +300,7 @@ export function VoicePracticeFlow({
   }
 
   // ---- SESSION (practicing) ----
-  if (practiceState === 'practicing') {
+  if (state === 'active') {
     const statusLabel = (() => {
       switch (tutorState) {
         case 'listening': return t('yourTurn', language);
@@ -383,11 +310,17 @@ export function VoicePracticeFlow({
       }
     })();
 
+    const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+
     return (
       <div className="flex flex-col items-center py-8">
-        <WaveformVisualizer state={tutorState} />
-
-        <div className="flex items-center gap-3 mt-4 mb-5">
+        <div className="flex items-center gap-3 mb-5">
+          <div className={`w-2 h-2 rounded-full ${
+            tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
+            tutorState === 'listening' ? 'bg-j-warm' :
+            tutorState === 'thinking' ? 'bg-j-text-tertiary animate-pulse' :
+            'bg-j-border'
+          }`} />
           <span className={`font-mono text-[10px] tracking-[0.1em] ${
             tutorState === 'speaking'
               ? 'text-j-accent'
@@ -429,12 +362,25 @@ export function VoicePracticeFlow({
         {error && (
           <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
         )}
+
+        {/* Transcript line */}
+        <div className="w-full max-w-md mt-6">
+          <TranscriptLine
+            lastLine={lastLine}
+            fullTranscript={transcript}
+            expanded={transcriptExpanded}
+            onToggle={() => setTranscriptExpanded(prev => !prev)}
+          />
+        </div>
+
+        {/* Ambient glow */}
+        <TutorGlow state={tutorState} audioLevel={audioLevel} />
       </div>
     );
   }
 
   // ---- SCORING ----
-  if (practiceState === 'scoring') {
+  if (state === 'scoring') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <div className="h-5 w-5 border-2 border-j-border border-t-j-warm rounded-full animate-spin" />
@@ -445,7 +391,7 @@ export function VoicePracticeFlow({
   }
 
   // ---- ERROR ----
-  if (practiceState === 'error') {
+  if (state === 'error') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <p className="text-sm text-j-error">{error}</p>
@@ -457,7 +403,7 @@ export function VoicePracticeFlow({
         <div className="flex gap-4">
           <button
             type="button"
-            onClick={retryScoring}
+            onClick={session.retryPostProcess}
             className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
           >
             {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
@@ -475,7 +421,7 @@ export function VoicePracticeFlow({
   }
 
   // ---- RESULTS ----
-  if (practiceState === 'done' && practiceResult) {
+  if (state === 'done' && practiceResult) {
     const passed = practiceResult.passedGate;
 
     return (
@@ -581,7 +527,7 @@ export function VoicePracticeFlow({
           ) : (
             <>
               <button
-                onClick={connect}
+                onClick={session.start}
                 className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
               >
                 {t('practiceAgain', language)}

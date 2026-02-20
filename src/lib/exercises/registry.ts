@@ -10,6 +10,7 @@ import { ch6Exercises } from '@/data/exercises/ddia-ch6-exercises';
 import { ch9Exercises } from '@/data/exercises/ddia-ch9-exercises';
 import { agentSandboxPatternsExercises } from '@/data/exercises/agent-sandbox-patterns-exercises';
 import { clawvaultExercises } from '@/data/exercises/clawvault-agent-memory-exercises';
+import { tailAtScaleExercises } from '@/data/exercises/tail-at-scale-paper-exercises';
 
 /** All registered exercises */
 const ALL_EXERCISES: Exercise[] = [
@@ -18,6 +19,7 @@ const ALL_EXERCISES: Exercise[] = [
   ...ch9Exercises,
   ...agentSandboxPatternsExercises,
   ...clawvaultExercises,
+  ...tailAtScaleExercises,
 ];
 
 /** Index by concept ID */

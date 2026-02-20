@@ -10,7 +10,14 @@
  * - VAD and interruption are handled server-side by Gemini
  */
 
-import { GoogleGenAI, Modality, type Session } from '@google/genai';
+import {
+  GoogleGenAI,
+  Modality,
+  type Session,
+  type Tool,
+  type FunctionCall,
+  type FunctionResponse,
+} from '@google/genai';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('GeminiLive');
@@ -24,6 +31,7 @@ interface GeminiLiveConfig {
   systemInstruction: string;
   voiceName?: string;
   resumptionHandle?: string;
+  tools?: Tool[];
 }
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
@@ -39,6 +47,8 @@ interface GeminiLiveCallbacks {
   onReconnectNeeded?: (attempt: number) => void;
   onGoAway?: (timeLeftMs: number) => void;
   onResumptionUpdate?: (handle: string, resumable: boolean, lastIndex?: string) => void;
+  onToolCall?: (functionCalls: FunctionCall[]) => void;
+  onToolCallCancellation?: (cancelledIds: string[]) => void;
 }
 
 // ============================================================================
@@ -79,7 +89,10 @@ function parseTimeLeft(timeStr: string): number {
 // ============================================================================
 
 const MAX_RETRIES = 3;
-const RETRYABLE_CLOSE_CODES = new Set([1006, 1011, 1012, 1013]);
+// Codes where retrying is pointless (structural/permanent errors).
+// Everything else triggers reconnection — safer than a whitelist since
+// unexpected codes (like 1008 from Gemini context limits) get retried by default.
+const NON_RETRYABLE_CLOSE_CODES = new Set([1000, 1002, 1003, 1007, 1009, 1010]);
 
 export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   let session: Session | null = null;
@@ -118,6 +131,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             systemInstruction: {
               parts: [{ text: config.systemInstruction }],
             },
+            ...(config.tools ? { tools: config.tools } : {}),
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             ...(config.resumptionHandle ? {
@@ -202,6 +216,24 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 callbacks.onGoAway(timeLeft);
               }
 
+              // Tool calls from model
+              if (msg.toolCall && callbacks.onToolCall) {
+                const toolCall = msg.toolCall as Record<string, unknown>;
+                const functionCalls = toolCall.functionCalls as FunctionCall[] | undefined;
+                if (functionCalls?.length) {
+                  callbacks.onToolCall(functionCalls);
+                }
+              }
+
+              // Tool call cancellation
+              if (msg.toolCallCancellation && callbacks.onToolCallCancellation) {
+                const cancellation = msg.toolCallCancellation as Record<string, unknown>;
+                const ids = cancellation.ids as string[] | undefined;
+                if (ids?.length) {
+                  callbacks.onToolCallCancellation(ids);
+                }
+              }
+
               // Session resumption update: new handle available
               if (msg.sessionResumptionUpdate && callbacks.onResumptionUpdate) {
                 const update = msg.sessionResumptionUpdate as Record<string, unknown>;
@@ -237,9 +269,9 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 ? `code=${event.code} reason=${event.reason}`
                 : String(event);
 
-              // Check if this is a retryable disconnect
+              // Retry unless the close code indicates a permanent/structural error
               if (
-                RETRYABLE_CLOSE_CODES.has(closeCode) &&
+                !NON_RETRYABLE_CLOSE_CODES.has(closeCode) &&
                 retryCount < MAX_RETRIES &&
                 callbacks.onReconnectNeeded
               ) {
@@ -302,6 +334,17 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
         });
       } catch (err) {
         log.error('Failed to send audio:', err);
+      }
+    },
+
+    /** Send tool responses back to Gemini after processing tool calls */
+    sendToolResponse(responses: FunctionResponse[]) {
+      if (!session || state !== 'connected') return;
+
+      try {
+        session.sendToolResponse({ functionResponses: responses });
+      } catch (err) {
+        log.error('Failed to send tool response:', err);
       }
     },
 

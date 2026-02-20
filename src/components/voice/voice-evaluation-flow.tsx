@@ -9,10 +9,13 @@
  * Same props as EvaluationFlow for drop-in replacement.
  */
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useVoiceEvalSession, type VoiceEvalState } from './use-voice-eval-session';
+import { useUnifiedVoiceSession } from './use-unified-voice-session';
+import { TutorGlow } from './tutor-glow';
+import { TranscriptLine } from './transcript-line';
+import { useAudioLevel } from './use-audio-level';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Language } from '@/lib/translations';
 
@@ -50,79 +53,6 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// ============================================================================
-// Waveform visualizer (reused from voice-panel)
-// ============================================================================
-
-function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const BAR_COUNT = 32;
-    const BAR_WIDTH = 3;
-    const GAP = 3;
-    const MAX_HEIGHT = 40;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < BAR_COUNT; i++) {
-        let height: number;
-        let color: string;
-
-        switch (state) {
-          case 'speaking':
-            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
-            color = 'var(--j-accent, #6b7280)';
-            break;
-          case 'listening':
-            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
-            color = 'var(--j-warm, #d97706)';
-            break;
-          case 'thinking':
-            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
-            color = 'var(--j-text-tertiary, #9ca3af)';
-            break;
-          default:
-            height = 3;
-            color = 'var(--j-border, #e5e7eb)';
-        }
-
-        const x = i * (BAR_WIDTH + GAP);
-        const y = (canvas.height - height) / 2;
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
-        ctx.fill();
-      }
-
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [state]);
-
-  const totalWidth = 32 * 3 + 31 * 3;
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={totalWidth}
-      height={48}
-      className="mx-auto"
-    />
-  );
 }
 
 // ============================================================================
@@ -330,48 +260,45 @@ export function VoiceEvaluationFlow({
 }: Props) {
   const router = useRouter();
 
-  const {
-    evalState,
-    tutorState,
-    error,
-    elapsed,
-    evaluationResult,
-    connect,
-    disconnect,
-    retryScoring,
-  } = useVoiceEvalSession({
-    resourceId: resource.id,
-    concepts,
+  const session = useUnifiedVoiceSession({
+    mode: 'eval',
     language,
+    resourceId: resource.id,
+    concepts: concepts.map((c) => ({ id: c.id, name: c.name, definition: c.canonical_definition })),
   });
+
+  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const evaluationResult = result?.mode === 'eval' ? result.evaluationResult : null;
+  const audioLevel = useAudioLevel(stream);
+  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
   // Keyboard shortcut: Escape to disconnect during session
   const handleDisconnect = useCallback(() => {
-    disconnect();
-  }, [disconnect]);
+    session.stop();
+  }, [session]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && evalState === 'conversing') {
+      if (e.key === 'Escape' && state === 'active') {
         handleDisconnect();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [evalState, handleDisconnect]);
+  }, [state, handleDisconnect]);
 
   // Toast on completion
   useEffect(() => {
-    if (evalState === 'done' && evaluationResult?.saved) {
+    if (state === 'done' && evaluationResult?.saved) {
       toast.success(language === 'es' ? 'Evaluacion guardada' : 'Evaluation saved');
       if (evaluationResult.overallScore >= 80) {
         toast.success('+ 30 XP por evaluacion oral');
       }
     }
-  }, [evalState, evaluationResult, language]);
+  }, [state, evaluationResult, language]);
 
   // ---- INTRO ----
-  if (evalState === 'idle') {
+  if (state === 'idle') {
     return (
       <div>
         <SectionLabel className="mb-8">
@@ -409,7 +336,7 @@ export function VoiceEvaluationFlow({
           {/* Mic button */}
           <button
             type="button"
-            onClick={connect}
+            onClick={session.start}
             className="group relative w-16 h-16 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-all duration-300"
             aria-label={t('startEval', language)}
           >
@@ -454,7 +381,7 @@ export function VoiceEvaluationFlow({
   }
 
   // ---- CONNECTING ----
-  if (evalState === 'connecting') {
+  if (state === 'connecting') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <div className="w-16 h-16 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent opacity-50">
@@ -470,7 +397,7 @@ export function VoiceEvaluationFlow({
   }
 
   // ---- SESSION (conversing) ----
-  if (evalState === 'conversing') {
+  if (state === 'active') {
     const statusLabel = (() => {
       switch (tutorState) {
         case 'listening': return t('yourTurn', language);
@@ -480,11 +407,17 @@ export function VoiceEvaluationFlow({
       }
     })();
 
+    const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+
     return (
       <div className="flex flex-col items-center py-8">
-        <WaveformVisualizer state={tutorState} />
-
-        <div className="flex items-center gap-3 mt-4 mb-5">
+        <div className="flex items-center gap-3 mb-5">
+          <div className={`w-2 h-2 rounded-full ${
+            tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
+            tutorState === 'listening' ? 'bg-j-warm' :
+            tutorState === 'thinking' ? 'bg-j-text-tertiary animate-pulse' :
+            'bg-j-border'
+          }`} />
           <span className={`font-mono text-[10px] tracking-[0.1em] ${
             tutorState === 'speaking'
               ? 'text-j-accent'
@@ -500,7 +433,7 @@ export function VoiceEvaluationFlow({
           </span>
         </div>
 
-        {/* Progress indicator: time remaining */}
+        {/* Progress indicator: time remaining (600s = 10min) */}
         <div className="w-48 h-1 bg-j-border rounded-full mb-6 overflow-hidden">
           <div
             className="h-full bg-j-accent rounded-full transition-all duration-1000"
@@ -527,12 +460,25 @@ export function VoiceEvaluationFlow({
         {error && (
           <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
         )}
+
+        {/* Transcript line */}
+        <div className="w-full max-w-md mt-6">
+          <TranscriptLine
+            lastLine={lastLine}
+            fullTranscript={transcript}
+            expanded={transcriptExpanded}
+            onToggle={() => setTranscriptExpanded(prev => !prev)}
+          />
+        </div>
+
+        {/* Ambient glow */}
+        <TutorGlow state={tutorState} audioLevel={audioLevel} />
       </div>
     );
   }
 
   // ---- SCORING ----
-  if (evalState === 'scoring') {
+  if (state === 'scoring') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <div className="h-5 w-5 border-2 border-j-border border-t-j-accent rounded-full animate-spin" />
@@ -543,7 +489,7 @@ export function VoiceEvaluationFlow({
   }
 
   // ---- ERROR (scoring failed) ----
-  if (evalState === 'error') {
+  if (state === 'error') {
     return (
       <div className="py-16 flex flex-col items-center gap-4">
         <p className="text-sm text-j-error">{error}</p>
@@ -555,7 +501,7 @@ export function VoiceEvaluationFlow({
         <div className="flex gap-4">
           <button
             type="button"
-            onClick={retryScoring}
+            onClick={session.retryPostProcess}
             className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
           >
             {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
@@ -575,7 +521,7 @@ export function VoiceEvaluationFlow({
   }
 
   // ---- RESULTS ----
-  if (evalState === 'done' && evaluationResult) {
+  if (state === 'done' && evaluationResult) {
     const isHighScore = evaluationResult.overallScore >= 80;
     const isLowScore = evaluationResult.overallScore < 60;
     const hasConsolidation = evaluationResult.consolidation && evaluationResult.consolidation.length > 0;
