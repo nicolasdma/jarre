@@ -166,6 +166,8 @@ export interface UnifiedVoiceSession {
   transcript: TranscriptEntry[];
   /** Mic MediaStream for audio level analysis */
   stream: MediaStream | null;
+  /** AnalyserNode for tutor playback audio frequency data */
+  playbackAnalyser: AnalyserNode | null;
 
   start: () => Promise<void>;
   stop: () => void;
@@ -692,6 +694,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     result,
     transcript: voiceSession.transcript,
     stream: voiceSession.stream,
+    playbackAnalyser: voiceSession.playbackAnalyser,
     start,
     stop,
     retryPostProcess,

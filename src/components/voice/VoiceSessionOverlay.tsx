@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Mic } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useUnifiedVoiceSession } from './use-unified-voice-session';
-import { TutorGlow } from './tutor-glow';
+import { VoiceAuraOverlay } from './voice-aura';
 import { TranscriptLine } from './transcript-line';
 import { useAudioLevel } from './use-audio-level';
+import { useTutorFrequency } from './use-tutor-frequency';
 import type { Language } from '@/lib/translations';
 
 interface VoiceSessionOverlayProps {
@@ -42,6 +43,7 @@ function VoiceSessionContent({
   });
 
   const audioLevel = useAudioLevel(session.stream);
+  const frequencyBands = useTutorFrequency(session.playbackAnalyser);
 
   useEffect(() => {
     if (!autoStarted.current) {
@@ -68,109 +70,105 @@ function VoiceSessionContent({
   const isConnecting = state === 'idle' || state === 'loading' || state === 'connecting';
 
   return (
-    <div className="fixed inset-0 z-50 bg-j-bg flex flex-col items-center justify-center">
-      {/* Close button */}
-      <button
-        onClick={() => {
-          if (isActive) session.stop();
-          onClose();
-        }}
-        className="absolute top-6 right-6 p-3 text-j-text-tertiary hover:text-j-text transition-colors"
-      >
-        <X size={24} />
-      </button>
-
-      {/* Mode label */}
-      <p className="font-mono text-[10px] tracking-[0.3em] text-j-text-tertiary uppercase mb-8">
-        {mode === 'freeform'
-          ? (isEs ? 'Sesión Libre' : 'Freeform Session')
-          : (isEs ? 'Debate' : 'Debate')}
-      </p>
-
-      {/* Timer */}
-      <p className="font-mono text-6xl font-light text-j-text mb-4">
-        {formatTime(session.elapsed)}
-      </p>
-
-      {/* State label */}
-      <p className={`font-mono text-sm mb-12 ${isError ? 'text-j-error' : 'text-j-text-secondary'}`}>
-        {stateLabels[state]?.[isEs ? 'es' : 'en'] || state}
-      </p>
-
-      {/* Error message */}
-      {isError && session.error && (
-        <p className="text-sm text-j-error mb-8 max-w-md text-center">{session.error}</p>
-      )}
-
-      {/* Connecting spinner */}
-      {isConnecting && (
-        <div className="mb-12">
-          <Mic size={32} className="text-j-accent animate-pulse" />
-        </div>
-      )}
-
-      {/* Transcript line (between timer area and stop button) */}
-      {isActive && (
-        <div className="w-full max-w-md mb-8">
-          <TranscriptLine
-            lastLine={lastLine}
-            fullTranscript={transcript}
-            expanded={transcriptExpanded}
-            onToggle={() => setTranscriptExpanded(prev => !prev)}
-          />
-        </div>
-      )}
-
-      {/* Stop button */}
-      {isActive && (
+    <VoiceAuraOverlay
+      state={isConnecting ? 'thinking' : session.tutorState}
+      audioLevel={audioLevel}
+      frequencyBands={frequencyBands}
+      active={isConnecting || isActive}
+      className="fixed inset-0 z-50 bg-j-bg"
+    >
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        {/* Close button */}
         <button
-          onClick={() => session.stop()}
-          className="px-8 py-4 bg-j-error/10 border border-j-error text-j-error rounded-full font-mono text-sm uppercase tracking-[0.15em] hover:bg-j-error/20 transition-colors"
+          onClick={() => {
+            if (isActive) session.stop();
+            onClose();
+          }}
+          className="absolute top-6 right-6 p-3 text-j-text-tertiary hover:text-j-text transition-colors z-10"
         >
-          {isEs ? 'Terminar sesión' : 'End session'}
+          <X size={24} />
         </button>
-      )}
 
-      {/* Done state */}
-      {isDone && (
-        <button
-          onClick={onClose}
-          className="px-8 py-4 bg-j-accent/10 border border-j-accent text-j-accent rounded font-mono text-sm uppercase tracking-[0.15em] hover:bg-j-accent/20 transition-colors"
-        >
-          {isEs ? 'Cerrar' : 'Close'}
-        </button>
-      )}
+        {/* Mode label */}
+        <p className="font-mono text-[10px] tracking-[0.3em] text-j-text-tertiary uppercase mb-8">
+          {mode === 'freeform'
+            ? (isEs ? 'Sesión Libre' : 'Freeform Session')
+            : (isEs ? 'Debate' : 'Debate')}
+        </p>
 
-      {/* Error retry */}
-      {isError && (
-        <div className="flex gap-3">
+        {/* Timer */}
+        <p className="font-mono text-6xl font-light text-j-text mb-4">
+          {formatTime(session.elapsed)}
+        </p>
+
+        {/* State label */}
+        <p className={`font-mono text-sm mb-12 ${isError ? 'text-j-error' : 'text-j-text-secondary'}`}>
+          {stateLabels[state]?.[isEs ? 'es' : 'en'] || state}
+        </p>
+
+        {/* Error message */}
+        {isError && session.error && (
+          <p className="text-sm text-j-error mb-8 max-w-md text-center">{session.error}</p>
+        )}
+
+        {/* Transcript line */}
+        {isActive && (
+          <div className="w-full max-w-md mb-8">
+            <TranscriptLine
+              lastLine={lastLine}
+              fullTranscript={transcript}
+              expanded={transcriptExpanded}
+              onToggle={() => setTranscriptExpanded(prev => !prev)}
+            />
+          </div>
+        )}
+
+        {/* Stop button */}
+        {isActive && (
           <button
-            onClick={() => session.start()}
-            className="px-6 py-3 bg-j-accent/10 border border-j-accent text-j-accent rounded font-mono text-sm uppercase hover:bg-j-accent/20 transition-colors"
+            onClick={() => session.stop()}
+            className="px-8 py-4 bg-j-error/10 border border-j-error text-j-error rounded-full font-mono text-sm uppercase tracking-[0.15em] hover:bg-j-error/20 transition-colors"
           >
-            {isEs ? 'Reintentar' : 'Retry'}
+            {isEs ? 'Terminar sesión' : 'End session'}
           </button>
+        )}
+
+        {/* Done state */}
+        {isDone && (
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-j-border text-j-text-secondary rounded font-mono text-sm uppercase hover:border-j-accent transition-colors"
+            className="px-8 py-4 bg-j-accent/10 border border-j-accent text-j-accent rounded font-mono text-sm uppercase tracking-[0.15em] hover:bg-j-accent/20 transition-colors"
           >
             {isEs ? 'Cerrar' : 'Close'}
           </button>
-        </div>
-      )}
+        )}
 
-      {/* Debate topic */}
-      {mode === 'debate' && debateTopic && (
-        <p className="absolute bottom-8 font-mono text-xs text-j-text-tertiary max-w-md text-center">
-          &quot;{debateTopic.position}&quot;
-        </p>
-      )}
+        {/* Error retry */}
+        {isError && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => session.start()}
+              className="px-6 py-3 bg-j-accent/10 border border-j-accent text-j-accent rounded font-mono text-sm uppercase hover:bg-j-accent/20 transition-colors"
+            >
+              {isEs ? 'Reintentar' : 'Retry'}
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-3 border border-j-border text-j-text-secondary rounded font-mono text-sm uppercase hover:border-j-accent transition-colors"
+            >
+              {isEs ? 'Cerrar' : 'Close'}
+            </button>
+          </div>
+        )}
 
-      {/* Ambient glow */}
-      {isActive && (
-        <TutorGlow state={session.tutorState} audioLevel={audioLevel} />
-      )}
-    </div>
+        {/* Debate topic */}
+        {mode === 'debate' && debateTopic && (
+          <p className="absolute bottom-8 font-mono text-xs text-j-text-tertiary max-w-md text-center">
+            &quot;{debateTopic.position}&quot;
+          </p>
+        )}
+      </div>
+    </VoiceAuraOverlay>
   );
 }
 

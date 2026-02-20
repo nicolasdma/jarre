@@ -63,6 +63,8 @@ interface VoiceSession {
   stream: MediaStream | null;
   /** Send tool responses back to Gemini */
   sendToolResponse: (responses: FunctionResponse[]) => void;
+  /** AnalyserNode for tutor playback audio frequency data */
+  playbackAnalyser: AnalyserNode | null;
 }
 
 // ============================================================================
@@ -110,6 +112,7 @@ export function useVoiceSession({
   const streamRef = useRef<MediaStream | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const playbackContextRef = useRef<AudioContext | null>(null);
+  const playbackAnalyserRef = useRef<AnalyserNode | null>(null);
   const nextPlayTimeRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
@@ -200,9 +203,18 @@ export function useVoiceSession({
 
   const playAudioChunk = useCallback((pcmData: ArrayBuffer) => {
     if (!playbackContextRef.current) {
-      playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
+      const ctx = new AudioContext({ sampleRate: 24000 });
+      playbackContextRef.current = ctx;
+
+      // Create AnalyserNode for tutor audio frequency analysis
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.6;
+      analyser.connect(ctx.destination);
+      playbackAnalyserRef.current = analyser;
     }
     const ctx = playbackContextRef.current;
+    const analyser = playbackAnalyserRef.current;
 
     // PCM 16-bit LE mono → Float32
     const int16 = new Int16Array(pcmData);
@@ -216,7 +228,8 @@ export function useVoiceSession({
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(ctx.destination);
+    // Route through analyser: source → analyser → destination
+    source.connect(analyser ?? ctx.destination);
 
     const now = ctx.currentTime;
     const startTime = Math.max(now, nextPlayTimeRef.current);
@@ -227,6 +240,7 @@ export function useVoiceSession({
   const stopPlayback = useCallback(() => {
     // Reset playback scheduling so any queued chunks are effectively skipped
     nextPlayTimeRef.current = 0;
+    playbackAnalyserRef.current = null;
     if (playbackContextRef.current) {
       playbackContextRef.current.close().catch(() => {});
       playbackContextRef.current = null;
@@ -786,5 +800,6 @@ export function useVoiceSession({
     transcript,
     stream,
     sendToolResponse,
+    playbackAnalyser: playbackAnalyserRef.current,
   };
 }

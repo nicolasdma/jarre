@@ -11,6 +11,7 @@
 import { useEffect, useCallback } from 'react';
 import { useUnifiedVoiceSession } from './use-unified-voice-session';
 import { useAudioLevel } from './use-audio-level';
+import { useTutorFrequency } from './use-tutor-frequency';
 import {
   VoiceConnectingPhase,
   VoiceActivePhase,
@@ -85,9 +86,10 @@ export function VoiceTeachFlow({
     conceptForTeach: { id: conceptId, name: conceptName, definition: conceptDefinition },
   });
 
-  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const { state, tutorState, error, elapsed, result, transcript, stream, playbackAnalyser } = session;
   const teachResult = result?.mode === 'teach' ? result.teachResult : null;
   const audioLevel = useAudioLevel(stream);
+  const frequencyBands = useTutorFrequency(playbackAnalyser);
 
   const handleDisconnect = useCallback(() => {
     session.stop();
@@ -168,6 +170,7 @@ export function VoiceTeachFlow({
         maxDurationSeconds={480}
         transcript={transcript}
         audioLevel={audioLevel}
+        frequencyBands={frequencyBands}
         error={error}
         statusLabels={{
           listening: t('yourTurn', language),
