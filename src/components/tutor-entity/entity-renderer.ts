@@ -101,11 +101,14 @@ let _lastTime = -1;
 // Compute pass — geometry, z-buffer, lighting (called once per frame)
 // ---------------------------------------------------------------------------
 
-// Smoothed tilt state — avoids jerky orientation changes
+// Spring-damper tilt state — organic cursor-following with inertia
 let _tiltA = 0;
 let _tiltB = 0;
-const TILT_LERP = 3.0;   // how fast tilt follows cursor (~0.3s to settle)
-const TILT_MAX = 0.35;    // max tilt offset in radians (~20°)
+let _tiltVelA = 0;  // angular velocity
+let _tiltVelB = 0;
+const TILT_MAX = 0.30;      // max tilt offset in radians (~17°)
+const TILT_STIFFNESS = 25;  // spring constant — how strongly it pulls toward target
+const TILT_DAMPING = 8;     // damping — controls overshoot (critical ~2*sqrt(stiffness))
 
 export function computeEntityFrame(
   width: number,
@@ -143,24 +146,31 @@ export function computeEntityFrame(
   _rotA += dt * params.rotSpeedA;
   _rotB += dt * params.rotSpeedB;
 
-  // Cursor-following tilt — entity orients toward mouse position
-  if (focalPoint) {
-    const targetTiltA = -(focalPoint.y - 0.5) * 2 * TILT_MAX; // Y → X-axis tilt
-    const targetTiltB = (focalPoint.x - 0.5) * 2 * TILT_MAX;  // X → Z-axis tilt
-    const tiltT = Math.min(1, TILT_LERP * dt);
-    _tiltA += (targetTiltA - _tiltA) * tiltT;
-    _tiltB += (targetTiltB - _tiltB) * tiltT;
-  } else {
-    // Smoothly return to neutral when mouse leaves
-    const tiltT = Math.min(1, TILT_LERP * dt);
-    _tiltA *= (1 - tiltT);
-    _tiltB *= (1 - tiltT);
+  // Spring-damper tilt — entity orients toward cursor with inertia
+  {
+    const targetA = focalPoint ? -(focalPoint.y - 0.5) * 2 * TILT_MAX : 0;
+    const targetB = focalPoint ? -(focalPoint.x - 0.5) * 2 * TILT_MAX : 0;
+
+    // F = -stiffness * displacement - damping * velocity
+    const forceA = -TILT_STIFFNESS * (_tiltA - targetA) - TILT_DAMPING * _tiltVelA;
+    const forceB = -TILT_STIFFNESS * (_tiltB - targetB) - TILT_DAMPING * _tiltVelB;
+
+    _tiltVelA += forceA * dt;
+    _tiltVelB += forceB * dt;
+    _tiltA += _tiltVelA * dt;
+    _tiltB += _tiltVelB * dt;
   }
 
-  const cosA = Math.cos(_rotA + _tiltA);
-  const sinA = Math.sin(_rotA + _tiltA);
-  const cosB = Math.cos(_rotB + _tiltB);
-  const sinB = Math.sin(_rotB + _tiltB);
+  // Base rotation (X then Z axes) — continuous spin
+  const cosA = Math.cos(_rotA);
+  const sinA = Math.sin(_rotA);
+  const cosB = Math.cos(_rotB);
+  const sinB = Math.sin(_rotB);
+  // Tilt: X-axis (up/down) and Y-axis (left/right) — cursor following
+  const cosTiltX = Math.cos(_tiltA);
+  const sinTiltX = Math.sin(_tiltA);
+  const cosTiltY = Math.cos(_tiltB);
+  const sinTiltY = Math.sin(_tiltB);
 
   const minDim = Math.min(cols * charW, rows * charH);
   const R1 = minDim * params.minorRadius;
@@ -202,13 +212,22 @@ export function computeEntityFrame(
       _pt.y += (py / pLen) * disp;
       _pt.z += (pz / pLen) * disp;
 
-      // Rotate around X axis (A) then Z axis (B)
-      const x1 = _pt.x;
-      const y1 = _pt.y * cosA - _pt.z * sinA;
-      const z1 = _pt.y * sinA + _pt.z * cosA;
-      const x2 = x1 * cosB - y1 * sinB;
-      const y2 = x1 * sinB + y1 * cosB;
-      const z2 = z1;
+      // Rotate: base spin (X then Z), then cursor tilt (X then Y)
+      // Base spin
+      const bx = _pt.x;
+      const by = _pt.y * cosA - _pt.z * sinA;
+      const bz = _pt.y * sinA + _pt.z * cosA;
+      const sx = bx * cosB - by * sinB;
+      const sy = bx * sinB + by * cosB;
+      const sz = bz;
+      // Cursor tilt: X-axis (up/down)
+      const tx = sx;
+      const ty = sy * cosTiltX - sz * sinTiltX;
+      const tz = sy * sinTiltX + sz * cosTiltX;
+      // Cursor tilt: Y-axis (left/right)
+      const x2 = tx * cosTiltY + tz * sinTiltY;
+      const y2 = ty;
+      const z2 = -tx * sinTiltY + tz * cosTiltY;
 
       // Perspective projection (|0 is faster than Math.floor for positive values)
       const ooz = 1 / (z2 + K2);
@@ -244,15 +263,22 @@ export function computeEntityFrame(
     // Compute real numeric normal (3 geometry evals — expensive but only for visible points)
     computeNormal(fnA, fnB, morphT, theta, phi, R1, R2, _nm);
 
-    // Rotate normal
-    const rnx1 = _nm.x;
-    const rny1 = _nm.y * cosA - _nm.z * sinA;
-    const rnz1 = _nm.y * sinA + _nm.z * cosA;
-    const rnx2 = rnx1 * cosB - rny1 * sinB;
-    const rny2 = rnx1 * sinB + rny1 * cosB;
+    // Rotate normal (same chain as points: base spin then cursor tilt)
+    const nbx = _nm.x;
+    const nby = _nm.y * cosA - _nm.z * sinA;
+    const nbz = _nm.y * sinA + _nm.z * cosA;
+    const nsx = nbx * cosB - nby * sinB;
+    const nsy = nbx * sinB + nby * cosB;
+    const nsz = nbz;
+    const ntx = nsx;
+    const nty = nsy * cosTiltX - nsz * sinTiltX;
+    const ntz = nsy * sinTiltX + nsz * cosTiltX;
+    const rnx2 = ntx * cosTiltY + ntz * sinTiltY;
+    const rny2 = nty;
+    const rnz2 = -ntx * sinTiltY + ntz * cosTiltY;
 
     // Lighting
-    const luminance = rnx2 * 0.4 + rny2 * 0.5 - rnz1 * 0.75;
+    const luminance = rnx2 * 0.4 + rny2 * 0.5 - rnz2 * 0.75;
     const lumIndex = Math.max(0, ((luminance + 1) * 0.5 * maxLum + 0.5) | 0);
     _lumBuf[idx] = lumIndex;
 
