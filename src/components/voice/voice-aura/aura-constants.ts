@@ -1,114 +1,147 @@
 import type { TutorState } from '../use-voice-session';
 
 // ============================================================================
-// Per-state visual parameters for the digital grid aura
+// Per-state visual parameters — digital neon aura
+//
+// Organic wave shapes rendered as thousands of vertical pixel-lines,
+// particles, and glitch artifacts. Dense, alive, Matrix-meets-equalizer.
 // ============================================================================
 
 export interface AuraStateParams {
-  /** Base dot opacity (0-1) */
+  /** Base opacity for the line field (0-1) */
   baseOpacity: number;
-  /** Audio-reactive opacity gain */
+  /** Audio-reactive opacity boost */
   audioOpacityGain: number;
-  /** How many rows of dots light up from bottom (0-1 of total rows) */
-  baseActivation: number;
-  /** Audio-reactive activation gain */
-  audioActivationGain: number;
-  /** How much frequency bands drive column heights (0 = ignore, 1 = full) */
+  /** Base wave amplitude as % of viewport height */
+  baseAmplitude: number;
+  /** Audio-reactive amplitude gain (%) */
+  audioAmplitudeGain: number;
+  /** How much frequency bands modulate per-column height (0-1) */
   frequencySensitivity: number;
-  /** Dot glow radius in px */
-  glowRadius: number;
-  /** Scanline speed (0 = off) */
-  scanlineSpeed: number;
-  /** Glitch probability per frame (0-1) */
-  glitchProb: number;
-  /** Pulse/breathe speed for idle animation */
+  /** Wave animation speed */
+  pulseSpeed: number;
+  /** Audio-reactive pulse speed gain */
+  audioPulseGain: number;
+  /** Breathe cycle speed (Hz, 0 = none) */
   breatheSpeed: number;
   /** Breathe amplitude */
   breatheAmp: number;
-  /** Primary color [r, g, b] */
+  /** Neon glow blur in px */
+  glowBlur: number;
+  /** Probability of a glitch bar per frame */
+  glitchProb: number;
+  /** Number of rain particles (falling dots above the wave) */
+  rainCount: number;
+  /** Rain fall speed multiplier */
+  rainSpeed: number;
+  /** Scanline speed (0 = off, >0 = horizontal sweep) */
+  scanlineSpeed: number;
+  /** Primary neon color [r, g, b] */
   color: [number, number, number];
-  /** Secondary accent color [r, g, b] for glitch/highlights */
+  /** Accent/glitch color [r, g, b] */
   accentColor: [number, number, number];
 }
 
-// Orange digital palette
+// Neon orange palette
 const ORANGE: [number, number, number] = [255, 140, 20];
 const BRIGHT_ORANGE: [number, number, number] = [255, 180, 50];
-const DIM_ORANGE: [number, number, number] = [200, 100, 10];
-const WHITE_ORANGE: [number, number, number] = [255, 220, 160];
+const DIM_ORANGE: [number, number, number] = [180, 80, 5];
+const HOT_WHITE: [number, number, number] = [255, 230, 180];
 
 export const AURA_STATES: Record<TutorState, AuraStateParams> = {
   idle: {
-    baseOpacity: 0.15,
+    baseOpacity: 0.35,
     audioOpacityGain: 0,
-    baseActivation: 0.08,
-    audioActivationGain: 0,
+    baseAmplitude: 8,
+    audioAmplitudeGain: 0,
     frequencySensitivity: 0,
-    glowRadius: 2,
+    pulseSpeed: 0.6,
+    audioPulseGain: 0,
+    breatheSpeed: 0.2,
+    breatheAmp: 3,
+    glowBlur: 4,
+    glitchProb: 0.003,
+    rainCount: 30,
+    rainSpeed: 0.3,
     scanlineSpeed: 0,
-    glitchProb: 0.002,
-    breatheSpeed: 0.3,
-    breatheAmp: 0.05,
     color: DIM_ORANGE,
     accentColor: ORANGE,
   },
   listening: {
-    baseOpacity: 0.5,
-    audioOpacityGain: 0.4,
-    baseActivation: 0.15,
-    audioActivationGain: 0.7,
+    baseOpacity: 0.7,
+    audioOpacityGain: 0.3,
+    baseAmplitude: 12,
+    audioAmplitudeGain: 35,
     frequencySensitivity: 0,
-    glowRadius: 4,
-    scanlineSpeed: 0,
-    glitchProb: 0.01,
+    pulseSpeed: 2.0,
+    audioPulseGain: 4.0,
     breatheSpeed: 0,
     breatheAmp: 0,
+    glowBlur: 6,
+    glitchProb: 0.012,
+    rainCount: 80,
+    rainSpeed: 0.8,
+    scanlineSpeed: 0,
     color: ORANGE,
     accentColor: BRIGHT_ORANGE,
   },
   thinking: {
-    baseOpacity: 0.25,
+    baseOpacity: 0.4,
     audioOpacityGain: 0,
-    baseActivation: 0.1,
-    audioActivationGain: 0,
+    baseAmplitude: 6,
+    audioAmplitudeGain: 0,
     frequencySensitivity: 0,
-    glowRadius: 3,
-    scanlineSpeed: 0.8,
-    glitchProb: 0.03,
-    breatheSpeed: 0.5,
-    breatheAmp: 0.08,
+    pulseSpeed: 0.4,
+    audioPulseGain: 0,
+    breatheSpeed: 0.4,
+    breatheAmp: 4,
+    glowBlur: 5,
+    glitchProb: 0.04,
+    rainCount: 50,
+    rainSpeed: 0.5,
+    scanlineSpeed: 0.6,
     color: DIM_ORANGE,
     accentColor: ORANGE,
   },
   speaking: {
-    baseOpacity: 0.7,
-    audioOpacityGain: 0.3,
-    baseActivation: 0.2,
-    audioActivationGain: 0.8,
+    baseOpacity: 0.85,
+    audioOpacityGain: 0.15,
+    baseAmplitude: 18,
+    audioAmplitudeGain: 45,
     frequencySensitivity: 1.0,
-    glowRadius: 6,
-    scanlineSpeed: 0,
-    glitchProb: 0.015,
+    pulseSpeed: 3.0,
+    audioPulseGain: 5.0,
     breatheSpeed: 0,
     breatheAmp: 0,
+    glowBlur: 8,
+    glitchProb: 0.02,
+    rainCount: 150,
+    rainSpeed: 1.2,
+    scanlineSpeed: 0,
     color: BRIGHT_ORANGE,
-    accentColor: WHITE_ORANGE,
+    accentColor: HOT_WHITE,
   },
 };
 
-export const LERP_SPEED = 4.0;
+export const LERP_SPEED = 3.5;
 
 // ============================================================================
-// Grid layout
+// Wave shape configs — layered organic sine waves (same math as before)
+// Now rendered as thousands of vertical pixel-lines instead of filled paths
 // ============================================================================
 
-/** Number of dot columns */
-export const GRID_COLS = 32;
-/** Number of dot rows */
-export const GRID_ROWS = 16;
-/** Dot base radius in CSS px */
-export const DOT_RADIUS = 1.5;
-/** Vertical space occupied by the grid (% of viewport height from bottom) */
-export const GRID_HEIGHT_PCT = 0.35;
-/** Horizontal padding from edges (% of viewport width) */
-export const GRID_PADDING_X_PCT = 0.04;
+export const WAVE_LAYERS = [
+  { freq: 2.0, phase: 0.0, ampMult: 1.0,  pulsePhase: 0.0  },
+  { freq: 3.0, phase: 0.8, ampMult: 0.75, pulsePhase: 1.5  },
+  { freq: 2.5, phase: 2.0, ampMult: 0.6,  pulsePhase: 3.0  },
+  { freq: 1.7, phase: 3.5, ampMult: 0.45, pulsePhase: 4.5  },
+];
+
+// ============================================================================
+// Rendering density
+// ============================================================================
+
+/** Number of vertical line-columns across the viewport width */
+export const LINE_COLUMNS = 300;
+/** Max rain particles allocated */
+export const MAX_RAIN_PARTICLES = 200;
