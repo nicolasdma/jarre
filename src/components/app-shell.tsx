@@ -55,7 +55,7 @@ export function AppShell({ children, language }: AppShellProps) {
     <>
       <div className="flex h-screen">
         {/* Main content — scrollable */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {children}
         </div>
 
