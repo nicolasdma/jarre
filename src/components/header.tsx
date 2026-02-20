@@ -56,7 +56,7 @@ export async function Header({ currentPage }: HeaderProps) {
 
   return (
     <ScrollHeader>
-      <div className="px-4 sm:px-8 py-4 sm:py-5">
+      <div className="mx-auto max-w-6xl px-4 sm:px-8 py-4 sm:py-5">
         <div className="flex items-center justify-between relative">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
