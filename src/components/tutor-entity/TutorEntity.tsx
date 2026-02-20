@@ -104,7 +104,7 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
 
     // Compute geometry ONCE, paint to BOTH canvases
     const focal = mouseRef.current;
-    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current);
+    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal);
     paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
     paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
 
