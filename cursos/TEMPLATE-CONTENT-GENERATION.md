@@ -289,54 +289,6 @@ npx tsx scripts/seed-inline-quizzes-{resource-id}.ts
 
 ---
 
-## PASO 4b: Section Questions (Preguntas "Antes de Leer")
-
-### Objetivo
-Crear preguntas que aparecen ANTES de leer cada seccion en el paso LEARN. Son preguntas de activacion que el usuario intenta responder antes de leer el contenido.
-
-### Archivo
-`scripts/seed-section-questions.ts`
-
-Agregar una entrada al diccionario `questionsBySection` con el `resource_id` como clave y las preguntas agrupadas por `sort_order` de la seccion.
-
-### Estructura
-
-```typescript
-'{resource_id}': {
-  // Section 0
-  0: [
-    {
-      type: 'definition',  // 'definition' | 'fact' | 'property' | 'guarantee' | 'complexity' | 'comparison'
-      question_text: '¿Pregunta en espanol?',
-      expected_answer: 'Respuesta esperada detallada en espanol.',
-      difficulty: 1,  // 1 | 2 | 3
-    },
-    // ... 2-4 preguntas por seccion
-  ],
-  // Section 1
-  1: [
-    // ...
-  ],
-  // ... una entrada por cada sort_order de seccion
-},
-```
-
-### Distribucion recomendada
-- **2-4 preguntas por seccion** (total 12-20 por recurso)
-- Mix de tipos: `definition`, `fact`, `property`, `comparison`, `guarantee`, `complexity`
-- Difficulty 1 para conceptos base, 2 para relaciones, 3 para critica/analisis
-- Las preguntas deben ser respondibles DESPUES de leer la seccion (no triviales, no imposibles)
-
-### Seedeo
-
-```bash
-npx tsx scripts/seed-section-questions.ts --resource {resource_id} --clear
-```
-
-### CRITICO: El `sort_order` en el diccionario DEBE coincidir con el `sort_order` de la seccion en Supabase (0, 1, 2, ...). Si no coincide, las preguntas no se insertaran.
-
----
-
 ## PASO 5: Reading Questions
 
 ### Archivo: `src/app/learn/[resourceId]/reading-questions.ts`
@@ -484,7 +436,6 @@ npm run dev
 | 2 | Organizer | `src/app/learn/[resourceId]/{name}.tsx` | Componente React |
 | 3 | Rutas | `src/app/learn/[resourceId]/page.tsx` | Editar 3 bloques |
 | 4 | Quizzes | `scripts/seed-inline-quizzes-{id}.ts` | Supabase via script |
-| 4b | Section Questions | `scripts/seed-section-questions.ts` | Supabase via script (agregar entrada al diccionario) |
 | 5 | Questions | `src/app/learn/[resourceId]/reading-questions.ts` | Agregar entrada |
 | 6 | Exercises | `src/data/exercises/{id}-exercises.ts` | Archivo TypeScript |
 | 7 | Playground | `src/app/playground/{name}/` (3 archivos) | Directorio nuevo |
