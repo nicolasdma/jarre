@@ -353,6 +353,12 @@ mark.jarre-highlight-active {
   animation: celebration-enter 0.4s ease-out forwards;
 }
 
+/* Tutor dialog cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* Dark background texture — contained to viewport height, fades out */
 .dark .j-bg-texture {
   position: relative;
