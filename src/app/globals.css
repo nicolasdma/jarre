@@ -353,6 +353,14 @@ mark.jarre-highlight-active {
   animation: celebration-enter 0.4s ease-out forwards;
 }
 
+/* Dark background texture (placeholder — replace with custom image) */
+.dark .j-bg-texture {
+  background-image: url('/background_dark.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
 /* Hero gradient sutil (dark only) */
 .dark .j-hero-gradient {
   background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(246, 131, 59, 0.08) 0%, transparent 60%);
