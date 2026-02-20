@@ -5,6 +5,8 @@ import {
   ENTITY_STATES,
   FRAME_INTERVAL,
   LERP_SPEED,
+  INTRO_LERP_SPEED,
+  INTRO_HOLD_DURATION,
   type EntityStateParams,
 } from './entity-constants';
 import { lerp, lerpColor, renderEntityFrame } from './entity-renderer';
@@ -20,17 +22,17 @@ function lerpParams(
   t: number,
 ): EntityStateParams {
   return {
+    majorRadius: lerp(a.majorRadius, b.majorRadius, t),
+    minorRadius: lerp(a.minorRadius, b.minorRadius, t),
     rotSpeedA: lerp(a.rotSpeedA, b.rotSpeedA, t),
     rotSpeedB: lerp(a.rotSpeedB, b.rotSpeedB, t),
-    rotSpeedC: lerp(a.rotSpeedC, b.rotSpeedC, t),
-    pulseAmp: lerp(a.pulseAmp, b.pulseAmp, t),
-    pulseSpeed: lerp(a.pulseSpeed, b.pulseSpeed, t),
+    thetaStep: lerp(a.thetaStep, b.thetaStep, t),
+    phiStep: lerp(a.phiStep, b.phiStep, t),
     charOpacity: lerp(a.charOpacity, b.charOpacity, t),
     glowOpacity: lerp(a.glowOpacity, b.glowOpacity, t),
     color: lerpColor(a.color, b.color, t),
     accentColor: lerpColor(a.accentColor, b.accentColor, t),
     fontSize: a.fontSize,
-    noiseIntensity: lerp(a.noiseIntensity, b.noiseIntensity, t),
   };
 }
 
@@ -43,7 +45,8 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
   const timeRef = useRef(0);
   const sizeRef = useRef({ w: 0, h: 0 });
   const [hovered, setHovered] = useState(false);
-  const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.idle });
+  const introPhaseRef = useRef(true);
+  const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.intro });
 
   const animate = useCallback(() => {
     const glowCanvas = glowCanvasRef.current;
@@ -65,8 +68,31 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
     const dt = Math.min(elapsed / 1000, 0.1);
     timeRef.current += dt;
 
-    const target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
-    const lerpT = Math.min(1, LERP_SPEED * dt);
+    // Determine target state and lerp speed
+    let target: EntityStateParams;
+    let speed: number;
+
+    if (introPhaseRef.current) {
+      if (timeRef.current < INTRO_HOLD_DURATION) {
+        target = ENTITY_STATES.intro;
+        speed = LERP_SPEED;
+      } else {
+        target = ENTITY_STATES.idle;
+        speed = INTRO_LERP_SPEED;
+
+        const radiusDiff = Math.abs(
+          currentParamsRef.current.majorRadius - ENTITY_STATES.idle.majorRadius,
+        );
+        if (radiusDiff < 0.005) {
+          introPhaseRef.current = false;
+        }
+      }
+    } else {
+      target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
+      speed = LERP_SPEED;
+    }
+
+    const lerpT = Math.min(1, speed * dt);
     currentParamsRef.current = lerpParams(currentParamsRef.current, target, lerpT);
 
     const { w, h } = sizeRef.current;
