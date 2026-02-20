@@ -356,6 +356,7 @@ mark.jarre-highlight-active {
 /* Dark background texture — contained to viewport height, fades out */
 .dark .j-bg-texture {
   position: relative;
+  isolation: isolate;
 }
 .dark .j-bg-texture::before {
   content: '';
@@ -367,7 +368,7 @@ mark.jarre-highlight-active {
   background-position: center top;
   background-repeat: no-repeat;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }
