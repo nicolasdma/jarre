@@ -859,6 +859,58 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       hint: 'Pensá en los requisitos de OpenClaw: acceso a cámara, micrófono, iMessage, Bluetooth — cosas que Docker no puede hacer.',
     },
   ],
+
+  'p2-lilian-weng-distributed': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué Data Parallelism puro no puede entrenar un modelo de 175B parámetros, incluso con cientos de GPUs? ¿Qué limitación fundamental tiene que motivó el desarrollo de model parallelism?',
+      concept: 'Data Parallelism limitations',
+      hint: 'Cada GPU necesita una copia completa del modelo. 175B params en FP32 = 700 GB.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué el naive model parallelism (dividir capas verticalmente entre GPUs) tiene una utilización catastrófica? ¿Qué técnica resuelve esto y cómo?',
+      concept: 'Pipeline Parallelism',
+      hint: 'Sin pipeline, solo una GPU está activa a la vez. Los microbatches permiten solapar trabajo.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Tensor Parallelism requiere NVLink (300-900 GB/s) mientras que Pipeline Parallelism funciona con Ethernet/InfiniBand. ¿Por qué TP tiene requisitos de bandwidth mucho más altos? ¿Qué tipo de comunicación ocurre en cada uno?',
+      concept: 'TP vs PP communication',
+      hint: 'TP hace AllReduce dentro de cada capa (latencia crítica). PP solo pasa activaciones entre boundaries.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Switch Transformer usa k=1 (un solo expert por token) mientras que GShard usa k=2. ¿Qué se gana y qué se pierde con k=1? ¿Por qué la simplificación de Switch funcionó mejor de lo esperado?',
+      concept: 'MoE routing strategies',
+      hint: 'k=1 reduce cómputo a la mitad y simplifica el routing, pero cada token solo tiene una "perspectiva" del expert.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se complementan ZeRO y Data Parallelism? ¿Por qué ZeRO no es un reemplazo de DP sino una optimización sobre DP?',
+      concept: 'ZeRO and Data Parallelism',
+      hint: 'ZeRO mantiene la semántica de DP (cada GPU procesa datos diferentes) pero elimina la redundancia de almacenar estados idénticos en cada GPU.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'Para entrenar un modelo de 1 trillón de parámetros en 3,072 GPUs, Megatron-LM usa TP=8, PP=64, DP=6. ¿Por qué TP=8 coincide con las GPUs por nodo? ¿Qué pasaría si usaras TP=64 entre nodos?',
+      concept: 'PTD-P parallelism design',
+      hint: 'TP requiere comunicación de baja latencia dentro de cada capa. Inter-node communication es 10-100x más lenta que NVLink.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Mixed precision training en FP16 reduce la memoria a la mitad sin ningún costo adicional." ¿Qué está mal con esta afirmación? ¿Qué técnicas son necesarias para que FP16 funcione correctamente?',
+      concept: 'Mixed precision training',
+      hint: 'FP16 tiene rango dinámico limitado. Sin loss scaling y FP32 master weights, los gradientes pequeños se redondean a cero.',
+    },
+  ],
 };
 
 export const QUESTION_TYPE_LABELS: Record<ReadingQuestion['type'], string> = {
