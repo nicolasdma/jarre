@@ -246,7 +246,7 @@ export default async function LearnPage({ params }: PageProps) {
     <div className="min-h-screen bg-j-bg">
       {/* Sticky header with step navigation */}
       <div className="sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-8 py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 sm:px-8 py-4">
           <Link
             href="/library"
             className="text-sm text-j-text-tertiary hover:text-j-text transition-colors"
@@ -308,7 +308,7 @@ export default async function LearnPage({ params }: PageProps) {
 
       {/* Bottom CTA: go to questions */}
       {hasQuestions && (
-        <div className="mx-auto max-w-3xl px-8 pb-16">
+        <div className="mx-auto max-w-3xl px-4 sm:px-8 pb-16">
           <div className="border-t border-j-border pt-12 text-center">
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
               Siguiente paso

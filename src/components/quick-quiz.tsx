@@ -88,7 +88,7 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Quiz rápido"
-      className="fixed bottom-6 right-6 z-50 w-[380px] max-h-[70vh] bg-j-bg border border-j-border-input shadow-xl flex flex-col"
+      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 sm:w-[380px] max-h-[70vh] bg-j-bg border border-j-border-input shadow-xl flex flex-col"
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >

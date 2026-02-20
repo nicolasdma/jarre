@@ -77,7 +77,7 @@ export function DeckOverview({ language }: { language: Language }) {
     <div>
       {/* Global stats */}
       {stats && (
-        <div className="grid grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
           <div className="text-center p-4 border border-j-border">
             <p className="text-3xl font-light text-j-accent">{stats.totalUnlocked}</p>
             <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">

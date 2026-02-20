@@ -152,7 +152,7 @@ export function LearnTOC({
             role="presentation"
             aria-hidden="true"
           />
-          <div className="lg:hidden fixed right-0 top-0 bottom-0 z-[80] w-[280px] bg-j-bg border-l border-j-border overflow-y-auto">
+          <div className="lg:hidden fixed right-0 top-0 bottom-0 z-[80] w-[280px] max-w-[85vw] bg-j-bg border-l border-j-border overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b border-j-border">
               <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                 {language === 'es' ? 'Contenido' : 'Contents'}

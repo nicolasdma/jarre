@@ -92,7 +92,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           handleCardClick();
         }
       }}
-      className={`group relative p-6 transition-all duration-300 j-card-glow ${
+      className={`group relative p-4 sm:p-6 transition-all duration-300 j-card-glow ${
         isLocked
           ? 'cursor-not-allowed opacity-50'
           : 'cursor-pointer hover:bg-j-bg-hover'
@@ -220,7 +220,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                   e.stopPropagation();
                   window.open(resource.url, '_blank');
                 }}
-                className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors min-h-[44px] flex items-center"
               >
                 {t('common.open', language)}
               </button>
@@ -233,7 +233,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                   e.stopPropagation();
                   setShowQuiz(true);
                 }}
-                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors"
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 sm:py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors min-h-[44px] flex items-center"
               >
                 {t('quiz.review', language)}
               </button>
@@ -245,7 +245,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 e.stopPropagation();
                 router.push(`/learn/${resource.id}`);
               }}
-              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-1.5 uppercase hover:bg-j-accent-hover transition-colors"
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-hover transition-colors min-h-[44px] flex items-center"
             >
               {t('common.evaluate', language)}
             </button>

@@ -112,7 +112,7 @@ export function MobileNav({ links, streakDays, totalXp, xpLevel, isAuthenticated
             aria-label="Menú de navegación"
             className="absolute top-full left-0 right-0 bg-j-bg/95 backdrop-blur-lg border-b border-j-border z-50"
           >
-            <nav className="flex flex-col px-8 py-4 gap-3">
+            <nav className="flex flex-col px-4 sm:px-8 py-4 gap-3">
               {links.map((link) => (
                 <Link
                   key={link.href}

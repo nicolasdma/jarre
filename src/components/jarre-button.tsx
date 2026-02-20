@@ -24,8 +24,8 @@ const VARIANT_CLASSES: Record<JarreButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<JarreButtonSize, string> = {
-  default: 'px-6 py-3',
-  sm: 'px-4 py-2',
+  default: 'px-5 sm:px-6 py-3 min-h-[44px]',
+  sm: 'px-4 py-2.5 sm:py-2 min-h-[44px]',
 };
 
 // ============================================================================

@@ -135,7 +135,7 @@ export function AddResourceModal({ isOpen, onClose, language, onResourceAdded }:
           className="w-full max-w-2xl bg-j-bg border border-j-border rounded-lg shadow-2xl max-h-[85vh] overflow-y-auto"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-j-border">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-j-border">
             <div>
               <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                 {isEs ? 'Recurso Externo' : 'External Resource'}
@@ -152,7 +152,7 @@ export function AddResourceModal({ isOpen, onClose, language, onResourceAdded }:
             </button>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {!result ? (
               /* Input Form */
               <div className="space-y-5">

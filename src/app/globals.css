@@ -353,12 +353,23 @@ mark.jarre-highlight-active {
   animation: celebration-enter 0.4s ease-out forwards;
 }
 
-/* Dark background texture (placeholder — replace with custom image) */
+/* Dark background texture — contained to viewport height, fades out */
 .dark .j-bg-texture {
+  position: relative;
+}
+.dark .j-bg-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  height: 100vh;
   background-image: url('/background_dark.jpg');
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }
 
 /* Hero gradient sutil (dark only) */

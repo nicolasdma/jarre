@@ -52,8 +52,8 @@ export function VoiceModeLauncher({
 
   const isCompact = variant === 'compact';
   const btnBase = isCompact
-    ? 'inline-flex items-center gap-2 px-3 py-2 text-xs font-mono rounded border transition-colors'
-    : 'inline-flex items-center gap-2 px-4 py-3 text-sm font-mono rounded border transition-colors';
+    ? 'inline-flex items-center gap-2 px-3 py-2.5 text-xs font-mono rounded border transition-colors min-h-[44px]'
+    : 'inline-flex items-center gap-2 px-4 py-3 text-sm font-mono rounded border transition-colors min-h-[44px]';
 
   return (
     <>

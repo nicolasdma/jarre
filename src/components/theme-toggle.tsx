@@ -24,7 +24,7 @@ export function ThemeToggle() {
 
   // Avoid hydration mismatch: render nothing until mounted
   if (!mounted) {
-    return <div className="w-8 h-8" />;
+    return <div className="w-10 h-10" />;
   }
 
   return (
@@ -32,7 +32,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="w-8 h-8 flex items-center justify-center border border-j-border-input text-j-text-secondary hover:text-j-text hover:border-j-accent transition-colors"
+      className="w-10 h-10 flex items-center justify-center border border-j-border-input text-j-text-secondary hover:text-j-text hover:border-j-accent transition-colors"
     >
       {isDark ? (
         // Sun icon
