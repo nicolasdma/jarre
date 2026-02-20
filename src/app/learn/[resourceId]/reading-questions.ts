@@ -911,6 +911,57 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       hint: 'FP16 tiene rango dinámico limitado. Sin loss scaling y FP32 master weights, los gradientes pequeños se redondean a cero.',
     },
   ],
+  'p2-horace-he-gpu': [
+    {
+      type: 'why',
+      question:
+        '¿Por qué el artículo argumenta que debemos enfocarnos en maximizar compute utilization en lugar de minimizar memory bandwidth? ¿Qué asimetría fundamental existe entre las dos?',
+      concept: 'Compute vs memory optimization',
+      hint: 'Puedes reducir overhead y memory costs, pero no puedes reducir el cómputo requerido sin cambiar las operaciones.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué las operaciones de normalización y pointwise en BERT consumen mucho más tiempo del esperado si solo representan 0.2% de los FLOPS? ¿Qué las hace tan lentas?',
+      concept: 'Memory-bound operations',
+      hint: 'No es el cómputo lo que las hace lentas — es el costo de mover datos entre DRAM y SRAM para cada kernel.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'Operator fusion elimina accesos intermedios a global memory, pero tiene caveats. ¿Por qué no se puede hacer en eager mode? ¿Qué se pierde al usar tracing/compilation para habilitarla?',
+      concept: 'Operator fusion trade-offs',
+      hint: 'La GPU necesita saber qué operación viene después. Eager mode ejecuta una operación a la vez sin visibilidad futura.',
+    },
+    {
+      type: 'tradeoff',
+      question:
+        'PyTorch esconde overhead con ejecución asíncrona. ¿Cuándo falla esta estrategia? ¿Qué relación hay entre el tamaño de los GPU operators y la efectividad de la ejecución asíncrona?',
+      concept: 'Async execution limits',
+      hint: 'Si los kernels son demasiado pequeños, la GPU termina antes de que la CPU pueda encolar el siguiente. La GPU queda idle.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se relaciona el concepto de compute intensity de este artículo con activation checkpointing del artículo de Lilian Weng? ¿Por qué recomputar activaciones puede ser "gratis" en algunos casos?',
+      concept: 'Compute intensity and recomputation',
+      hint: 'Si una operación es memory-bound, recomputarla (fusionada) puede tomar menos tiempo que almacenarla y leerla de global memory.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        'El microbenchmark muestra que el crossover de memory-bound a compute-bound ocurre alrededor de repeat ≈ 50. ¿Cómo aplicarías este razonamiento para decidir si vale la pena escribir un kernel CUDA custom para una operación específica?',
+      concept: 'Compute intensity decision making',
+      hint: 'Calcula la compute intensity de tu operación. Si es < 100 ops/elemento, es memory-bound y un kernel custom con fusion ayudaría.',
+    },
+    {
+      type: 'error_detection',
+      question:
+        '"Reescribir mi modelo de PyTorch en C++ lo hará significativamente más rápido." ¿En qué régimen esta afirmación es incorrecta y por qué?',
+      concept: 'Performance regime diagnosis',
+      hint: 'Si estás compute-bound o memory-bound, el overhead de Python es irrelevante porque la GPU está ocupada. Reescribir en C++ solo ayuda si estás overhead-bound.',
+    },
+  ],
 };
 
 export const QUESTION_TYPE_LABELS: Record<ReadingQuestion['type'], string> = {
