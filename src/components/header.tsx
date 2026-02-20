@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MobileNav } from '@/components/mobile-nav';
+import { ScrollHeader } from '@/components/scroll-header';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/review-scoring';
 import { t, type Language } from '@/lib/translations';
 
@@ -54,8 +55,8 @@ export async function Header({ currentPage }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-j-border bg-j-bg/90 backdrop-blur-md j-header-line">
-      <div className="mx-auto max-w-6xl px-8 py-5">
+    <ScrollHeader>
+      <div className="mx-auto max-w-6xl px-4 sm:px-8 py-4 sm:py-5">
         <div className="flex items-center justify-between relative">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
@@ -193,6 +194,6 @@ export async function Header({ currentPage }: HeaderProps) {
           )}
         </div>
       </div>
-    </header>
+    </ScrollHeader>
   );
 }

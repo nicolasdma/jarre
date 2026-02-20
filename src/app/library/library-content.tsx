@@ -97,7 +97,7 @@ export function LibraryContent({
   return (
     <>
       {/* Phase Tab Bar */}
-      <div className="sticky top-0 z-10 bg-j-bg/95 backdrop-blur-sm border-b border-j-border mb-10 -mx-8 px-8">
+      <div className="sticky top-0 z-10 bg-j-bg/95 backdrop-blur-sm border-b border-j-border mb-10 -mx-4 px-4 sm:-mx-8 sm:px-8">
         <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2">
           <TabButton
             active={activePhase === 'all'}
@@ -152,7 +152,7 @@ export function LibraryContent({
       {activePhase === 'external' && isLoggedIn && (
         <section className="mb-16">
           <div className="flex items-center gap-4 mb-8">
-            <span className="font-mono text-5xl font-light text-j-border">
+            <span className="font-mono text-3xl sm:text-5xl font-light text-j-border">
               ✦
             </span>
             <div>
@@ -189,7 +189,7 @@ export function LibraryContent({
           <section key={phase} className="mb-16">
             {/* Phase Header */}
             <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-5xl font-light text-j-border">
+              <span className="font-mono text-3xl sm:text-5xl font-light text-j-border">
                 {phase.toString().padStart(2, '0')}
               </span>
               <div>
@@ -208,7 +208,7 @@ export function LibraryContent({
             </div>
 
             {/* Resource Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {phaseResources.map((resource) => (
                 <ResourceCard
                   key={resource.id}
@@ -307,7 +307,7 @@ function TabButton({
       onClick={onClick}
       className={`
         flex-shrink-0 px-3 py-2 font-mono text-[11px] tracking-[0.15em] uppercase
-        border-b-2 transition-colors
+        border-b-2 transition-colors min-h-[44px] flex items-center
         ${active
           ? 'border-j-accent text-j-text'
           : 'border-transparent text-j-text-tertiary hover:text-j-text-secondary'

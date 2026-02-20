@@ -94,12 +94,12 @@ export default async function JournalPage() {
     <div className="min-h-screen bg-j-bg">
       <Header currentPage="journal" />
 
-      <main className="mx-auto max-w-3xl px-8 py-12">
+      <main className="mx-auto max-w-3xl px-4 sm:px-8 py-8 sm:py-12">
         <SectionLabel>
           {isEs ? 'Bit\u00E1cora de Aprendizaje' : 'Learning Journal'}
         </SectionLabel>
 
-        <h1 className="text-5xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
           {isEs ? 'Bit\u00E1cora' : 'Journal'}
         </h1>
         <p className="text-j-text-secondary mb-10">
@@ -121,7 +121,7 @@ export default async function JournalPage() {
                 <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4 sticky top-0 bg-j-bg py-2">
                   {date}
                 </p>
-                <div className="space-y-2 border-l-2 border-j-border pl-6 ml-2">
+                <div className="space-y-2 border-l-2 border-j-border pl-4 sm:pl-6 ml-2">
                   {dayEntries.map((entry: any) => {
                     const icon = EVENT_ICONS[entry.event_type] || '\uD83D\uDCCC';
                     const label = EVENT_LABELS[entry.event_type]?.[lang] || entry.event_type;

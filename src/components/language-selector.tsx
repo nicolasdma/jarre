@@ -41,17 +41,17 @@ export function LanguageSelector({ currentLanguage }: { currentLanguage: Languag
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-stone-600">Language:</span>
+      <span className="text-sm text-j-text-secondary">Language:</span>
       <div className="flex gap-1">
         {languages.map((lang) => (
           <button
             key={lang.value}
             onClick={() => handleChange(lang.value)}
             disabled={isLoading}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
               language === lang.value
-                ? 'bg-stone-900 text-white'
-                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                ? 'bg-j-accent text-j-text-on-accent'
+                : 'bg-j-bg-alt text-j-text-secondary hover:bg-j-bg-hover border border-j-border'
             } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {lang.flag} {lang.label}

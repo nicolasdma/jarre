@@ -24,14 +24,14 @@ export default async function Home() {
       <div className="min-h-screen bg-j-bg j-bg-texture">
         <Header currentPage="home" />
 
-        <main className="mx-auto max-w-6xl px-8 pt-24 pb-16 j-hero-gradient">
+        <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-16 sm:pt-24 pb-12 sm:pb-16 j-hero-gradient">
           <div className="mb-16">
             <SectionLabel>Deep Learning System</SectionLabel>
 
-            <h2 className="text-7xl md:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
+            <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
               Master Complex
             </h2>
-            <p className="text-3xl font-light text-j-text-tertiary">
+            <p className="text-xl sm:text-2xl md:text-3xl font-light text-j-text-tertiary">
               Technical Knowledge
             </p>
             <p className="mt-6 text-j-text-secondary max-w-xl leading-relaxed">
@@ -55,7 +55,7 @@ export default async function Home() {
           </div>
 
           {/* Mastery Levels Explanation */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 text-center">
             {getMasteryLevels('en').map((item) => {
               const descriptions: Record<string, string> = {
                 '0': 'Read/watched',
@@ -65,7 +65,7 @@ export default async function Home() {
                 '4': 'Can teach others',
               };
               return (
-                <div key={item.level} className="border border-j-border p-4">
+                <div key={item.level} className="border border-j-border p-3 sm:p-4">
                   <p className="text-2xl font-light text-j-text mb-1">{item.level}</p>
                   <p className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase mb-1">{item.name}</p>
                   <p className="text-xs text-j-text-tertiary">{descriptions[item.level]}</p>
@@ -76,7 +76,7 @@ export default async function Home() {
         </main>
 
         <footer className="border-t border-j-border py-8 mt-8">
-          <div className="mx-auto max-w-6xl px-8">
+          <div className="mx-auto max-w-6xl px-4 sm:px-8">
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
               Jarre · Deep Knowledge · {new Date().getFullYear()}
             </p>

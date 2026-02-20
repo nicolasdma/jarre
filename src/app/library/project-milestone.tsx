@@ -57,7 +57,7 @@ export function ProjectMilestone({ project, isLoggedIn, language }: ProjectMiles
       {/* Connector line */}
       <div className="absolute left-1/2 -top-6 w-px h-6 bg-j-border" />
 
-      <div className={`border ${statusColor} p-6 bg-j-bg-alt`}>
+      <div className={`border ${statusColor} p-4 sm:p-6 bg-j-bg-alt`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
@@ -115,7 +115,7 @@ export function ProjectMilestone({ project, isLoggedIn, language }: ProjectMiles
               <button
                 onClick={() => updateStatus('in_progress')}
                 disabled={isUpdating}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2.5 sm:py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50 min-h-[44px]"
               >
                 {t('project.start', language)}
               </button>
@@ -124,7 +124,7 @@ export function ProjectMilestone({ project, isLoggedIn, language }: ProjectMiles
               <button
                 onClick={() => updateStatus('completed')}
                 disabled={isUpdating}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2.5 sm:py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50 min-h-[44px]"
               >
                 {t('project.markComplete', language)}
               </button>

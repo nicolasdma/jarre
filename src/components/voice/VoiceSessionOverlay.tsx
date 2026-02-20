@@ -108,12 +108,12 @@ function VoiceSessionContent({
 
         {/* Error message */}
         {isError && session.error && (
-          <p className="text-sm text-j-error mb-8 max-w-md text-center">{session.error}</p>
+          <p className="text-sm text-j-error mb-8 max-w-md w-full px-4 sm:px-0 text-center">{session.error}</p>
         )}
 
         {/* Transcript line */}
         {isActive && (
-          <div className="w-full max-w-md mb-8">
+          <div className="w-full max-w-md w-full px-4 sm:px-0 mb-8">
             <TranscriptLine
               lastLine={lastLine}
               fullTranscript={transcript}
@@ -163,7 +163,7 @@ function VoiceSessionContent({
 
         {/* Debate topic */}
         {mode === 'debate' && debateTopic && (
-          <p className="absolute bottom-8 font-mono text-xs text-j-text-tertiary max-w-md text-center">
+          <p className="absolute bottom-8 font-mono text-xs text-j-text-tertiary max-w-md w-full px-4 sm:px-0 text-center">
             &quot;{debateTopic.position}&quot;
           </p>
         )}

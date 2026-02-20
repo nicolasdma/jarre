@@ -49,7 +49,7 @@ export default async function LibraryPage() {
     return (
       <div className="min-h-screen bg-j-bg">
         <Header currentPage="library" />
-        <main className="mx-auto max-w-6xl px-8 py-12">
+        <main className="mx-auto max-w-6xl px-4 sm:px-8 py-12">
           <p className="font-mono text-sm text-j-error">{t('common.error', lang)}: {error.message}</p>
         </main>
       </div>
@@ -265,17 +265,17 @@ export default async function LibraryPage() {
     <div className="min-h-screen bg-j-bg j-bg-texture">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-8 pt-24 pb-16 j-grid-bg j-hero-gradient">
+      <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-16 sm:pt-24 pb-12 sm:pb-16 j-grid-bg j-hero-gradient">
         {/* Hero Section */}
         <div className="mb-16">
           <SectionLabel>
             {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
           </SectionLabel>
 
-          <h1 className="text-7xl md:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
             {t('library.title', lang)}
           </h1>
-          <p className="text-3xl font-light text-j-text-tertiary">
+          <p className="text-xl sm:text-2xl md:text-3xl font-light text-j-text-tertiary">
             {lang === 'es' ? 'para dominar sistemas de IA' : 'for AI systems mastery'}
           </p>
 
@@ -296,31 +296,31 @@ export default async function LibraryPage() {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 mb-12 sm:mb-16">
           <div className="relative text-center p-4">
             <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-4xl font-light text-j-text">{totalResources}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-text">{totalResources}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.resources', lang)}
             </p>
           </div>
           <div className="relative text-center p-4">
             <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-4xl font-light text-j-accent">{totalUnlocked}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-accent">{totalUnlocked}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.unlocked', lang)}
             </p>
           </div>
           <div className="relative text-center p-4">
             <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-4xl font-light text-j-accent">{totalEvaluated}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-accent">{totalEvaluated}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {t('library.evaluated', lang)}
             </p>
           </div>
           <div className="relative text-center p-4">
             <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-4xl font-light text-j-warm-dark">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-warm-dark">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
               {lang === 'es' ? 'Promedio' : 'Average'}
             </p>
@@ -341,7 +341,7 @@ export default async function LibraryPage() {
 
       {/* Settings */}
       {user && (
-        <div className="mx-auto max-w-6xl px-8 border-t border-j-border pt-8 mt-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-8 border-t border-j-border pt-8 mt-8">
           <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
             {t('dashboard.settings', lang)}
           </p>
@@ -351,7 +351,7 @@ export default async function LibraryPage() {
 
       {/* Footer */}
       <footer className="border-t border-j-border py-8 mt-8">
-        <div className="mx-auto max-w-6xl px-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-8">
           <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
             Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
           </p>

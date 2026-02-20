@@ -2,7 +2,7 @@ export default function DashboardLoading() {
   return (
     <div className="min-h-screen bg-j-bg">
       {/* Header placeholder */}
-      <div className="border-b border-j-border px-8 py-4">
+      <div className="border-b border-j-border px-4 sm:px-8 py-4">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
           <div className="h-5 w-20 bg-j-border animate-pulse" />
           <div className="flex gap-6">
@@ -12,7 +12,7 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-6xl px-8 py-12">
+      <main className="mx-auto max-w-6xl px-4 sm:px-8 py-12">
         {/* Engagement bar skeleton */}
         <div className="flex items-center gap-6 mb-8 p-4 border border-j-border">
           <div className="h-8 w-20 bg-j-border animate-pulse" />
@@ -43,7 +43,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Stats skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 mb-12">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={`stat-skeleton-${i}`} className="text-center">
               <div className="h-10 w-12 bg-j-border animate-pulse mx-auto mb-2" />

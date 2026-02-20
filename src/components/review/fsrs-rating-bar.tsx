@@ -82,7 +82,7 @@ const RATING_CONFIGS: RatingConfig[] = [
  */
 export function FSRSRatingBar({ intervals, onRate, disabled = false }: FSRSRatingBarProps) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {RATING_CONFIGS.map((config) => (
         <motion.button
           key={config.key}

@@ -100,7 +100,7 @@ export function InsightBar({ language, onDebate, onFreeform }: InsightBarProps) 
             >
               <button
                 onClick={() => dismiss(insight.id)}
-                className="absolute top-2 right-2 p-1 text-j-text-tertiary hover:text-j-text opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 p-2 text-j-text-tertiary hover:text-j-text sm:opacity-0 group-hover:opacity-100 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <X size={14} />
               </button>

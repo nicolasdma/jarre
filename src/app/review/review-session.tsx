@@ -115,13 +115,13 @@ function SelfRatingBar({
   ];
 
   return (
-    <div className="flex gap-2 justify-center">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 justify-center">
       {buttons.map((btn) => (
         <button
           key={btn.rating}
           onClick={() => onRate(btn.rating)}
           disabled={disabled}
-          className={`font-mono text-[11px] tracking-[0.1em] uppercase px-4 py-2 border ${btn.color} transition-colors disabled:opacity-50`}
+          className={`font-mono text-[11px] tracking-[0.1em] uppercase px-3 sm:px-4 py-2.5 sm:py-2 border min-h-[44px] ${btn.color} transition-colors disabled:opacity-50`}
         >
           {btn.label}
         </button>
@@ -863,7 +863,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
           {t('review.sessionComplete', language)}
         </h2>
 
-        <div className="relative grid grid-cols-2 gap-8 max-w-xs mx-auto my-12 p-6">
+        <div className="relative grid grid-cols-2 gap-4 sm:gap-8 max-w-xs mx-auto my-8 sm:my-12 p-4 sm:p-6">
           <CornerBrackets size="md" className="border-j-border" />
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <p className="text-4xl font-light text-j-accent">{correctCount}</p>
