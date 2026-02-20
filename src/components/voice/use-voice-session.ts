@@ -11,6 +11,7 @@ import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
+import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
 
 const log = createLogger('VoiceSession');
 
@@ -30,15 +31,22 @@ interface UseVoiceSessionParams {
   sessionType?: 'teaching' | 'evaluation' | 'practice' | 'exploration' | 'freeform' | 'debate';
   /** Resource ID for evaluation sessions */
   resourceId?: string;
-  /** Override max session duration in ms (default: 30 min) */
-  maxDurationMs?: number;
   /** Custom initial text message to send after connecting */
   initialMessage?: string;
   /** Concept IDs for learner memory fetch */
   conceptIds?: string[];
+  /** Tool declarations to pass to Gemini */
+  tools?: Tool[];
+  /** Callback when Gemini invokes tool calls */
+  onToolCall?: (functionCalls: FunctionCall[]) => void;
 }
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
+
+interface TranscriptEntry {
+  role: 'user' | 'model';
+  text: string;
+}
 
 interface VoiceSession {
   connectionState: ConnectionState;
@@ -49,6 +57,12 @@ interface VoiceSession {
   disconnect: () => void;
   /** Current session ID (null before connect) */
   sessionId: string | null;
+  /** Live transcript entries */
+  transcript: TranscriptEntry[];
+  /** Mic MediaStream for audio level analysis */
+  stream: MediaStream | null;
+  /** Send tool responses back to Gemini */
+  sendToolResponse: (responses: FunctionResponse[]) => void;
 }
 
 // ============================================================================
@@ -58,12 +72,10 @@ interface VoiceSession {
 const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
-const MAX_SESSION_DURATION_MS = 30 * 60 * 1000; // 30 min
-const WARNING_BEFORE_END_MS = 5 * 60 * 1000; // warn at 25 min
-
 // Session end signal: the voice prompt instructs the tutor to say this exact phrase when done.
 // Must be specific enough to never appear in normal explanations — "quiz" alone caused false positives.
-const SESSION_END_KEYWORD = /session complete/i;
+// Word boundaries prevent partial matches (e.g. "session completely" won't trigger).
+const SESSION_END_KEYWORD = /\bsession complete\b/i;
 // Minimum elapsed seconds before session end detection activates (prevents false triggers)
 const MIN_ELAPSED_FOR_END_S = 120;
 
@@ -80,17 +92,18 @@ export function useVoiceSession({
   systemInstructionOverride,
   sessionType = 'teaching',
   resourceId,
-  maxDurationMs,
   initialMessage,
   conceptIds,
+  tools,
+  onToolCall,
 }: UseVoiceSessionParams): VoiceSession {
-  const effectiveMaxDuration = maxDurationMs ?? MAX_SESSION_DURATION_MS;
-  const effectiveWarningBefore = Math.min(WARNING_BEFORE_END_MS, effectiveMaxDuration / 2);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const clientRef = useRef<GeminiLiveClientInstance | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -100,9 +113,11 @@ export function useVoiceSession({
   const nextPlayTimeRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
-  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+
+  // Session end keyword detection — debounce to prevent multiple disconnects
+  const sessionEndDetectedRef = useRef(false);
+  const endKeywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State logging: track last logged state to avoid repetitive logs (e.g., every audio chunk)
   const lastLoggedStateRef = useRef<TutorState>('idle');
@@ -128,8 +143,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall };
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -225,6 +240,7 @@ export function useVoiceSession({
       },
     });
     streamRef.current = stream;
+    setStream(stream);
 
     const audioContext = new AudioContext({ sampleRate: 16000 });
     audioContextRef.current = audioContext;
@@ -308,6 +324,7 @@ export function useVoiceSession({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      setStream(null);
     }
   }, []);
 
@@ -325,14 +342,6 @@ export function useVoiceSession({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    if (maxTimerRef.current) {
-      clearTimeout(maxTimerRef.current);
-      maxTimerRef.current = null;
-    }
-    if (warningTimerRef.current) {
-      clearTimeout(warningTimerRef.current);
-      warningTimerRef.current = null;
-    }
     setElapsed(0);
   }, []);
 
@@ -348,6 +357,9 @@ export function useVoiceSession({
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
+    // Update React state for UI consumption
+    setTranscript(prev => [...prev, { role, text }]);
+
     fetch('/api/voice/session/transcript', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -359,11 +371,13 @@ export function useVoiceSession({
     // Detect AI-driven session completion: the prompt instructs the tutor
     // to say "session complete" when wrapping up. Only activates after
     // MIN_ELAPSED_FOR_END_S to prevent false triggers early in the session.
-    if (role === 'model' && SESSION_END_KEYWORD.test(text)) {
+    // Uses sessionEndDetectedRef to prevent multiple disconnects from rapid transcript chunks.
+    if (role === 'model' && !sessionEndDetectedRef.current && SESSION_END_KEYWORD.test(text)) {
       const elapsedS = Math.floor((Date.now() - startTimeRef.current) / 1000);
       if (elapsedS >= MIN_ELAPSED_FOR_END_S) {
+        sessionEndDetectedRef.current = true;
         log.info(`[Session] End keyword detected after ${elapsedS}s, auto-disconnecting in 3s`);
-        setTimeout(() => {
+        endKeywordTimerRef.current = setTimeout(() => {
           disconnectRef.current();
           onSessionCompleteRef.current?.();
         }, 3000);
@@ -405,7 +419,13 @@ export function useVoiceSession({
     // Reset resilience refs for fresh session
     resumptionHandleRef.current = null;
     transcriptBufferRef.current = [];
+    setTranscript([]);
     lastLoggedStateRef.current = 'idle';
+    sessionEndDetectedRef.current = false;
+    if (endKeywordTimerRef.current) {
+      clearTimeout(endKeywordTimerRef.current);
+      endKeywordTimerRef.current = null;
+    }
 
     try {
       const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg, conceptIds: cIds } = paramsRef.current;
@@ -527,6 +547,9 @@ export function useVoiceSession({
           setTutorState('idle');
         },
         onTranscript: saveTranscript,
+        onToolCall: (functionCalls) => {
+          paramsRef.current.onToolCall?.(functionCalls);
+        },
         onResumptionUpdate: (handle, resumable) => {
           resumptionHandleRef.current = handle;
           log.info(`Resumption handle stored (resumable: ${resumable})`);
@@ -637,6 +660,7 @@ export function useVoiceSession({
         model: MODEL,
         systemInstruction,
         voiceName: VOICE_NAME,
+        ...(paramsRef.current.tools ? { tools: paramsRef.current.tools } : {}),
       });
 
       // 5. Start mic
@@ -656,14 +680,8 @@ export function useVoiceSession({
       );
       client.sendText(prompt);
 
-      // 7. Start session timer with auto-disconnect
+      // 7. Start session timer (display only — no auto-disconnect)
       startTimer();
-      warningTimerRef.current = setTimeout(() => {
-        setError(lang === 'es' ? 'La sesión se desconectará pronto' : 'Session will disconnect soon');
-      }, effectiveMaxDuration - effectiveWarningBefore);
-      maxTimerRef.current = setTimeout(() => {
-        disconnect();
-      }, effectiveMaxDuration);
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Connection failed';
@@ -704,6 +722,11 @@ export function useVoiceSession({
     // Reset resilience refs
     resumptionHandleRef.current = null;
     transcriptBufferRef.current = [];
+    sessionEndDetectedRef.current = false;
+    if (endKeywordTimerRef.current) {
+      clearTimeout(endKeywordTimerRef.current);
+      endKeywordTimerRef.current = null;
+    }
 
     logTransition('idle', 'disconnect');
     setTutorState('idle');
@@ -715,6 +738,11 @@ export function useVoiceSession({
 
   // Keep disconnectRef in sync so saveTranscript can call it
   disconnectRef.current = disconnect;
+
+  // Expose sendToolResponse for tool-use pipeline
+  const sendToolResponse = useCallback((responses: FunctionResponse[]) => {
+    clientRef.current?.sendToolResponse(responses);
+  }, []);
 
   // ---- Cleanup on unmount ----
 
@@ -742,5 +770,8 @@ export function useVoiceSession({
     connect,
     disconnect,
     sessionId,
+    transcript,
+    stream,
+    sendToolResponse,
   };
 }

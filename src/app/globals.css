@@ -300,6 +300,29 @@ mark.jarre-highlight-active {
   background-color: var(--j-highlight-active);
 }
 
+/* Voice tutor glow animations */
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.15; transform: scaleY(1); }
+  50% { opacity: 0.25; transform: scaleY(1.05); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.4; }
+}
+
+.animate-glow-breathe {
+  animation: glow-breathe 4s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(ellipse at bottom center, var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to));
+}
+
 /* Celebration overlay animation */
 @keyframes celebration-enter {
   0% {

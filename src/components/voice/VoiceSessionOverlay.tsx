@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Mic } from 'lucide-react';
-import { useVoiceFreeformSession } from './use-voice-freeform-session';
-import { useVoiceDebateSession } from './use-voice-debate-session';
+import { useUnifiedVoiceSession } from './use-unified-voice-session';
+import { TutorGlow } from './tutor-glow';
+import { TranscriptLine } from './transcript-line';
+import { useAudioLevel } from './use-audio-level';
 import type { Language } from '@/lib/translations';
 
 interface VoiceSessionOverlayProps {
@@ -17,11 +19,10 @@ interface VoiceSessionOverlayProps {
   };
 }
 
-function formatTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function VoiceSessionContent({
@@ -32,15 +33,15 @@ function VoiceSessionContent({
 }: VoiceSessionOverlayProps) {
   const isEs = language === 'es';
   const autoStarted = useRef(false);
+  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
-  const freeform = useVoiceFreeformSession({ language });
-  const debate = useVoiceDebateSession({
-    debateTopic: debateTopic || { topic: '', position: '', conceptIds: [] },
+  const session = useUnifiedVoiceSession({
+    mode,
     language,
+    debateTopic,
   });
 
-  const session = mode === 'freeform' ? freeform : debate;
-  const state = mode === 'freeform' ? freeform.state : debate.state;
+  const audioLevel = useAudioLevel(session.stream);
 
   useEffect(() => {
     if (!autoStarted.current) {
@@ -49,17 +50,19 @@ function VoiceSessionContent({
     }
   }, []);
 
+  const { state, transcript } = session;
+  const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+
   const stateLabels: Record<string, { es: string; en: string }> = {
     idle: { es: 'Preparando...', en: 'Preparing...' },
     loading: { es: 'Cargando contexto...', en: 'Loading context...' },
     connecting: { es: 'Conectando...', en: 'Connecting...' },
-    exploring: { es: 'Conversando', en: 'Exploring' },
-    debating: { es: 'Debatiendo', en: 'Debating' },
+    active: { es: mode === 'debate' ? 'Debatiendo' : 'Conversando', en: mode === 'debate' ? 'Debating' : 'Exploring' },
     done: { es: 'Sesión terminada', en: 'Session ended' },
     error: { es: 'Error', en: 'Error' },
   };
 
-  const isActive = state === 'exploring' || state === 'debating';
+  const isActive = state === 'active';
   const isDone = state === 'done';
   const isError = state === 'error';
   const isConnecting = state === 'idle' || state === 'loading' || state === 'connecting';
@@ -99,27 +102,22 @@ function VoiceSessionContent({
         <p className="text-sm text-j-error mb-8 max-w-md text-center">{session.error}</p>
       )}
 
-      {/* Waveform animation */}
-      {isActive && (
-        <div className="flex items-center gap-1 mb-12">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="w-1 bg-j-accent rounded-full animate-pulse"
-              style={{
-                height: `${16 + Math.random() * 24}px`,
-                animationDelay: `${i * 150}ms`,
-                animationDuration: '1s',
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Connecting spinner */}
       {isConnecting && (
         <div className="mb-12">
           <Mic size={32} className="text-j-accent animate-pulse" />
+        </div>
+      )}
+
+      {/* Transcript line (between timer area and stop button) */}
+      {isActive && (
+        <div className="w-full max-w-md mb-8">
+          <TranscriptLine
+            lastLine={lastLine}
+            fullTranscript={transcript}
+            expanded={transcriptExpanded}
+            onToggle={() => setTranscriptExpanded(prev => !prev)}
+          />
         </div>
       )}
 
@@ -166,6 +164,11 @@ function VoiceSessionContent({
         <p className="absolute bottom-8 font-mono text-xs text-j-text-tertiary max-w-md text-center">
           &quot;{debateTopic.position}&quot;
         </p>
+      )}
+
+      {/* Ambient glow */}
+      {isActive && (
+        <TutorGlow state={session.tutorState} audioLevel={audioLevel} />
       )}
     </div>
   );

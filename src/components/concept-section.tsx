@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { AnnotatedContent } from './annotated-content';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
 import { SelfExplanation } from './self-explanation';
@@ -51,7 +51,7 @@ interface QuestionData {
 // Component
 // ============================================================================
 
-export function ConceptSection({
+export const ConceptSection = memo(function ConceptSection({
   section,
   language,
   isActive,
@@ -666,4 +666,6 @@ export function ConceptSection({
       )}
     </div>
   );
-}
+});
+
+ConceptSection.displayName = 'ConceptSection';

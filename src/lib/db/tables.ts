@@ -36,6 +36,7 @@ export const TABLES = {
   voiceTranscripts: 'voice_transcripts',
   tokenUsage: 'token_usage',
   learnerConceptMemory: 'learner_concept_memory',
+  voiceToolCalls: 'voice_tool_calls',
 
   // Reactive Knowledge System
   userResources: 'user_resources',

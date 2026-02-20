@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Mic, MicOff, Loader2, Clock, RefreshCw } from 'lucide-react';
-import { useVoiceExplorationSession } from '@/components/voice/use-voice-exploration-session';
+import { useUnifiedVoiceSession, type ExplorationResult } from '@/components/voice/use-unified-voice-session';
+import { TranscriptLine } from '@/components/voice/transcript-line';
 import type { Language } from '@/lib/translations';
 
 interface DiscussWithTutorButtonProps {
@@ -19,14 +20,21 @@ export function DiscussWithTutorButton({
   const isEs = language === 'es';
   const [showResult, setShowResult] = useState(false);
 
-  const exploration = useVoiceExplorationSession({
-    userResourceId,
+  const session = useUnifiedVoiceSession({
+    mode: 'exploration',
     language,
-    onComplete: () => setShowResult(true),
+    userResourceId,
+    onExplorationComplete: () => setShowResult(true),
   });
 
+  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
+
   const isDisabled = resourceStatus !== 'completed';
-  const isActive = exploration.state === 'exploring' || exploration.state === 'connecting';
+  const isActive = session.state === 'active' || session.state === 'connecting';
+
+  const explorationResult = session.result?.mode === 'exploration'
+    ? session.result.explorationResult
+    : null;
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -34,10 +42,10 @@ export function DiscussWithTutorButton({
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (exploration.state === 'error') {
+  if (session.state === 'error') {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-j-error">{exploration.error}</p>
+        <p className="text-sm text-j-error">{session.error}</p>
         <p className="text-xs text-j-text-tertiary">
           {isEs
             ? 'La conversación está guardada. Podemos reintentar el resumen.'
@@ -45,7 +53,7 @@ export function DiscussWithTutorButton({
         </p>
         <div className="flex gap-3">
           <button
-            onClick={exploration.retrySummary}
+            onClick={session.retryPostProcess}
             className="flex items-center gap-2 px-4 py-2 border border-j-accent text-j-accent rounded font-mono text-sm hover:bg-j-accent/10 transition-colors"
           >
             <RefreshCw size={14} />
@@ -56,7 +64,7 @@ export function DiscussWithTutorButton({
     );
   }
 
-  if (exploration.state === 'summarizing') {
+  if (session.state === 'summarizing') {
     return (
       <div className="flex items-center gap-3 px-6 py-3 border border-j-accent/30 rounded">
         <Loader2 size={16} className="animate-spin text-j-accent" />
@@ -67,7 +75,7 @@ export function DiscussWithTutorButton({
     );
   }
 
-  if (exploration.state === 'done' && showResult && exploration.result) {
+  if (session.state === 'done' && showResult && explorationResult) {
     return (
       <div className="space-y-4">
         <div className="p-4 border border-j-accent/30 rounded-lg">
@@ -75,22 +83,22 @@ export function DiscussWithTutorButton({
             {isEs ? 'Resumen de la sesión' : 'Session Summary'}
           </p>
           <p className="text-sm text-j-text-secondary leading-relaxed">
-            {exploration.result.summary}
+            {explorationResult.summary}
           </p>
-          {exploration.result.discoveredConnections > 0 && (
+          {explorationResult.discoveredConnections > 0 && (
             <p className="text-xs text-j-accent mt-2">
               {isEs
-                ? `${exploration.result.discoveredConnections} nuevas conexiones descubiertas`
-                : `${exploration.result.discoveredConnections} new connections discovered`}
+                ? `${explorationResult.discoveredConnections} nuevas conexiones descubiertas`
+                : `${explorationResult.discoveredConnections} new connections discovered`}
             </p>
           )}
-          {exploration.result.openQuestions.length > 0 && (
+          {explorationResult.openQuestions.length > 0 && (
             <div className="mt-3">
               <p className="text-xs text-j-text-tertiary mb-1">
                 {isEs ? 'Preguntas abiertas:' : 'Open questions:'}
               </p>
               <ul className="text-xs text-j-text-secondary space-y-1">
-                {exploration.result.openQuestions.map((q, i) => (
+                {explorationResult.openQuestions.map((q, i) => (
                   <li key={i}>• {q}</li>
                 ))}
               </ul>
@@ -112,12 +120,12 @@ export function DiscussWithTutorButton({
       <button
         onClick={() => {
           if (isActive) {
-            exploration.stop();
+            session.stop();
           } else {
-            exploration.start();
+            session.start();
           }
         }}
-        disabled={isDisabled || exploration.state === 'loading'}
+        disabled={isDisabled || session.state === 'loading'}
         className={`flex items-center gap-2 px-6 py-3 border rounded font-mono text-sm transition-colors ${
           isActive
             ? 'border-red-500/50 text-red-400 hover:bg-red-500/10'
@@ -126,7 +134,7 @@ export function DiscussWithTutorButton({
               : 'border-j-accent text-j-accent hover:bg-j-accent/10'
         }`}
       >
-        {exploration.state === 'loading' ? (
+        {session.state === 'loading' ? (
           <>
             <Loader2 size={16} className="animate-spin" />
             {isEs ? 'Preparando...' : 'Preparing...'}
@@ -147,13 +155,25 @@ export function DiscussWithTutorButton({
       {isActive && (
         <div className="flex items-center gap-2 text-sm text-j-text-secondary">
           <Clock size={14} />
-          <span className="font-mono">{formatTime(exploration.elapsed)}</span>
+          <span className="font-mono">{formatTime(session.elapsed)}</span>
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         </div>
       )}
 
-      {exploration.error && (
-        <p className="text-xs text-j-error">{exploration.error}</p>
+      {session.error && (
+        <p className="text-xs text-j-error">{session.error}</p>
+      )}
+
+      {/* Transcript line when active */}
+      {session.state === 'active' && session.transcript.length > 0 && (
+        <div className="w-full mt-3">
+          <TranscriptLine
+            lastLine={session.transcript[session.transcript.length - 1]}
+            fullTranscript={session.transcript}
+            expanded={transcriptExpanded}
+            onToggle={() => setTranscriptExpanded(prev => !prev)}
+          />
+        </div>
       )}
     </div>
   );

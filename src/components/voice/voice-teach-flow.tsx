@@ -8,8 +8,11 @@
  * Phases: INTRO → TEACHING → SCORING → RESULTS
  */
 
-import { useRef, useEffect, useCallback } from 'react';
-import { useVoiceTeachSession } from './use-voice-teach-session';
+import { useEffect, useCallback, useState } from 'react';
+import { useUnifiedVoiceSession } from './use-unified-voice-session';
+import { TutorGlow } from './tutor-glow';
+import { TranscriptLine } from './transcript-line';
+import { useAudioLevel } from './use-audio-level';
 import type { Language } from '@/lib/translations';
 
 // ============================================================================
@@ -32,71 +35,6 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// ============================================================================
-// Waveform
-// ============================================================================
-
-function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const BAR_COUNT = 28;
-    const BAR_WIDTH = 3;
-    const GAP = 3;
-    const MAX_HEIGHT = 36;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < BAR_COUNT; i++) {
-        let height: number;
-        let color: string;
-        switch (state) {
-          case 'speaking':
-            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
-            color = 'var(--j-accent, #6b7280)';
-            break;
-          case 'listening':
-            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
-            color = 'var(--j-warm, #d97706)';
-            break;
-          case 'thinking':
-            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
-            color = 'var(--j-text-tertiary, #9ca3af)';
-            break;
-          default:
-            height = 3;
-            color = 'var(--j-border, #e5e7eb)';
-        }
-        const x = i * (BAR_WIDTH + GAP);
-        const y = (canvas.height - height) / 2;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
-        ctx.fill();
-      }
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [state]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={28 * 3 + 27 * 3}
-      height={44}
-      className="mx-auto"
-    />
-  );
 }
 
 // ============================================================================
@@ -147,38 +85,33 @@ export function VoiceTeachFlow({
   language,
   onClose,
 }: Props) {
-  const {
-    teachState,
-    tutorState,
-    error,
-    elapsed,
-    teachResult,
-    connect,
-    disconnect,
-    retryScoring,
-  } = useVoiceTeachSession({
-    conceptId,
-    conceptName,
-    conceptDefinition,
+  const session = useUnifiedVoiceSession({
+    mode: 'teach',
     language,
+    conceptForTeach: { id: conceptId, name: conceptName, definition: conceptDefinition },
   });
 
+  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const teachResult = result?.mode === 'teach' ? result.teachResult : null;
+  const audioLevel = useAudioLevel(stream);
+  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
+
   const handleDisconnect = useCallback(() => {
-    disconnect();
-  }, [disconnect]);
+    session.stop();
+  }, [session]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && teachState === 'teaching') {
+      if (e.key === 'Escape' && state === 'active') {
         handleDisconnect();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [teachState, handleDisconnect]);
+  }, [state, handleDisconnect]);
 
   // ---- INTRO ----
-  if (teachState === 'idle') {
+  if (state === 'idle') {
     return (
       <div className="p-6">
         <p className="font-mono text-[10px] tracking-[0.2em] text-j-accent uppercase mb-2">
@@ -202,7 +135,7 @@ export function VoiceTeachFlow({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={connect}
+            onClick={session.start}
             className="group relative w-14 h-14 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-all duration-300"
             aria-label={t('startTeaching', language)}
           >
@@ -228,7 +161,7 @@ export function VoiceTeachFlow({
   }
 
   // ---- CONNECTING ----
-  if (teachState === 'connecting') {
+  if (state === 'connecting') {
     return (
       <div className="p-6 flex flex-col items-center gap-4">
         <div className="w-14 h-14 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent opacity-50">
@@ -244,7 +177,7 @@ export function VoiceTeachFlow({
   }
 
   // ---- TEACHING ----
-  if (teachState === 'teaching') {
+  if (state === 'active') {
     const statusLabel = (() => {
       switch (tutorState) {
         case 'listening': return t('yourTurn', language);
@@ -254,11 +187,17 @@ export function VoiceTeachFlow({
       }
     })();
 
+    const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+
     return (
       <div className="p-6 flex flex-col items-center">
-        <WaveformVisualizer state={tutorState} />
-
-        <div className="flex items-center gap-3 mt-3 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-2 h-2 rounded-full ${
+            tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
+            tutorState === 'listening' ? 'bg-j-warm' :
+            tutorState === 'thinking' ? 'bg-j-text-tertiary animate-pulse' :
+            'bg-j-border'
+          }`} />
           <span className={`font-mono text-[10px] tracking-[0.1em] ${
             tutorState === 'speaking' ? 'text-j-accent'
               : tutorState === 'listening' ? 'text-j-warm'
@@ -297,12 +236,25 @@ export function VoiceTeachFlow({
         {error && (
           <p className="text-xs text-j-error mt-2 max-w-xs text-center">{error}</p>
         )}
+
+        {/* Transcript line */}
+        <div className="w-full max-w-sm mt-4">
+          <TranscriptLine
+            lastLine={lastLine}
+            fullTranscript={transcript}
+            expanded={transcriptExpanded}
+            onToggle={() => setTranscriptExpanded(prev => !prev)}
+          />
+        </div>
+
+        {/* Ambient glow */}
+        <TutorGlow state={tutorState} audioLevel={audioLevel} />
       </div>
     );
   }
 
   // ---- SCORING ----
-  if (teachState === 'scoring') {
+  if (state === 'scoring') {
     return (
       <div className="p-6 flex flex-col items-center gap-4">
         <div className="h-5 w-5 border-2 border-j-border border-t-j-accent rounded-full animate-spin" />
@@ -313,7 +265,7 @@ export function VoiceTeachFlow({
   }
 
   // ---- ERROR ----
-  if (teachState === 'error') {
+  if (state === 'error') {
     return (
       <div className="p-6 flex flex-col items-center gap-4">
         <p className="text-sm text-j-error">{error}</p>
@@ -325,7 +277,7 @@ export function VoiceTeachFlow({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={retryScoring}
+            onClick={session.retryPostProcess}
             className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
           >
             {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
@@ -343,7 +295,7 @@ export function VoiceTeachFlow({
   }
 
   // ---- RESULTS ----
-  if (teachState === 'done' && teachResult) {
+  if (state === 'done' && teachResult) {
     const { overallScore, summary, masteryAdvanced } = teachResult;
 
     return (
