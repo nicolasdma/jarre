@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
 import { VoicePracticeFlow } from '@/components/voice/voice-practice-flow';
+import type { PracticeResult } from '@/components/voice/use-unified-voice-session';
 import { ConceptSection } from './concept-section';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
@@ -294,6 +295,23 @@ export function LearnFlow({
   // Practice mode: voice (default) or text fallback
   const [practiceMode, setPracticeMode] = useState<'voice' | 'text'>('voice');
 
+  // Last persisted practice result
+  const [lastPracticeResult, setLastPracticeResult] = useState<PracticeResult | null>(null);
+  const [lastPracticeDate, setLastPracticeDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentStep !== 'practice-eval') return;
+    fetch(`/api/voice/practice-result?resourceId=${resourceId}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.practiceResult) {
+          setLastPracticeResult(data.practiceResult);
+          setLastPracticeDate(data.completedAt ?? null);
+        }
+      })
+      .catch(() => {});
+  }, [currentStep, resourceId]);
+
   const allSectionsComplete = useMemo(
     () => sections.every((_, i) => completedSections.has(i)),
     [completedSections, sections]
@@ -560,6 +578,8 @@ export function LearnFlow({
                 onComplete={() => changeStep('evaluate')}
                 onSwitchToText={() => setPracticeMode('text')}
                 onReviewMaterial={() => changeStep('learn')}
+                lastPracticeResult={lastPracticeResult}
+                lastPracticeDate={lastPracticeDate}
               />
             ) : (
               <>

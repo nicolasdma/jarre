@@ -14,10 +14,14 @@
  */
 
 import { useEffect, useCallback, useState } from 'react';
-import { useUnifiedVoiceSession } from './use-unified-voice-session';
-import { TutorGlow } from './tutor-glow';
-import { TranscriptLine } from './transcript-line';
+import { useUnifiedVoiceSession, type PracticeResult } from './use-unified-voice-session';
 import { useAudioLevel } from './use-audio-level';
+import {
+  VoiceConnectingPhase,
+  VoiceActivePhase,
+  VoiceScoringPhase,
+  VoiceErrorPhase,
+} from './voice-session-phases';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Language } from '@/lib/translations';
 
@@ -38,16 +42,8 @@ interface Props {
   onComplete: () => void;
   onSwitchToText: () => void;
   onReviewMaterial: () => void;
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  lastPracticeResult?: PracticeResult | null;
+  lastPracticeDate?: string | null;
 }
 
 // ============================================================================
@@ -91,6 +87,7 @@ const tr = {
   consolidation: { es: 'Consolidacion', en: 'Consolidation' },
   idealAnswer: { es: 'Respuesta ideal', en: 'Ideal answer' },
   whatToReview: { es: 'Que repasar', en: 'What to review' },
+  lastResultTitle: { es: 'Ultimo resultado', en: 'Last result' },
 } as const;
 
 function t(key: keyof typeof tr, lang: Language): string {
@@ -182,6 +179,8 @@ export function VoicePracticeFlow({
   onComplete,
   onSwitchToText,
   onReviewMaterial,
+  lastPracticeResult,
+  lastPracticeDate,
 }: Props) {
   const session = useUnifiedVoiceSession({
     mode: 'practice',
@@ -193,7 +192,6 @@ export function VoicePracticeFlow({
   const { state, tutorState, error, elapsed, result, transcript, stream } = session;
   const practiceResult = result?.mode === 'practice' ? result.practiceResult : null;
   const audioLevel = useAudioLevel(stream);
-  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
   const handleDisconnect = useCallback(() => {
     session.stop();
@@ -210,8 +208,128 @@ export function VoicePracticeFlow({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state, handleDisconnect]);
 
-  // ---- INTRO ----
+  // ---- INTRO (with optional last result) ----
   if (state === 'idle') {
+    // Show previous result if available
+    if (lastPracticeResult) {
+      const passed = lastPracticeResult.passedGate;
+
+      return (
+        <div>
+          <SectionLabel className="mb-8">
+            {t('practiceTitle', language)}
+          </SectionLabel>
+
+          {/* Last result header */}
+          <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-4">
+            {t('lastResultTitle', language)}
+            {lastPracticeDate && (
+              <span className="ml-2 normal-case">
+                — {new Date(lastPracticeDate).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                })}
+              </span>
+            )}
+          </p>
+
+          {/* Score summary */}
+          <div className={`border p-8 mb-4 ${passed ? 'border-j-accent bg-j-accent/5' : 'border-j-border'}`}>
+            <div className="flex items-center gap-8">
+              <div className="text-center">
+                <p className={`text-4xl font-light ${passed ? 'text-j-accent' : 'text-j-error'}`}>
+                  {lastPracticeResult.overallScore}%
+                </p>
+                <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
+                  {t('overallScore', language)}
+                </p>
+                <p className={`font-mono text-[10px] tracking-[0.15em] uppercase mt-2 ${passed ? 'text-j-accent' : 'text-j-error'}`}>
+                  {passed ? t('readyForEval', language) : t('needsMorePractice', language)}
+                </p>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-j-text-secondary leading-relaxed">
+                  {lastPracticeResult.summary}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Per-concept feedback */}
+          <div className="space-y-6 mt-8">
+            {lastPracticeResult.responses.map((r, index) => (
+              <div
+                key={`last-response-${r.questionIndex}`}
+                className={`border-l-2 pl-6 ${r.understood ? 'border-j-accent' : 'border-j-error'}`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-mono text-[10px] text-j-text-tertiary">
+                    {t('concept', language)} {index + 1}
+                  </span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-j-text-secondary uppercase">
+                    {concepts[index]?.name}
+                  </span>
+                  <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${r.isCorrect ? 'text-j-accent' : 'text-j-error'}`}>
+                    {r.score}%
+                  </span>
+                </div>
+                <div className="flex gap-3 mb-2">
+                  <span className={`font-mono text-[9px] px-2 py-0.5 rounded ${
+                    r.neededHelp ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
+                  }`}>
+                    {r.neededHelp ? t('neededHelp', language) : t('independent', language)}
+                  </span>
+                  <span className={`font-mono text-[9px] px-2 py-0.5 rounded ${
+                    r.understood ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                  }`}>
+                    {r.understood ? t('understood', language) : t('notUnderstood', language)}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+                    {t('feedback', language)}
+                  </p>
+                  <p className="text-sm text-j-text-secondary leading-relaxed">{r.feedback}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Consolidation */}
+          {lastPracticeResult.consolidation && lastPracticeResult.consolidation.length > 0 && (
+            <PracticeConsolidation
+              consolidation={lastPracticeResult.consolidation}
+              language={language}
+            />
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
+            {passed && (
+              <button
+                onClick={onComplete}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('continueToEval', language)} →
+              </button>
+            )}
+            <button
+              onClick={session.start}
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
+            >
+              {t('practiceAgain', language)}
+            </button>
+            <button
+              onClick={onSwitchToText}
+              className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
+            >
+              {t('preferText', language)}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // No previous result — show intro
     return (
       <div>
         <SectionLabel className="mb-8">
@@ -285,138 +403,50 @@ export function VoicePracticeFlow({
 
   // ---- CONNECTING ----
   if (state === 'connecting') {
-    return (
-      <div className="py-16 flex flex-col items-center gap-4">
-        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-j-warm text-white opacity-50">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
-          </svg>
-        </div>
-        <p className="font-mono text-[10px] text-j-text-tertiary animate-pulse">
-          {language === 'es' ? 'Conectando...' : 'Connecting...'}
-        </p>
-      </div>
-    );
+    return <VoiceConnectingPhase language={language} accentColor="warm" />;
   }
 
   // ---- SESSION (practicing) ----
   if (state === 'active') {
-    const statusLabel = (() => {
-      switch (tutorState) {
-        case 'listening': return t('yourTurn', language);
-        case 'thinking': return t('thinking', language);
-        case 'speaking': return t('speaking', language);
-        default: return '';
-      }
-    })();
-
-    const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
-
     return (
-      <div className="flex flex-col items-center py-8">
-        <div className="flex items-center gap-3 mb-5">
-          <div className={`w-2 h-2 rounded-full ${
-            tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
-            tutorState === 'listening' ? 'bg-j-warm' :
-            tutorState === 'thinking' ? 'bg-j-text-tertiary animate-pulse' :
-            'bg-j-border'
-          }`} />
-          <span className={`font-mono text-[10px] tracking-[0.1em] ${
-            tutorState === 'speaking'
-              ? 'text-j-accent'
-              : tutorState === 'listening'
-                ? 'text-j-warm'
-                : 'text-j-text-tertiary'
-          }`}>
-            {statusLabel}
-          </span>
-          <span className="text-j-border">&middot;</span>
-          <span className="font-mono text-[10px] text-j-text-tertiary tabular-nums">
-            {formatTime(elapsed)}
-          </span>
-        </div>
-
-        {/* Progress indicator: time remaining (420s = 7min) */}
-        <div className="w-48 h-1 bg-j-border rounded-full mb-6 overflow-hidden">
-          <div
-            className="h-full bg-j-warm rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min(100, (elapsed / 420) * 100)}%` }}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleDisconnect}
-          className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-j-error/30 text-j-error hover:bg-j-error hover:text-white hover:border-j-error transition-all duration-200"
-          aria-label={t('endSession', language)}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-          </svg>
-        </button>
-
-        <p className="font-mono text-[10px] text-j-text-tertiary mt-3">
-          {t('escToEnd', language)}
-        </p>
-
-        {error && (
-          <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
-        )}
-
-        {/* Transcript line */}
-        <div className="w-full max-w-md mt-6">
-          <TranscriptLine
-            lastLine={lastLine}
-            fullTranscript={transcript}
-            expanded={transcriptExpanded}
-            onToggle={() => setTranscriptExpanded(prev => !prev)}
-          />
-        </div>
-
-        {/* Ambient glow */}
-        <TutorGlow state={tutorState} audioLevel={audioLevel} />
-      </div>
+      <VoiceActivePhase
+        language={language}
+        tutorState={tutorState}
+        elapsed={elapsed}
+        maxDurationSeconds={420}
+        transcript={transcript}
+        audioLevel={audioLevel}
+        error={error}
+        statusLabels={{
+          listening: t('yourTurn', language),
+          thinking: t('thinking', language),
+          speaking: t('speaking', language),
+        }}
+        escLabel={t('escToEnd', language)}
+        onStop={handleDisconnect}
+      />
     );
   }
 
   // ---- SCORING ----
   if (state === 'scoring') {
     return (
-      <div className="py-16 flex flex-col items-center gap-4">
-        <div className="h-5 w-5 border-2 border-j-border border-t-j-warm rounded-full animate-spin" />
-        <p className="text-sm text-j-text-secondary">{t('scoring', language)}</p>
-        <p className="text-xs text-j-text-tertiary">{t('scoringEstimate', language)}</p>
-      </div>
+      <VoiceScoringPhase
+        label={t('scoring', language)}
+        estimate={t('scoringEstimate', language)}
+      />
     );
   }
 
   // ---- ERROR ----
   if (state === 'error') {
     return (
-      <div className="py-16 flex flex-col items-center gap-4">
-        <p className="text-sm text-j-error">{error}</p>
-        <p className="text-xs text-j-text-tertiary max-w-xs text-center">
-          {language === 'es'
-            ? 'La conversación está guardada. Podemos reintentar el análisis.'
-            : 'The conversation is saved. We can retry the analysis.'}
-        </p>
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={session.retryPostProcess}
-            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-          >
-            {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
-          </button>
-          <button
-            type="button"
-            onClick={onSwitchToText}
-            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
-          >
-            {t('preferText', language)}
-          </button>
-        </div>
-      </div>
+      <VoiceErrorPhase
+        error={error}
+        language={language}
+        onRetry={session.retryPostProcess}
+        fallbackAction={{ label: t('preferText', language), onClick: onSwitchToText }}
+      />
     );
   }
 
