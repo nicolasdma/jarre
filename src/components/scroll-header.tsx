@@ -10,13 +10,21 @@ export function ScrollHeader({ children }: ScrollHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
+    // AppShell moves scroll from window to #main-scroll-container
+    const scrollContainer =
+      document.getElementById('main-scroll-container') ?? window;
+
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      const scrollTop =
+        scrollContainer instanceof HTMLElement
+          ? scrollContainer.scrollTop
+          : window.scrollY;
+      setScrolled(scrollTop > 20);
     };
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
