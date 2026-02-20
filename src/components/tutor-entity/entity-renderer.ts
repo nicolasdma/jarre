@@ -101,11 +101,18 @@ let _lastTime = -1;
 // Compute pass — geometry, z-buffer, lighting (called once per frame)
 // ---------------------------------------------------------------------------
 
+// Smoothed tilt state — avoids jerky orientation changes
+let _tiltA = 0;
+let _tiltB = 0;
+const TILT_LERP = 3.0;   // how fast tilt follows cursor (~0.3s to settle)
+const TILT_MAX = 0.35;    // max tilt offset in radians (~20°)
+
 export function computeEntityFrame(
   width: number,
   height: number,
   params: EntityStateParams,
   time: number,
+  focalPoint?: { x: number; y: number } | null,
 ): boolean {
   if (width < 10 || height < 10) {
     _frameValid = false;
@@ -136,10 +143,24 @@ export function computeEntityFrame(
   _rotA += dt * params.rotSpeedA;
   _rotB += dt * params.rotSpeedB;
 
-  const cosA = Math.cos(_rotA);
-  const sinA = Math.sin(_rotA);
-  const cosB = Math.cos(_rotB);
-  const sinB = Math.sin(_rotB);
+  // Cursor-following tilt — entity orients toward mouse position
+  if (focalPoint) {
+    const targetTiltA = -(focalPoint.y - 0.5) * 2 * TILT_MAX; // Y → X-axis tilt
+    const targetTiltB = (focalPoint.x - 0.5) * 2 * TILT_MAX;  // X → Z-axis tilt
+    const tiltT = Math.min(1, TILT_LERP * dt);
+    _tiltA += (targetTiltA - _tiltA) * tiltT;
+    _tiltB += (targetTiltB - _tiltB) * tiltT;
+  } else {
+    // Smoothly return to neutral when mouse leaves
+    const tiltT = Math.min(1, TILT_LERP * dt);
+    _tiltA *= (1 - tiltT);
+    _tiltB *= (1 - tiltT);
+  }
+
+  const cosA = Math.cos(_rotA + _tiltA);
+  const sinA = Math.sin(_rotA + _tiltA);
+  const cosB = Math.cos(_rotB + _tiltB);
+  const sinB = Math.sin(_rotB + _tiltB);
 
   const minDim = Math.min(cols * charW, rows * charH);
   const R1 = minDim * params.minorRadius;
@@ -297,19 +318,19 @@ export function paintEntityFrame(
         ? SURFACE_GLYPHS[gi]
         : LUMINANCE_CHARS[Math.min(lumIndex, maxLum)];
 
-      // Focal boost: soft Gaussian halo centered on cursor
+      // Focal boost: radial glow centered on cursor position
       let focalBoost = 1.0;
       if (hasFocal) {
         const dx = (col / cols) - fx;
         const dy = (row / rows) - fy;
         const dist2 = dx * dx + dy * dy;
-        // Gentle peak ~1.5x at cursor, wide falloff (~40% of canvas)
-        focalBoost = 1.0 + 0.5 * Math.exp(-dist2 * 8);
+        // Peak 2.5x at cursor, tight core + soft halo
+        focalBoost = 1.0 + 1.5 * Math.exp(-dist2 * 18);
       }
 
       const normalized = lumIndex / maxLum;
       const boostedNorm = Math.min(1, normalized * focalBoost);
-      const opacity = charOpacity * (0.35 + 0.65 * boostedNorm);
+      const opacity = charOpacity * (0.35 + 0.65 * boostedNorm) * Math.min(1.0, focalBoost * 0.7);
 
       const blend = boostedNorm * boostedNorm;
       const r = (cr + (ar - cr) * blend + 0.5) | 0;
@@ -334,7 +355,7 @@ export function renderEntityFrame(
   time: number,
   focalPoint?: { x: number; y: number } | null,
 ): void {
-  computeEntityFrame(width, height, params, time);
+  computeEntityFrame(width, height, params, time, focalPoint);
   paintEntityFrame(ctx, width, height, params, focalPoint);
 }
 
