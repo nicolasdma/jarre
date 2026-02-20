@@ -74,16 +74,16 @@ export const ENTITY_STATES = {
     accentColor: WARM_MID,
     fontSize: 12,
   },
-  /** Hover — grows a bit, brighter */
+  /** Hover — contemplative, slows down to listen */
   hover: {
-    majorRadius: 0.12,
-    minorRadius: 0.06,
-    rotSpeedA: 0.35,
-    rotSpeedB: 0.18,
+    majorRadius: 0.10,
+    minorRadius: 0.05,
+    rotSpeedA: 0.04,
+    rotSpeedB: 0.02,
     thetaStep: 0.06,
     phiStep: 0.02,
-    charOpacity: 0.6,
-    glowOpacity: 0.38,
+    charOpacity: 0.55,
+    glowOpacity: 0.30,
     color: WARM_MID,
     accentColor: WARM_BRIGHT,
     fontSize: 12,

@@ -144,6 +144,23 @@ const starFn: GeometryFn = (theta, phi, R1, R2, out) => {
 };
 
 // ---------------------------------------------------------------------------
+// Contemplative geometry — used during hover (listening mode)
+// ---------------------------------------------------------------------------
+
+/** Dini's surface — twisted pseudospherical spiral, meditative form */
+const diniFn: GeometryFn = (theta, phi, R1, R2, out) => {
+  const u = 0.1 + (theta / 6.2832) * 12.566;
+  const v = 0.1 + (phi / 6.2832) * 1.7;
+  const sv = Math.sin(v);
+  const scale = R2 * 0.12;
+  out.x = scale * Math.cos(u) * sv;
+  out.y = scale * Math.sin(u) * sv;
+  out.z = scale * (Math.cos(v) + Math.log(Math.tan(v * 0.5 + 0.001)) + 0.2 * u);
+};
+
+const CONTEMPLATIVE: NamedGeometry = { fn: diniFn, name: "Dini's Spiral" };
+
+// ---------------------------------------------------------------------------
 // All geometries pool (with names for debug)
 // ---------------------------------------------------------------------------
 
@@ -194,24 +211,55 @@ let _currentCycle = _currentHold + _currentTransition;
 let _cycleStart = 0;
 let _initialized = false;
 
+// Contemplative mode — slow blend toward Dini's Spiral on hover
+let _contemplativeActive = false;
+let _contemplativeBlend = 0; // 0 = normal, 0.5 = max contemplative (halfway to Dini's)
+/** Max blend — stop at 50% so the shape stays in-between, never fully Dini's */
+const CONTEMPLATIVE_MAX = 0.5;
+/** Blend speed: takes ~8s to reach max, ~3s to return */
+const CONTEMPLATIVE_BLEND_IN = 0.0625;  // reaches 0.5 in ~8s
+const CONTEMPLATIVE_BLEND_OUT = 0.167;  // returns from 0.5 in ~3s
+let _lastMorphTime = 0;
+
+/**
+ * Activate or deactivate contemplative mode (hover = listening).
+ * The blend is gradual — the entity slowly drifts toward Dini's Spiral.
+ */
+export function setContemplativeMode(active: boolean): void {
+  _contemplativeActive = active;
+}
+
 /** Current geometry name (for debug display) */
 export function getCurrentGeometryName(): string {
+  if (_contemplativeBlend > 0.5) return CONTEMPLATIVE.name;
   return _current.name;
 }
 
 /**
  * Get the current morph state based on elapsed time.
  * Picks the next geometry randomly each cycle — never predictable.
+ * In contemplative mode, slowly blends toward Dini's Spiral.
  */
 export function getMorphState(time: number): MorphState {
   if (!_initialized) {
     _cycleStart = time;
+    _lastMorphTime = time;
     _initialized = true;
   }
 
+  // Update contemplative blend
+  const dt = Math.min(time - _lastMorphTime, 0.1);
+  _lastMorphTime = time;
+
+  if (_contemplativeActive) {
+    _contemplativeBlend = Math.min(CONTEMPLATIVE_MAX, _contemplativeBlend + CONTEMPLATIVE_BLEND_IN * dt);
+  } else {
+    _contemplativeBlend = Math.max(0, _contemplativeBlend - CONTEMPLATIVE_BLEND_OUT * dt);
+  }
+
+  // Normal morph cycle (keeps running in background)
   const elapsed = time - _cycleStart;
 
-  // Cycle complete — advance and pick new random timings
   if (elapsed >= _currentCycle) {
     _current = _next;
     _next = randomGeometry(_current);
@@ -219,18 +267,38 @@ export function getMorphState(time: number): MorphState {
     _currentTransition = randomInRange(TRANSITION_MIN, TRANSITION_MAX);
     _currentCycle = _currentHold + _currentTransition;
     _cycleStart += _currentCycle;
-    // Handle large time jumps (e.g. tab was backgrounded)
     if (time - _cycleStart >= _currentCycle) {
       _cycleStart = time;
     }
   }
 
   const withinCycle = time - _cycleStart;
-  const t = withinCycle > _currentHold
+  const normalT = withinCycle > _currentHold
     ? smoothstep((withinCycle - _currentHold) / _currentTransition)
     : 0;
 
-  return { fnA: _current.fn, fnB: _next.fn, t };
+  // If no contemplative blend, return normal morph
+  if (_contemplativeBlend <= 0) {
+    return { fnA: _current.fn, fnB: _next.fn, t: normalT };
+  }
+
+  // Blend: the "base" morph result blends toward contemplative geometry
+  // We return contemplative as fnB with the blend factor layered on top
+  const cBlend = smoothstep(_contemplativeBlend);
+
+  if (normalT <= 0) {
+    // Holding on current shape — blend current → contemplative
+    return { fnA: _current.fn, fnB: CONTEMPLATIVE.fn, t: cBlend };
+  }
+
+  // During transition: if contemplative is dominant, just go to it
+  if (cBlend > 0.8) {
+    return { fnA: _current.fn, fnB: CONTEMPLATIVE.fn, t: cBlend };
+  }
+
+  // Partial contemplative — blend next toward contemplative
+  // Use the normal transition but shift the target
+  return { fnA: _current.fn, fnB: _next.fn, t: normalT * (1 - cBlend) };
 }
 
 // ---------------------------------------------------------------------------
