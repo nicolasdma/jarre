@@ -192,6 +192,24 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       consolidationPromise,
     ]);
 
+    // Persist full practice result as JSONB snapshot (fire-and-forget)
+    const practiceResultPayload = {
+      responses: parsed.responses,
+      overallScore,
+      summary: parsed.summary,
+      passedGate,
+      consolidation: consolidationResult?.consolidation || [],
+    };
+
+    supabase
+      .from(TABLES.voiceSessions)
+      .update({ practice_result: practiceResultPayload })
+      .eq('id', voiceSessionId)
+      .eq('user_id', user.id)
+      .then(({ error: updateErr }) => {
+        if (updateErr) log.error(`Failed to persist practice_result for session ${voiceSessionId}:`, updateErr.message);
+      });
+
     log.info(
       `Voice practice scored for session ${voiceSessionId}, ` +
       `score: ${overallScore}, passedGate: ${passedGate}, concepts: ${concepts.length}, tokens: ${tokensUsed}`
