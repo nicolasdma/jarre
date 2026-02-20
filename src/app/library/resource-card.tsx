@@ -92,7 +92,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           handleCardClick();
         }
       }}
-      className={`group relative p-6 transition-all duration-300 ${
+      className={`group relative p-6 transition-all duration-300 j-card-glow ${
         isLocked
           ? 'cursor-not-allowed opacity-50'
           : 'cursor-pointer hover:bg-j-bg-hover'
@@ -125,9 +125,9 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
         }`}
       />
 
-      {/* Type label */}
+      {/* Type badge */}
       <div className="mb-4">
-        <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-j-accent uppercase px-2 py-0.5 rounded-full bg-j-accent/10 border border-j-accent/20">
           {resource.type}
         </span>
       </div>
@@ -153,7 +153,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
 
       {/* Evaluation Stats */}
       {hasEvaluation && scoreDisplay && (
-        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-j-border">
+        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-j-border bg-j-bg-alt/50 -mx-2 px-2 rounded">
           <div>
             <span className={`text-2xl font-light ${scoreDisplay.color}`}>
               {resource.evalStats!.bestScore}

@@ -27,7 +27,7 @@ export const GET = withAuth(async (request, { supabase, user }) => {
 
   const userResourceId = url.searchParams.get('userResourceId');
 
-  if (!sectionId && !userResourceId) {
+  if (sectionId === null && !userResourceId) {
     throw badRequest('sectionId or userResourceId query param is required');
   }
 

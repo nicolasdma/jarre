@@ -110,7 +110,7 @@ export function MobileNav({ links, streakDays, totalXp, xpLevel, isAuthenticated
             role="dialog"
             aria-modal="true"
             aria-label="Menú de navegación"
-            className="absolute top-full left-0 right-0 bg-j-bg border-b border-j-border z-50"
+            className="absolute top-full left-0 right-0 bg-j-bg/95 backdrop-blur-lg border-b border-j-border z-50"
           >
             <nav className="flex flex-col px-8 py-4 gap-3">
               {links.map((link) => (

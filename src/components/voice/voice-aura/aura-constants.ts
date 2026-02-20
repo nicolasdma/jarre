@@ -1,122 +1,114 @@
 import type { TutorState } from '../use-voice-session';
 
 // ============================================================================
-// Per-state visual parameters for the voice aura equalizer waves
+// Per-state visual parameters for the digital grid aura
 // ============================================================================
 
 export interface AuraStateParams {
-  /** Base opacity (0-1) */
+  /** Base dot opacity (0-1) */
   baseOpacity: number;
   /** Audio-reactive opacity gain */
   audioOpacityGain: number;
-  /** Base wave height as % of container height */
-  baseAmplitude: number;
-  /** Audio-reactive amplitude gain (%) — THIS is what makes it react */
-  audioAmplitudeGain: number;
-  /** Vertical pulse speed — how fast the waves breathe up/down */
-  pulseSpeed: number;
-  /** Audio-reactive pulse speed gain */
-  audioPulseGain: number;
-  /** Breathe cycle speed (Hz, 0 = none) */
+  /** How many rows of dots light up from bottom (0-1 of total rows) */
+  baseActivation: number;
+  /** Audio-reactive activation gain */
+  audioActivationGain: number;
+  /** How much frequency bands drive column heights (0 = ignore, 1 = full) */
+  frequencySensitivity: number;
+  /** Dot glow radius in px */
+  glowRadius: number;
+  /** Scanline speed (0 = off) */
+  scanlineSpeed: number;
+  /** Glitch probability per frame (0-1) */
+  glitchProb: number;
+  /** Pulse/breathe speed for idle animation */
   breatheSpeed: number;
   /** Breathe amplitude */
   breatheAmp: number;
-  /** CSS blur radius */
-  blurRadius: number;
-  /** Wave colors — intense orange neon */
-  colors: string[];
-  /** How much frequency bands modulate wave height (0 = ignore, 1 = full) */
-  frequencySensitivity: number;
+  /** Primary color [r, g, b] */
+  color: [number, number, number];
+  /** Secondary accent color [r, g, b] for glitch/highlights */
+  accentColor: [number, number, number];
 }
+
+// Orange digital palette
+const ORANGE: [number, number, number] = [255, 140, 20];
+const BRIGHT_ORANGE: [number, number, number] = [255, 180, 50];
+const DIM_ORANGE: [number, number, number] = [200, 100, 10];
+const WHITE_ORANGE: [number, number, number] = [255, 220, 160];
 
 export const AURA_STATES: Record<TutorState, AuraStateParams> = {
   idle: {
-    baseOpacity: 0.6,
+    baseOpacity: 0.15,
     audioOpacityGain: 0,
-    baseAmplitude: 6,
-    audioAmplitudeGain: 0,
-    pulseSpeed: 0.8,
-    audioPulseGain: 0,
-    breatheSpeed: 0.15,
-    breatheAmp: 0.1,
-    blurRadius: 35,
+    baseActivation: 0.08,
+    audioActivationGain: 0,
     frequencySensitivity: 0,
-    colors: [
-      'rgba(255, 140, 20, 0.7)',
-      'rgba(255, 120, 0, 0.55)',
-      'rgba(255, 160, 40, 0.45)',
-      'rgba(255, 100, 0, 0.35)',
-    ],
+    glowRadius: 2,
+    scanlineSpeed: 0,
+    glitchProb: 0.002,
+    breatheSpeed: 0.3,
+    breatheAmp: 0.05,
+    color: DIM_ORANGE,
+    accentColor: ORANGE,
   },
   listening: {
-    baseOpacity: 0.9,
-    audioOpacityGain: 0.1,
-    baseAmplitude: 10,
-    audioAmplitudeGain: 30,
-    pulseSpeed: 2.0,
-    audioPulseGain: 4.0,
+    baseOpacity: 0.5,
+    audioOpacityGain: 0.4,
+    baseActivation: 0.15,
+    audioActivationGain: 0.7,
+    frequencySensitivity: 0,
+    glowRadius: 4,
+    scanlineSpeed: 0,
+    glitchProb: 0.01,
     breatheSpeed: 0,
     breatheAmp: 0,
-    blurRadius: 30,
-    frequencySensitivity: 0,
-    colors: [
-      'rgba(255, 160, 30, 0.9)',
-      'rgba(255, 130, 0, 0.75)',
-      'rgba(255, 180, 50, 0.65)',
-      'rgba(255, 110, 0, 0.55)',
-    ],
+    color: ORANGE,
+    accentColor: BRIGHT_ORANGE,
   },
   thinking: {
-    baseOpacity: 0.55,
+    baseOpacity: 0.25,
     audioOpacityGain: 0,
-    baseAmplitude: 4,
-    audioAmplitudeGain: 0,
-    pulseSpeed: 0.5,
-    audioPulseGain: 0,
-    breatheSpeed: 0.3,
-    breatheAmp: 0.12,
-    blurRadius: 40,
+    baseActivation: 0.1,
+    audioActivationGain: 0,
     frequencySensitivity: 0,
-    colors: [
-      'rgba(255, 150, 30, 0.6)',
-      'rgba(255, 120, 10, 0.45)',
-      'rgba(255, 140, 20, 0.35)',
-      'rgba(230, 110, 0, 0.30)',
-    ],
+    glowRadius: 3,
+    scanlineSpeed: 0.8,
+    glitchProb: 0.03,
+    breatheSpeed: 0.5,
+    breatheAmp: 0.08,
+    color: DIM_ORANGE,
+    accentColor: ORANGE,
   },
   speaking: {
-    baseOpacity: 1.0,
-    audioOpacityGain: 0,
-    baseAmplitude: 15,
-    audioAmplitudeGain: 40,
-    pulseSpeed: 3.0,
-    audioPulseGain: 5.0,
+    baseOpacity: 0.7,
+    audioOpacityGain: 0.3,
+    baseActivation: 0.2,
+    audioActivationGain: 0.8,
+    frequencySensitivity: 1.0,
+    glowRadius: 6,
+    scanlineSpeed: 0,
+    glitchProb: 0.015,
     breatheSpeed: 0,
     breatheAmp: 0,
-    blurRadius: 25,
-    frequencySensitivity: 1.0,
-    colors: [
-      'rgba(255, 170, 30, 1.0)',
-      'rgba(255, 140, 0, 0.9)',
-      'rgba(255, 200, 50, 0.8)',
-      'rgba(255, 120, 0, 0.7)',
-    ],
+    color: BRIGHT_ORANGE,
+    accentColor: WHITE_ORANGE,
   },
 };
 
-export const LERP_SPEED = 3.0;
+export const LERP_SPEED = 4.0;
 
-/**
- * Per-wave-layer config.
- * freq: how many "hills" across the width
- * phase: time offset so layers don't pulse in sync
- * yOffset: vertical stacking (% of height)
- * ampMult: amplitude multiplier relative to base
- * pulsePhase: offset for the vertical pulsing
- */
-export const WAVE_CONFIGS = [
-  { freq: 2.0, phase: 0.0,  yOffset: 0, ampMult: 1.0,  pulsePhase: 0.0 },
-  { freq: 3.0, phase: 0.8,  yOffset: 2, ampMult: 0.75, pulsePhase: 1.5 },
-  { freq: 2.5, phase: 2.0,  yOffset: 4, ampMult: 0.6,  pulsePhase: 3.0 },
-  { freq: 1.7, phase: 3.5,  yOffset: 6, ampMult: 0.45, pulsePhase: 4.5 },
-];
+// ============================================================================
+// Grid layout
+// ============================================================================
+
+/** Number of dot columns */
+export const GRID_COLS = 32;
+/** Number of dot rows */
+export const GRID_ROWS = 16;
+/** Dot base radius in CSS px */
+export const DOT_RADIUS = 1.5;
+/** Vertical space occupied by the grid (% of viewport height from bottom) */
+export const GRID_HEIGHT_PCT = 0.35;
+/** Horizontal padding from edges (% of viewport width) */
+export const GRID_PADDING_X_PCT = 0.04;
