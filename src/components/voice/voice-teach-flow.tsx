@@ -8,11 +8,15 @@
  * Phases: INTRO → TEACHING → SCORING → RESULTS
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useUnifiedVoiceSession } from './use-unified-voice-session';
-import { TutorGlow } from './tutor-glow';
-import { TranscriptLine } from './transcript-line';
 import { useAudioLevel } from './use-audio-level';
+import {
+  VoiceConnectingPhase,
+  VoiceActivePhase,
+  VoiceScoringPhase,
+  VoiceErrorPhase,
+} from './voice-session-phases';
 import type { Language } from '@/lib/translations';
 
 // ============================================================================
@@ -25,16 +29,6 @@ interface Props {
   conceptDefinition: string;
   language: Language;
   onClose: () => void;
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 // ============================================================================
@@ -94,7 +88,6 @@ export function VoiceTeachFlow({
   const { state, tutorState, error, elapsed, result, transcript, stream } = session;
   const teachResult = result?.mode === 'teach' ? result.teachResult : null;
   const audioLevel = useAudioLevel(stream);
-  const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
   const handleDisconnect = useCallback(() => {
     session.stop();
@@ -162,135 +155,54 @@ export function VoiceTeachFlow({
 
   // ---- CONNECTING ----
   if (state === 'connecting') {
-    return (
-      <div className="p-6 flex flex-col items-center gap-4">
-        <div className="w-14 h-14 flex items-center justify-center rounded-full bg-j-accent text-j-text-on-accent opacity-50">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
-          </svg>
-        </div>
-        <p className="font-mono text-[10px] text-j-text-tertiary animate-pulse">
-          {language === 'es' ? 'Conectando...' : 'Connecting...'}
-        </p>
-      </div>
-    );
+    return <VoiceConnectingPhase language={language} className="p-6" />;
   }
 
   // ---- TEACHING ----
   if (state === 'active') {
-    const statusLabel = (() => {
-      switch (tutorState) {
-        case 'listening': return t('yourTurn', language);
-        case 'thinking': return t('juniorThinking', language);
-        case 'speaking': return t('juniorAsking', language);
-        default: return '';
-      }
-    })();
-
-    const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
-
     return (
-      <div className="p-6 flex flex-col items-center">
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-2 h-2 rounded-full ${
-            tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
-            tutorState === 'listening' ? 'bg-j-warm' :
-            tutorState === 'thinking' ? 'bg-j-text-tertiary animate-pulse' :
-            'bg-j-border'
-          }`} />
-          <span className={`font-mono text-[10px] tracking-[0.1em] ${
-            tutorState === 'speaking' ? 'text-j-accent'
-              : tutorState === 'listening' ? 'text-j-warm'
-              : 'text-j-text-tertiary'
-          }`}>
-            {statusLabel}
-          </span>
-          <span className="text-j-border">&middot;</span>
-          <span className="font-mono text-[10px] text-j-text-tertiary tabular-nums">
-            {formatTime(elapsed)}
-          </span>
-        </div>
-
-        <div className="w-40 h-1 bg-j-border rounded-full mb-4 overflow-hidden">
-          <div
-            className="h-full bg-j-accent rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min(100, (elapsed / 480) * 100)}%` }}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleDisconnect}
-          className="w-10 h-10 flex items-center justify-center rounded-full border-2 border-j-error/30 text-j-error hover:bg-j-error hover:text-white hover:border-j-error transition-all duration-200"
-          aria-label={t('endSession', language)}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-          </svg>
-        </button>
-
-        <p className="font-mono text-[10px] text-j-text-tertiary mt-2">
-          {t('escToEnd', language)}
-        </p>
-
-        {error && (
-          <p className="text-xs text-j-error mt-2 max-w-xs text-center">{error}</p>
-        )}
-
-        {/* Transcript line */}
-        <div className="w-full max-w-sm mt-4">
-          <TranscriptLine
-            lastLine={lastLine}
-            fullTranscript={transcript}
-            expanded={transcriptExpanded}
-            onToggle={() => setTranscriptExpanded(prev => !prev)}
-          />
-        </div>
-
-        {/* Ambient glow */}
-        <TutorGlow state={tutorState} audioLevel={audioLevel} />
-      </div>
+      <VoiceActivePhase
+        language={language}
+        tutorState={tutorState}
+        elapsed={elapsed}
+        maxDurationSeconds={480}
+        transcript={transcript}
+        audioLevel={audioLevel}
+        error={error}
+        statusLabels={{
+          listening: t('yourTurn', language),
+          thinking: t('juniorThinking', language),
+          speaking: t('juniorAsking', language),
+        }}
+        escLabel={t('escToEnd', language)}
+        onStop={handleDisconnect}
+        className="p-6"
+        maxWidth="max-w-sm"
+      />
     );
   }
 
   // ---- SCORING ----
   if (state === 'scoring') {
     return (
-      <div className="p-6 flex flex-col items-center gap-4">
-        <div className="h-5 w-5 border-2 border-j-border border-t-j-accent rounded-full animate-spin" />
-        <p className="text-sm text-j-text-secondary">{t('scoring', language)}</p>
-        <p className="text-xs text-j-text-tertiary">{t('scoringEstimate', language)}</p>
-      </div>
+      <VoiceScoringPhase
+        label={t('scoring', language)}
+        estimate={t('scoringEstimate', language)}
+        className="p-6"
+      />
     );
   }
 
   // ---- ERROR ----
   if (state === 'error') {
     return (
-      <div className="p-6 flex flex-col items-center gap-4">
-        <p className="text-sm text-j-error">{error}</p>
-        <p className="text-xs text-j-text-tertiary max-w-xs text-center">
-          {language === 'es'
-            ? 'La conversación está guardada. Podemos reintentar el análisis.'
-            : 'The conversation is saved. We can retry the analysis.'}
-        </p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={session.retryPostProcess}
-            className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-          >
-            {language === 'es' ? 'Reintentar análisis' : 'Retry analysis'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
-          >
-            {t('close', language)}
-          </button>
-        </div>
-      </div>
+      <VoiceErrorPhase
+        error={error}
+        language={language}
+        onRetry={session.retryPostProcess}
+        fallbackAction={{ label: t('close', language), onClick: onClose }}
+        className="p-6"
+      />
     );
   }
 

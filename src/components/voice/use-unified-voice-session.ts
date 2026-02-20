@@ -223,6 +223,8 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const [fetchedConceptIds, setFetchedConceptIds] = useState<string[]>([]);
 
   const sessionIdRef = useRef<string | null>(null);
+  const postProcessStartedRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const onToolActionRef = useRef(onToolAction);
   onToolActionRef.current = onToolAction;
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -408,6 +410,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // ---- Handle session completion (from keyword or tool call) ----
 
   const handleSessionComplete = useCallback(() => {
+    if (postProcessStartedRef.current) return;
+    postProcessStartedRef.current = true;
+
     const sid = sessionIdRef.current;
     if (sid) {
       runPostProcess(sid);
@@ -616,13 +621,20 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // ---- Start ----
 
   const start = useCallback(async () => {
+    // Abort any in-flight start
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setState('loading');
     setSessionError(null);
     setResult(null);
     sessionIdRef.current = null;
+    postProcessStartedRef.current = false;
 
     try {
       const { instruction, initialMsg, conceptIds: cIds } = await fetchContextAndBuildPrompt();
+      if (controller.signal.aborted) return;
 
       setSystemInstruction(instruction);
       setInitialMessage(initialMsg);
@@ -630,8 +642,11 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
       // Small delay to let state propagate through useVoiceSession
       await new Promise((resolve) => setTimeout(resolve, 100));
+      if (controller.signal.aborted) return;
+
       await voiceSession.connect();
     } catch (err) {
+      if (controller.signal.aborted) return;
       const msg = err instanceof Error ? err.message : 'Failed to start session';
       log.error(`${mode} start failed:`, msg);
       setSessionError(msg);
@@ -642,6 +657,10 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // ---- Stop ----
 
   const stop = useCallback(() => {
+    // Cancel any in-flight start() (context fetch, etc.)
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+
     const sid = sessionIdRef.current;
     voiceSession.disconnect();
 
@@ -656,8 +675,13 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const retryPostProcess = useCallback(() => {
     const sid = sessionIdRef.current;
-    if (sid) runPostProcess(sid);
-  }, [runPostProcess]);
+    if (sid) {
+      runPostProcess(sid);
+    } else {
+      // Error happened before session was created (e.g. context fetch failed) — restart
+      start();
+    }
+  }, [runPostProcess, start]);
 
   return {
     state,

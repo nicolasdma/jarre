@@ -186,9 +186,15 @@ export function useVoiceSession({
     if (contextData) prefetchedContextRef.current = contextData;
   }, [sectionId, sessionType, conceptIds]);
 
+  // Skip prefetch when systemInstructionOverride is provided — the caller
+  // (e.g. useUnifiedVoiceSession) manages its own context fetching and will
+  // call connect() with the instruction already built. Prefetching here would
+  // cause duplicate token/context requests and 400 errors from empty sectionId.
   useEffect(() => {
-    prefetchTokenAndContext();
-  }, [prefetchTokenAndContext]);
+    if (!systemInstructionOverride) {
+      prefetchTokenAndContext();
+    }
+  }, [prefetchTokenAndContext, systemInstructionOverride]);
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 
@@ -440,17 +446,21 @@ export function useVoiceSession({
             })
             .then((d) => d.token as string);
 
-      // Use pre-fetched context if available, otherwise fetch fresh
-      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[] }> = prefetchedContextRef.current
-        ? Promise.resolve(prefetchedContextRef.current)
-        : (() => {
-            const ctxUrl = new URL('/api/voice/session/context', window.location.origin);
-            ctxUrl.searchParams.set('sectionId', secId);
-            if (cIds?.length) ctxUrl.searchParams.set('conceptIds', cIds.join(','));
-            return fetch(ctxUrl.toString())
-              .then((r) => (r.ok ? r.json() : {}))
-              .catch(() => ({}));
-          })();
+      // Use pre-fetched context if available, otherwise fetch fresh.
+      // When systemInstructionOverride is set, the caller already built the prompt
+      // with its own context — skip fetching here to avoid duplicate requests.
+      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[] }> = sysOverride
+        ? Promise.resolve({})
+        : prefetchedContextRef.current
+          ? Promise.resolve(prefetchedContextRef.current)
+          : (() => {
+              const ctxUrl = new URL('/api/voice/session/context', window.location.origin);
+              ctxUrl.searchParams.set('sectionId', secId);
+              if (cIds?.length) ctxUrl.searchParams.set('conceptIds', cIds.join(','));
+              return fetch(ctxUrl.toString())
+                .then((r) => (r.ok ? r.json() : {}))
+                .catch(() => ({}));
+            })();
 
       // Start session (always fresh) + resolve token/context in parallel
       const startBody: Record<string, unknown> = { sessionType: sessType };
@@ -475,12 +485,14 @@ export function useVoiceSession({
       prefetchedTokenRef.current = null;
       prefetchedContextRef.current = null;
 
-      // Extract session ID (non-blocking if fails)
-      if (sessionRes.ok) {
-        const { sessionId: sid } = await sessionRes.json();
-        sessionIdRef.current = sid;
-        setSessionId(sid);
+      // Session ID is required — without it transcripts can't be saved and scoring is impossible
+      if (!sessionRes.ok) {
+        const errData = await sessionRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to start voice session');
       }
+      const { sessionId: sid } = await sessionRes.json();
+      sessionIdRef.current = sid;
+      setSessionId(sid);
 
       const summary = context?.summary;
       const learnerMemory: LearnerConceptMemory[] = context?.learnerMemory || [];
@@ -488,6 +500,7 @@ export function useVoiceSession({
       // 2. Build system instruction (use override if provided, otherwise build from section content)
       let systemInstruction: string;
       if (sysOverride) {
+        // Override already includes learner memory (injected by the caller, e.g. useUnifiedVoiceSession)
         systemInstruction = sysOverride;
       } else {
         systemInstruction = buildVoiceSystemInstruction({
@@ -505,12 +518,12 @@ export function useVoiceSession({
         if (summary) {
           systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
         }
-      }
 
-      // Inject learner memory into any system instruction (including overrides)
-      const memoryText = formatMemoryForPrompt(learnerMemory, lang);
-      if (memoryText) {
-        systemInstruction += `\n\n${memoryText}`;
+        // Only inject learner memory when building our own prompt (not with overrides)
+        const memoryText = formatMemoryForPrompt(learnerMemory, lang);
+        if (memoryText) {
+          systemInstruction += `\n\n${memoryText}`;
+        }
       }
 
       // 3. Create Gemini Live client
