@@ -10,6 +10,7 @@ import {
   type EntityStateParams,
 } from './entity-constants';
 import { lerp, lerpColor, renderEntityFrame } from './entity-renderer';
+import { getCurrentGeometryName } from './geometries';
 
 interface TutorEntityProps {
   onStartVoice: () => void;
@@ -45,6 +46,7 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
   const timeRef = useRef(0);
   const sizeRef = useRef({ w: 0, h: 0 });
   const [hovered, setHovered] = useState(false);
+  const [debugName, setDebugName] = useState('');
   const introPhaseRef = useRef(true);
   const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.intro });
 
@@ -99,6 +101,9 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
 
     renderEntityFrame(glowCtx, w, h, currentParamsRef.current, timeRef.current);
     renderEntityFrame(sharpCtx, w, h, currentParamsRef.current, timeRef.current);
+
+    // Debug: update geometry name label
+    setDebugName(getCurrentGeometryName());
 
     rafRef.current = requestAnimationFrame(animate);
   }, [hovered]);
@@ -177,6 +182,11 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
         ref={sharpCanvasRef}
         className="absolute inset-0 w-full h-full"
       />
+      {/* DEBUG: geometry name label — uncomment to identify shapes
+      <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 text-orange-400 text-xs font-mono rounded pointer-events-none z-10">
+        {debugName}
+      </div>
+      */}
     </div>
   );
 }
