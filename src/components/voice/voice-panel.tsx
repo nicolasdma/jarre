@@ -1,7 +1,10 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useVoiceSession } from './use-voice-session';
+import { VoiceAuraOverlay } from './voice-aura';
+import { useAudioLevel } from './use-audio-level';
+import { useTutorFrequency } from './use-tutor-frequency';
 import type { Language } from '@/lib/translations';
 
 // ============================================================================
@@ -25,79 +28,6 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// ============================================================================
-// Waveform visualizer — wider for inline use
-// ============================================================================
-
-function WaveformVisualizer({ state }: { state: 'idle' | 'listening' | 'speaking' | 'thinking' }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const BAR_COUNT = 24;
-    const BAR_WIDTH = 3;
-    const GAP = 3;
-    const MAX_HEIGHT = 32;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < BAR_COUNT; i++) {
-        let height: number;
-        let color: string;
-
-        switch (state) {
-          case 'speaking':
-            height = MAX_HEIGHT * (0.2 + 0.8 * Math.abs(Math.sin(Date.now() / 150 + i * 0.6)));
-            color = 'var(--j-accent, #6b7280)';
-            break;
-          case 'listening':
-            height = MAX_HEIGHT * (0.15 + 0.3 * Math.abs(Math.sin(Date.now() / 400 + i * 0.4)));
-            color = 'var(--j-warm, #d97706)';
-            break;
-          case 'thinking':
-            height = MAX_HEIGHT * (0.1 + 0.2 * Math.abs(Math.sin(Date.now() / 600 + i * 0.3)));
-            color = 'var(--j-text-tertiary, #9ca3af)';
-            break;
-          default:
-            height = 3;
-            color = 'var(--j-border, #e5e7eb)';
-        }
-
-        const x = i * (BAR_WIDTH + GAP);
-        const y = (canvas.height - height) / 2;
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x, y, BAR_WIDTH, height, 1.5);
-        ctx.fill();
-      }
-
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [state]);
-
-  const totalWidth = 24 * 3 + 23 * 3; // BAR_COUNT * BAR_WIDTH + (BAR_COUNT-1) * GAP
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={totalWidth}
-      height={40}
-      className="mx-auto"
-    />
-  );
 }
 
 // ============================================================================
@@ -155,7 +85,12 @@ export function VoicePanel({
     elapsed,
     connect,
     disconnect,
+    stream,
+    playbackAnalyser,
   } = useVoiceSession({ sectionId, sectionContent, sectionTitle, language, onSessionComplete });
+
+  const audioLevel = useAudioLevel(stream);
+  const frequencyBands = useTutorFrequency(playbackAnalyser);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
@@ -238,7 +173,12 @@ export function VoicePanel({
   })();
 
   return (
-    <div className="flex flex-col items-center py-8">
+    <VoiceAuraOverlay
+      state={isReconnecting ? 'thinking' : tutorState}
+      audioLevel={audioLevel}
+      frequencyBands={frequencyBands}
+      className="flex flex-col items-center py-8"
+    >
       {/* Reconnecting banner */}
       {isReconnecting && (
         <div className="mb-4 px-3 py-1.5 rounded-full bg-j-warm/10 border border-j-warm/20">
@@ -248,11 +188,8 @@ export function VoicePanel({
         </div>
       )}
 
-      {/* Waveform */}
-      <WaveformVisualizer state={isReconnecting ? 'thinking' : tutorState} />
-
       {/* Status + timer */}
-      <div className="flex items-center gap-3 mt-4 mb-5">
+      <div className="flex items-center gap-3 mb-5">
         <span className={`font-mono text-[10px] tracking-[0.1em] ${
           tutorState === 'speaking'
             ? 'text-j-accent'
@@ -288,6 +225,6 @@ export function VoicePanel({
       {error && (
         <p className="text-xs text-j-error mt-3 max-w-xs text-center">{error}</p>
       )}
-    </div>
+    </VoiceAuraOverlay>
   );
 }

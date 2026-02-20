@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { TutorGlow } from './tutor-glow';
+import { VoiceAuraOverlay } from './voice-aura';
 import { TranscriptLine } from './transcript-line';
 import type { TutorState } from './use-voice-session';
 import type { Language } from '@/lib/translations';
@@ -86,6 +86,8 @@ interface ActivePhaseProps {
   onStop: () => void;
   className?: string;
   maxWidth?: string;
+  /** 8 frequency bands (0-1) from tutor playback audio */
+  frequencyBands?: Float32Array;
 }
 
 export function VoiceActivePhase({
@@ -101,6 +103,7 @@ export function VoiceActivePhase({
   onStop,
   className = 'py-8',
   maxWidth = 'max-w-md',
+  frequencyBands,
 }: ActivePhaseProps) {
   const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
@@ -116,7 +119,12 @@ export function VoiceActivePhase({
   const lastLine = transcript.length > 0 ? transcript[transcript.length - 1] : null;
 
   return (
-    <div className={`flex flex-col items-center ${className}`}>
+    <VoiceAuraOverlay
+      state={tutorState}
+      audioLevel={audioLevel}
+      frequencyBands={frequencyBands}
+      className={`flex flex-col items-center ${className}`}
+    >
       <div className="flex items-center gap-3 mb-5">
         <div className={`w-2 h-2 rounded-full ${
           tutorState === 'speaking' ? 'bg-j-accent animate-pulse' :
@@ -176,9 +184,7 @@ export function VoiceActivePhase({
         />
       </div>
 
-      {/* Ambient glow */}
-      <TutorGlow state={tutorState} audioLevel={audioLevel} />
-    </div>
+    </VoiceAuraOverlay>
   );
 }
 

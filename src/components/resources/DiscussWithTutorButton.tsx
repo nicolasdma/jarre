@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Mic, MicOff, Loader2, Clock, RefreshCw } from 'lucide-react';
 import { useUnifiedVoiceSession, type ExplorationResult } from '@/components/voice/use-unified-voice-session';
+import { useAudioLevel } from '@/components/voice/use-audio-level';
+import { useTutorFrequency } from '@/components/voice/use-tutor-frequency';
+import { VoiceAuraOverlay } from '@/components/voice/voice-aura';
 import { TranscriptLine } from '@/components/voice/transcript-line';
 import type { Language } from '@/lib/translations';
 
@@ -27,6 +30,8 @@ export function DiscussWithTutorButton({
     onExplorationComplete: () => setShowResult(true),
   });
 
+  const audioLevel = useAudioLevel(session.stream);
+  const frequencyBands = useTutorFrequency(session.playbackAnalyser);
   const [transcriptExpanded, setTranscriptExpanded] = useState(false);
 
   const isDisabled = resourceStatus !== 'completed';
@@ -115,8 +120,16 @@ export function DiscussWithTutorButton({
     );
   }
 
+  const tutorStateForAura = session.state === 'active' ? (session.tutorState ?? 'idle') : 'thinking';
+
   return (
-    <div className="flex items-center gap-4">
+    <VoiceAuraOverlay
+      state={tutorStateForAura}
+      audioLevel={audioLevel}
+      frequencyBands={frequencyBands}
+      active={isActive}
+      className="flex flex-wrap items-center gap-4"
+    >
       <button
         onClick={() => {
           if (isActive) {
@@ -156,7 +169,6 @@ export function DiscussWithTutorButton({
         <div className="flex items-center gap-2 text-sm text-j-text-secondary">
           <Clock size={14} />
           <span className="font-mono">{formatTime(session.elapsed)}</span>
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         </div>
       )}
 
@@ -175,6 +187,6 @@ export function DiscussWithTutorButton({
           />
         </div>
       )}
-    </div>
+    </VoiceAuraOverlay>
   );
 }

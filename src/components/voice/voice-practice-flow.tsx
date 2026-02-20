@@ -16,6 +16,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useUnifiedVoiceSession, type PracticeResult } from './use-unified-voice-session';
 import { useAudioLevel } from './use-audio-level';
+import { useTutorFrequency } from './use-tutor-frequency';
 import {
   VoiceConnectingPhase,
   VoiceActivePhase,
@@ -189,9 +190,10 @@ export function VoicePracticeFlow({
     concepts: concepts.map((c) => ({ id: c.id, name: c.name, definition: c.canonical_definition })),
   });
 
-  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const { state, tutorState, error, elapsed, result, transcript, stream, playbackAnalyser } = session;
   const practiceResult = result?.mode === 'practice' ? result.practiceResult : null;
   const audioLevel = useAudioLevel(stream);
+  const frequencyBands = useTutorFrequency(playbackAnalyser);
 
   const handleDisconnect = useCallback(() => {
     session.stop();
@@ -416,6 +418,7 @@ export function VoicePracticeFlow({
         maxDurationSeconds={420}
         transcript={transcript}
         audioLevel={audioLevel}
+        frequencyBands={frequencyBands}
         error={error}
         statusLabels={{
           listening: t('yourTurn', language),

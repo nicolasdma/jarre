@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useUnifiedVoiceSession } from './use-unified-voice-session';
 import { useAudioLevel } from './use-audio-level';
+import { useTutorFrequency } from './use-tutor-frequency';
 import {
   VoiceConnectingPhase,
   VoiceActivePhase,
@@ -261,9 +262,10 @@ export function VoiceEvaluationFlow({
     concepts: concepts.map((c) => ({ id: c.id, name: c.name, definition: c.canonical_definition })),
   });
 
-  const { state, tutorState, error, elapsed, result, transcript, stream } = session;
+  const { state, tutorState, error, elapsed, result, transcript, stream, playbackAnalyser } = session;
   const evaluationResult = result?.mode === 'eval' ? result.evaluationResult : null;
   const audioLevel = useAudioLevel(stream);
+  const frequencyBands = useTutorFrequency(playbackAnalyser);
 
   // Keyboard shortcut: Escape to disconnect during session
   const handleDisconnect = useCallback(() => {
@@ -388,6 +390,7 @@ export function VoiceEvaluationFlow({
         maxDurationSeconds={600}
         transcript={transcript}
         audioLevel={audioLevel}
+        frequencyBands={frequencyBands}
         error={error}
         statusLabels={{
           listening: t('yourTurn', language),
