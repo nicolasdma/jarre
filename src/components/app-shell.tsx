@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { Language } from '@/lib/translations';
 import { TutorDialog } from './tutor-entity/TutorDialog';
@@ -30,34 +31,53 @@ const TUTOR_GREETING = [
   'Ready when you are. Click me to start a session.',
 ];
 
+/** Routes where the tutor sidebar is shown (internal app pages) */
+const TUTOR_SIDEBAR_ROUTES = [
+  '/evaluate',
+  '/evaluation',
+  '/review',
+  '/learn',
+  '/journal',
+  '/mi-sistema',
+  '/playground',
+];
+
+function useShouldShowSidebar(): boolean {
+  const pathname = usePathname();
+  return TUTOR_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
+}
+
 export function AppShell({ children, language }: AppShellProps) {
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const showSidebar = useShouldShowSidebar();
 
   return (
     <>
       <div className="flex h-screen">
-        {/* Left panel — scrollable app content */}
+        {/* Main content — scrollable */}
         <div className="flex-1 min-w-0 overflow-y-auto">
           {children}
         </div>
 
-        {/* Right panel — persistent tutor entity (desktop only) */}
-        <aside className="hidden lg:flex lg:flex-col w-[420px] shrink-0 h-screen border-l border-j-accent/30 bg-j-bg">
-          {/* Torus entity — fills remaining space */}
-          <div className="flex-1 min-h-0">
-            <TutorEntity
-              onStartVoice={() => setVoiceOpen(true)}
-              hidden={voiceOpen}
-            />
-          </div>
+        {/* Right panel — tutor sidebar (desktop, internal pages only) */}
+        {showSidebar && (
+          <aside className="hidden lg:flex lg:flex-col w-[420px] shrink-0 h-screen border-l border-j-accent/30 bg-j-bg">
+            {/* Torus entity — fills remaining space */}
+            <div className="flex-1 min-h-0">
+              <TutorEntity
+                onStartVoice={() => setVoiceOpen(true)}
+                hidden={voiceOpen}
+              />
+            </div>
 
-          {/* Dialog box — pinned to bottom */}
-          <div className={`shrink-0 px-3 pb-3 transition-opacity duration-500 ${
-            voiceOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}>
-            <TutorDialog messages={TUTOR_GREETING} />
-          </div>
-        </aside>
+            {/* Dialog box — pinned to bottom */}
+            <div className={`shrink-0 px-3 pb-3 transition-opacity duration-500 ${
+              voiceOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}>
+              <TutorDialog messages={TUTOR_GREETING} />
+            </div>
+          </aside>
+        )}
       </div>
 
       {/* Mobile mini-entity — fixed bottom-right */}
