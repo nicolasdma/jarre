@@ -9,8 +9,8 @@ import {
   INTRO_HOLD_DURATION,
   type EntityStateParams,
 } from './entity-constants';
-import { lerp, lerpColor, renderEntityFrame } from './entity-renderer';
-import { getCurrentGeometryName } from './geometries';
+import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
+import { getCurrentGeometryName, setContemplativeMode } from './geometries';
 
 interface TutorEntityProps {
   onStartVoice: () => void;
@@ -91,7 +91,8 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
       }
     } else {
       target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
-      speed = LERP_SPEED;
+      // Slow transition into hover (contemplation), normal speed out
+      speed = hovered ? INTRO_LERP_SPEED : LERP_SPEED;
     }
 
     const lerpT = Math.min(1, speed * dt);
@@ -99,8 +100,10 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
 
     const { w, h } = sizeRef.current;
 
-    renderEntityFrame(glowCtx, w, h, currentParamsRef.current, timeRef.current);
-    renderEntityFrame(sharpCtx, w, h, currentParamsRef.current, timeRef.current);
+    // Compute geometry ONCE, paint to BOTH canvases
+    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current);
+    paintEntityFrame(glowCtx, w, h, currentParamsRef.current);
+    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current);
 
     // Debug: update geometry name label
     setDebugName(getCurrentGeometryName());
@@ -160,8 +163,8 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
       className={`relative w-full h-full cursor-pointer transition-opacity duration-500 ${
         hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); setContemplativeMode(true); }}
+      onMouseLeave={() => { setHovered(false); setContemplativeMode(false); }}
       onClick={onStartVoice}
       role="button"
       tabIndex={0}
