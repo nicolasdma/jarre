@@ -1,10 +1,10 @@
 import type { TutorState } from '../use-voice-session';
 
 // ============================================================================
-// Per-state visual parameters — digital neon aura
+// Per-state visual parameters — soft neon aura with ASCII elements
 //
-// Organic wave shapes rendered as thousands of vertical pixel-lines,
-// particles, and glitch artifacts. Dense, alive, Matrix-meets-equalizer.
+// Organic wave shapes rendered as diffused neon lines + floating ASCII.
+// Heavy blur/glow gives a soft, dreamy-but-digital aesthetic.
 // ============================================================================
 
 export interface AuraStateParams {
@@ -18,7 +18,7 @@ export interface AuraStateParams {
   audioAmplitudeGain: number;
   /** How much frequency bands modulate per-column height (0-1) */
   frequencySensitivity: number;
-  /** Wave animation speed */
+  /** Wave animation speed (kept slow for smooth feel) */
   pulseSpeed: number;
   /** Audio-reactive pulse speed gain */
   audioPulseGain: number;
@@ -26,15 +26,19 @@ export interface AuraStateParams {
   breatheSpeed: number;
   /** Breathe amplitude */
   breatheAmp: number;
-  /** Neon glow blur in px */
+  /** Neon glow blur in px — HIGH values for soft diffused look */
   glowBlur: number;
+  /** Line thickness multiplier (thicker + blur = softer) */
+  lineThickness: number;
   /** Probability of a glitch bar per frame */
   glitchProb: number;
-  /** Number of rain particles (falling dots above the wave) */
-  rainCount: number;
+  /** Number of ASCII rain characters falling above the wave */
+  asciiRainCount: number;
   /** Rain fall speed multiplier */
   rainSpeed: number;
-  /** Scanline speed (0 = off, >0 = horizontal sweep) */
+  /** Number of floating ASCII chars scattered in the wave body */
+  asciiFieldCount: number;
+  /** Scanline speed (0 = off) */
   scanlineSpeed: number;
   /** Primary neon color [r, g, b] */
   color: [number, number, number];
@@ -42,92 +46,99 @@ export interface AuraStateParams {
   accentColor: [number, number, number];
 }
 
-// Neon orange palette
+// Neon orange palette — soft tones
 const ORANGE: [number, number, number] = [255, 140, 20];
-const BRIGHT_ORANGE: [number, number, number] = [255, 180, 50];
-const DIM_ORANGE: [number, number, number] = [180, 80, 5];
-const HOT_WHITE: [number, number, number] = [255, 230, 180];
+const SOFT_ORANGE: [number, number, number] = [255, 170, 60];
+const DIM_ORANGE: [number, number, number] = [160, 80, 10];
+const HOT_WHITE: [number, number, number] = [255, 220, 170];
 
 export const AURA_STATES: Record<TutorState, AuraStateParams> = {
   idle: {
-    baseOpacity: 0.35,
+    baseOpacity: 0.25,
     audioOpacityGain: 0,
     baseAmplitude: 8,
     audioAmplitudeGain: 0,
     frequencySensitivity: 0,
-    pulseSpeed: 0.6,
+    pulseSpeed: 0.3,
     audioPulseGain: 0,
-    breatheSpeed: 0.2,
+    breatheSpeed: 0.15,
     breatheAmp: 3,
-    glowBlur: 4,
-    glitchProb: 0.003,
-    rainCount: 30,
-    rainSpeed: 0.3,
+    glowBlur: 18,
+    lineThickness: 2,
+    glitchProb: 0.001,
+    asciiRainCount: 15,
+    rainSpeed: 0.15,
+    asciiFieldCount: 20,
     scanlineSpeed: 0,
     color: DIM_ORANGE,
     accentColor: ORANGE,
   },
   listening: {
-    baseOpacity: 0.7,
-    audioOpacityGain: 0.3,
+    baseOpacity: 0.55,
+    audioOpacityGain: 0.25,
     baseAmplitude: 12,
-    audioAmplitudeGain: 35,
+    audioAmplitudeGain: 30,
     frequencySensitivity: 0,
-    pulseSpeed: 2.0,
-    audioPulseGain: 4.0,
+    pulseSpeed: 1.0,
+    audioPulseGain: 2.0,
     breatheSpeed: 0,
     breatheAmp: 0,
-    glowBlur: 6,
-    glitchProb: 0.012,
-    rainCount: 80,
-    rainSpeed: 0.8,
+    glowBlur: 22,
+    lineThickness: 2.5,
+    glitchProb: 0.006,
+    asciiRainCount: 40,
+    rainSpeed: 0.4,
+    asciiFieldCount: 40,
     scanlineSpeed: 0,
     color: ORANGE,
-    accentColor: BRIGHT_ORANGE,
+    accentColor: SOFT_ORANGE,
   },
   thinking: {
-    baseOpacity: 0.4,
+    baseOpacity: 0.3,
     audioOpacityGain: 0,
     baseAmplitude: 6,
     audioAmplitudeGain: 0,
     frequencySensitivity: 0,
-    pulseSpeed: 0.4,
+    pulseSpeed: 0.25,
     audioPulseGain: 0,
-    breatheSpeed: 0.4,
+    breatheSpeed: 0.3,
     breatheAmp: 4,
-    glowBlur: 5,
-    glitchProb: 0.04,
-    rainCount: 50,
-    rainSpeed: 0.5,
-    scanlineSpeed: 0.6,
+    glowBlur: 20,
+    lineThickness: 2,
+    glitchProb: 0.02,
+    asciiRainCount: 25,
+    rainSpeed: 0.25,
+    asciiFieldCount: 30,
+    scanlineSpeed: 0.4,
     color: DIM_ORANGE,
     accentColor: ORANGE,
   },
   speaking: {
-    baseOpacity: 0.85,
-    audioOpacityGain: 0.15,
-    baseAmplitude: 18,
-    audioAmplitudeGain: 45,
+    baseOpacity: 0.65,
+    audioOpacityGain: 0.2,
+    baseAmplitude: 16,
+    audioAmplitudeGain: 40,
     frequencySensitivity: 1.0,
-    pulseSpeed: 3.0,
-    audioPulseGain: 5.0,
+    pulseSpeed: 1.5,
+    audioPulseGain: 2.5,
     breatheSpeed: 0,
     breatheAmp: 0,
-    glowBlur: 8,
-    glitchProb: 0.02,
-    rainCount: 150,
-    rainSpeed: 1.2,
+    glowBlur: 28,
+    lineThickness: 3,
+    glitchProb: 0.01,
+    asciiRainCount: 80,
+    rainSpeed: 0.6,
+    asciiFieldCount: 60,
     scanlineSpeed: 0,
-    color: BRIGHT_ORANGE,
+    color: SOFT_ORANGE,
     accentColor: HOT_WHITE,
   },
 };
 
-export const LERP_SPEED = 3.5;
+export const LERP_SPEED = 2.5;
 
 // ============================================================================
-// Wave shape configs — layered organic sine waves (same math as before)
-// Now rendered as thousands of vertical pixel-lines instead of filled paths
+// Wave shape configs — layered organic sine waves
 // ============================================================================
 
 export const WAVE_LAYERS = [
@@ -138,10 +149,21 @@ export const WAVE_LAYERS = [
 ];
 
 // ============================================================================
-// Rendering density
+// Rendering config
 // ============================================================================
 
-/** Number of vertical line-columns across the viewport width */
-export const LINE_COLUMNS = 300;
-/** Max rain particles allocated */
-export const MAX_RAIN_PARTICLES = 200;
+/** Number of vertical neon-line columns */
+export const LINE_COLUMNS = 200;
+/** Max ASCII rain particles */
+export const MAX_ASCII_RAIN = 120;
+/** Max floating ASCII field chars */
+export const MAX_ASCII_FIELD = 80;
+
+// ============================================================================
+// ASCII character sets
+// ============================================================================
+
+/** Characters for rain — Matrix-inspired mix */
+export const RAIN_CHARS = '01αβγδεζηθλμνξπρστφψω∑∏∫∂∇≈≠∞⟨⟩╬║░▒▓█';
+/** Characters for field — more structural/symbolic */
+export const FIELD_CHARS = '░▒▓·:;|/\\─═╬╫╪◊◈⬡⎔⏣⏢△▽○●◦⊙⊕';
