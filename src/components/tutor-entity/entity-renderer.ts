@@ -1,13 +1,15 @@
 // ============================================================================
-// 3D ASCII Torus renderer — classic donut.c algorithm
+// 3D ASCII surface renderer — morphing parametric geometries
 //
-// For each surface point on the torus:
-//   1. Compute 3D position from (theta, phi) parametrization
-//   2. Rotate around X and Z axes (time-varying)
-//   3. Perspective-project to 2D character grid
-//   4. Z-buffer: only keep closest surface point per cell
-//   5. Compute luminance from surface normal · light direction
-//   6. Map luminance to ASCII char OR surface glyph inscription
+// For each surface point on the current morphed geometry:
+//   1. Evaluate morphed position from (theta, phi) + blend factor
+//   2. Compute numeric normal via finite differences
+//   3. Apply organic sine-sum displacement along normal
+//   4. Rotate around X and Z axes (time-varying)
+//   5. Perspective-project to 2D character grid
+//   6. Z-buffer: only keep closest surface point per cell
+//   7. Compute luminance from rotated normal · light direction
+//   8. Map luminance to ASCII char OR surface glyph inscription
 // ============================================================================
 
 import {
@@ -16,6 +18,14 @@ import {
   CHAR_ASPECT,
   type EntityStateParams,
 } from './entity-constants';
+
+import {
+  getMorphState,
+  evalMorphedPoint,
+  computeNormal,
+  organicDisplacement,
+  type Vec3Out,
+} from './geometries';
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -93,25 +103,38 @@ export function renderEntityFrame(
   const glyphCount = SURFACE_GLYPHS.length;
   const { thetaStep, phiStep } = params;
 
+  // Morph state — autonomous cycle independent of entity state
+  const morph = getMorphState(time);
+  const { fnA, fnB, t: morphT } = morph;
+
+  // Preallocated scratch for the hot loop
+  const _pt: Vec3Out = { x: 0, y: 0, z: 0 };
+  const _nm: Vec3Out = { x: 0, y: 0, z: 0 };
+
   for (let theta = 0; theta < 6.2832; theta += thetaStep) {
-    const cosTheta = Math.cos(theta);
-    const sinTheta = Math.sin(theta);
-
     for (let phi = 0; phi < 6.2832; phi += phiStep) {
-      const cosPhi = Math.cos(phi);
-      const sinPhi = Math.sin(phi);
+      // 1. Evaluate morphed surface point
+      evalMorphedPoint(fnA, fnB, morphT, theta, phi, R1, R2, _pt);
 
-      const circleX = R2 + R1 * cosTheta;
-      const circleY = R1 * sinTheta;
+      // 2. Compute numeric normal
+      computeNormal(fnA, fnB, morphT, theta, phi, R1, R2, _nm);
 
-      const x1 = circleX * cosPhi;
-      const y1 = circleX * sinPhi * cosA - circleY * sinA;
-      const z1 = circleX * sinPhi * sinA + circleY * cosA;
+      // 3. Organic displacement along normal
+      const disp = organicDisplacement(theta, phi, time) * R1;
+      _pt.x += _nm.x * disp;
+      _pt.y += _nm.y * disp;
+      _pt.z += _nm.z * disp;
+
+      // 4. Rotate around X axis (A) then Z axis (B) — same as original
+      const x1 = _pt.x;
+      const y1 = _pt.y * cosA - _pt.z * sinA;
+      const z1 = _pt.y * sinA + _pt.z * cosA;
 
       const x2 = x1 * cosB - y1 * sinB;
       const y2 = x1 * sinB + y1 * cosB;
       const z2 = z1;
 
+      // 5. Perspective projection
       const ooz = 1 / (z2 + K2);
       const xp = Math.floor(cols / 2 + K1 * ooz * x2);
       const yp = Math.floor(rows / 2 - K1 * ooz * y2 * 0.6);
@@ -123,18 +146,18 @@ export function renderEntityFrame(
       if (ooz <= zBuffer[idx]) continue;
       zBuffer[idx] = ooz;
 
-      // Lighting
-      const nx1 = cosTheta * cosPhi;
-      const ny1 = cosTheta * sinPhi * cosA - sinTheta * sinA;
-      const nz1 = cosTheta * sinPhi * sinA + sinTheta * cosA;
-      const nx2 = nx1 * cosB - ny1 * sinB;
-      const ny2 = nx1 * sinB + ny1 * cosB;
+      // 6. Rotate normal for lighting
+      const rnx1 = _nm.x;
+      const rny1 = _nm.y * cosA - _nm.z * sinA;
+      const rnz1 = _nm.y * sinA + _nm.z * cosA;
+      const rnx2 = rnx1 * cosB - rny1 * sinB;
+      const rny2 = rnx1 * sinB + rny1 * cosB;
 
-      const luminance = nx2 * 0.4 + ny2 * 0.5 - nz1 * 0.75;
+      const luminance = rnx2 * 0.4 + rny2 * 0.5 - rnz1 * 0.75;
       const lumIndex = Math.max(0, Math.round(((luminance + 1) / 2) * maxLum));
       lumBuffer[idx] = lumIndex;
 
-      // Surface glyph inscription — at grid intersections on the surface
+      // 7. Surface glyph inscription — at grid intersections on the surface
       if (
         nearInterval(theta, GLYPH_THETA_INTERVAL, GLYPH_TOLERANCE) &&
         nearInterval(phi, GLYPH_PHI_INTERVAL, GLYPH_TOLERANCE)
