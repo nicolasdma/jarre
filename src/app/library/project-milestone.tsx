@@ -57,7 +57,7 @@ export function ProjectMilestone({ project, isLoggedIn, language }: ProjectMiles
       {/* Connector line */}
       <div className="absolute left-1/2 -top-6 w-px h-6 bg-j-border" />
 
-      <div className={`border ${statusColor} p-6 bg-white/80`}>
+      <div className={`border ${statusColor} p-6 bg-j-bg-alt`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">

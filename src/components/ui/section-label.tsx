@@ -7,12 +7,11 @@ interface SectionLabelProps {
 
 export function SectionLabel({ children, className }: SectionLabelProps) {
   return (
-    <div className={cn('flex items-center gap-2 mb-4', className)}>
-      <div className="w-10 h-[2px] bg-j-accent" />
-      <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+    <div className={cn('flex items-center gap-2.5 mb-4', className)}>
+      <div className="w-1.5 h-1.5 rounded-full bg-j-accent" />
+      <span className="font-mono text-[10px] tracking-[0.25em] text-j-text-tertiary uppercase">
         {children}
       </span>
-      <div className="flex-1 h-px bg-j-border max-w-12" />
     </div>
   );
 }

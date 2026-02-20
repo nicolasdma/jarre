@@ -24,11 +24,11 @@ export default async function Home() {
       <div className="min-h-screen bg-j-bg">
         <Header currentPage="home" />
 
-        <main className="mx-auto max-w-6xl px-8 py-16">
+        <main className="mx-auto max-w-6xl px-8 py-16 j-hero-gradient">
           <div className="mb-16">
             <SectionLabel>Deep Learning System</SectionLabel>
 
-            <h2 className="text-5xl font-bold text-j-text mb-2">
+            <h2 className="text-6xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
               Master Complex
             </h2>
             <p className="text-3xl font-light text-j-text-tertiary">

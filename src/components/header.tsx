@@ -54,12 +54,12 @@ export async function Header({ currentPage }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-j-border bg-j-bg">
+    <header className="sticky top-0 z-40 border-b border-j-border bg-j-bg/90 backdrop-blur-md j-header-line">
       <div className="mx-auto max-w-6xl px-8 py-5">
         <div className="flex items-center justify-between relative">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 border border-j-accent flex items-center justify-center j-glow-accent">
+            <div className="w-8 h-8 rounded-sm border border-j-accent flex items-center justify-center j-glow-accent">
               <span className="text-j-accent font-mono text-xs">J</span>
             </div>
             <span className="font-mono text-sm tracking-[0.1em] text-j-text uppercase group-hover:text-j-accent transition-colors">

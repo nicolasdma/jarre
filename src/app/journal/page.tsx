@@ -99,7 +99,7 @@ export default async function JournalPage() {
           {isEs ? 'Bit\u00E1cora de Aprendizaje' : 'Learning Journal'}
         </SectionLabel>
 
-        <h1 className="text-4xl font-bold text-j-text mb-2">
+        <h1 className="text-5xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
           {isEs ? 'Bit\u00E1cora' : 'Journal'}
         </h1>
         <p className="text-j-text-secondary mb-10">

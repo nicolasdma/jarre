@@ -54,7 +54,7 @@ export function DeckCard({
   }
 
   return (
-    <div className="p-4 border border-j-border bg-white dark:bg-j-bg-alt hover:border-j-accent transition-colors">
+    <div className="p-4 border border-j-border bg-white dark:bg-j-bg-alt hover:border-j-accent transition-colors j-card-glow">
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase">
           Phase {phase}

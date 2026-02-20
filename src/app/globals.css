@@ -130,6 +130,7 @@
   /* Typography */
   --j-font-body: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
   --j-font-mono: var(--font-geist-mono), monospace;
+  --j-font-display: var(--font-serif-display), serif;
   --j-text-base: 1.125rem;
   --j-leading: 1.7;
   --j-content-width: 680px;
@@ -167,50 +168,50 @@
 }
 
 .dark {
-  /* Jarre dark mode tokens */
-  --j-bg: #0F172A;
-  --j-bg-alt: #1E293B;
-  --j-bg-hover: #253348;
-  --j-bg-white: #1E293B;
-  --j-text: #E2E8F0;
-  --j-text-secondary: #94A3B8;
-  --j-text-tertiary: #64748B;
-  --j-text-body: #CBD5E1;
-  --j-text-em: #94A3B8;
-  --j-text-on-accent: #E2E8F0;
-  --j-accent: #6B8E6B;
-  --j-accent-hover: #7DA07D;
-  --j-accent-light: #1a2e1a;
-  --j-accent-muted: #4a6b4a;
-  --j-warm: #D4B896;
-  --j-warm-light: #2E2518;
-  --j-warm-dark: #D4B896;
-  --j-warm-muted: #8B7355;
-  --j-border: #334155;
-  --j-border-input: #475569;
-  --j-border-light: #1E293B;
-  --j-border-dot: #475569;
+  /* Jarre dark mode tokens (Amp-inspired dark) */
+  --j-bg: #091c1e;
+  --j-bg-alt: #0f2a2d;
+  --j-bg-hover: #153538;
+  --j-bg-white: #0d2426;
+  --j-text: #f6fff5;
+  --j-text-secondary: #978e81;
+  --j-text-tertiary: #7d665b;
+  --j-text-body: #d4cfc5;
+  --j-text-em: #978e81;
+  --j-text-on-accent: #091c1e;
+  --j-accent: #f6833b;
+  --j-accent-hover: #f9964f;
+  --j-accent-light: #2a1a0d;
+  --j-accent-muted: #c46a2e;
+  --j-warm: #f6833b;
+  --j-warm-light: #2a1a0d;
+  --j-warm-dark: #c46a2e;
+  --j-warm-muted: #8b5a30;
+  --j-border: #7d665b;
+  --j-border-input: #8a7468;
+  --j-border-light: #3d3530;
+  --j-border-dot: #7d665b;
   --j-success: #4ADE80;
   --j-success-bg: #052e16;
   --j-error: #FCD34D;
   --j-error-bg: #451a03;
-  --j-info: #60A5FA;
-  --j-info-bg: #172554;
-  --j-highlight: rgba(253, 230, 138, 0.25);
-  --j-highlight-hover: rgba(253, 230, 138, 0.35);
-  --j-highlight-active: rgba(252, 211, 77, 0.40);
+  --j-info: #f6833b;
+  --j-info-bg: #2a1a0d;
+  --j-highlight: rgba(246, 131, 59, 0.25);
+  --j-highlight-hover: rgba(246, 131, 59, 0.35);
+  --j-highlight-active: rgba(246, 131, 59, 0.40);
 
-  --j-whisper-cursor: rgba(107, 142, 107, 0.08);
+  --j-whisper-cursor: rgba(246, 131, 59, 0.08);
 
   /* Glow effects (dark-only) */
-  --j-glow-accent: 0 0 20px rgba(107, 142, 107, 0.15);
-  --j-glow-accent-strong: 0 0 30px rgba(107, 142, 107, 0.25), 0 0 60px rgba(107, 142, 107, 0.1);
-  --j-glow-warm: 0 0 20px rgba(212, 184, 150, 0.15);
+  --j-glow-accent: 0 0 20px rgba(246, 131, 59, 0.20);
+  --j-glow-accent-strong: 0 0 30px rgba(246, 131, 59, 0.30), 0 0 60px rgba(246, 131, 59, 0.12);
+  --j-glow-warm: 0 0 20px rgba(246, 131, 59, 0.20);
 
-  /* Grid/dot pattern colors */
-  --j-grid-color: rgba(51, 65, 85, 0.4);
-  --j-grid-size: 40px;
-  --j-dot-color: rgba(71, 85, 105, 0.3);
+  /* Grid/dashed pattern colors */
+  --j-grid-color: rgba(246, 255, 245, 0.08);
+  --j-grid-size: 80px;
+  --j-dot-color: rgba(125, 102, 91, 0.3);
 
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -245,12 +246,39 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Dark mode patterns — no-op in light mode */
+/* Dark mode patterns — dashed vertical lines (Amp-style) */
 .dark .j-grid-bg {
-  background-image:
-    linear-gradient(var(--j-grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--j-grid-color) 1px, transparent 1px);
-  background-size: var(--j-grid-size) var(--j-grid-size);
+  position: relative;
+  isolation: isolate;
+}
+
+.dark .j-grid-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(var(--j-grid-size) - 1px),
+    var(--j-grid-color) calc(var(--j-grid-size) - 1px),
+    var(--j-grid-color) var(--j-grid-size)
+  );
+  mask-image: repeating-linear-gradient(
+    0deg,
+    black 0px,
+    black 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  -webkit-mask-image: repeating-linear-gradient(
+    0deg,
+    black 0px,
+    black 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }
 
 .dark .j-dot-bg {
@@ -300,24 +328,6 @@ mark.jarre-highlight-active {
   background-color: var(--j-highlight-active);
 }
 
-/* Voice tutor glow animations */
-@keyframes glow-breathe {
-  0%, 100% { opacity: 0.15; transform: scaleY(1); }
-  50% { opacity: 0.25; transform: scaleY(1.05); }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.4; }
-}
-
-.animate-glow-breathe {
-  animation: glow-breathe 4s ease-in-out infinite;
-}
-
-.animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
 
 .bg-gradient-radial {
   background: radial-gradient(ellipse at bottom center, var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to));
@@ -341,6 +351,21 @@ mark.jarre-highlight-active {
 
 .celebration-enter {
   animation: celebration-enter 0.4s ease-out forwards;
+}
+
+/* Hero gradient sutil (dark only) */
+.dark .j-hero-gradient {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(246, 131, 59, 0.08) 0%, transparent 60%);
+}
+
+/* Card hover glow (dark only) */
+.dark .j-card-glow:hover {
+  box-shadow: 0 0 30px rgba(246, 131, 59, 0.06), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Header border gradient (dark only) */
+.dark .j-header-line {
+  border-image: linear-gradient(to right, transparent, rgba(246, 131, 59, 0.3), transparent) 1;
 }
 
 @layer base {

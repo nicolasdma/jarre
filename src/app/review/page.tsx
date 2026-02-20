@@ -67,7 +67,7 @@ export default async function ReviewPage() {
       <main className="mx-auto max-w-3xl px-8 py-12">
         <div className="mb-8">
           <SectionLabel>FSRS</SectionLabel>
-          <h1 className="text-4xl font-bold text-j-text mb-2">
+          <h1 className="text-5xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
             {t('review.title', lang)}
           </h1>
           <p className="text-j-text-secondary">
