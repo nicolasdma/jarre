@@ -3,12 +3,12 @@
 /**
  * VoiceAura — Soft neon aura with ASCII art elements.
  *
- * Organic wave shapes rendered as heavily diffused neon lines with
- * floating ASCII characters, Matrix-style character rain, and subtle
- * glitch effects. The heavy blur gives everything a warm, dreamy glow
- * while the ASCII elements add a digital/cyberpunk layer.
+ * PERFORMANCE-OPTIMIZED: Two-canvas architecture.
+ *  - Glow canvas: rendered at half DPR, CSS `filter: blur()` (GPU-accelerated)
+ *  - Main canvas: crisp details at full DPR, zero shadowBlur
  *
- * position: fixed, covers entire viewport, pointer-events: none.
+ * All shadowBlur calls eliminated. Lines batched into single stroke paths.
+ * Float32Array buffers pre-allocated. Color strings cached per frame.
  */
 
 import { useRef, useEffect, useCallback } from 'react';
@@ -52,12 +52,12 @@ function pickChar(chars: string): string {
 // ============================================================================
 
 interface AsciiRainDrop {
-  x: number;        // 0-1 normalized
-  y: number;        // progress 0-1 (0 = start, 1 = landed)
+  x: number;
+  y: number;
   speed: number;
   opacity: number;
   char: string;
-  size: number;      // font size in px
+  size: number;
   alive: boolean;
 }
 
@@ -72,9 +72,9 @@ function createRainPool(): AsciiRainDrop[] {
 // ============================================================================
 
 interface AsciiFieldChar {
-  x: number;         // 0-1 normalized
-  yOffset: number;   // 0-1 position within wave height
-  driftX: number;    // slow horizontal drift speed
+  x: number;
+  yOffset: number;
+  driftX: number;
   driftPhase: number;
   opacity: number;
   char: string;
@@ -99,7 +99,8 @@ export function VoiceAura({
   active = true,
   frequencyBands,
 }: VoiceAuraProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glowCanvasRef = useRef<HTMLCanvasElement>(null);
+  const mainCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevTimeRef = useRef<number>(0);
   const audioRef = useRef(0);
@@ -108,6 +109,9 @@ export function VoiceAura({
   const freqBandsRef = useRef<Float32Array | undefined>(undefined);
   const rainRef = useRef<AsciiRainDrop[]>(createRainPool());
   const fieldRef = useRef<AsciiFieldChar[]>(createFieldPool());
+
+  // Pre-allocated buffer — reused every frame, never re-created
+  const waveHeightsRef = useRef(new Float32Array(LINE_COLUMNS));
 
   const curRef = useRef({
     opacity: 0.25,
@@ -131,10 +135,12 @@ export function VoiceAura({
   useEffect(() => { freqBandsRef.current = frequencyBands; }, [frequencyBands]);
 
   const animate = useCallback((time: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const glowCanvas = glowCanvasRef.current;
+    const mainCanvas = mainCanvasRef.current;
+    if (!glowCanvas || !mainCanvas) return;
+    const gCtx = glowCanvas.getContext('2d');
+    const mCtx = mainCanvas.getContext('2d');
+    if (!gCtx || !mCtx) return;
 
     const delta = prevTimeRef.current ? (time - prevTimeRef.current) / 1000 : 0.016;
     prevTimeRef.current = time;
@@ -149,7 +155,7 @@ export function VoiceAura({
     smoothAudioRef.current = lerp(smoothAudioRef.current, rawAudio, atkRate);
     const audio = smoothAudioRef.current;
 
-    // ---- Lerp params (slow, smooth) ----
+    // ---- Lerp params ----
     cur.opacity = lerp(cur.opacity, params.baseOpacity + params.audioOpacityGain * audio, t);
     cur.amplitude = lerp(cur.amplitude, params.baseAmplitude + params.audioAmplitudeGain * audio, t);
     cur.pulseSpeed = lerp(cur.pulseSpeed, params.pulseSpeed + params.audioPulseGain * audio, t);
@@ -177,30 +183,48 @@ export function VoiceAura({
     cur.time += delta * cur.pulseSpeed;
     const timeVal = cur.time;
 
-    // ---- Canvas setup ----
-    const dpr = Math.min(window.devicePixelRatio, 2);
+    // ---- Canvas sizing ----
+    const fullDpr = Math.min(window.devicePixelRatio, 2);
+    const glowDpr = fullDpr * 0.5; // Half resolution for glow — CSS blur hides it
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const w = Math.round(vw * dpr);
-    const h = Math.round(vh * dpr);
+    const mW = Math.round(vw * fullDpr);
+    const mH = Math.round(vh * fullDpr);
+    const gW = Math.round(vw * glowDpr);
+    const gH = Math.round(vh * glowDpr);
 
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
+    if (mainCanvas.width !== mW || mainCanvas.height !== mH) {
+      mainCanvas.width = mW;
+      mainCanvas.height = mH;
+    }
+    if (glowCanvas.width !== gW || glowCanvas.height !== gH) {
+      glowCanvas.width = gW;
+      glowCanvas.height = gH;
     }
 
-    ctx.clearRect(0, 0, w, h);
+    mCtx.clearRect(0, 0, mW, mH);
+    gCtx.clearRect(0, 0, gW, gH);
 
-    const baseY = h;
-    const ampPx = (h * (cur.amplitude + breatheOffset)) / 100;
+    // Update CSS blur dynamically (cheap DOM style update)
+    glowCanvas.style.filter = `blur(${Math.round(cur.glowBlur)}px)`;
+
+    // ---- Shared values ----
+    const baseYMain = mH;
+    const baseYGlow = gH;
+    const ampPxMain = (mH * (cur.amplitude + breatheOffset)) / 100;
+    const ampPxGlow = (gH * (cur.amplitude + breatheOffset)) / 100;
     const bands = freqBandsRef.current;
 
+    // Cache color strings — computed ONCE per frame
     const cr = Math.round(cur.r);
     const cg = Math.round(cur.g);
     const cb = Math.round(cur.b);
     const ar = Math.round(cur.ar);
     const ag = Math.round(cur.ag);
     const ab = Math.round(cur.ab);
+    const colorStr = `rgb(${cr},${cg},${cb})`;
+    const accentStr = `rgb(${ar},${ag},${ab})`;
+    const tipStr = `rgb(${Math.min(255, cr + 50)},${Math.min(255, cg + 40)},${Math.min(255, cb + 30)})`;
 
     // ---- Glitch state ----
     const glitchOff = glitchOffsetsRef.current;
@@ -210,14 +234,15 @@ export function VoiceAura({
       glitchTmr[col] -= delta;
       if (glitchTmr[col] <= 0) glitchOff[col] *= 0.9;
       if (Math.random() < params.glitchProb * delta * 60) {
-        glitchOff[col] = (Math.random() - 0.5) * 15 * dpr;
+        glitchOff[col] = (Math.random() - 0.5) * 15;
         glitchTmr[col] = 0.04 + Math.random() * 0.08;
       }
     }
 
-    // ---- Compute wave envelope per column ----
-    const colWidth = w / LINE_COLUMNS;
-    const waveHeights = new Float32Array(LINE_COLUMNS);
+    // ---- Compute wave envelope (reuse pre-allocated buffer) ----
+    const colWidthMain = mW / LINE_COLUMNS;
+    const colWidthGlow = gW / LINE_COLUMNS;
+    const waveHeights = waveHeightsRef.current;
 
     for (let col = 0; col < LINE_COLUMNS; col++) {
       const xNorm = col / LINE_COLUMNS;
@@ -235,111 +260,52 @@ export function VoiceAura({
       let maxH = 0;
       for (let li = 0; li < WAVE_LAYERS.length; li++) {
         const layer = WAVE_LAYERS[li];
-        const waveAmp = ampPx * layer.ampMult;
+        const waveAmp = 1 * layer.ampMult; // Normalized 0-1, scale later per canvas
         const shape = Math.sin(xNorm * Math.PI * 2 * layer.freq + layer.phase)
                     + Math.sin(xNorm * Math.PI * 2 * layer.freq * 1.6 + layer.phase * 2) * 0.35;
         const pulse = Math.sin(timeVal + layer.pulsePhase)
                     + Math.sin(timeVal * 1.7 + layer.pulsePhase + xNorm * 2) * 0.3;
         const audioSpike = Math.sin(timeVal * 4 + xNorm * Math.PI * 8) * audio * 0.6;
         const waveH = waveAmp * (0.4 + (shape * 0.3 + 0.3) * (0.5 + pulse * 0.5))
-                    + audioSpike * ampPx
-                    + freqMod * ampPx * 1.5;
+                    + audioSpike
+                    + freqMod * 1.5;
         if (waveH > maxH) maxH = waveH;
       }
       waveHeights[col] = Math.max(0, maxH);
     }
 
     // ============================================================
-    // LAYER 1: Soft diffused neon lines (heavy glow)
+    // GLOW CANVAS — thick lines, no shadowBlur, CSS blur handles glow
     // ============================================================
 
-    ctx.shadowColor = `rgba(${cr}, ${cg}, ${cb}, 0.5)`;
-    ctx.shadowBlur = cur.glowBlur * dpr;
+    gCtx.strokeStyle = colorStr;
+    gCtx.lineWidth = cur.lineThickness * glowDpr * 3;
+    gCtx.lineCap = 'round';
+    gCtx.globalAlpha = cur.opacity * 0.4;
 
-    // Draw every other column for the "thick glow" pass
+    // Batch ALL glow lines into a single path
+    gCtx.beginPath();
     for (let col = 0; col < LINE_COLUMNS; col += 2) {
-      const waveH = waveHeights[col];
+      const waveH = waveHeights[col] * ampPxGlow;
       if (waveH < 2) continue;
 
-      const xBase = col * colWidth + colWidth * 0.5;
-      const x = xBase + glitchOff[col];
+      const xBase = col * colWidthGlow + colWidthGlow * 0.5;
+      const x = xBase + glitchOff[col] * glowDpr;
       const jitter = colHash(col, 1) * 0.1 - 0.05;
       const lineH = waveH * (1 + jitter);
-      const topY = baseY - lineH;
-      const intensity = Math.min(1, lineH / (ampPx * 0.7 + 1));
 
-      // Thick soft glow line
-      ctx.globalAlpha = cur.opacity * (0.15 + intensity * 0.25);
-      ctx.strokeStyle = `rgb(${cr}, ${cg}, ${cb})`;
-      ctx.lineWidth = cur.lineThickness * dpr * 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x, baseY);
-      ctx.lineTo(x, topY);
-      ctx.stroke();
+      gCtx.moveTo(x, baseYGlow);
+      gCtx.lineTo(x, baseYGlow - lineH);
     }
+    gCtx.stroke();
 
-    // ============================================================
-    // LAYER 2: Sharp inner lines (crisp core inside the glow)
-    // ============================================================
-
-    ctx.shadowBlur = cur.glowBlur * dpr * 0.4;
-
-    for (let col = 0; col < LINE_COLUMNS; col++) {
-      const waveH = waveHeights[col];
-      if (waveH < 1) continue;
-
-      const xBase = col * colWidth + colWidth * 0.5;
-      const x = xBase + glitchOff[col];
-      const isGlitching = glitchTmr[col] > 0;
-      const jitter = colHash(col, 1) * 0.1 - 0.05;
-      const lineH = waveH * (1 + jitter);
-      const topY = baseY - lineH;
-      const intensity = Math.min(1, lineH / (ampPx * 0.7 + 1));
-
-      const useAccent = isGlitching && Math.random() > 0.4;
-      const lr = useAccent ? ar : cr;
-      const lg = useAccent ? ag : cg;
-      const lb = useAccent ? ab : cb;
-
-      // Thin core line
-      ctx.globalAlpha = cur.opacity * (0.2 + intensity * 0.5);
-      ctx.strokeStyle = `rgb(${lr}, ${lg}, ${lb})`;
-      ctx.lineWidth = (cur.lineThickness * 0.5 + (isGlitching ? 1 : 0)) * dpr;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(x, baseY);
-      ctx.lineTo(x, topY);
-      ctx.stroke();
-
-      // Bright neon tip
-      if (intensity > 0.25) {
-        ctx.globalAlpha = cur.opacity * intensity * 0.7;
-        ctx.shadowBlur = cur.glowBlur * dpr * 0.8;
-        ctx.fillStyle = `rgb(${Math.min(255, lr + 50)}, ${Math.min(255, lg + 40)}, ${Math.min(255, lb + 30)})`;
-        const tipR = (1.5 + intensity * 2) * dpr;
-        ctx.beginPath();
-        ctx.arc(x, topY, tipR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = cur.glowBlur * dpr * 0.4;
-      }
-    }
-
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-
-    // ============================================================
-    // LAYER 3: Floating ASCII field characters (inside the wave)
-    // ============================================================
-
+    // ASCII on glow canvas (simpler — just colored text, blur handles the glow)
     const field = fieldRef.current;
     let fieldAlive = 0;
     for (let i = 0; i < field.length; i++) {
       if (field[i].alive) fieldAlive++;
     }
-
-    const targetField = params.asciiFieldCount;
-    const toSpawnField = Math.min(2, targetField - fieldAlive);
+    const toSpawnField = Math.min(2, params.asciiFieldCount - fieldAlive);
     for (let s = 0; s < toSpawnField; s++) {
       for (let i = 0; i < field.length; i++) {
         if (!field[i].alive) {
@@ -357,9 +323,13 @@ export function VoiceAura({
       }
     }
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Draw field chars on glow canvas (no shadowBlur, CSS blur handles it)
+    gCtx.textAlign = 'center';
+    gCtx.textBaseline = 'middle';
+    gCtx.fillStyle = colorStr;
 
+    // Group by approximate font size to reduce ctx.font calls
+    const fontSizeGroups: Map<number, number[]> = new Map();
     for (let i = 0; i < field.length; i++) {
       const fc = field[i];
       if (!fc.alive) continue;
@@ -367,53 +337,93 @@ export function VoiceAura({
       fc.driftPhase += delta * 0.5;
       fc.x += fc.driftX * delta;
 
-      // Wrap or kill if out of bounds
       if (fc.x < -0.05 || fc.x > 1.05) {
         fc.alive = false;
         continue;
       }
 
       const col = Math.floor(fc.x * LINE_COLUMNS);
-      const waveH = waveHeights[Math.min(Math.max(0, col), LINE_COLUMNS - 1)] || 0;
-
+      const waveH = waveHeights[Math.min(Math.max(0, col), LINE_COLUMNS - 1)] * ampPxGlow;
       if (waveH < 5) {
-        // Kill chars in columns with no wave
         fc.opacity -= delta * 2;
         if (fc.opacity <= 0) { fc.alive = false; continue; }
       }
 
-      const absX = fc.x * w;
-      const absY = baseY - waveH * fc.yOffset + Math.sin(fc.driftPhase) * 5 * dpr;
-      const fontSize = fc.size * dpr;
+      // Round font size to nearest 2px to reduce unique sizes
+      const roundedSize = Math.round(fc.size * glowDpr * 0.5) * 2;
+      let group = fontSizeGroups.get(roundedSize);
+      if (!group) {
+        group = [];
+        fontSizeGroups.set(roundedSize, group);
+      }
+      group.push(i);
 
-      ctx.globalAlpha = fc.opacity * cur.opacity * 0.6;
-      ctx.font = `${fontSize}px monospace`;
-      ctx.shadowColor = `rgba(${cr}, ${cg}, ${cb}, 0.4)`;
-      ctx.shadowBlur = 8 * dpr;
-      ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
-      ctx.fillText(fc.char, absX, absY);
+      if (Math.random() < 0.005) fc.char = pickChar(FIELD_CHARS);
+    }
 
-      // Occasionally swap character
-      if (Math.random() < 0.005) {
-        fc.char = pickChar(FIELD_CHARS);
+    for (const [fontSize, indices] of fontSizeGroups) {
+      gCtx.font = `${fontSize}px monospace`;
+      for (const i of indices) {
+        const fc = field[i];
+        const col = Math.floor(fc.x * LINE_COLUMNS);
+        const waveH = waveHeights[Math.min(Math.max(0, col), LINE_COLUMNS - 1)] * ampPxGlow;
+        const absX = fc.x * gW;
+        const absY = baseYGlow - waveH * fc.yOffset + Math.sin(fc.driftPhase) * 5 * glowDpr;
+        gCtx.globalAlpha = fc.opacity * cur.opacity * 0.6;
+        gCtx.fillText(fc.char, absX, absY);
       }
     }
 
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-
     // ============================================================
-    // LAYER 4: ASCII rain (falling characters above the wave)
+    // MAIN CANVAS — crisp details, zero blur
     // ============================================================
 
+    // ---- Layer 2: Sharp inner lines (individual draws, zero shadowBlur) ----
+    const normalLineWidth = cur.lineThickness * 0.5 * fullDpr;
+    const glitchLineWidth = (cur.lineThickness * 0.5 + 1) * fullDpr;
+    mCtx.lineCap = 'round';
+
+    for (let col = 0; col < LINE_COLUMNS; col++) {
+      const waveH = waveHeights[col] * ampPxMain;
+      if (waveH < 1) continue;
+
+      const xBase = col * colWidthMain + colWidthMain * 0.5;
+      const x = xBase + glitchOff[col] * fullDpr;
+      const isGlitching = glitchTmr[col] > 0;
+      const jitter = colHash(col, 1) * 0.1 - 0.05;
+      const lineH = waveH * (1 + jitter);
+      const topY = baseYMain - lineH;
+      const intensity = Math.min(1, lineH / (ampPxMain * 0.7 + 1));
+
+      const useAccent = isGlitching && Math.random() > 0.4;
+
+      mCtx.globalAlpha = cur.opacity * (0.2 + intensity * 0.5);
+      mCtx.strokeStyle = useAccent ? accentStr : colorStr;
+      mCtx.lineWidth = isGlitching ? glitchLineWidth : normalLineWidth;
+      mCtx.beginPath();
+      mCtx.moveTo(x, baseYMain);
+      mCtx.lineTo(x, topY);
+      mCtx.stroke();
+
+      // Bright neon tip (simple filled circle, no blur)
+      if (intensity > 0.25) {
+        mCtx.globalAlpha = cur.opacity * intensity * 0.7;
+        mCtx.fillStyle = tipStr;
+        const tipR = (1.5 + intensity * 2) * fullDpr;
+        mCtx.beginPath();
+        mCtx.arc(x, topY, tipR, 0, Math.PI * 2);
+        mCtx.fill();
+      }
+    }
+
+    // ---- Layer 4: ASCII rain on main canvas ----
     const rain = rainRef.current;
     let rainAlive = 0;
     for (let i = 0; i < rain.length; i++) {
       if (rain[i].alive) rainAlive++;
     }
 
-    const targetRain = params.asciiRainCount;
-    const toSpawnRain = Math.min(3, targetRain - rainAlive);
+    const toSpawnRain = Math.min(3, params.asciiRainCount - rainAlive);
     for (let s = 0; s < toSpawnRain; s++) {
       for (let i = 0; i < rain.length; i++) {
         if (!rain[i].alive) {
@@ -430,93 +440,85 @@ export function VoiceAura({
       }
     }
 
+    // Group rain by font size too
+    const rainFontGroups: Map<number, number[]> = new Map();
     for (let i = 0; i < rain.length; i++) {
       const rd = rain[i];
       if (!rd.alive) continue;
 
       rd.y += rd.speed * delta;
+      if (rd.y > 1) { rd.alive = false; continue; }
+      if (Math.random() < 0.03) rd.char = pickChar(RAIN_CHARS);
 
-      if (rd.y > 1) {
-        rd.alive = false;
-        continue;
+      const roundedSize = Math.round(rd.size * fullDpr * 0.5) * 2;
+      let group = rainFontGroups.get(roundedSize);
+      if (!group) {
+        group = [];
+        rainFontGroups.set(roundedSize, group);
       }
+      group.push(i);
+    }
 
-      const col = Math.floor(rd.x * LINE_COLUMNS);
-      const waveH = waveHeights[Math.min(Math.max(0, col), LINE_COLUMNS - 1)] || 0;
-      const waveTop = baseY - waveH;
-      const rainZone = ampPx * 1.8;
-      const absY = waveTop - rainZone * (1 - rd.y);
-      const absX = rd.x * w;
+    mCtx.textAlign = 'center';
+    mCtx.textBaseline = 'middle';
+    mCtx.fillStyle = colorStr;
 
-      // Fade in at start, fade out as it approaches wave
-      const fadeIn = Math.min(1, rd.y * 5);
-      const fadeOut = 1 - rd.y * 0.4;
-      const alpha = rd.opacity * cur.opacity * fadeIn * fadeOut;
+    for (const [fontSize, indices] of rainFontGroups) {
+      mCtx.font = `${fontSize}px monospace`;
+      for (const i of indices) {
+        const rd = rain[i];
+        const col = Math.floor(rd.x * LINE_COLUMNS);
+        const waveH = waveHeights[Math.min(Math.max(0, col), LINE_COLUMNS - 1)] * ampPxMain;
+        const waveTop = baseYMain - waveH;
+        const rainZone = ampPxMain * 1.8;
+        const absY = waveTop - rainZone * (1 - rd.y);
+        const absX = rd.x * mW;
 
-      const fontSize = rd.size * dpr;
-      ctx.globalAlpha = alpha;
-      ctx.font = `${fontSize}px monospace`;
-      ctx.shadowColor = `rgba(${cr}, ${cg}, ${cb}, 0.3)`;
-      ctx.shadowBlur = 6 * dpr;
-      ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
-      ctx.fillText(rd.char, absX, absY);
-
-      // Swap character occasionally (Matrix-style flicker)
-      if (Math.random() < 0.03) {
-        rd.char = pickChar(RAIN_CHARS);
+        const fadeIn = Math.min(1, rd.y * 5);
+        const fadeOut = 1 - rd.y * 0.4;
+        mCtx.globalAlpha = rd.opacity * cur.opacity * fadeIn * fadeOut;
+        mCtx.fillText(rd.char, absX, absY);
       }
     }
 
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-
-    // ============================================================
-    // LAYER 5: Horizontal glitch bars (subtle)
-    // ============================================================
-
+    // ---- Layer 5: Horizontal glitch bars ----
     if (params.glitchProb > 0.003) {
       const barCount = Math.floor(params.glitchProb * 80);
+      mCtx.fillStyle = accentStr;
       for (let i = 0; i < barCount; i++) {
         if (Math.random() > 0.25) continue;
-        const barY = baseY - Math.random() * ampPx * 1.5;
-        const barW = (30 + Math.random() * 80) * dpr;
-        const barX = Math.random() * w;
-        ctx.globalAlpha = 0.03 + Math.random() * 0.05;
-        ctx.fillStyle = `rgb(${ar}, ${ag}, ${ab})`;
-        ctx.fillRect(barX, barY, barW, dpr * (1 + Math.random()));
+        const barY = baseYMain - Math.random() * ampPxMain * 1.5;
+        const barW = (30 + Math.random() * 80) * fullDpr;
+        const barX = Math.random() * mW;
+        mCtx.globalAlpha = 0.03 + Math.random() * 0.05;
+        mCtx.fillRect(barX, barY, barW, fullDpr * (1 + Math.random()));
       }
     }
 
-    // ============================================================
-    // LAYER 6: Scanline sweep (thinking state)
-    // ============================================================
-
+    // ---- Layer 6: Scanline sweep ----
     if (params.scanlineSpeed > 0) {
-      const scanAbsY = baseY - cur.scanlineY * ampPx * 2;
-      // Soft halo
-      const grad = ctx.createLinearGradient(0, scanAbsY - 20 * dpr, 0, scanAbsY + 20 * dpr);
+      const scanAbsY = baseYMain - cur.scanlineY * ampPxMain * 2;
+      const grad = mCtx.createLinearGradient(0, scanAbsY - 20 * fullDpr, 0, scanAbsY + 20 * fullDpr);
       grad.addColorStop(0, 'transparent');
-      grad.addColorStop(0.4, `rgba(${ar}, ${ag}, ${ab}, 0.06)`);
-      grad.addColorStop(0.5, `rgba(${ar}, ${ag}, ${ab}, 0.12)`);
-      grad.addColorStop(0.6, `rgba(${ar}, ${ag}, ${ab}, 0.06)`);
+      grad.addColorStop(0.4, `rgba(${ar},${ag},${ab},0.06)`);
+      grad.addColorStop(0.5, `rgba(${ar},${ag},${ab},0.12)`);
+      grad.addColorStop(0.6, `rgba(${ar},${ag},${ab},0.06)`);
       grad.addColorStop(1, 'transparent');
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, scanAbsY - 20 * dpr, w, 40 * dpr);
+      mCtx.globalAlpha = 1;
+      mCtx.fillStyle = grad;
+      mCtx.fillRect(0, scanAbsY - 20 * fullDpr, mW, 40 * fullDpr);
     }
 
-    // ============================================================
-    // LAYER 7: Soft base glow at bottom edge
-    // ============================================================
-
-    const baseGrad = ctx.createLinearGradient(0, baseY - 30 * dpr, 0, baseY);
+    // ---- Layer 7: Soft base glow at bottom ----
+    const baseGrad = mCtx.createLinearGradient(0, baseYMain - 30 * fullDpr, 0, baseYMain);
     baseGrad.addColorStop(0, 'transparent');
-    baseGrad.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, ${cur.opacity * 0.15})`);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = baseGrad;
-    ctx.fillRect(0, baseY - 30 * dpr, w, 30 * dpr);
+    baseGrad.addColorStop(1, `rgba(${cr},${cg},${cb},${cur.opacity * 0.15})`);
+    mCtx.globalAlpha = 1;
+    mCtx.fillStyle = baseGrad;
+    mCtx.fillRect(0, baseYMain - 30 * fullDpr, mW, 30 * fullDpr);
 
-    ctx.globalAlpha = 1;
+    mCtx.globalAlpha = 1;
+    gCtx.globalAlpha = 1;
     rafRef.current = requestAnimationFrame(animate);
   }, []);
 
@@ -537,8 +539,7 @@ export function VoiceAura({
   if (!active) return null;
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -549,6 +550,30 @@ export function VoiceAura({
         pointerEvents: 'none',
       }}
       aria-hidden="true"
-    />
+    >
+      {/* Glow layer — half-res canvas, CSS blur updated dynamically in rAF */}
+      <canvas
+        ref={glowCanvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          filter: `blur(${Math.round(curRef.current.glowBlur)}px)`,
+        }}
+      />
+      {/* Crisp detail layer — full-res, no blur */}
+      <canvas
+        ref={mainCanvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      />
+    </div>
   );
 }
