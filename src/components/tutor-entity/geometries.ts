@@ -190,9 +190,9 @@ const ALL_GEOMETRIES: NamedGeometry[] = [
 const HOLD_MIN = 16;
 const HOLD_MAX = 32;
 
-/** Transition time range (seconds) — 4s fastest, 12s slowest */
-const TRANSITION_MIN = 4;
-const TRANSITION_MAX = 12;
+/** Transition time range (seconds) — 24s fastest, 64s slowest */
+const TRANSITION_MIN = 24;
+const TRANSITION_MAX = 64;
 
 function randomInRange(min: number, max: number): number {
   return min + Math.random() * (max - min);

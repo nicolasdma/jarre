@@ -432,8 +432,8 @@ export function renderMiniFrame(
   const cols = (size / charW) | 0;
   const rows = (size / charH) | 0;
 
-  const A = time * 0.4;
-  const B = time * 0.2;
+  const A = time * 0.08;
+  const B = time * 0.04;
   const cosA = Math.cos(A);
   const sinA = Math.sin(A);
   const cosB = Math.cos(B);
