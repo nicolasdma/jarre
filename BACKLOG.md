@@ -194,7 +194,7 @@
 
 | Resource | Transcript | Translate | Resegment | TSX | Questions | Quizzes | Exercises |
 |----------|-----------|-----------|-----------|-----|-----------|---------|-----------|
-| kz2h-micrograd | x | running | - | x | x | - | - |
+| kz2h-micrograd | x | x | x | x | x | x | x |
 | kz2h-makemore-bigram | - | - | - | - | - | - | - |
 | p2-bengio-lm-paper | - | - | - | - | - | - | - |
 | kz2h-makemore-mlp | - | - | - | - | - | - | - |
@@ -207,7 +207,7 @@
 | kz2h-tokenizers | - | - | - | - | - | - | - |
 
 ### Pending Tasks
-- [ ] `[P1]` Complete kz2h-micrograd: resegment translated transcript, seed sections, create inline quizzes + exercises
+- [x] `[P1]` Complete kz2h-micrograd: create inline quizzes (15) + exercises (3) - 2026-02-20
 - [ ] `[P1]` Pipeline remaining 7 kz2h-* videos (transcript → translate → resegment → artefacts)
 - [ ] `[P1]` Pipeline p2-bengio-lm-paper (PDF extract → generate 5 sections → artefacts)
 - [ ] `[P1]` Pipeline p2-resnet-paper (PDF extract → generate 5 sections → artefacts)
