@@ -79,6 +79,7 @@ export function AppShell({ children, language }: AppShellProps) {
   // Pass voiceState to TutorEntity only when session is active
   const tutorVoiceState = isSessionLive ? session.tutorState : undefined;
   const tutorAnalyser = isSessionLive ? session.playbackAnalyser : null;
+  const tutorMicStream = isSessionLive ? session.stream : null;
 
   return (
     <>
@@ -96,6 +97,7 @@ export function AppShell({ children, language }: AppShellProps) {
               <TutorEntity
                 onStartVoice={startVoice}
                 playbackAnalyser={tutorAnalyser}
+                micStream={tutorMicStream}
                 voiceState={tutorVoiceState}
               />
             </div>

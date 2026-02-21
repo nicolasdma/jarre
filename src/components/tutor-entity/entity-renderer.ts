@@ -117,6 +117,7 @@ export function computeEntityFrame(
   time: number,
   focalPoint?: { x: number; y: number } | null,
   frequencyBands?: Float32Array | null,
+  micLevel?: number,
 ): boolean {
   if (width < 10 || height < 10) {
     _frameValid = false;
@@ -210,12 +211,29 @@ export function computeEntityFrame(
       const pLen = Math.sqrt(px * px + py * py + pz * pz) || 1;
       let disp = organicDisplacement(theta, phi, time) * R1;
 
-      // Modulate displacement with audio frequency bands
+      // === Audio-reactive displacement ===
       if (frequencyBands && frequencyBands.length > 0) {
-        let avg = 0;
-        for (let b = 0; b < frequencyBands.length; b++) avg += frequencyBands[b];
-        avg /= frequencyBands.length;
-        disp *= 1 + avg * 3;
+        // Map theta position to a frequency band (equalizer effect)
+        // Each band deforms its angular region of the torus
+        const bandIndex = ((theta / TWO_PI) * frequencyBands.length) | 0;
+        const band = frequencyBands[Math.min(bandIndex, frequencyBands.length - 1)];
+
+        // Blend with neighbor bands for smooth transitions
+        const nextBand = frequencyBands[(bandIndex + 1) % frequencyBands.length];
+        const frac = (theta / TWO_PI) * frequencyBands.length - bandIndex;
+        const blended = band + (nextBand - band) * frac;
+
+        // Strong per-band deformation + overall energy boost
+        // The 8x multiplier makes the effect clearly visible
+        disp += blended * R1 * 0.8;
+
+        // Add high-frequency jitter from the raw band for "alive" texture
+        disp += band * R1 * 0.15 * Math.sin(phi * 13 + time * 8);
+      }
+
+      // Mic reactivity — pulse inward when user speaks
+      if (micLevel && micLevel > 0.01) {
+        disp -= micLevel * R1 * 0.3;
       }
 
       _pt.x += (px / pLen) * disp;
