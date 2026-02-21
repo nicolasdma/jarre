@@ -18,6 +18,13 @@ interface EvalStats {
   evalCount: number;
 }
 
+interface RelatedUserResource {
+  id: string;
+  title: string;
+  type: string;
+  url: string | null;
+}
+
 interface ResourceWithStatus {
   id: string;
   title: string;
@@ -32,6 +39,7 @@ interface ResourceWithStatus {
   missingPrerequisites: string[];
   conceptsTaught: string[];
   evalStats: EvalStats | null;
+  relatedUserResources: RelatedUserResource[];
 }
 
 interface ProjectWithDetails {
