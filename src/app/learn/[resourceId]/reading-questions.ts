@@ -432,57 +432,6 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
-  'ddia-ch11': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué Kafka usa un log append-only (log-based broker) en lugar del modelo tradicional de message queue donde los mensajes se borran al ser consumidos? ¿Qué capacidades fundamentales habilita el log que una cola tradicional no puede ofrecer?',
-      concept: 'Log-based message brokers',
-      hint: 'Piensa en qué pasa cuando necesitas re-procesar todos los eventos del último mes, o cuando un nuevo consumidor se une al sistema.',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué la distinción entre event time y processing time es crítica en stream processing? Describe un escenario concreto donde ignorar esta diferencia produce resultados incorrectos.',
-      concept: 'Event time vs processing time',
-      hint: 'Un evento generado a las 23:59 puede llegar al sistema a las 00:05 del día siguiente. ¿A qué ventana pertenece?',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'At-least-once delivery es más simple de implementar que exactly-once, pero puede duplicar efectos. ¿Cuándo es aceptable at-least-once sin idempotencia, y cuándo necesitas las garantías más fuertes de exactly-once (que realmente es effectively-once)?',
-      concept: 'At-least-once vs exactly-once semantics',
-      hint: 'Piensa en la diferencia entre incrementar un contador (no idempotente) vs escribir un valor con una key fija (idempotente).',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'En un stream-stream join necesitas definir una ventana temporal. Una ventana pequeña pierde correlaciones legítimas; una ventana grande consume más memoria y aumenta la latencia. ¿Cómo decidirías el tamaño de ventana para un sistema de detección de fraude que correlaciona transacciones con logins?',
-      concept: 'Stream joins y windowing',
-    },
-    {
-      type: 'connection',
-      question:
-        'Kleppmann argumenta que batch processing (ch10) y stream processing son dos puntos en un espectro, no paradigmas opuestos. ¿Cómo el concepto de "derivar datos" unifica ambos? ¿Por qué una base de datos puede verse como el resultado de un stream de cambios?',
-      concept: 'Stream processing y batch processing como espectro',
-      hint: 'Piensa en un materialized view: es el resultado de aplicar un stream de cambios a un estado inicial.',
-    },
-    {
-      type: 'design_decision',
-      question:
-        'CDC (Change Data Capture) y event sourcing ambos capturan cambios como secuencias de eventos. ¿Cuál es la diferencia fundamental en el nivel de abstracción de los eventos, y cuándo elegirías uno sobre el otro?',
-      concept: 'CDC vs event sourcing',
-      hint: 'CDC captura cambios a nivel de fila en la base de datos; event sourcing captura intenciones del dominio. ¿Quién define el esquema del evento?',
-    },
-    {
-      type: 'error_detection',
-      question:
-        '"Kafka garantiza exactly-once delivery de mensajes de forma nativa." ¿Por qué esta afirmación es engañosa? ¿Qué se necesita realmente para lograr exactly-once end-to-end, más allá de lo que el broker ofrece?',
-      concept: 'Exactly-once en Kafka',
-      hint: 'El broker puede garantizar que un mensaje se escribe exactamente una vez en un topic. Pero ¿qué pasa con los side effects del consumidor (enviar un email, cobrar una tarjeta)?',
-    },
-  ],
-
   'tail-at-scale-paper': [
     {
       type: 'why',
@@ -625,187 +574,55 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     },
   ],
 
-  'p0-linear-algebra': [
+  'kz2h-micrograd': [
     {
       type: 'why',
       question:
-        '¿Por qué los eigenvalues de una matriz de covarianza representan la varianza capturada en cada dirección principal? Conecta la definición algebraica (Av = λv) con la interpretación geométrica de "estirar" el espacio.',
-      concept: 'Eigenvalues y su significado geométrico',
-      hint: 'Si v es un eigenvector, la transformación A solo escala v por λ. En una matriz de covarianza, eso significa que λ mide cuánta varianza hay en la dirección de v.',
+        '¿Por qué Karpathy elige implementar autograd sobre escalares en lugar de tensores? ¿Qué ventaja pedagogica tiene operar en escalares para entender backpropagation?',
+      concept: 'Autograd escalar vs tensorial',
+      hint: 'Con escalares puedes ver cada gradiente individual y trazar manualmente la chain rule. Con tensores, las derivadas se vuelven Jacobianos y pierdes la intuicion.',
     },
     {
       type: 'why',
       question:
-        '¿Por qué la hipótesis del manifold es fundamental para justificar que deep learning funcione en espacios de alta dimensión? Si los datos de imágenes viven en R^(784) (MNIST), ¿por qué no necesitamos exponencialmente más datos para cubrir ese espacio?',
-      concept: 'Hipótesis del manifold',
-      hint: 'Los datos reales no llenan uniformemente el espacio de alta dimensión — se concentran en subvariedades de dimensión mucho menor.',
+        '¿Por qué los gradientes se acumulan con += en lugar de asignarse con = durante el backward pass? ¿Que escenario concreto produce un gradiente incorrecto si usas = en lugar de +=?',
+      concept: 'Acumulacion de gradientes',
+      hint: 'Si una variable se usa dos veces en la expresion (e.g., a + a), la segunda asignacion sobrescribiria el gradiente de la primera.',
     },
     {
       type: 'tradeoff',
       question:
-        'SVD funciona para cualquier matriz (m×n), mientras que la eigendecomposición solo aplica a matrices cuadradas. Sin embargo, para matrices simétricas positivas semidefinidas ambas coinciden. ¿Cuándo elegirías SVD sobre eigendecomposición y qué costo computacional adicional tiene?',
-      concept: 'SVD vs eigendecomposición',
-      hint: 'SVD es O(mn²) para m≥n. Eigendecomposición es O(n³). Pero SVD te da información sobre las direcciones tanto de entrada como de salida.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'La norma L1 induce sparsity en regularización mientras que L2 distribuye los pesos uniformemente. ¿Por qué geométricamente L1 produce ceros exactos? Dibuja mentalmente las curvas de nivel de cada norma y piensa en dónde intersectan con las elipses de la loss.',
-      concept: 'Normas en regularización',
-      hint: 'Las curvas de nivel de L1 son diamantes con esquinas en los ejes. La intersección con una elipse tiene alta probabilidad de ocurrir en una esquina (coordenada = 0).',
+        'Micrograd usa tanh como activacion. ¿Que trade-off hay entre tanh y ReLU? ¿Por que las redes modernas prefieren ReLU a pesar de que tanh tiene propiedades matematicas mas bonitas?',
+      concept: 'Funciones de activacion',
+      hint: 'La derivada de tanh satura (→0) para valores grandes, causando vanishing gradients. ReLU tiene derivada constante 1 para x>0, pero "mata" neuronas con x<0.',
     },
     {
       type: 'connection',
       question:
-        '¿Cómo se conecta la similitud coseno (usada masivamente en embeddings y RAG) con el producto punto y la proyección ortogonal? ¿Por qué normalizar los vectores antes de calcular el producto punto es equivalente a calcular el coseno del ángulo entre ellos?',
-      concept: 'Similitud coseno y producto punto',
-    },
-    {
-      type: 'error_detection',
-      question:
-        '"PCA siempre preserva la estructura más importante de los datos porque maximiza la varianza explicada." ¿En qué escenario esta afirmación es engañosa? Piensa en un dataset donde la varianza máxima no corresponde a la señal discriminativa.',
-      concept: 'Limitaciones de PCA',
-      hint: 'Si dos clases están separadas en una dirección de baja varianza, PCA podría descartar exactamente la dimensión que las distingue.',
-    },
-  ],
-
-  'p0-calculus-optimization': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué la chain rule es el principio matemático que hace posible entrenar redes neuronales profundas? Si tienes L = f(g(h(x))), ¿cómo permite la chain rule calcular ∂L/∂x sin necesidad de derivar la composición completa de una vez?',
-      concept: 'Chain rule en backpropagation',
-      hint: 'La chain rule descompone la derivada de una composición en un producto de derivadas locales: ∂L/∂x = (∂L/∂f)(∂f/∂g)(∂g/∂h)(∂h/∂x). Cada factor se calcula localmente.',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué los gradientes se desvanecen (vanishing) en redes profundas con activaciones sigmoideas? Calcula mentalmente el rango de σ\'(x) y explica qué pasa cuando multiplicas 50 factores menores a 0.25.',
-      concept: 'Vanishing gradients',
-      hint: 'La derivada máxima de sigmoid es 0.25 (en x=0). Si multiplicas 0.25^50, obtienes un número astronómicamente pequeño.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'Adam combina momentum y learning rates adaptativos por parámetro. SGD puro es más simple y a menudo generaliza mejor en la práctica. ¿Cuándo preferirías SGD con momentum sobre Adam, y qué evidencia empírica respalda que SGD puede encontrar mínimos "más planos"?',
-      concept: 'Adam vs SGD',
-      hint: 'Varios papers muestran que Adam converge más rápido pero SGD con schedule apropiado generaliza mejor. Los mínimos planos se correlacionan con mejor generalización.',
-    },
-    {
-      type: 'connection',
-      question:
-        '¿Cómo se conecta el concepto de grafo computacional (DAG de operaciones) con la eficiencia de backpropagation? ¿Por qué calcular gradientes "hacia atrás" es O(n) mientras que la diferenciación numérica sería O(n²)?',
-      concept: 'Grafos computacionales y autodiff',
-      hint: 'En el forward pass guardas los valores intermedios. En el backward pass, cada nodo calcula su gradiente local una sola vez y lo propaga.',
-    },
-    {
-      type: 'error_detection',
-      question:
-        '"Si la función de loss es convexa, gradient descent siempre encuentra el mínimo global, por lo tanto deberíamos diseñar funciones de loss convexas para redes neuronales." ¿Qué está mal con este razonamiento?',
-      concept: 'Convexidad y optimización en deep learning',
-      hint: 'La loss como función de los parámetros de una red neuronal es altamente no-convexa. No puedes hacer convexa la loss respecto a los pesos sin perder la expresividad de la red.',
+        '¿Como se conecta el grafo computacional de micrograd con los computation graphs de PyTorch (autograd) y JAX (jaxpr)? ¿Que abstraccion adicional necesitan para operar con tensores en lugar de escalares?',
+      concept: 'De micrograd a PyTorch',
+      hint: 'PyTorch reemplaza la derivada escalar por Jacobianos y usa reglas vectorizadas (vjp/jvp). Pero la estructura del grafo y el topological sort son identicos.',
     },
     {
       type: 'design_decision',
       question:
-        '¿Por qué el learning rate warmup (empezar con lr bajo y subir gradualmente) mejora el entrenamiento de Transformers? ¿Qué tiene que ver con las estadísticas del optimizador Adam en los primeros pasos?',
-      concept: 'Learning rate warmup',
-      hint: 'En los primeros pasos, las estimaciones del segundo momento de Adam son inestables (bias alto). Un lr alto amplifica esta inestabilidad.',
-    },
-  ],
-
-  'p0-probability': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué minimizar cross-entropy como función de loss es equivalente a maximizar la verosimilitud (MLE) del modelo? Demuestra la conexión algebraica entre -Σ p(x) log q(x) y log-likelihood.',
-      concept: 'Cross-entropy como loss',
-      hint: 'Si p es la distribución empírica (one-hot para clasificación), -Σ p log q = -log q(clase_correcta), que es exactamente el negative log-likelihood.',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué la KL divergence es asimétrica, es decir, KL(p||q) ≠ KL(q||p)? ¿Qué implicación práctica tiene esto cuando eliges cuál distribución es p y cuál es q en un modelo generativo?',
-      concept: 'Asimetría de KL divergence',
-      hint: 'KL(p||q) penaliza fuertemente cuando q es cercana a 0 pero p no (mode-seeking). KL(q||p) penaliza cuando p es cercana a 0 pero q no (mode-covering).',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'MLE es el estimador más eficiente asintóticamente pero puede overfittear con pocos datos. MAP agrega un prior que regulariza. ¿Cuándo el sesgo introducido por el prior en MAP es preferible a la varianza alta de MLE?',
-      concept: 'MLE vs MAP',
-      hint: 'Con muchos datos, el prior se vuelve irrelevante y MAP ≈ MLE. Con pocos datos, el prior estabiliza la estimación. Es el clásico trade-off sesgo-varianza.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'El enfoque bayesiano completo marginaliza sobre todos los parámetros posibles, mientras que el frequentista estima un solo valor puntual. ¿Por qué en la práctica los modelos de deep learning usan estimación puntual (SGD) en lugar de inferencia bayesiana completa?',
-      concept: 'Bayesiano vs frequentista en la práctica',
-      hint: 'La marginalización requiere integrar sobre millones de dimensiones de parámetros. Las aproximaciones (variational inference, MCMC) son costosas y difíciles de escalar.',
-    },
-    {
-      type: 'connection',
-      question:
-        '¿Cómo se conectan la entropía H(X) = -Σ p log p con la cantidad de "sorpresa" o "información" de una distribución? ¿Por qué una distribución uniforme tiene entropía máxima y una distribución degenerada (toda la masa en un punto) tiene entropía cero?',
-      concept: 'Entropía como medida de incertidumbre',
+        '¿Por que el training loop requiere resetear los gradientes a cero antes de cada backward pass? ¿Que pasaria si no haces zero_grad() y que caso de uso legitimo existe para NO resetearlos?',
+      concept: 'Training loop',
+      hint: 'Sin zero_grad, los gradientes se acumulan de iteraciones anteriores. Pero en gradient accumulation (batches grandes), eso es exactamente lo que quieres.',
     },
     {
       type: 'error_detection',
       question:
-        '"Los conjugate priors se usan porque producen mejores resultados que otros priors." ¿Qué está mal con esta justificación? ¿Cuál es la verdadera razón por la que se usan conjugate priors?',
-      concept: 'Conjugate priors',
-      hint: 'La ventaja es puramente computacional: el posterior pertenece a la misma familia que el prior, así que tiene forma cerrada. No dice nada sobre la calidad del prior.',
-    },
-    {
-      type: 'design_decision',
-      question:
-        '¿Por qué el ELBO (Evidence Lower Bound) es central en variational inference? Si queremos maximizar log p(x) pero es intratable, ¿cómo nos ayuda optimizar una cota inferior, y qué gap introduce la distribución variacional q(z|x)?',
-      concept: 'ELBO en variational inference',
-      hint: 'log p(x) = ELBO + KL(q(z|x) || p(z|x)). Como KL ≥ 0, ELBO ≤ log p(x). Maximizar ELBO simultáneamente maximiza la evidence y minimiza la KL entre q y el posterior verdadero.',
-    },
-  ],
-
-  'p0-cs229-probability': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué el MLE para una Gaussiana resulta exactamente en la media muestral? Deriva la conexión entre maximizar la likelihood y minimizar la suma de cuadrados.',
-      concept: 'MLE y MSE',
-      hint: 'El log-likelihood de N(μ, σ²) contiene el término -Σ(xᵢ - μ)²/(2σ²). Maximizar respecto a μ equivale a minimizar Σ(xᵢ - μ)².',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué weight decay en deep learning es matemáticamente equivalente a MAP con un prior Gaussiano? Muestra la equivalencia entre el término de regularización λ||θ||² y el log-prior.',
-      concept: 'Regularización como MAP',
-      hint: 'Si θ ~ N(0, τ²I), log P(θ) = -||θ||²/(2τ²) + const. Sumando al log-likelihood, λ = 1/(2τ²).',
+        '"Backpropagation es un algoritmo especifico de redes neuronales que no tiene relacion con el calculo diferencial clasico." ¿Que esta mal con esta afirmacion?',
+      concept: 'Backpropagation como chain rule',
+      hint: 'Backpropagation ES la chain rule del calculo multivariable, aplicada recursivamente sobre un grafo computacional. No es un invento de la comunidad de ML.',
     },
     {
       type: 'tradeoff',
       question:
-        'MLE puede overfittear con pocos datos pero es asintóticamente óptimo. MAP introduce sesgo del prior pero regulariza. ¿Cuándo preferirías MLE puro (sin regularización) y cuándo MAP?',
-      concept: 'MLE vs MAP',
-      hint: 'Con n >> d (muchos datos vs parámetros), el prior importa poco. Con n ≈ d o n < d, el prior estabiliza la estimación.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'La KL divergence es asimétrica: D_KL(p||q) ≠ D_KL(q||p). Forward KL produce mode-covering, reverse KL produce mode-seeking. ¿Qué implicaciones tiene para VAEs que usen reverse KL?',
-      concept: 'Forward vs Reverse KL',
-      hint: 'Los VAEs minimizan reverse KL en la ELBO. Esto hace que q(z|x) colapse sobre un modo del posterior, produciendo outputs borrosos.',
-    },
-    {
-      type: 'connection',
-      question:
-        '¿Cómo conecta la cross-entropy loss con MLE y con KL divergence? Demuestra que minimizar cross-entropy = maximizar likelihood = minimizar KL(p_data || p_model).',
-      concept: 'Cross-entropy, MLE y KL',
-    },
-    {
-      type: 'design_decision',
-      question:
-        'Un modelo de clasificación binaria usa sigmoid + BCE loss. Un modelo de regresión usa MSE. ¿Qué distribución asume cada uno implícitamente, y qué pasaría si usaras MSE para clasificación binaria?',
-      concept: 'Distribución implícita en loss functions',
-      hint: 'MSE asume ruido Gaussiano. Para clasificación, los targets son 0/1 — no tiene sentido asumir ruido Gaussiano simétrico alrededor de la predicción.',
+        'El learning rate es el hiperparametro mas critico del training loop. ¿Que pasa con learning rates muy altos vs muy bajos? ¿Por que no existe un learning rate "optimo universal"?',
+      concept: 'Learning rate',
+      hint: 'Muy alto: los parametros oscilan y divergen. Muy bajo: convergencia extremadamente lenta. El optimo depende de la curvatura del loss landscape, que varia por parametro.',
     },
   ],
 

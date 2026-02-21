@@ -1,6 +1,6 @@
 # Jarre - Backlog
 
-> Last updated: 2026-02-19
+> Last updated: 2026-02-20
 
 ## Priority Legend
 - `[P0]` Critical - blocking progress
@@ -181,6 +181,38 @@
 ### Future Consideration (P3)
 - [ ] `[P3]` **Portable skill badges/certificates** — Exportable proof of mastery per phase/concept
 - [ ] `[P3]` **Community forum / study groups** — Peer interaction for mastery 3-4 with real humans
+
+---
+
+## Phase 2 — Karpathy Zero to Hero + Papers
+
+> Phase 2 restructured: 11 resources total (8 kz2h-* videos + 3 papers)
+> Migration: `20260220040000_phase2_karpathy_restructure.sql` (applied)
+> See: `plan/2026-02-20/session-01-phase2-karpathy.md`
+
+### Content Pipeline Progress
+
+| Resource | Transcript | Translate | Resegment | TSX | Questions | Quizzes | Exercises |
+|----------|-----------|-----------|-----------|-----|-----------|---------|-----------|
+| kz2h-micrograd | x | running | - | x | x | - | - |
+| kz2h-makemore-bigram | - | - | - | - | - | - | - |
+| p2-bengio-lm-paper | - | - | - | - | - | - | - |
+| kz2h-makemore-mlp | - | - | - | - | - | - | - |
+| kz2h-activations-batchnorm | - | - | - | - | - | - | - |
+| kz2h-backprop-ninja | - | - | - | - | - | - | - |
+| p2-resnet-paper | - | - | - | - | - | - | - |
+| kz2h-wavenet | - | - | - | - | - | - | - |
+| kz2h-building-gpt | - | - | - | - | - | - | - |
+| attention-paper | EXISTING | EXISTING | EXISTING | EXISTING | EXISTING | CHECK | CHECK |
+| kz2h-tokenizers | - | - | - | - | - | - | - |
+
+### Pending Tasks
+- [ ] `[P1]` Complete kz2h-micrograd: resegment translated transcript, seed sections, create inline quizzes + exercises
+- [ ] `[P1]` Pipeline remaining 7 kz2h-* videos (transcript → translate → resegment → artefacts)
+- [ ] `[P1]` Pipeline p2-bengio-lm-paper (PDF extract → generate 5 sections → artefacts)
+- [ ] `[P1]` Pipeline p2-resnet-paper (PDF extract → generate 5 sections → artefacts)
+- [ ] `[P2]` Verify attention-paper has exercises (may need creation)
+- [ ] `[P2]` Create playground for micrograd (/playground/micrograd)
 
 ---
 

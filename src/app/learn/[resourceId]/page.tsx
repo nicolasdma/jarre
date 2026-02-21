@@ -19,17 +19,13 @@ import { DDIAChapter4 } from './ddia-ch4';
 import { DDIAChapter7 } from './ddia-ch7';
 import { DDIAChapter8 } from './ddia-ch8';
 import { DDIAChapter9 } from './ddia-ch9';
-import { DDIAChapter11 } from './ddia-ch11';
 import { TailAtScale } from './tail-scale';
 import { AttentionPaper } from './attention-paper';
 import { ScalingLawsPaper } from './scaling-laws';
 import { AgentSandboxPatterns } from './agent-sandbox-patterns';
 import { ClawvaultAgentMemory } from './clawvault-agent-memory';
 import { OpenClawCaseStudy } from './openclaw-casestudy';
-import { P0LinearAlgebra } from './p0-linear-algebra';
-import { P0CalculusOptimization } from './p0-calculus-optimization';
-import { P0Probability } from './p0-probability';
-import { P0CS229Probability } from './p0-cs229-probability';
+import { Kz2hMicrograd } from './kz2h-micrograd';
 import { LilianWengDistributed } from './lilian-weng-distributed';
 import { HoraceHeGpu } from './horace-he-gpu';
 import { READING_QUESTIONS } from './reading-questions';
@@ -54,17 +50,13 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'ddia-ch7': { label: 'Playground', href: '/playground/transactions' },
   'ddia-ch8': { label: 'Playground', href: '/playground/consensus' },
   'ddia-ch9': { label: 'Playground', href: '/playground/consensus' },
-  'ddia-ch11': { label: 'Playground', href: '/playground/stream-processing' },
   'tail-at-scale-paper': { label: 'Playground', href: '/playground/tail-latency' },
   'attention-paper': { label: 'Playground', href: '/playground/attention' },
   'scaling-laws-paper': { label: 'Playground', href: '/playground/scaling-laws' },
   'agent-sandbox-patterns': { label: 'Playground', href: '/playground/agent-sandbox' },
   'clawvault-agent-memory': { label: 'Playground', href: '/playground/clawvault-memory' },
   'openclaw-casestudy': { label: 'Playground', href: '/playground/openclaw-architecture' },
-  'p0-linear-algebra': { label: 'Playground', href: '/playground/linear-algebra' },
-  'p0-calculus-optimization': { label: 'Playground', href: '/playground/gradient-descent' },
-  'p0-probability': { label: 'Playground', href: '/playground/probability' },
-  'p0-cs229-probability': { label: 'Playground', href: '/playground/bayesian-inference' },
+  'kz2h-micrograd': { label: 'Playground', href: '/playground/micrograd' },
   'p2-lilian-weng-distributed': { label: 'Playground', href: '/playground/distributed-training' },
   'p2-horace-he-gpu': { label: 'Playground', href: '/playground/gpu-performance' },
 };
@@ -80,17 +72,13 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'ddia-ch7': () => <DDIAChapter7 />,
   'ddia-ch8': () => <DDIAChapter8 />,
   'ddia-ch9': () => <DDIAChapter9 />,
-  'ddia-ch11': () => <DDIAChapter11 />,
   'tail-at-scale-paper': () => <TailAtScale />,
   'attention-paper': () => <AttentionPaper />,
   'scaling-laws-paper': () => <ScalingLawsPaper />,
   'agent-sandbox-patterns': () => <AgentSandboxPatterns />,
   'clawvault-agent-memory': () => <ClawvaultAgentMemory />,
   'openclaw-casestudy': () => <OpenClawCaseStudy />,
-  'p0-linear-algebra': () => <P0LinearAlgebra />,
-  'p0-calculus-optimization': () => <P0CalculusOptimization />,
-  'p0-probability': () => <P0Probability />,
-  'p0-cs229-probability': () => <P0CS229Probability />,
+  'kz2h-micrograd': () => <Kz2hMicrograd />,
   'p2-lilian-weng-distributed': () => <LilianWengDistributed />,
   'p2-horace-he-gpu': () => <HoraceHeGpu />,
 };
