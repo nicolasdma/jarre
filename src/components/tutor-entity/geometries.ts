@@ -1,7 +1,7 @@
 // ============================================================================
 // Parametric geometry library for the tutor entity
 //
-// 4 surfaces that morph into each other in randomized order.
+// 5 surfaces that morph into each other in randomized order.
 // Sequence is randomized continuously — never predictable.
 //
 // Design constraints:
@@ -143,6 +143,28 @@ const starFn: GeometryFn = (theta, phi, R1, R2, out) => {
   out.z = r * cv;
 };
 
+/** Dini's Surface — twisted pseudosphere spiral */
+const diniFn: GeometryFn = (theta, phi, R1, R2, out) => {
+  // Remap: theta ∈ [0,2π] → u ∈ [0.1, 2π], phi ∈ [0,2π] → v ∈ [0.15, π-0.15]
+  const u = 0.1 + theta * (1 - 0.1 / (2 * Math.PI));
+  const v = 0.15 + (phi / (2 * Math.PI)) * (Math.PI - 0.3);
+
+  const scale = R2 * 0.75;
+  const a = 1.0; // controls overall shape
+  const b = 0.2; // twist tightness
+
+  const su = Math.sin(u);
+  const cu = Math.cos(u);
+  const sv = Math.sin(v);
+  const cv = Math.cos(v);
+
+  out.x = scale * a * cu * sv;
+  out.y = scale * a * su * sv;
+  out.z = scale * (a * (cv + Math.log(Math.max(0.001, Math.tan(v * 0.5)))) + b * u);
+  // Center vertically
+  out.z -= scale * b * Math.PI;
+};
+
 // ---------------------------------------------------------------------------
 // All geometries pool (with names for debug)
 // ---------------------------------------------------------------------------
@@ -157,6 +179,7 @@ const ALL_GEOMETRIES: NamedGeometry[] = [
   { fn: trefoilFn, name: 'Trefoil Knot' },
   { fn: boysFn, name: "Boy's Surface" },
   { fn: starFn, name: 'Star' },
+  { fn: diniFn, name: "Dini's Surface" },
 ];
 
 // ---------------------------------------------------------------------------

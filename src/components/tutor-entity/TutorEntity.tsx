@@ -13,12 +13,15 @@ import {
 import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
 import { getCurrentGeometryName } from './geometries';
 import { useTutorFrequency } from '../voice/use-tutor-frequency';
+import { useAudioLevel } from '../voice/use-audio-level';
 import type { TutorState } from '../voice/use-voice-session';
 
 interface TutorEntityProps {
   onStartVoice: () => void;
   /** AnalyserNode from Gemini playback audio — drives frequency visualization */
   playbackAnalyser?: AnalyserNode | null;
+  /** Mic MediaStream — drives reactivity to user's voice */
+  micStream?: MediaStream | null;
   /** Current tutor state from voice session — overrides idle/hover targeting */
   voiceState?: TutorState;
 }
@@ -54,9 +57,15 @@ function voiceStateToEntityState(ts: TutorState): keyof typeof ENTITY_STATES {
   }
 }
 
+/** Breathing pulse for thinking state — sinusoidal radius oscillation */
+const BREATH_SPEED = 1.8;     // cycles per second
+const BREATH_RADIUS_AMP = 0.015; // how much major radius oscillates
+const BREATH_OPACITY_AMP = 0.08; // how much opacity oscillates
+
 export function TutorEntity({
   onStartVoice,
   playbackAnalyser,
+  micStream,
   voiceState,
 }: TutorEntityProps) {
   const glowCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -80,6 +89,11 @@ export function TutorEntity({
   const frequencyBands = useTutorFrequency(playbackAnalyser ?? null);
   const frequencyBandsRef = useRef(frequencyBands);
   frequencyBandsRef.current = frequencyBands;
+
+  // Mic audio level — user's voice
+  const micLevel = useAudioLevel(micStream ?? null);
+  const micLevelRef = useRef(micLevel);
+  micLevelRef.current = micLevel;
 
   const isVoiceActive = voiceState !== undefined;
 
@@ -129,19 +143,42 @@ export function TutorEntity({
       speed = LERP_SPEED;
     } else {
       target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
-      // Gentle transition into hover, normal speed out
       speed = hovered ? HOVER_LERP_SPEED : LERP_SPEED;
     }
 
     const lerpT = Math.min(1, speed * dt);
     currentParamsRef.current = lerpParams(currentParamsRef.current, target, lerpT);
 
+    // Thinking state: breathing pulse — sinusoidal modulation of radius and opacity
+    const currentVoiceState = voiceStateRef.current;
+    if (currentVoiceState === 'thinking') {
+      const breath = Math.sin(timeRef.current * BREATH_SPEED * Math.PI * 2);
+      currentParamsRef.current = {
+        ...currentParamsRef.current,
+        majorRadius: currentParamsRef.current.majorRadius + breath * BREATH_RADIUS_AMP,
+        minorRadius: currentParamsRef.current.minorRadius + breath * BREATH_RADIUS_AMP * 0.5,
+        charOpacity: currentParamsRef.current.charOpacity + breath * BREATH_OPACITY_AMP,
+        glowOpacity: currentParamsRef.current.glowOpacity + breath * BREATH_OPACITY_AMP * 0.6,
+      };
+    }
+
+    // Listening state: pulse radius with mic level for "absorbing" feel
+    if (currentVoiceState === 'listening' && micLevelRef.current > 0.01) {
+      const mic = micLevelRef.current;
+      currentParamsRef.current = {
+        ...currentParamsRef.current,
+        majorRadius: currentParamsRef.current.majorRadius + mic * 0.03,
+        charOpacity: Math.min(0.85, currentParamsRef.current.charOpacity + mic * 0.2),
+      };
+    }
+
     const { w, h } = sizeRef.current;
 
     // Compute geometry ONCE, paint to BOTH canvases
     const focal = mouseRef.current;
-    const bands = voiceStateRef.current ? frequencyBandsRef.current : null;
-    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands);
+    const bands = currentVoiceState === 'speaking' ? frequencyBandsRef.current : null;
+    const mic = currentVoiceState === 'listening' ? micLevelRef.current : 0;
+    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands, mic);
     paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
     paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
 
