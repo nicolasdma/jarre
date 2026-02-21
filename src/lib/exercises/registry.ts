@@ -12,6 +12,8 @@ import { agentSandboxPatternsExercises } from '@/data/exercises/agent-sandbox-pa
 import { clawvaultExercises } from '@/data/exercises/clawvault-agent-memory-exercises';
 import { tailAtScaleExercises } from '@/data/exercises/tail-at-scale-paper-exercises';
 import { microgradExercises } from '@/data/exercises/kz2h-micrograd-exercises';
+import { buildingGptExercises } from '@/data/exercises/kz2h-building-gpt-exercises';
+import { tokenizersExercises } from '@/data/exercises/kz2h-tokenizers-exercises';
 
 /** All registered exercises */
 const ALL_EXERCISES: Exercise[] = [
@@ -22,6 +24,8 @@ const ALL_EXERCISES: Exercise[] = [
   ...clawvaultExercises,
   ...tailAtScaleExercises,
   ...microgradExercises,
+  ...buildingGptExercises,
+  ...tokenizersExercises,
 ];
 
 /** Index by concept ID */
