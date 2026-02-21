@@ -33,11 +33,11 @@ interface QuizDef {
 
 const QUIZZES: QuizDef[] = [
   // ────────────────────────────────────────────────
-  // Section 0: Derivadas, Value y el Grafo Computacional
+  // Section 0: Qué es ML — La Fábrica que Aprende Sola
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
-    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
+    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
+    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
     sortOrder: 0,
     format: 'mc',
     questionText: 'En micrograd, ¿qué estructura de datos se usa para representar la expresión matemática completa?',
@@ -51,8 +51,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Micrograd construye un DAG (Directed Acyclic Graph) donde cada nodo es un objeto Value que almacena un dato escalar, su gradiente, y referencias a sus hijos (los valores que lo produjeron) junto con la operación utilizada.',
   },
   {
-    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
-    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
+    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
+    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
     sortOrder: 1,
     format: 'tf',
     questionText: 'La derivada de una función en un punto mide la pendiente de la función en ese punto, es decir, cuánto cambia la salida cuando perturbamos la entrada una cantidad infinitesimalmente pequeña.',
@@ -61,8 +61,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'La derivada es exactamente eso: el límite de (f(x+h) - f(x))/h cuando h→0. En micrograd, Karpathy demuestra esto numéricamente usando un h muy pequeño (ej: 0.0001) para verificar los gradientes.',
   },
   {
-    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
-    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
+    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
+    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
     sortOrder: 2,
     format: 'mc2',
     questionText: '¿Cuáles de las siguientes son propiedades de la clase Value en micrograd?',
@@ -78,11 +78,11 @@ const QUIZZES: QuizDef[] = [
   },
 
   // ────────────────────────────────────────────────
-  // Section 1: Chain Rule y Backpropagation Manual
+  // Section 1: Value — Un Número con Memoria
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Chain Rule y Backpropagation Manual',
-    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sectionTitle: 'Value — Un Número con Memoria',
+    positionAfterHeading: 'Value — Un Número con Memoria',
     sortOrder: 0,
     format: 'mc',
     questionText: 'Si L = f(g(x)), ¿cómo se calcula dL/dx según la chain rule?',
@@ -96,8 +96,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'La chain rule dice que la derivada de una composición de funciones es el PRODUCTO de las derivadas en cada paso. dL/dx = dL/dg × dg/dx. Esta es la operación fundamental de backpropagation.',
   },
   {
-    sectionTitle: 'Chain Rule y Backpropagation Manual',
-    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sectionTitle: 'Value — Un Número con Memoria',
+    positionAfterHeading: 'Value — Un Número con Memoria',
     sortOrder: 1,
     format: 'tf',
     questionText: 'En backpropagation, el gradiente del nodo de salida (loss) siempre se inicializa en 1.0 antes de comenzar a propagar hacia atrás.',
@@ -106,8 +106,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'El gradiente de la salida respecto a sí misma es siempre 1 (dL/dL = 1). Este es el "seed" que inicia la cadena de retropropagación multiplicativa a través de todo el grafo.',
   },
   {
-    sectionTitle: 'Chain Rule y Backpropagation Manual',
-    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sectionTitle: 'Value — Un Número con Memoria',
+    positionAfterHeading: 'Value — Un Número con Memoria',
     sortOrder: 2,
     format: 'mc',
     questionText: 'Si un nodo z = x + y, y el gradiente de la salida respecto a z es dL/dz = 4.0, ¿cuáles son dL/dx y dL/dy?',
@@ -122,11 +122,11 @@ const QUIZZES: QuizDef[] = [
   },
 
   // ────────────────────────────────────────────────
-  // Section 2: Backpropagation Automatizado
+  // Section 2: La Derivada Parcial — El Momento Eureka
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Backpropagation Automatizado',
-    positionAfterHeading: 'Backpropagation Automatizado',
+    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
+    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Qué algoritmo usa micrograd para determinar el orden correcto de retropropagación?',
@@ -140,8 +140,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Micrograd construye un ordenamiento topológico del DAG y lo recorre en reversa. Esto garantiza que cuando procesamos un nodo, ya hemos calculado el gradiente de todos los nodos que dependen de él.',
   },
   {
-    sectionTitle: 'Backpropagation Automatizado',
-    positionAfterHeading: 'Backpropagation Automatizado',
+    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
+    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
     sortOrder: 1,
     format: 'tf',
     questionText: 'En micrograd, cada operación (+, ×, tanh, etc.) define su propia función _backward que sabe cómo propagar el gradiente a sus hijos.',
@@ -150,8 +150,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Cada operación registra una función _backward como closure. Por ejemplo, la multiplicación z = a × b registra que dL/da = b × dL/dz y dL/db = a × dL/dz. El método backward() del nodo raíz las invoca en orden topológico inverso.',
   },
   {
-    sectionTitle: 'Backpropagation Automatizado',
-    positionAfterHeading: 'Backpropagation Automatizado',
+    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
+    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
     sortOrder: 2,
     format: 'mc2',
     questionText: '¿Cuáles de las siguientes afirmaciones sobre la acumulación de gradientes son correctas?',
@@ -167,11 +167,11 @@ const QUIZZES: QuizDef[] = [
   },
 
   // ────────────────────────────────────────────────
-  // Section 3: Neuronas, Capas y MLP
+  // Section 3: Backpropagation y la Chain Rule
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Neuronas, Capas y MLP',
-    positionAfterHeading: 'Neuronas, Capas y MLP',
+    sectionTitle: 'Backpropagation y la Chain Rule',
+    positionAfterHeading: 'Backpropagation y la Chain Rule',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Qué operación realiza una neurona individual en micrograd?',
@@ -185,8 +185,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Una neurona calcula: activation = tanh(Σ(wi × xi) + b). Es el producto punto de pesos con entradas, más un sesgo, pasado por una no-linealidad (tanh). Toda esta operación se construye como un subgrafo en el DAG.',
   },
   {
-    sectionTitle: 'Neuronas, Capas y MLP',
-    positionAfterHeading: 'Neuronas, Capas y MLP',
+    sectionTitle: 'Backpropagation y la Chain Rule',
+    positionAfterHeading: 'Backpropagation y la Chain Rule',
     sortOrder: 1,
     format: 'tf',
     questionText: 'Un MLP (Multi-Layer Perceptron) es simplemente una secuencia de capas donde la salida de una capa se convierte en la entrada de la siguiente.',
@@ -195,8 +195,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Un MLP es una pila de capas fully-connected. En micrograd, MLP se define con las dimensiones [nin, nout1, nout2, ...] y cada capa contiene neuronas que procesan la salida de la capa anterior.',
   },
   {
-    sectionTitle: 'Neuronas, Capas y MLP',
-    positionAfterHeading: 'Neuronas, Capas y MLP',
+    sectionTitle: 'Backpropagation y la Chain Rule',
+    positionAfterHeading: 'Backpropagation y la Chain Rule',
     sortOrder: 2,
     format: 'mc',
     questionText: '¿Por qué es importante que la función de activación (ej: tanh) sea no-lineal?',
@@ -214,8 +214,8 @@ const QUIZZES: QuizDef[] = [
   // Section 4: Training Loop y Comparacion con PyTorch
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Training Loop y Comparacion con PyTorch',
-    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sectionTitle: 'De una Neurona a un MLP',
+    positionAfterHeading: 'De una Neurona a un MLP',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Cuál es el orden correcto de operaciones en un paso de entrenamiento (training step)?',
@@ -229,8 +229,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'El training loop es: 1) Forward pass (calcular predicciones), 2) Calcular la loss, 3) Backward pass (calcular gradientes), 4) Actualizar parámetros (w -= lr × grad), 5) Zero grad (limpiar gradientes para la siguiente iteración).',
   },
   {
-    sectionTitle: 'Training Loop y Comparacion con PyTorch',
-    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sectionTitle: 'De una Neurona a un MLP',
+    positionAfterHeading: 'De una Neurona a un MLP',
     sortOrder: 1,
     format: 'tf',
     questionText: 'Un learning rate demasiado grande puede hacer que el modelo "sobrepase" el mínimo de la loss y diverga en lugar de converger.',
@@ -239,8 +239,8 @@ const QUIZZES: QuizDef[] = [
     explanation: 'Si el learning rate es muy grande, los pasos de actualización son demasiado amplios y el modelo oscila alrededor del mínimo o diverge. Karpathy lo demuestra en micrograd mostrando cómo la loss sube en lugar de bajar con un lr excesivo.',
   },
   {
-    sectionTitle: 'Training Loop y Comparacion con PyTorch',
-    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sectionTitle: 'De una Neurona a un MLP',
+    positionAfterHeading: 'De una Neurona a un MLP',
     sortOrder: 2,
     format: 'mc2',
     questionText: '¿Cuáles son diferencias entre micrograd y PyTorch?',
