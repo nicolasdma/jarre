@@ -12,10 +12,15 @@ import {
 } from './entity-constants';
 import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
 import { getCurrentGeometryName } from './geometries';
+import { useTutorFrequency } from '../voice/use-tutor-frequency';
+import type { TutorState } from '../voice/use-voice-session';
 
 interface TutorEntityProps {
   onStartVoice: () => void;
-  hidden?: boolean;
+  /** AnalyserNode from Gemini playback audio — drives frequency visualization */
+  playbackAnalyser?: AnalyserNode | null;
+  /** Current tutor state from voice session — overrides idle/hover targeting */
+  voiceState?: TutorState;
 }
 
 function lerpParams(
@@ -38,7 +43,22 @@ function lerpParams(
   };
 }
 
-export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
+/** Map TutorState to an entity visual state key */
+function voiceStateToEntityState(ts: TutorState): keyof typeof ENTITY_STATES {
+  switch (ts) {
+    case 'speaking': return 'speaking';
+    case 'listening': return 'listening';
+    case 'thinking': return 'thinking';
+    case 'idle':
+    default: return 'idle';
+  }
+}
+
+export function TutorEntity({
+  onStartVoice,
+  playbackAnalyser,
+  voiceState,
+}: TutorEntityProps) {
   const glowCanvasRef = useRef<HTMLCanvasElement>(null);
   const sharpCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +71,17 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
   const introPhaseRef = useRef(true);
   const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.intro });
+
+  // Keep voiceState in a ref so the animate callback always reads the latest
+  const voiceStateRef = useRef(voiceState);
+  voiceStateRef.current = voiceState;
+
+  // Frequency bands from Gemini playback audio
+  const frequencyBands = useTutorFrequency(playbackAnalyser ?? null);
+  const frequencyBandsRef = useRef(frequencyBands);
+  frequencyBandsRef.current = frequencyBands;
+
+  const isVoiceActive = voiceState !== undefined;
 
   const animate = useCallback(() => {
     const glowCanvas = glowCanvasRef.current;
@@ -91,6 +122,11 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
           introPhaseRef.current = false;
         }
       }
+    } else if (voiceStateRef.current) {
+      // Voice session active — target driven by tutor state
+      const stateKey = voiceStateToEntityState(voiceStateRef.current);
+      target = ENTITY_STATES[stateKey];
+      speed = LERP_SPEED;
     } else {
       target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
       // Gentle transition into hover, normal speed out
@@ -104,7 +140,8 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
 
     // Compute geometry ONCE, paint to BOTH canvases
     const focal = mouseRef.current;
-    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal);
+    const bands = voiceStateRef.current ? frequencyBandsRef.current : null;
+    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands);
     paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
     paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
 
@@ -160,11 +197,22 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
     };
   }, [animate]);
 
+  const handleClick = () => {
+    if (!isVoiceActive) onStartVoice();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !isVoiceActive) {
+      e.preventDefault();
+      onStartVoice();
+    }
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full cursor-pointer transition-opacity duration-500 ${
-        hidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      className={`relative w-full h-full transition-opacity duration-500 ${
+        isVoiceActive ? 'cursor-default' : 'cursor-pointer'
       }`}
       onMouseEnter={() => { setHovered(true); }}
       onMouseMove={(e) => {
@@ -176,16 +224,11 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
         };
       }}
       onMouseLeave={() => { setHovered(false); mouseRef.current = null; }}
-      onClick={onStartVoice}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onStartVoice();
-        }
-      }}
-      aria-label="Open voice tutor session"
+      onKeyDown={handleKeyDown}
+      aria-label={isVoiceActive ? 'Voice session active' : 'Open voice tutor session'}
     >
       <canvas
         ref={glowCanvasRef}
@@ -196,11 +239,9 @@ export function TutorEntity({ onStartVoice, hidden }: TutorEntityProps) {
         ref={sharpCanvasRef}
         className="absolute inset-0 w-full h-full"
       />
-      {/* DEBUG: geometry name label — uncomment to identify shapes
       <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 text-orange-400 text-xs font-mono rounded pointer-events-none z-10">
         {debugName}
       </div>
-      */}
     </div>
   );
 }

@@ -116,6 +116,7 @@ export function computeEntityFrame(
   params: EntityStateParams,
   time: number,
   focalPoint?: { x: number; y: number } | null,
+  frequencyBands?: Float32Array | null,
 ): boolean {
   if (width < 10 || height < 10) {
     _frameValid = false;
@@ -207,7 +208,16 @@ export function computeEntityFrame(
       const py = _pt.y;
       const pz = _pt.z;
       const pLen = Math.sqrt(px * px + py * py + pz * pz) || 1;
-      const disp = organicDisplacement(theta, phi, time) * R1;
+      let disp = organicDisplacement(theta, phi, time) * R1;
+
+      // Modulate displacement with audio frequency bands
+      if (frequencyBands && frequencyBands.length > 0) {
+        let avg = 0;
+        for (let b = 0; b < frequencyBands.length; b++) avg += frequencyBands[b];
+        avg /= frequencyBands.length;
+        disp *= 1 + avg * 3;
+      }
+
       _pt.x += (px / pLen) * disp;
       _pt.y += (py / pLen) * disp;
       _pt.z += (pz / pLen) * disp;

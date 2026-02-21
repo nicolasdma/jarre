@@ -164,8 +164,8 @@ const ALL_GEOMETRIES: NamedGeometry[] = [
 // ---------------------------------------------------------------------------
 
 /** Hold time range (seconds) */
-const HOLD_MIN = 20;
-const HOLD_MAX = 90;
+const HOLD_MIN = 16;
+const HOLD_MAX = 32;
 
 /** Transition time range (seconds) — 4s fastest, 12s slowest */
 const TRANSITION_MIN = 4;
