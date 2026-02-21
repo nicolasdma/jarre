@@ -72,7 +72,7 @@ interface VoiceSession {
 // ============================================================================
 
 const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
-const VOICE_NAME = 'Algenib';
+const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
 // Session end signal: the voice prompt instructs the tutor to say this exact phrase when done.
 // Must be specific enough to never appear in normal explanations — "quiz" alone caused false positives.

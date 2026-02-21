@@ -75,16 +75,16 @@ const translations = {
 
   // Phases
   'phase.1': { es: 'Sistemas Distribuidos', en: 'Distributed Systems' },
-  'phase.2': { es: 'Infraestructura ML', en: 'ML Infrastructure Bridge' },
-  'phase.3': { es: 'Fundamentos Transformer', en: 'Transformer Foundations' },
-  'phase.4': { es: 'Agentes + Razonamiento', en: 'Agents & Reasoning' },
-  'phase.5': { es: 'RAG, Memoria + Contexto', en: 'RAG, Memory & Context' },
-  'phase.6': { es: '(Eliminada)', en: '(Removed)' },
-  'phase.7': { es: 'Seguridad + Guardrails', en: 'Safety, Guardrails & Eval' },
-  'phase.8': { es: 'Inferencia + Economía', en: 'Inference & Economics' },
-  'phase.9': { es: '(Integrada)', en: '(Integrated)' },
-  'phase.10': { es: 'AI para Empresa (Track alternativo)', en: 'AI for Enterprise (Alternate track)' },
-  'phase.11': { es: 'Sistemas LLM', en: 'LLM Systems Engineering' },
+  'phase.2': { es: 'ML & Deep Learning', en: 'ML & Deep Learning Foundations' },
+  'phase.3': { es: 'Secuencias, Atención & Transformers', en: 'Sequences, Attention & Transformers' },
+  'phase.4': { es: 'LLMs: Entrenamiento & Alineación', en: 'LLMs: Training, Alignment & Scaling' },
+  'phase.5': { es: 'Infraestructura ML', en: 'ML Infrastructure & Distributed Training' },
+  'phase.6': { es: 'Agentes & Razonamiento', en: 'Agents & Reasoning' },
+  'phase.7': { es: 'RAG, Memoria & Contexto', en: 'RAG, Memory & Context' },
+  'phase.8': { es: 'Seguridad & Guardrails', en: 'Safety, Guardrails & Eval' },
+  'phase.9': { es: 'Inferencia & Economía', en: 'Inference & Economics' },
+  'phase.10': { es: 'Diseño de Sistemas', en: 'System Design & Integration' },
+  'phase.11': { es: 'AI para Empresa (Track alternativo)', en: 'AI for Enterprise (Alternate track)' },
 
   // Common
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
@@ -307,10 +307,11 @@ export function getPhaseNames(language: Language): Record<string, string> {
     '3': t('phase.3', language),
     '4': t('phase.4', language),
     '5': t('phase.5', language),
+    '6': t('phase.6', language),
     '7': t('phase.7', language),
     '8': t('phase.8', language),
+    '9': t('phase.9', language),
     '10': t('phase.10', language),
-    '11': t('phase.11', language),
   };
 }
 
