@@ -12,6 +12,7 @@ const RESOURCE_TYPE_ICONS: Record<string, string> = {
   article: '📄',
   paper: '📑',
   book: '📖',
+  lecture: '🎓',
   podcast: '🎙',
   other: '📌',
 };
