@@ -276,7 +276,8 @@ export function TutorEntity({
         ref={sharpCanvasRef}
         className="absolute inset-0 w-full h-full"
       />
-      <div className="absolute top-2 left-2 px-2 py-1 bg-black/80 text-orange-400 text-xs font-mono rounded pointer-events-none z-10">
+      {/* Shape name tag — temporarily hidden */}
+      <div hidden className="absolute top-2 left-2 px-2 py-1 bg-black/80 text-orange-400 text-xs font-mono rounded pointer-events-none z-10">
         {debugName}
       </div>
     </div>
