@@ -116,7 +116,20 @@ function shuffleOptions(
     text: options[origIdx].text,
   }));
 
-  // Map the correct answer to its new label
+  // Map correct answer(s) to new labels — supports both "B" and "[A,B,D]"
+  const isMulti = correctAnswer.startsWith('[');
+  if (isMulti) {
+    const origLabels = correctAnswer.replace(/[\[\]\s]/g, '').split(',');
+    const newLabels = origLabels.map(lbl => {
+      const origIdx = options.findIndex(o => o.label === lbl);
+      const newIdx = indices.indexOf(origIdx);
+      return labels[newIdx];
+    });
+    newLabels.sort();
+    const mappedCorrect = `[${newLabels.join(',')}]`;
+    return { shuffled, mappedCorrect };
+  }
+
   const origCorrectIdx = options.findIndex(o => o.label === correctAnswer);
   const newCorrectIdx = indices.indexOf(origCorrectIdx);
   const mappedCorrect = labels[newCorrectIdx];
@@ -143,6 +156,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const [state, setState] = useState<QuizState>('unanswered');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [justification, setJustification] = useState('');
   const [llmResult, setLlmResult] = useState<LlmResult | null>(null);
@@ -154,9 +168,15 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         setSelectedOption(overrideState.selectedOption);
         setIsCorrect(overrideState.isCorrect);
         if (overrideState.justification) setJustification(overrideState.justification);
+        // Restore mc2 selectedOptions set from saved "[A,B,D]" string
+        if (isMc2 && overrideState.selectedOption?.startsWith('[')) {
+          const labels = overrideState.selectedOption.replace(/[\[\]\s]/g, '').split(',');
+          setSelectedOptions(new Set(labels));
+        }
         setState(overrideState.justification ? 'answered' : 'answered');
       } else {
         setSelectedOption(null);
+        setSelectedOptions(new Set());
         setIsCorrect(false);
         setJustification('');
         setLlmResult(null);
@@ -169,6 +189,11 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         setIsCorrect(saved.isCorrect);
         if (saved.justification) setJustification(saved.justification);
         if (saved.llmResult) setLlmResult(saved.llmResult);
+        // Restore mc2 selectedOptions set from saved "[A,B,D]" string
+        if (isMc2 && saved.selectedOption?.startsWith('[')) {
+          const labels = saved.selectedOption.replace(/[\[\]\s]/g, '').split(',');
+          setSelectedOptions(new Set(labels));
+        }
         // For mc2: if saved has justification → fully answered, else mc_answered
         if (isMc2 && !saved.justification) {
           setState('mc_answered');
@@ -180,18 +205,23 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
   }, [quiz.id, isOverrideMode, overrideState, isMc2]);
 
   const handleSubmit = () => {
-    if (!selectedOption) return;
-    const correct = selectedOption === shuffledCorrect;
-    setIsCorrect(correct);
-
     if (isMc2) {
-      // mc2: go to mc_answered, wait for justification
+      // mc2: compare selected set against correct set
+      if (selectedOptions.size === 0) return;
+      const selected = [...selectedOptions].sort().join(',');
+      const correctLabels = shuffledCorrect.replace(/[\[\]\s]/g, '');
+      const correct = selected === correctLabels;
+      const selectedStr = `[${selected}]`;
+      setSelectedOption(selectedStr);
+      setIsCorrect(correct);
       setState('mc_answered');
-      // Don't call onAnswer yet — wait for justification
       if (!isOverrideMode) {
-        saveAnswer(quiz.id, { selectedOption, isCorrect: correct });
+        saveAnswer(quiz.id, { selectedOption: selectedStr, isCorrect: correct });
       }
     } else {
+      if (!selectedOption) return;
+      const correct = selectedOption === shuffledCorrect;
+      setIsCorrect(correct);
       setState('answered');
       if (onAnswer) {
         onAnswer(quiz.id, selectedOption, correct);
@@ -278,7 +308,12 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     }
   };
 
-  // MC/MC2 show states (mc2 uses mc rendering for the option selection phase)
+  // Parse correct labels set for mc2 answered-state styling
+  const correctLabelsSet = useMemo(() => {
+    if (!isMc2) return new Set<string>();
+    return new Set(shuffledCorrect.replace(/[\[\]\s]/g, '').split(','));
+  }, [isMc2, shuffledCorrect]);
+
   const isMcFormat = quiz.format === 'mc' || quiz.format === 'mc2';
   const mcIsAnswered = state !== 'unanswered';
 
@@ -287,10 +322,24 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       'flex items-center gap-3 w-full border p-3 text-left transition-all duration-200 min-h-[44px]';
 
     if (state === 'unanswered') {
-      if (selectedOption === label) {
+      const isSelected = isMc2 ? selectedOptions.has(label) : selectedOption === label;
+      if (isSelected) {
         return `${base} border-j-accent bg-[var(--j-bg)]`;
       }
       return `${base} border-j-border bg-[var(--j-bg)] hover:border-j-warm cursor-pointer`;
+    }
+
+    // Answered state
+    if (isMc2) {
+      const isCorrectOption = correctLabelsSet.has(label);
+      const wasSelected = selectedOptions.has(label);
+      if (isCorrectOption) {
+        return `${base} bg-j-accent-light border-j-accent`;
+      }
+      if (wasSelected && !isCorrectOption) {
+        return `${base} bg-j-error-bg border-j-error`;
+      }
+      return `${base} border-j-border bg-[var(--j-bg)] opacity-50`;
     }
 
     if (label === shuffledCorrect) {
@@ -302,13 +351,29 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     return `${base} border-j-border bg-[var(--j-bg)] opacity-50`;
   };
 
-  const getRadioClasses = (label: string): string => {
+  const getIndicatorClasses = (label: string): string => {
+    // mc2 uses rounded-sm (checkbox-like), mc uses rounded-full (radio-like)
+    const shape = isMc2 ? 'rounded-sm' : 'rounded-full';
     const base =
-      'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200';
+      `w-4 h-4 ${shape} border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200`;
 
     if (state === 'unanswered') {
-      if (selectedOption === label) {
+      const isSelected = isMc2 ? selectedOptions.has(label) : selectedOption === label;
+      if (isSelected) {
         return `${base} border-j-accent`;
+      }
+      return `${base} border-j-border-input`;
+    }
+
+    // Answered state
+    if (isMc2) {
+      const isCorrectOption = correctLabelsSet.has(label);
+      const wasSelected = selectedOptions.has(label);
+      if (isCorrectOption) {
+        return `${base} border-j-accent bg-j-accent`;
+      }
+      if (wasSelected && !isCorrectOption) {
+        return `${base} border-j-error bg-j-error`;
       }
       return `${base} border-j-border-input`;
     }
@@ -400,31 +465,54 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
       {/* MC / MC2 Mode */}
       {isMcFormat && shuffledOptions && (
-        <div className="space-y-2 mb-4" role="radiogroup" aria-label="Opciones de respuesta">
+        <div className="space-y-2 mb-4" role={isMc2 ? 'group' : 'radiogroup'} aria-label="Opciones de respuesta">
+          {isMc2 && state === 'unanswered' && (
+            <p className="font-mono text-[9px] tracking-[0.15em] text-j-text-tertiary uppercase mb-1">
+              Selecciona todas las que apliquen
+            </p>
+          )}
           {shuffledOptions.map((option) => (
             <button
               key={option.label}
               type="button"
-              role="radio"
-              aria-checked={selectedOption === option.label}
+              role={isMc2 ? 'checkbox' : 'radio'}
+              aria-checked={isMc2 ? selectedOptions.has(option.label) : selectedOption === option.label}
               onClick={() => {
-                if (state === 'unanswered') setSelectedOption(option.label);
+                if (state !== 'unanswered') return;
+                if (isMc2) {
+                  setSelectedOptions(prev => {
+                    const next = new Set(prev);
+                    if (next.has(option.label)) {
+                      next.delete(option.label);
+                    } else {
+                      next.add(option.label);
+                    }
+                    return next;
+                  });
+                } else {
+                  setSelectedOption(option.label);
+                }
               }}
               disabled={mcIsAnswered}
               className={getOptionClasses(option.label)}
             >
-              <span className={getRadioClasses(option.label)}>
-                {mcIsAnswered && option.label === shuffledCorrect && (
-                  <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
-                )}
-                {mcIsAnswered &&
-                  selectedOption === option.label &&
-                  option.label !== shuffledCorrect && (
-                    <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />
-                  )}
-                {state === 'unanswered' && selectedOption === option.label && (
-                  <span className="block w-1.5 h-1.5 rounded-full bg-j-accent" />
-                )}
+              <span className={getIndicatorClasses(option.label)}>
+                {(() => {
+                  const isSelected = isMc2 ? selectedOptions.has(option.label) : selectedOption === option.label;
+                  const isCorrectOption = isMc2 ? correctLabelsSet.has(option.label) : option.label === shuffledCorrect;
+                  const wasSelected = isMc2 ? selectedOptions.has(option.label) : selectedOption === option.label;
+
+                  if (mcIsAnswered && isCorrectOption) {
+                    return <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />;
+                  }
+                  if (mcIsAnswered && wasSelected && !isCorrectOption) {
+                    return <span className="block w-1.5 h-1.5 rounded-full bg-[var(--j-bg)]" />;
+                  }
+                  if (state === 'unanswered' && isSelected) {
+                    return <span className="block w-1.5 h-1.5 rounded-full bg-j-accent" />;
+                  }
+                  return null;
+                })()}
               </span>
               <span className="font-mono text-[11px] tracking-[0.1em] text-j-text-tertiary flex-shrink-0">
                 {option.label}.
@@ -466,7 +554,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!selectedOption}
+          disabled={isMc2 ? selectedOptions.size === 0 : !selectedOption}
           className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 min-h-[44px] uppercase hover:bg-j-accent-hover transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Verificar
