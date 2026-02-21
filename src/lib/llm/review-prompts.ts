@@ -87,11 +87,15 @@ export function getReviewSystemPrompt(language: SupportedLanguage = 'es'): strin
 /** Phase → domain description for system prompt context */
 const PHASE_DOMAINS: Record<number, { es: string; en: string }> = {
   1: { es: 'sistemas distribuidos', en: 'distributed systems' },
-  2: { es: 'LLMs y razonamiento', en: 'LLMs and reasoning' },
-  3: { es: 'RAG, memoria y degradación', en: 'RAG, memory, and degradation' },
-  4: { es: 'seguridad y guardrails de IA', en: 'AI safety and guardrails' },
-  5: { es: 'inferencia, routing y economía de LLMs', en: 'LLM inference, routing, and economics' },
-  6: { es: 'frameworks y arquitectura de agentes', en: 'agent frameworks and architecture' },
+  2: { es: 'fundamentos de ML y deep learning', en: 'ML and deep learning fundamentals' },
+  3: { es: 'secuencias, atención y transformers', en: 'sequences, attention, and transformers' },
+  4: { es: 'entrenamiento, alineación y escalado de LLMs', en: 'LLM training, alignment, and scaling' },
+  5: { es: 'infraestructura ML y entrenamiento distribuido', en: 'ML infrastructure and distributed training' },
+  6: { es: 'agentes y razonamiento', en: 'agents and reasoning' },
+  7: { es: 'RAG, memoria y contexto', en: 'RAG, memory, and context' },
+  8: { es: 'seguridad y guardrails de IA', en: 'AI safety and guardrails' },
+  9: { es: 'inferencia, routing y economía de LLMs', en: 'LLM inference, routing, and economics' },
+  10: { es: 'diseño de sistemas de IA', en: 'AI system design' },
 };
 
 /**

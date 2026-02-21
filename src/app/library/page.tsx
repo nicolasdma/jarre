@@ -274,13 +274,9 @@ export default async function LibraryPage() {
     'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
     'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
     'hussein-backpressure', 'hussein-latency-throughput', // Unavailable videos
-    // Phase 10 — alternate track, hidden from main view
-    'p10-ai-strategy', 'p10-ai-discovery', 'p10-build-vs-buy',
-    'p10-ai-governance', 'p10-enterprise-arch', 'p10-change-management',
-    'p10-ai-economics', 'p10-ai-consulting', 'p10-aws-ai-cert',
   ];
-  // Phases that should not appear in the library (empty or integrated)
-  const hiddenPhases = ['0', '6', '9', '10'];
+  // Phases that should not appear in the library: Math (supplementary) and Enterprise (alternate track)
+  const hiddenPhases = ['0', '11'];
   const visibleResources = resourcesWithStatus.filter(
     r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
