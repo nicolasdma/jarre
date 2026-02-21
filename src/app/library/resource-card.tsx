@@ -2,9 +2,26 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { t, type Language } from '@/lib/translations';
 import { QuickQuiz } from '@/components/quick-quiz';
 import { CornerBrackets } from '@/components/ui/corner-brackets';
+
+const RESOURCE_TYPE_ICONS: Record<string, string> = {
+  youtube: '▶',
+  article: '📄',
+  paper: '📑',
+  book: '📖',
+  podcast: '🎙',
+  other: '📌',
+};
+
+interface RelatedUserResource {
+  id: string;
+  title: string;
+  type: string;
+  url: string | null;
+}
 
 // Resources that skip learn and go directly to evaluate (e.g., no content yet)
 const EVALUATE_ONLY_RESOURCES: string[] = [];
@@ -33,6 +50,7 @@ interface ResourceCardProps {
     missingPrerequisites: string[];
     conceptsTaught: string[];
     evalStats: EvalStats | null;
+    relatedUserResources: RelatedUserResource[];
   };
   isLoggedIn: boolean;
   language: Language;
@@ -185,6 +203,33 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
               <span> +{resource.missingPrerequisites.length - 2} {t('common.more', language)}</span>
             )}
           </p>
+        </div>
+      )}
+
+      {/* Related user resources */}
+      {resource.relatedUserResources.length > 0 && (
+        <div className="mb-4 py-2 border-t border-dashed border-j-border">
+          <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
+            {language === 'es' ? 'Tus recursos' : 'Your resources'}
+          </p>
+          <div className="space-y-1">
+            {resource.relatedUserResources.slice(0, 2).map((ur) => (
+              <Link
+                key={ur.id}
+                href={`/resources/${ur.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 text-sm text-j-text-secondary hover:text-j-accent transition-colors group/ur"
+              >
+                <span className="text-xs flex-shrink-0">{RESOURCE_TYPE_ICONS[ur.type] || '📌'}</span>
+                <span className="truncate group-hover/ur:underline">{ur.title}</span>
+              </Link>
+            ))}
+            {resource.relatedUserResources.length > 2 && (
+              <p className="font-mono text-[10px] text-j-text-tertiary pl-5">
+                +{resource.relatedUserResources.length - 2} {language === 'es' ? 'más' : 'more'}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

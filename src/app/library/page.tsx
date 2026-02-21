@@ -194,11 +194,40 @@ export default async function LibraryPage() {
     userResources = ur || [];
   }
 
+  // Fetch user resource → concept links for cross-referencing in ResourceCards
+  type RelatedUserResource = {
+    id: string;
+    title: string;
+    type: string;
+    url: string | null;
+  };
+  let userResourcesByConceptId = new Map<string, RelatedUserResource[]>();
+
+  if (user) {
+    const { data: urcLinks } = await supabase
+      .from('user_resource_concepts')
+      .select('concept_id, user_resource_id, user_resources!inner(id, title, type, url, status)')
+      .eq('user_resources.user_id', user.id)
+      .eq('user_resources.status', 'completed');
+
+    if (urcLinks) {
+      for (const link of urcLinks) {
+        const ur = link.user_resources as unknown as { id: string; title: string; type: string; url: string | null };
+        const existing = userResourcesByConceptId.get(link.concept_id) || [];
+        if (!existing.some(r => r.id === ur.id)) {
+          existing.push({ id: ur.id, title: ur.title, type: ur.type, url: ur.url });
+        }
+        userResourcesByConceptId.set(link.concept_id, existing);
+      }
+    }
+  }
+
   type ResourceWithStatus = NonNullable<typeof resources>[number] & {
     isUnlocked: boolean;
     missingPrerequisites: string[];
     conceptsTaught: string[];
     evalStats: EvalStats | null;
+    relatedUserResources: RelatedUserResource[];
   };
 
   const resourcesWithStatus: ResourceWithStatus[] = (resources || []).map((resource) => {
@@ -216,12 +245,26 @@ export default async function LibraryPage() {
 
     const isUnlocked = !user || prerequisites.length === 0 || missingPrerequisites.length === 0;
 
+    // Collect related user resources from all concepts this resource teaches
+    const seenIds = new Set<string>();
+    const relatedUserResources: RelatedUserResource[] = [];
+    for (const conceptId of conceptsTaught) {
+      const related = userResourcesByConceptId.get(conceptId) || [];
+      for (const ur of related) {
+        if (!seenIds.has(ur.id)) {
+          seenIds.add(ur.id);
+          relatedUserResources.push(ur);
+        }
+      }
+    }
+
     return {
       ...resource,
       isUnlocked,
       missingPrerequisites,
       conceptsTaught,
       evalStats: evaluationStats[resource.id] || null,
+      relatedUserResources,
     };
   });
 
