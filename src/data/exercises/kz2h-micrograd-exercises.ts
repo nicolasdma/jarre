@@ -64,4 +64,44 @@ const microgradExercise3: SequenceExercise = {
   correctOrder: ['s1', 's2', 's3', 's4', 's5'],
 };
 
-export const microgradExercises = [microgradExercise1, microgradExercise2, microgradExercise3];
+const microgradExercise4: SequenceExercise = {
+  id: 'micrograd-4',
+  type: 'sequence',
+  title: 'Diagnóstico de problemas de entrenamiento',
+  instructions: 'Ordena los pasos de diagnóstico cuando la loss no baja durante el entrenamiento.',
+  conceptId: 'backpropagation-training',
+  steps: [
+    { id: 's1', text: 'Verificar que forward pass produce valores razonables (no NaN, no infinitos)' },
+    { id: 's2', text: 'Verificar que loss se calcula correctamente (valor esperado para predicciones aleatorias)' },
+    { id: 's3', text: 'Verificar que backward() se llama y los gradientes no son 0' },
+    { id: 's4', text: 'Verificar que zero_grad() se llama antes de cada backward' },
+    { id: 's5', text: 'Ajustar learning rate (probar valores más grandes/pequeños)' },
+  ],
+  correctOrder: ['s1', 's2', 's3', 's4', 's5'],
+};
+
+const microgradExercise5: ConnectExercise = {
+  id: 'micrograd-5',
+  type: 'connect',
+  title: 'Activaciones y sus propiedades',
+  instructions: 'Conecta cada función de activación con su propiedad característica.',
+  conceptId: 'neural-network-fundamentals',
+  svgViewBox: '0 0 700 280',
+  nodes: [
+    // Left column — activations
+    { id: 'tanh', label: 'tanh', x: 100, y: 50 },
+    { id: 'relu', label: 'ReLU', x: 100, y: 140 },
+    { id: 'sigmoid', label: 'sigmoid', x: 100, y: 230 },
+    // Right column — properties
+    { id: 'prop-tanh', label: 'Satura en ambos extremos, rango [-1,1]', x: 550, y: 50 },
+    { id: 'prop-relu', label: 'Gradiente constante 1 para x>0, 0 para x<0', x: 550, y: 140 },
+    { id: 'prop-sigmoid', label: 'Satura en ambos extremos, rango [0,1]', x: 550, y: 230 },
+  ],
+  correctConnections: [
+    ['tanh', 'prop-tanh'],
+    ['relu', 'prop-relu'],
+    ['sigmoid', 'prop-sigmoid'],
+  ],
+};
+
+export const microgradExercises = [microgradExercise1, microgradExercise2, microgradExercise3, microgradExercise4, microgradExercise5];

@@ -127,6 +127,16 @@ const QUIZZES: QuizDef[] = [
   {
     sectionTitle: 'La Derivada Parcial — El Momento Eureka',
     positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
+    sortOrder: -1,
+    format: 'tf',
+    questionText: 'Si x aparece en la expresión como x + x, el gradiente de x es 1.0.',
+    options: null,
+    correctAnswer: 'false',
+    explanation: 'El gradiente es 2.0, no 1.0. Cuando x contribuye por dos caminos (x + x), los gradientes se acumulan (+=). Cada camino contribuye 1.0, y 1.0 + 1.0 = 2.0.',
+  },
+  {
+    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
+    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Qué algoritmo usa micrograd para determinar el orden correcto de retropropagación?',
@@ -172,6 +182,31 @@ const QUIZZES: QuizDef[] = [
   {
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'Backpropagation y la Chain Rule',
+    sortOrder: -2,
+    format: 'tf',
+    questionText: 'Un MLP con dos capas ocultas pero sin funciones de activación puede aproximar cualquier función no-lineal.',
+    options: null,
+    correctAnswer: 'false',
+    explanation: 'Sin no-linealidades, apilar capas lineales es equivalente a una sola transformación lineal (la composición de funciones lineales es lineal). Se necesitan funciones de activación (tanh, ReLU, etc.) para que la red pueda aproximar funciones no-lineales.',
+  },
+  {
+    sectionTitle: 'Backpropagation y la Chain Rule',
+    positionAfterHeading: 'Backpropagation y la Chain Rule',
+    sortOrder: -1,
+    format: 'mc',
+    questionText: 'El gradiente de un peso es exactamente 0 después del backward pass. ¿Cuál es la causa más probable?',
+    options: [
+      { label: 'A', text: 'El peso no influye en la loss (no está conectado al output)' },
+      { label: 'B', text: 'El peso está en zona de saturación de tanh (gradiente local ≈ 0)' },
+      { label: 'C', text: 'Se olvidó llamar backward()' },
+      { label: 'D', text: 'Todas las anteriores son posibles' },
+    ],
+    correctAnswer: 'D',
+    explanation: 'Un gradiente de 0 puede tener múltiples causas: el peso puede no estar conectado al output, puede estar en zona de saturación de tanh (donde la derivada ≈ 0), o simplemente no se llamó backward(). Diagnosticar requiere inspeccionar el grafo y los valores intermedios.',
+  },
+  {
+    sectionTitle: 'Backpropagation y la Chain Rule',
+    positionAfterHeading: 'Backpropagation y la Chain Rule',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Qué operación realiza una neurona individual en micrograd?',
@@ -213,6 +248,21 @@ const QUIZZES: QuizDef[] = [
   // ────────────────────────────────────────────────
   // Section 4: Training Loop y Comparacion con PyTorch
   // ────────────────────────────────────────────────
+  {
+    sectionTitle: 'De una Neurona a un MLP',
+    positionAfterHeading: 'De una Neurona a un MLP',
+    sortOrder: -1,
+    format: 'mc',
+    questionText: 'La loss dejó de bajar después de 50 iteraciones y se estabilizó en 0.5. ¿Qué NO es una causa probable?',
+    options: [
+      { label: 'A', text: 'Learning rate demasiado bajo' },
+      { label: 'B', text: 'Modelo con capacidad insuficiente (pocas neuronas/capas)' },
+      { label: 'C', text: 'El gradiente del nodo raíz se inicializó en 1.0' },
+      { label: 'D', text: 'Datos mal etiquetados' },
+    ],
+    correctAnswer: 'C',
+    explanation: 'Inicializar el gradiente del nodo raíz (loss) en 1.0 es CORRECTO y NECESARIO — es dL/dL = 1.0, el seed que inicia backpropagation. Las otras tres opciones (lr bajo, modelo insuficiente, datos incorrectos) sí pueden causar que la loss se estanque.',
+  },
   {
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'De una Neurona a un MLP',

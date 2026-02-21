@@ -184,12 +184,33 @@ export function Kz2hMicrograd() {
           </div>
         </div>
 
-        <div className="border-l-2 border-[#991b1b] pl-6 py-2">
+        <div className="border-l-2 border-[#991b1b] pl-6 py-2 mb-8">
           <p className="font-mono text-[10px] tracking-[0.2em] text-[#991b1b] uppercase mb-2">Insight clave</p>
           <p className="text-j-text">
             La acumulacion de gradientes (+=) es el error mas comun al implementar backprop.
             Si un valor se usa dos veces, <span className="text-[#991b1b]">sus gradientes se acumulan, no se reemplazan</span>.
           </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="p-5 border border-[#991b1b] bg-[#991b1b]/5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#991b1b] uppercase mb-3">Reverse-mode (backprop)</p>
+            <div className="text-xs text-j-text-secondary space-y-1">
+              <p>Del output hacia los inputs</p>
+              <p>1 pass → gradientes de TODOS los parametros</p>
+              <p>Eficiente: muchos params, 1 loss</p>
+              <p>Usado por micrograd, PyTorch, building-gpt</p>
+            </div>
+          </div>
+          <div className="p-5 border border-j-warm-dark bg-[#8b7355]/5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm-dark uppercase mb-3">Forward-mode</p>
+            <div className="text-xs text-j-text-secondary space-y-1">
+              <p>De los inputs hacia el output</p>
+              <p>1 pass → derivada respecto a 1 parametro</p>
+              <p>Eficiente: pocos params, muchos outputs</p>
+              <p>Usado para Jacobianos, no para redes neuronales</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -240,13 +261,34 @@ export function Kz2hMicrograd() {
           </div>
         </div>
 
-        <div className="border-l-2 border-[#991b1b] pl-6 py-2">
+        <div className="border-l-2 border-[#991b1b] pl-6 py-2 mb-8">
           <p className="font-mono text-[10px] tracking-[0.2em] text-[#991b1b] uppercase mb-2">Insight clave</p>
           <p className="text-j-text">
             Toda red neuronal — desde micrograd hasta GPT-4 — es una composicion de
             <span className="text-[#991b1b]"> operaciones diferenciables</span>. Si puedes calcular el gradiente de cada operacion,
             puedes entrenar la red.
           </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="p-5 border border-[#991b1b] bg-[#991b1b]/5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-[#991b1b] uppercase mb-3">SGD (micrograd)</p>
+            <div className="text-xs text-j-text-secondary space-y-1">
+              <p>Learning rate global, fijo</p>
+              <p>w -= lr × grad</p>
+              <p>Simple pero sensible a la escala de gradientes</p>
+              <p>Requiere tuning cuidadoso del lr</p>
+            </div>
+          </div>
+          <div className="p-5 border border-j-warm-dark bg-[#8b7355]/5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm-dark uppercase mb-3">Adam (building-gpt)</p>
+            <div className="text-xs text-j-text-secondary space-y-1">
+              <p>Learning rate adaptativo por parametro</p>
+              <p>Usa media y varianza de gradientes historicos</p>
+              <p>Mas robusto al lr inicial</p>
+              <p>AdamW agrega weight decay separado</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -311,13 +353,13 @@ export function Kz2hMicrograd() {
       {/* Mnemonic */}
       <section className="mb-20 text-center">
         <p className="font-mono text-[10px] tracking-[0.3em] text-j-text-tertiary uppercase mb-6">Mnemotecnico</p>
-        <p className="text-6xl font-light text-j-text mb-2">V·C·B·N·T</p>
+        <p className="text-6xl font-light text-j-text mb-2">G·R·A·D·S</p>
         <div className="space-y-1 text-j-text-secondary">
-          <p><span className="text-j-text font-medium">V</span>alue — la abstraccion escalar con gradiente</p>
-          <p><span className="text-j-text font-medium">C</span>hain rule — el principio matematico</p>
-          <p><span className="text-j-text font-medium">B</span>ackward — propagacion automatica de gradientes</p>
-          <p><span className="text-j-text font-medium">N</span>euron/Layer/MLP — la arquitectura sobre el engine</p>
-          <p><span className="text-j-text font-medium">T</span>raining loop — forward, loss, backward, update</p>
+          <p><span className="text-j-text font-medium">G</span>rafo — Value construye un DAG de operaciones</p>
+          <p><span className="text-j-text font-medium">R</span>egla de la cadena — chain rule como pegamento multiplicativo</p>
+          <p><span className="text-j-text font-medium">A</span>utomatizacion — backward() recorre el grafo en orden topologico inverso</p>
+          <p><span className="text-j-text font-medium">D</span>iseno de red — Neuron → Layer → MLP, composicion de primitivas</p>
+          <p><span className="text-j-text font-medium">S</span>tep de entrenamiento — Forward → Loss → Backward → Update → Zero grad</p>
         </div>
       </section>
 
@@ -327,9 +369,8 @@ export function Kz2hMicrograd() {
           Pregunta para reflexionar
         </p>
         <p className="text-xl text-[#5a5a52] max-w-md mx-auto">
-          Si micrograd y PyTorch usan exactamente el mismo algoritmo (backprop),
-          que permite a PyTorch entrenar modelos con miles de millones de parametros
-          mientras micrograd se limita a juguetes?
+          Que cambia cuando pasamos de 41 parametros (micrograd) a 124 millones (GPT-2)?
+          La respuesta no es &quot;mas de lo mismo&quot; — es building-gpt.
         </p>
       </section>
     </article>

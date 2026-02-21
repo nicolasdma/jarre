@@ -624,6 +624,34 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
       concept: 'Learning rate',
       hint: 'Muy alto: los parametros oscilan y divergen. Muy bajo: convergencia extremadamente lenta. El optimo depende de la curvatura del loss landscape, que varia por parametro.',
     },
+    {
+      type: 'error_detection',
+      question:
+        '"Para verificar gradientes analíticos, basta con calcular (f(x+h)-f(x))/h con h=1." ¿Qué está mal con esta afirmación?',
+      concept: 'Verificación numérica de gradientes',
+      hint: 'La definición de derivada requiere que h sea infinitesimalmente pequeño. Con h=1 obtienes la diferencia finita, no la derivada. Usa h ≈ 1e-5 para una buena aproximación.',
+    },
+    {
+      type: 'connection',
+      question:
+        '¿Cómo se conecta el += de gradientes en micrograd con gradient accumulation en entrenamiento distribuido de modelos grandes?',
+      concept: 'Acumulación de gradientes y entrenamiento distribuido',
+      hint: 'En gradient accumulation, se acumulan gradientes de múltiples microbatches antes de hacer un update. El += en micrograd es el mismo principio: sumar contribuciones parciales.',
+    },
+    {
+      type: 'design_decision',
+      question:
+        '¿Cuál es la arquitectura MLP mínima que puede resolver XOR? ¿Por qué una sola neurona no puede?',
+      concept: 'Capacidad expresiva de MLPs',
+      hint: 'Una sola neurona implementa un hiperplano lineal. XOR no es linealmente separable. Necesitas al menos una capa oculta con 2 neuronas.',
+    },
+    {
+      type: 'why',
+      question:
+        '¿Por qué reverse-mode autodiff necesita O(1) backward passes para todos los gradientes mientras forward-mode necesita O(n)?',
+      concept: 'Eficiencia de reverse-mode vs forward-mode',
+      hint: 'Reverse-mode propaga desde 1 scalar (loss) hacia todos los parámetros en un pass. Forward-mode propaga desde 1 parámetro hacia el output — necesitas repetirlo para cada parámetro.',
+    },
   ],
 
   'openclaw-casestudy': [
