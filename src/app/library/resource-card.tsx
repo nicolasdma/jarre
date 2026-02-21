@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { t, type Language } from '@/lib/translations';
 import { QuickQuiz } from '@/components/quick-quiz';
-import { OrbitalLines } from '@/components/ui/orbital-lines';
+import { CornerBrackets } from '@/components/ui/corner-brackets';
 
 // Resources that skip learn and go directly to evaluate (e.g., no content yet)
 const EVALUATE_ONLY_RESOURCES: string[] = [];
@@ -55,15 +55,6 @@ function formatRelativeDate(dateString: string, lang: Language): string {
   return lang === 'es' ? `Hace ${months} mes${months > 1 ? 'es' : ''}` : `${months}mo ago`;
 }
 
-/** Simple numeric hash from string for deterministic variant selection */
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
 export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardProps) {
   const router = useRouter();
   const [showQuiz, setShowQuiz] = useState(false);
@@ -89,7 +80,6 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
   };
 
   const scoreDisplay = getScoreDisplay();
-  const variant = hashCode(resource.id);
 
   return (
     <div
@@ -102,144 +92,165 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           handleCardClick();
         }
       }}
-      className={`group relative p-4 sm:p-6 rounded-xl overflow-hidden transition-all duration-300 bg-white dark:bg-j-bg-card border border-j-border/30 j-card-orbital ${
+      className={`group relative p-4 sm:p-6 transition-all duration-300 j-card-glow ${
         isLocked
           ? 'cursor-not-allowed opacity-50'
-          : 'cursor-pointer hover:border-j-accent/50'
+          : 'cursor-pointer hover:bg-j-bg-hover'
       }`}
     >
-      {/* Orbital lines decorative background */}
-      <OrbitalLines variant={variant} />
+      {/* Left accent line for evaluated resources with corner caps */}
+      {hasEvaluation && (() => {
+        const colorClass = resource.evalStats!.bestScore >= 70
+          ? 'bg-j-accent/40 group-hover:bg-j-accent'
+          : resource.evalStats!.bestScore >= 50
+            ? 'bg-j-warm-dark/40 group-hover:bg-j-warm-dark'
+            : 'bg-j-error/40 group-hover:bg-j-error';
+        return (
+          <>
+            <div className={`absolute left-0 top-0 bottom-0 w-[2px] transition-colors duration-300 ${colorClass}`} />
+            <div className={`absolute left-[2px] top-0 h-[2px] w-[10px] transition-colors duration-300 ${colorClass}`} />
+            <div className={`absolute left-[2px] bottom-0 h-[2px] w-[10px] transition-colors duration-300 ${colorClass}`} />
+          </>
+        );
+      })()}
 
-      {/* Content — above SVG layer */}
-      <div className="relative z-10">
-        {/* Type badge */}
-        <div className="mb-4">
-          <span className="font-mono text-[10px] tracking-[0.2em] text-j-accent uppercase px-2 py-0.5 rounded-full bg-j-accent/10 border border-j-accent/20">
-            {resource.type}
-          </span>
+      {/* Corner brackets — hide left corners when line is present */}
+      <CornerBrackets
+        size="sm"
+        hideLeft={hasEvaluation}
+        className={`transition-colors duration-300 ${
+          hasEvaluation
+            ? 'border-j-accent/30 group-hover:border-j-accent'
+            : `border-j-border-input ${!isLocked ? 'group-hover:border-j-accent' : ''}`
+        }`}
+      />
+
+      {/* Type badge */}
+      <div className="mb-4">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-j-accent uppercase px-2 py-0.5 rounded-full bg-j-accent/10 border border-j-accent/20">
+          {resource.type}
+        </span>
+      </div>
+
+      {/* Title */}
+      <h3 className={`text-lg font-medium leading-tight mb-1 ${
+        isLocked ? 'text-j-text-tertiary' : 'text-j-text'
+      }`}>
+        {resource.title}
+      </h3>
+
+      {/* Author */}
+      {resource.author && (
+        <p className="text-sm text-j-text-secondary mb-3">{resource.author}</p>
+      )}
+
+      {/* Description */}
+      {resource.description && (
+        <p className="text-sm text-j-text-secondary leading-relaxed line-clamp-2 mb-4">
+          {resource.description}
+        </p>
+      )}
+
+      {/* Evaluation Stats */}
+      {hasEvaluation && scoreDisplay && (
+        <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-j-border bg-j-bg-alt/50 -mx-2 px-2 rounded">
+          <div>
+            <span className={`text-2xl font-light ${scoreDisplay.color}`}>
+              {resource.evalStats!.bestScore}
+            </span>
+            <span className="text-j-text-tertiary text-sm">%</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              {scoreDisplay.label}
+            </p>
+            <p className="text-xs text-j-text-secondary">
+              {resource.evalStats!.evalCount} {resource.evalStats!.evalCount === 1
+                ? t('library.attempt', language)
+                : t('library.attempts', language)} · {formatRelativeDate(resource.evalStats!.lastEvaluatedAt, language)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Locked message */}
+      {isLocked && resource.missingPrerequisites.length > 0 && (
+        <div className="mb-4 py-2">
+          <p className="font-mono text-[10px] tracking-[0.15em] text-j-warm-muted uppercase">
+            {t('library.requires', language)}
+          </p>
+          <p className="text-xs text-j-warm-dark mt-1">
+            {resource.missingPrerequisites.slice(0, 2).join(', ')}
+            {resource.missingPrerequisites.length > 2 && (
+              <span> +{resource.missingPrerequisites.length - 2} {t('common.more', language)}</span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center gap-4">
+          {resource.estimated_hours && (
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              {resource.estimated_hours}h
+            </span>
+          )}
+          {isLoggedIn && (
+            <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
+              isLocked
+                ? 'text-j-warm-muted'
+                : hasEvaluation
+                  ? 'text-j-accent'
+                  : 'text-j-accent-muted'
+            }`}>
+              {isLocked ? t('library.locked', language) : hasEvaluation ? t('library.evaluated', language) : t('library.unlocked', language)}
+            </span>
+          )}
         </div>
 
-        {/* Title */}
-        <h3 className={`text-lg font-medium leading-tight mb-1 ${
-          isLocked ? 'text-j-text-tertiary' : 'text-j-text'
-        }`}>
-          {resource.title}
-        </h3>
-
-        {/* Author */}
-        {resource.author && (
-          <p className="text-sm text-j-text-secondary mb-3">{resource.author}</p>
-        )}
-
-        {/* Description */}
-        {resource.description && (
-          <p className="text-sm text-j-text-secondary leading-relaxed line-clamp-2 mb-4">
-            {resource.description}
-          </p>
-        )}
-
-        {/* Evaluation Stats */}
-        {hasEvaluation && scoreDisplay && (
-          <div className="flex items-center gap-4 mb-4 py-3 border-t border-b border-j-border/20 bg-j-bg-alt/50 -mx-2 px-2 rounded">
-            <div>
-              <span className={`text-2xl font-light ${scoreDisplay.color}`}>
-                {resource.evalStats!.bestScore}
-              </span>
-              <span className="text-j-text-tertiary text-sm">%</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-                {scoreDisplay.label}
-              </p>
-              <p className="text-xs text-j-text-secondary">
-                {resource.evalStats!.evalCount} {resource.evalStats!.evalCount === 1
-                  ? t('library.attempt', language)
-                  : t('library.attempts', language)} · {formatRelativeDate(resource.evalStats!.lastEvaluatedAt, language)}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Locked message */}
-        {isLocked && resource.missingPrerequisites.length > 0 && (
-          <div className="mb-4 py-2">
-            <p className="font-mono text-[10px] tracking-[0.15em] text-j-warm-muted uppercase">
-              {t('library.requires', language)}
-            </p>
-            <p className="text-xs text-j-warm-dark mt-1">
-              {resource.missingPrerequisites.slice(0, 2).join(', ')}
-              {resource.missingPrerequisites.length > 2 && (
-                <span> +{resource.missingPrerequisites.length - 2} {t('common.more', language)}</span>
-              )}
-            </p>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-4">
-            {resource.estimated_hours && (
-              <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-                {resource.estimated_hours}h
-              </span>
-            )}
-            {isLoggedIn && (
-              <span className={`font-mono text-[10px] tracking-[0.15em] uppercase ${
-                isLocked
-                  ? 'text-j-warm-muted'
-                  : hasEvaluation
-                    ? 'text-j-accent'
-                    : 'text-j-accent-muted'
-              }`}>
-                {isLocked ? t('library.locked', language) : hasEvaluation ? t('library.evaluated', language) : t('library.unlocked', language)}
-              </span>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          {!isLocked && (
-            <div className="flex items-center gap-3">
-              {resource.url && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.open(resource.url, '_blank');
-                  }}
-                  className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors min-h-[44px] flex items-center"
-                >
-                  {t('common.open', language)}
-                </button>
-              )}
-              {resource.conceptsTaught.length > 0 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowQuiz(true);
-                  }}
-                  className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input/50 text-j-text-secondary px-3 py-2 sm:py-1.5 rounded-lg uppercase hover:border-j-accent hover:text-j-accent transition-colors min-h-[44px] flex items-center"
-                >
-                  {t('quiz.review', language)}
-                </button>
-              )}
+        {/* Action buttons */}
+        {!isLocked && (
+          <div className="flex items-center gap-3">
+            {resource.url && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push(`/learn/${resource.id}`);
+                  window.open(resource.url, '_blank');
                 }}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-2 sm:py-1.5 rounded-lg uppercase hover:bg-j-accent-hover transition-colors min-h-[44px] flex items-center"
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors min-h-[44px] flex items-center"
               >
-                {t('common.evaluate', language)}
+                {t('common.open', language)}
               </button>
-            </div>
-          )}
-        </div>
+            )}
+            {resource.conceptsTaught.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowQuiz(true);
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 sm:py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors min-h-[44px] flex items-center"
+              >
+                {t('quiz.review', language)}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/learn/${resource.id}`);
+              }}
+              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-hover transition-colors min-h-[44px] flex items-center"
+            >
+              {t('common.evaluate', language)}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Quiz panel */}
