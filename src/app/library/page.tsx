@@ -41,6 +41,7 @@ export default async function LibraryPage() {
         is_prerequisite
       )
     `)
+    .eq('is_archived', false)
     .order('phase')
     .order('sort_order');
 
