@@ -49,6 +49,7 @@
   --color-j-bg: var(--j-bg);
   --color-j-bg-alt: var(--j-bg-alt);
   --color-j-bg-hover: var(--j-bg-hover);
+  --color-j-bg-card: var(--j-bg-card);
   --color-j-bg-white: var(--j-bg-white);
   --color-j-text: var(--j-text);
   --color-j-text-secondary: var(--j-text-secondary);
@@ -85,6 +86,7 @@
 
   /* Jarre semantic tokens — Learning UI */
   --j-bg: #faf9f6;
+  --j-bg-card: #ffffff;
   --j-bg-alt: #f5f4f0;
   --j-bg-hover: #f8f7f4;
   --j-bg-white: #ffffff;
@@ -170,6 +172,7 @@
 .dark {
   /* Jarre dark mode tokens (Amp-inspired dark) */
   --j-bg: #091c1e;
+  --j-bg-card: #051214;
   --j-bg-alt: #0f2a2d;
   --j-bg-hover: #153538;
   --j-bg-white: #0d2426;
@@ -387,6 +390,15 @@ mark.jarre-highlight-active {
 /* Card hover glow (dark only) */
 .dark .j-card-glow:hover {
   box-shadow: 0 0 30px rgba(246, 131, 59, 0.06), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Orbital card — premium card style with smooth transitions */
+.j-card-orbital {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .j-card-orbital:hover {
+  box-shadow: 0 0 40px rgba(246, 131, 59, 0.10), 0 0 15px rgba(246, 131, 59, 0.05), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Header border gradient (dark only) */
