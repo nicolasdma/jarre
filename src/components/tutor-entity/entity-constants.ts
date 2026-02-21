@@ -88,6 +88,48 @@ export const ENTITY_STATES = {
     accentColor: WARM_BRIGHT,
     fontSize: 12,
   },
+  /** Speaking — Gemini is talking, bigger and more energetic */
+  speaking: {
+    majorRadius: 0.14,
+    minorRadius: 0.07,
+    rotSpeedA: 0.35,
+    rotSpeedB: 0.18,
+    thetaStep: 0.07,
+    phiStep: 0.02,
+    charOpacity: 0.70,
+    glowOpacity: 0.45,
+    color: WARM_MID,
+    accentColor: WARM_BRIGHT,
+    fontSize: 12,
+  },
+  /** Listening — user is talking, subtle activity increase */
+  listening: {
+    majorRadius: 0.10,
+    minorRadius: 0.05,
+    rotSpeedA: 0.12,
+    rotSpeedB: 0.06,
+    thetaStep: 0.07,
+    phiStep: 0.02,
+    charOpacity: 0.50,
+    glowOpacity: 0.28,
+    color: WARM_DIM,
+    accentColor: WARM_MID,
+    fontSize: 12,
+  },
+  /** Thinking — processing, calm pulse */
+  thinking: {
+    majorRadius: 0.09,
+    minorRadius: 0.045,
+    rotSpeedA: 0.08,
+    rotSpeedB: 0.04,
+    thetaStep: 0.07,
+    phiStep: 0.02,
+    charOpacity: 0.45,
+    glowOpacity: 0.25,
+    color: WARM_DIM,
+    accentColor: WARM_MID,
+    fontSize: 12,
+  },
 } as const satisfies Record<string, EntityStateParams>;
 
 export type EntityState = keyof typeof ENTITY_STATES;
