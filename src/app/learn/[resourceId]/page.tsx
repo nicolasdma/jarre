@@ -26,8 +26,6 @@ import { AgentSandboxPatterns } from './agent-sandbox-patterns';
 import { ClawvaultAgentMemory } from './clawvault-agent-memory';
 import { OpenClawCaseStudy } from './openclaw-casestudy';
 import { Kz2hMicrograd } from './kz2h-micrograd';
-import { Kz2hBuildingGpt } from './kz2h-building-gpt';
-import { Kz2hTokenizers } from './kz2h-tokenizers';
 import { LilianWengDistributed } from './lilian-weng-distributed';
 import { HoraceHeGpu } from './horace-he-gpu';
 import { READING_QUESTIONS } from './reading-questions';
@@ -59,8 +57,6 @@ const PRACTICAL_ROUTES: Record<string, { label: string; href: string }> = {
   'clawvault-agent-memory': { label: 'Playground', href: '/playground/clawvault-memory' },
   'openclaw-casestudy': { label: 'Playground', href: '/playground/openclaw-architecture' },
   'kz2h-micrograd': { label: 'Playground', href: '/playground/micrograd' },
-  'kz2h-building-gpt': { label: 'Playground', href: '/playground/attention' },
-  'kz2h-tokenizers': { label: 'Playground', href: '/playground/tokenizers' },
   'p2-lilian-weng-distributed': { label: 'Playground', href: '/playground/distributed-training' },
   'p2-horace-he-gpu': { label: 'Playground', href: '/playground/gpu-performance' },
 };
@@ -83,8 +79,6 @@ const EXPLANATION_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'clawvault-agent-memory': () => <ClawvaultAgentMemory />,
   'openclaw-casestudy': () => <OpenClawCaseStudy />,
   'kz2h-micrograd': () => <Kz2hMicrograd />,
-  'kz2h-building-gpt': () => <Kz2hBuildingGpt />,
-  'kz2h-tokenizers': () => <Kz2hTokenizers />,
   'p2-lilian-weng-distributed': () => <LilianWengDistributed />,
   'p2-horace-he-gpu': () => <HoraceHeGpu />,
 };

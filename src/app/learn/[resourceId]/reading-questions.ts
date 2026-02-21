@@ -613,9 +613,9 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
     {
       type: 'error_detection',
       question:
-        'Este training loop tiene un bug. Identificalo y explica que sintomas produce:\n```python\nfor step in range(100):\n    ypred = [n(x) for x in xs]\n    loss = sum((yout - ygt)**2 for ygt, yout in zip(ys, ypred))\n    loss.backward()\n    for p in n.parameters():\n        p.data -= 0.01 * p.grad\n```\nPista: despues de 5 epochs la loss empieza a oscilar salvajemente.',
-      concept: 'Training loop — zero_grad',
-      hint: 'Falta zero_grad() antes de backward(). Los gradientes se acumulan entre iteraciones: despues de N pasos, p.grad contiene la suma de N gradientes. El update se vuelve N veces mas agresivo, causando oscilaciones y eventual divergencia.',
+        '"Backpropagation es un algoritmo especifico de redes neuronales que no tiene relacion con el calculo diferencial clasico." ¿Que esta mal con esta afirmacion?',
+      concept: 'Backpropagation como chain rule',
+      hint: 'Backpropagation ES la chain rule del calculo multivariable, aplicada recursivamente sobre un grafo computacional. No es un invento de la comunidad de ML.',
     },
     {
       type: 'tradeoff',
@@ -623,20 +623,6 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
         'El learning rate es el hiperparametro mas critico del training loop. ¿Que pasa con learning rates muy altos vs muy bajos? ¿Por que no existe un learning rate "optimo universal"?',
       concept: 'Learning rate',
       hint: 'Muy alto: los parametros oscilan y divergen. Muy bajo: convergencia extremadamente lenta. El optimo depende de la curvatura del loss landscape, que varia por parametro.',
-    },
-    {
-      type: 'design_decision',
-      question:
-        'Diseña la funcion _backward para la operacion max(a, b). ¿Que devuelve el forward pass? ¿Como se distribuye el gradiente entre a y b? ¿Que pasa cuando a == b?',
-      concept: 'Operaciones y sus gradientes',
-      hint: 'Forward: devuelve el mayor. Backward: el gradiente va ENTERO al ganador (derivada = 1) y el perdedor recibe 0 (derivada = 0). Cuando a == b, la derivada es tecnicamente indefinida — en la practica se suele dar el gradiente a uno de los dos arbitrariamente.',
-    },
-    {
-      type: 'connection',
-      question:
-        'Diseña pseudocodigo de forward-mode AD para la expresion L = (a*b + c)². Para 100 inputs y 1 output, compara el numero de operaciones de forward-mode vs reverse-mode. ¿Por que reverse mode gana por 100x?',
-      concept: 'Forward vs reverse mode AD',
-      hint: 'Forward mode calcula dL/da en una pasada, pero necesita repetir para dL/db, dL/dc... (N pasadas para N inputs). Reverse mode calcula TODOS los gradientes en una sola pasada hacia atras. Con 100 inputs: forward = 100 pasadas, reverse = 1 pasada. Griewank 2008.',
     },
   ],
 
@@ -688,95 +674,6 @@ export const READING_QUESTIONS: Record<string, ReadingQuestion[]> = {
         'OpenClaw implementa daemons multiplataforma (launchd en macOS, systemd en Linux, Scheduled Tasks en Windows). ¿Por qué no simplificar usando Docker como capa de abstracción universal? ¿Qué ganan y qué pierden con el enfoque nativo?',
       concept: 'Production Architectures',
       hint: 'Pensá en los requisitos de OpenClaw: acceso a cámara, micrófono, iMessage, Bluetooth — cosas que Docker no puede hacer.',
-    },
-  ],
-
-  'kz2h-building-gpt': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué el mecanismo de attention necesita tres proyecciones separadas (Q, K, V) en vez de usar el embedding directamente? ¿Qué se perdería si usaras el mismo vector para buscar y para entregar información?',
-      concept: 'Q, K, V separation',
-      hint: 'Piensa en la analogía del diccionario: la palabra que buscas (Query) no es lo mismo que la definición que obtienes (Value).',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'Multi-head attention usa 8 cabezas de 64 dimensiones en vez de 1 cabeza de 512. ¿Qué se gana y qué se pierde? ¿Por qué no usar 64 cabezas de 8 dimensiones?',
-      concept: 'Multi-head attention trade-offs',
-      hint: 'Cada cabeza aprende un tipo de relación, pero con muy pocas dimensiones no puede representar patrones complejos.',
-    },
-    {
-      type: 'connection',
-      question:
-        '¿Cómo se conecta el softmax de attention (convertir scores en pesos) con el softmax final del transformer (predecir la siguiente palabra)? ¿Es la misma operación con diferente propósito?',
-      concept: 'Softmax en attention vs predicción',
-    },
-    {
-      type: 'error_detection',
-      question:
-        '"Las residual connections mejoran el rendimiento del modelo porque agregan más parámetros al sistema." ¿Qué está mal con esta afirmación?',
-      concept: 'Residual connections',
-      hint: 'Una residual connection es simplemente resultado = entrada + salida_capa. No tiene parámetros propios.',
-    },
-    {
-      type: 'design_decision',
-      question:
-        '¿Por qué el Transformer original apila el bloque 6 veces? ¿Qué pasaría con 1 bloque? ¿Y con 100? ¿Cuál es el trade-off de profundidad?',
-      concept: 'Depth of transformer blocks',
-      hint: 'Más bloques = representaciones más refinadas, pero también más cómputo y riesgo de vanishing gradients (mitigado por residuals).',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué dividir por √d_k antes del softmax? Sin esta división, ¿qué pasaría con los gradientes cuando d_k es grande (ej: 512)?',
-      concept: 'Scaled dot-product attention',
-      hint: 'El dot product de dos vectores aleatorios tiene varianza proporcional a d_k. Si la varianza es alta, el softmax satura.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'Attention tiene complejidad O(n²) respecto a la longitud de la secuencia. ¿Por qué esto no era un problema para el paper original (secuencias de ~512 tokens) pero sí lo es para LLMs modernos con contextos de 100K+ tokens?',
-      concept: 'Attention complexity',
-      hint: 'n² crece rápido: 512² = 262K operaciones, 100,000² = 10 mil millones.',
-    },
-  ],
-
-  'kz2h-tokenizers': [
-    {
-      type: 'why',
-      question:
-        '¿Por qué BPE usa subwords en vez de caracteres individuales o palabras completas? ¿Qué problema tiene cada extremo?',
-      concept: 'BPE rationale',
-      hint: 'Caracteres: secuencias muy largas, poca semántica por token. Palabras: vocabulario infinito, no maneja palabras nuevas.',
-    },
-    {
-      type: 'connection',
-      question:
-        '¿Cómo se conecta la tokenización con el problema de que los LLMs no pueden contar letras en "strawberry"? Si el tokenizador partiera en caracteres individuales, ¿se resolvería este problema?',
-      concept: 'Tokens vs characters',
-      hint: 'Si tokenizaras por caracteres, las secuencias serían mucho más largas y el modelo necesitaría más contexto para entender significado.',
-    },
-    {
-      type: 'error_detection',
-      question:
-        '"Los embeddings son diseñados manualmente por lingüistas que asignan significado a cada dimensión." ¿Qué está fundamentalmente mal con esta afirmación?',
-      concept: 'Learned embeddings',
-      hint: 'Los embeddings empiezan como números random y se aprenden con backpropagation. Nadie asigna significado a las dimensiones.',
-    },
-    {
-      type: 'why',
-      question:
-        '¿Por qué "vaca" y "perro" terminan con embeddings cercanos después del entrenamiento? ¿Qué propiedad del texto de entrenamiento causa esto?',
-      concept: 'Distributional semantics',
-      hint: 'Aparecen en contextos similares: "el [animal] come...", "mi [animal] duerme...". El modelo necesita que produzcan predicciones parecidas.',
-    },
-    {
-      type: 'tradeoff',
-      question:
-        'Un vocabulario más grande (más tokens) reduce la longitud de las secuencias pero aumenta el tamaño de la embedding matrix. ¿Cuándo vale la pena un vocabulario grande vs uno pequeño?',
-      concept: 'Vocabulary size trade-off',
-      hint: 'GPT-4 usa ~100K tokens. Modelos multilingües necesitan más. Modelos de código necesitan tokens específicos como "def", "class".',
     },
   ],
 

@@ -1,8 +1,7 @@
 /**
  * Seed inline quizzes for kz2h-micrograd (Karpathy: Micrograd — backprop from scratch).
  *
- * 15 quizzes across 5 sections.
- * Bloom distribution: Remember 20%, Understand 27%, Apply 27%, Analyze 20%, Evaluate 6%
+ * 15 quizzes across 5 sections (mc, tf, mc2 mix).
  *
  * Usage: npx tsx scripts/seed-inline-quizzes-kz2h-micrograd.ts
  */
@@ -34,207 +33,145 @@ interface QuizDef {
 
 const QUIZZES: QuizDef[] = [
   // ────────────────────────────────────────────────
-  // Section 0: Qué es ML — La Fábrica que Aprende Sola
-  // Q1: Remember (keep), Q2: Apply, Q3: Analyze
+  // Section 0: Derivadas, Value y el Grafo Computacional
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
-    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
+    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
+    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
     sortOrder: 0,
     format: 'mc',
-    questionText: '¿Cuál es la diferencia fundamental entre programación tradicional y machine learning?',
+    questionText: 'En micrograd, ¿qué estructura de datos se usa para representar la expresión matemática completa?',
     options: [
-      { label: 'A', text: 'ML usa más memoria que la programación tradicional' },
-      { label: 'B', text: 'En programación tradicional defines las reglas; en ML el modelo descubre las reglas a partir de datos' },
-      { label: 'C', text: 'ML solo funciona con imágenes, no con texto' },
-      { label: 'D', text: 'La programación tradicional no puede resolver problemas complejos' },
+      { label: 'A', text: 'Un array de valores numéricos' },
+      { label: 'B', text: 'Un DAG (grafo acíclico dirigido) donde cada nodo es un objeto Value' },
+      { label: 'C', text: 'Una matriz de pesos y sesgos' },
+      { label: 'D', text: 'Una lista enlazada de operaciones' },
     ],
     correctAnswer: 'B',
-    explanation: 'Programación tradicional: reglas + datos → respuesta. Machine Learning: datos + respuestas → reglas. El modelo encuentra los patrones solo, en vez de que un humano los programe.',
+    explanation: 'Micrograd construye un DAG (Directed Acyclic Graph) donde cada nodo es un objeto Value que almacena un dato escalar, su gradiente, y referencias a sus hijos (los valores que lo produjeron) junto con la operación utilizada.',
   },
   {
-    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
-    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
-    sortOrder: 1,
-    format: 'mc',
-    questionText: 'Tu red neuronal entrenó 50 epochs y la loss bajó de 4.8 a 0.003. Al probar con datos nuevos, la loss sube a 3.7. ¿Cuál es el diagnóstico más probable?',
-    options: [
-      { label: 'A', text: 'El learning rate es demasiado bajo' },
-      { label: 'B', text: 'Overfitting: el modelo memorizó los datos de entrenamiento en lugar de aprender patrones generalizables' },
-      { label: 'C', text: 'Los datos de prueba están corruptos' },
-      { label: 'D', text: 'Necesitas más epochs de entrenamiento' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Loss bajísima en training pero alta en datos nuevos es la firma del overfitting. Con solo 4 datos y 41 parámetros (como en micrograd), el modelo tiene capacidad de sobra para memorizar cada ejemplo sin aprender la regla subyacente.',
-  },
-  {
-    sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
-    positionAfterHeading: 'Qué es ML — La Fábrica que Aprende Sola',
-    sortOrder: 2,
-    format: 'mc',
-    questionText: 'El MLP de micrograd tiene 41 parámetros y 4 datos de entrenamiento. ¿Qué implica esta relación parámetros/datos para la generalización?',
-    options: [
-      { label: 'A', text: 'Es ideal: más parámetros siempre significa mejor aprendizaje' },
-      { label: 'B', text: 'El modelo tiene ~10x más parámetros que datos, lo que favorece la memorización sobre la generalización' },
-      { label: 'C', text: 'No importa: el training loop converge igual' },
-      { label: 'D', text: 'Se necesitan exactamente tantos parámetros como datos' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Con 41 parámetros y solo 4 ejemplos, el modelo tiene capacidad de sobra para memorizar cada dato sin aprender patrones generalizables. En la práctica, se necesitan muchos más datos que parámetros para que el modelo generalice bien.',
-  },
-
-  // ────────────────────────────────────────────────
-  // Section 1: Value — Un Número con Memoria
-  // Q1: Remember (keep), Q2: Apply, Q3: Analyze
-  // ────────────────────────────────────────────────
-  {
-    sectionTitle: 'Value — Un Número con Memoria',
-    positionAfterHeading: 'Value — Un Número con Memoria',
-    sortOrder: 0,
-    format: 'mc',
-    questionText: '¿Qué información adicional almacena un objeto Value respecto a un número normal de Python?',
-    options: [
-      { label: 'A', text: 'Solo el valor numérico y un nombre descriptivo' },
-      { label: 'B', text: 'Su valor (.data), su gradiente (.grad), sus padres (_prev) y la operación que lo creó (_op)' },
-      { label: 'C', text: 'El tipo de dato y la posición en memoria' },
-      { label: 'D', text: 'Solo el gradiente para backpropagation' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Value almacena .data (escalar), .grad (gradiente), _prev (nodos que lo produjeron) y _op (operación). Esta información forma el DAG que permite calcular gradientes automáticamente.',
-  },
-  {
-    sectionTitle: 'Value — Un Número con Memoria',
-    positionAfterHeading: 'Value — Un Número con Memoria',
-    sortOrder: 1,
-    format: 'mc',
-    questionText: 'Dado `a = Value(2.0)`, `b = Value(3.0)`, `c = a * b`, `d = c + a`: ¿cuántas aristas tiene el DAG resultante?',
-    options: [
-      { label: 'A', text: '3 aristas' },
-      { label: 'B', text: '4 aristas' },
-      { label: 'C', text: '5 aristas' },
-      { label: 'D', text: '6 aristas' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'El DAG tiene: a→c, b→c (multiplicación), c→d, a→d (suma). Total: 4 aristas. Nota que `a` aparece como padre en dos operaciones — es un DAG, no un árbol.',
-  },
-  {
-    sectionTitle: 'Value — Un Número con Memoria',
-    positionAfterHeading: 'Value — Un Número con Memoria',
-    sortOrder: 2,
-    format: 'mc',
-    questionText: 'Si eliminamos _children y _op de la clase Value (dejando solo .data y .grad), ¿qué capacidad se pierde?',
-    options: [
-      { label: 'A', text: 'Solo se pierde la visualización con Graphviz' },
-      { label: 'B', text: 'Se pierde la capacidad de calcular gradientes automáticamente, porque backprop necesita recorrer el grafo hacia atrás' },
-      { label: 'C', text: 'No se pierde nada: .grad se puede calcular sin conocer la historia' },
-      { label: 'D', text: 'Solo se pierden las etiquetas de depuración' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Sin _children, el método backward() no puede recorrer el grafo. Sin _op, no puede saber qué función _backward ejecutar. La "memoria" del Value es lo que hace posible la retropropagación automática.',
-  },
-
-  // ────────────────────────────────────────────────
-  // Section 2: La Derivada Parcial — El Momento Eureka
-  // Q1: Apply numérico (keep), Q2: Apply, Q3: Analyze
-  // ────────────────────────────────────────────────
-  {
-    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
-    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
-    sortOrder: 0,
-    format: 'mc',
-    questionText: 'Si c = a × b, donde a = 3 y b = 4, ¿cuánto vale dc/da (la derivada parcial de c respecto a a)?',
-    options: [
-      { label: 'A', text: '3 (el valor de a)' },
-      { label: 'B', text: '4 (el valor de b)' },
-      { label: 'C', text: '12 (el valor de c)' },
-      { label: 'D', text: '1 (siempre es 1)' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'En c = a × b, dc/da = b. Si b = 4, entonces mover a en 0.01 mueve c en 0.04. La otra variable actúa como la pendiente.',
-  },
-  {
-    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
-    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
-    sortOrder: 1,
-    format: 'mc',
-    questionText: 'Si f(x) = x³, ¿cuánto vale df/dx evaluada en x = 2?',
-    options: [
-      { label: 'A', text: '6' },
-      { label: 'B', text: '8' },
-      { label: 'C', text: '12' },
-      { label: 'D', text: '3' },
-    ],
-    correctAnswer: 'C',
-    explanation: 'La derivada de x³ es 3x². Evaluada en x=2: 3 × 2² = 3 × 4 = 12. Si x pasa de 2.0 a 2.001, f(x) cambia aproximadamente 0.012.',
-  },
-  {
-    sectionTitle: 'La Derivada Parcial — El Momento Eureka',
-    positionAfterHeading: 'La Derivada Parcial — El Momento Eureka',
-    sortOrder: 2,
-    format: 'mc',
-    questionText: 'Para c = a*b + a (con a=3, b=4), ¿cuánto vale dc/da?',
-    options: [
-      { label: 'A', text: '4 (solo b)' },
-      { label: 'B', text: '5 (b + 1)' },
-      { label: 'C', text: '3 (solo a)' },
-      { label: 'D', text: '7 (a + b)' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'c = a*b + a. Derivando respecto a a: dc/da = b + 1 = 4 + 1 = 5. La variable `a` contribuye por dos caminos (en a*b y en +a), y los gradientes se SUMAN. Es la regla multivariable de la chain rule.',
-  },
-
-  // ────────────────────────────────────────────────
-  // Section 3: Backpropagation y la Chain Rule
-  // Q1: Apply numérico (keep), Q2: Evaluate, Q3: Analyze
-  // ────────────────────────────────────────────────
-  {
-    sectionTitle: 'Backpropagation y la Chain Rule',
-    positionAfterHeading: 'Backpropagation y la Chain Rule',
-    sortOrder: 0,
-    format: 'mc',
-    questionText: 'Si a=2, b=a×3=6, c=b+1=7, d=c×2=14, ¿cuál es el gradiente de a respecto a d (dd/da)?',
-    options: [
-      { label: 'A', text: '2' },
-      { label: 'B', text: '3' },
-      { label: 'C', text: '6' },
-      { label: 'D', text: '14' },
-    ],
-    correctAnswer: 'C',
-    explanation: 'Chain rule: db/da = 3, dc/db = 1 (suma), dd/dc = 2. Total: 3 × 1 × 2 = 6. Si mueves a en 0.01, d cambia en 0.06.',
-  },
-  {
-    sectionTitle: 'Backpropagation y la Chain Rule',
-    positionAfterHeading: 'Backpropagation y la Chain Rule',
+    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
+    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
     sortOrder: 1,
     format: 'tf',
-    questionText: 'Si usamos `=` en lugar de `+=` en _backward, el único efecto es que el entrenamiento se vuelve más lento pero sigue siendo correcto.',
+    questionText: 'La derivada de una función en un punto mide la pendiente de la función en ese punto, es decir, cuánto cambia la salida cuando perturbamos la entrada una cantidad infinitesimalmente pequeña.',
     options: null,
-    correctAnswer: 'false',
-    explanation: 'Falso. Usar `=` produce gradientes INCORRECTOS cuando un nodo contribuye por múltiples caminos (ej: a + a). La segunda asignación sobreescribe la primera, dando gradiente 1 en vez de 2. Esto es un error de corrección, no de velocidad.',
+    correctAnswer: 'true',
+    explanation: 'La derivada es exactamente eso: el límite de (f(x+h) - f(x))/h cuando h→0. En micrograd, Karpathy demuestra esto numéricamente usando un h muy pequeño (ej: 0.0001) para verificar los gradientes.',
   },
   {
-    sectionTitle: 'Backpropagation y la Chain Rule',
-    positionAfterHeading: 'Backpropagation y la Chain Rule',
+    sectionTitle: 'Derivadas, Value y el Grafo Computacional',
+    positionAfterHeading: 'Derivadas, Value y el Grafo Computacional',
     sortOrder: 2,
-    format: 'mc',
-    questionText: 'En un grafo con gradientes calculados, el peso w1 tiene grad = 0.001 y w2 tiene grad = 15.0. ¿Qué indica esta diferencia?',
+    format: 'mc2',
+    questionText: '¿Cuáles de las siguientes son propiedades de la clase Value en micrograd?',
     options: [
-      { label: 'A', text: 'w2 es más importante que w1 para el modelo' },
-      { label: 'B', text: 'w1 tiene casi nulo efecto sobre la loss actual; w2 la afecta fuertemente — el update moverá w2 mucho más' },
-      { label: 'C', text: 'w1 ya convergió y w2 no' },
-      { label: 'D', text: 'Hay un bug: los gradientes deberían tener magnitudes similares' },
+      { label: 'A', text: 'Almacena un dato escalar (.data) y su gradiente (.grad)' },
+      { label: 'B', text: 'Mantiene referencias a sus hijos (_children) para construir el grafo' },
+      { label: 'C', text: 'Opera sobre tensores multidimensionales como PyTorch' },
+      { label: 'D', text: 'Registra la operación (_op) que creó el nodo para saber cómo retropropagar' },
     ],
-    correctAnswer: 'B',
-    explanation: 'El gradiente mide la sensibilidad de la loss al peso. grad=0.001 significa que mover w1 casi no cambia la loss. grad=15.0 significa que w2 influye fuertemente. Con SGD, el update es proporcional al gradiente: w2 se moverá 15000x más que w1.',
+    correctAnswer: '[A,B,D]',
+    justificationHint: 'Micrograd es un autograd escalar. ¿Qué información necesita cada nodo para poder hacer backprop?',
+    explanation: 'Value almacena .data (escalar), .grad, _children (nodos que lo produjeron), y _op (operación usada). NO opera con tensores — es un autograd escalar, esa es la simplificación pedagógica clave.',
   },
 
   // ────────────────────────────────────────────────
-  // Section 4: De una Neurona a un MLP
-  // Q1: Remember (keep), Q2: Apply, Q3: Analyze
+  // Section 1: Chain Rule y Backpropagation Manual
   // ────────────────────────────────────────────────
   {
-    sectionTitle: 'De una Neurona a un MLP',
-    positionAfterHeading: 'De una Neurona a un MLP',
+    sectionTitle: 'Chain Rule y Backpropagation Manual',
+    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sortOrder: 0,
+    format: 'mc',
+    questionText: 'Si L = f(g(x)), ¿cómo se calcula dL/dx según la chain rule?',
+    options: [
+      { label: 'A', text: 'dL/dx = dL/dg + dg/dx' },
+      { label: 'B', text: 'dL/dx = dL/dg × dg/dx' },
+      { label: 'C', text: 'dL/dx = dg/dx / dL/dg' },
+      { label: 'D', text: 'dL/dx = dL/dg - dg/dx' },
+    ],
+    correctAnswer: 'B',
+    explanation: 'La chain rule dice que la derivada de una composición de funciones es el PRODUCTO de las derivadas en cada paso. dL/dx = dL/dg × dg/dx. Esta es la operación fundamental de backpropagation.',
+  },
+  {
+    sectionTitle: 'Chain Rule y Backpropagation Manual',
+    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sortOrder: 1,
+    format: 'tf',
+    questionText: 'En backpropagation, el gradiente del nodo de salida (loss) siempre se inicializa en 1.0 antes de comenzar a propagar hacia atrás.',
+    options: null,
+    correctAnswer: 'true',
+    explanation: 'El gradiente de la salida respecto a sí misma es siempre 1 (dL/dL = 1). Este es el "seed" que inicia la cadena de retropropagación multiplicativa a través de todo el grafo.',
+  },
+  {
+    sectionTitle: 'Chain Rule y Backpropagation Manual',
+    positionAfterHeading: 'Chain Rule y Backpropagation Manual',
+    sortOrder: 2,
+    format: 'mc',
+    questionText: 'Si un nodo z = x + y, y el gradiente de la salida respecto a z es dL/dz = 4.0, ¿cuáles son dL/dx y dL/dy?',
+    options: [
+      { label: 'A', text: 'dL/dx = 4.0, dL/dy = 4.0' },
+      { label: 'B', text: 'dL/dx = 2.0, dL/dy = 2.0' },
+      { label: 'C', text: 'dL/dx = 4.0, dL/dy = 0.0' },
+      { label: 'D', text: 'Depende de los valores de x e y' },
+    ],
+    correctAnswer: 'A',
+    explanation: 'Para la suma z = x + y: dz/dx = 1 y dz/dy = 1. Aplicando chain rule: dL/dx = dL/dz × dz/dx = 4.0 × 1 = 4.0, y lo mismo para y. La suma es un "distribuidor" de gradientes.',
+  },
+
+  // ────────────────────────────────────────────────
+  // Section 2: Backpropagation Automatizado
+  // ────────────────────────────────────────────────
+  {
+    sectionTitle: 'Backpropagation Automatizado',
+    positionAfterHeading: 'Backpropagation Automatizado',
+    sortOrder: 0,
+    format: 'mc',
+    questionText: '¿Qué algoritmo usa micrograd para determinar el orden correcto de retropropagación?',
+    options: [
+      { label: 'A', text: 'BFS (breadth-first search)' },
+      { label: 'B', text: 'Ordenamiento topológico del grafo, recorrido en reversa' },
+      { label: 'C', text: 'DFS (depth-first search) desde las hojas hacia la raíz' },
+      { label: 'D', text: 'Recorrido aleatorio del grafo' },
+    ],
+    correctAnswer: 'B',
+    explanation: 'Micrograd construye un ordenamiento topológico del DAG y lo recorre en reversa. Esto garantiza que cuando procesamos un nodo, ya hemos calculado el gradiente de todos los nodos que dependen de él.',
+  },
+  {
+    sectionTitle: 'Backpropagation Automatizado',
+    positionAfterHeading: 'Backpropagation Automatizado',
+    sortOrder: 1,
+    format: 'tf',
+    questionText: 'En micrograd, cada operación (+, ×, tanh, etc.) define su propia función _backward que sabe cómo propagar el gradiente a sus hijos.',
+    options: null,
+    correctAnswer: 'true',
+    explanation: 'Cada operación registra una función _backward como closure. Por ejemplo, la multiplicación z = a × b registra que dL/da = b × dL/dz y dL/db = a × dL/dz. El método backward() del nodo raíz las invoca en orden topológico inverso.',
+  },
+  {
+    sectionTitle: 'Backpropagation Automatizado',
+    positionAfterHeading: 'Backpropagation Automatizado',
+    sortOrder: 2,
+    format: 'mc2',
+    questionText: '¿Cuáles de las siguientes afirmaciones sobre la acumulación de gradientes son correctas?',
+    options: [
+      { label: 'A', text: 'Si un nodo se usa dos veces en la expresión, sus gradientes deben sumarse (+=), no sobreescribirse (=)' },
+      { label: 'B', text: 'Llamar zero_grad() es necesario antes de cada backward() para evitar acumulación no deseada' },
+      { label: 'C', text: 'La acumulación de gradientes es un bug que Karpathy corrige eliminando nodos duplicados' },
+      { label: 'D', text: 'Cada nodo puede contribuir gradiente a sus hijos desde múltiples caminos en el grafo' },
+    ],
+    correctAnswer: '[A,B,D]',
+    justificationHint: 'Piensa en un nodo x que aparece en x + x. ¿Cuántos caminos conectan x con la salida?',
+    explanation: 'Cuando un nodo contribuye a la salida por múltiples caminos, los gradientes de cada camino deben sumarse (regla de la suma multivariable). Por eso se usa += en _backward, y zero_grad() limpia los gradientes entre iteraciones.',
+  },
+
+  // ────────────────────────────────────────────────
+  // Section 3: Neuronas, Capas y MLP
+  // ────────────────────────────────────────────────
+  {
+    sectionTitle: 'Neuronas, Capas y MLP',
+    positionAfterHeading: 'Neuronas, Capas y MLP',
     sortOrder: 0,
     format: 'mc',
     questionText: '¿Qué operación realiza una neurona individual en micrograd?',
@@ -245,37 +182,77 @@ const QUIZZES: QuizDef[] = [
       { label: 'D', text: 'Un promedio ponderado sin función de activación' },
     ],
     correctAnswer: 'B',
-    explanation: 'Una neurona calcula: activation = tanh(Σ(wi × xi) + b). Es el producto punto de pesos con entradas, más un sesgo, pasado por una no-linealidad (tanh).',
+    explanation: 'Una neurona calcula: activation = tanh(Σ(wi × xi) + b). Es el producto punto de pesos con entradas, más un sesgo, pasado por una no-linealidad (tanh). Toda esta operación se construye como un subgrafo en el DAG.',
   },
   {
-    sectionTitle: 'De una Neurona a un MLP',
-    positionAfterHeading: 'De una Neurona a un MLP',
+    sectionTitle: 'Neuronas, Capas y MLP',
+    positionAfterHeading: 'Neuronas, Capas y MLP',
     sortOrder: 1,
-    format: 'mc',
-    questionText: '¿Cuántos parámetros tiene un MLP con arquitectura [3, 4, 4, 1]?',
-    options: [
-      { label: 'A', text: '12 (solo pesos, sin bias)' },
-      { label: 'B', text: '41 (16 + 20 + 5)' },
-      { label: 'C', text: '48 (3×4 + 4×4 + 4×1)' },
-      { label: 'D', text: '37 (12 + 16 + 4 + 5)' },
-    ],
-    correctAnswer: 'B',
-    explanation: 'Capa 1: 4 neuronas × (3 pesos + 1 bias) = 16. Capa 2: 4 × (4+1) = 20. Salida: 1 × (4+1) = 5. Total: 16 + 20 + 5 = 41.',
+    format: 'tf',
+    questionText: 'Un MLP (Multi-Layer Perceptron) es simplemente una secuencia de capas donde la salida de una capa se convierte en la entrada de la siguiente.',
+    options: null,
+    correctAnswer: 'true',
+    explanation: 'Un MLP es una pila de capas fully-connected. En micrograd, MLP se define con las dimensiones [nin, nout1, nout2, ...] y cada capa contiene neuronas que procesan la salida de la capa anterior.',
   },
   {
-    sectionTitle: 'De una Neurona a un MLP',
-    positionAfterHeading: 'De una Neurona a un MLP',
+    sectionTitle: 'Neuronas, Capas y MLP',
+    positionAfterHeading: 'Neuronas, Capas y MLP',
     sortOrder: 2,
     format: 'mc',
-    questionText: '¿Qué aprende un MLP que no tiene función de activación no-lineal (sin tanh ni ReLU)?',
+    questionText: '¿Por qué es importante que la función de activación (ej: tanh) sea no-lineal?',
     options: [
-      { label: 'A', text: 'Aprende más rápido porque hay menos operaciones' },
-      { label: 'B', text: 'Solo puede aprender funciones lineales, sin importar cuántas capas tenga' },
-      { label: 'C', text: 'Aprende lo mismo pero con más parámetros' },
-      { label: 'D', text: 'No puede hacer forward pass' },
+      { label: 'A', text: 'Porque reduce el número de parámetros del modelo' },
+      { label: 'B', text: 'Porque sin ella, apilar capas sería equivalente a una sola transformación lineal' },
+      { label: 'C', text: 'Porque hace que el entrenamiento sea más rápido' },
+      { label: 'D', text: 'Porque normaliza los valores entre -1 y 1' },
     ],
     correctAnswer: 'B',
-    explanation: 'Sin no-linealidades, la composición de N transformaciones lineales es otra transformación lineal. Apilar 100 capas lineales equivale a una sola capa lineal. La no-linealidad es lo que permite aproximar funciones arbitrariamente complejas (Cybenko 1989).',
+    explanation: 'Sin no-linealidades, la composición de transformaciones lineales es otra transformación lineal (f(g(x)) = Ax donde A es el producto de las matrices). La no-linealidad permite al MLP aproximar funciones arbitrariamente complejas.',
+  },
+
+  // ────────────────────────────────────────────────
+  // Section 4: Training Loop y Comparacion con PyTorch
+  // ────────────────────────────────────────────────
+  {
+    sectionTitle: 'Training Loop y Comparacion con PyTorch',
+    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sortOrder: 0,
+    format: 'mc',
+    questionText: '¿Cuál es el orden correcto de operaciones en un paso de entrenamiento (training step)?',
+    options: [
+      { label: 'A', text: 'backward → forward → zero_grad → update' },
+      { label: 'B', text: 'forward → loss → backward → update → zero_grad' },
+      { label: 'C', text: 'forward → backward → loss → update' },
+      { label: 'D', text: 'zero_grad → loss → forward → backward' },
+    ],
+    correctAnswer: 'B',
+    explanation: 'El training loop es: 1) Forward pass (calcular predicciones), 2) Calcular la loss, 3) Backward pass (calcular gradientes), 4) Actualizar parámetros (w -= lr × grad), 5) Zero grad (limpiar gradientes para la siguiente iteración).',
+  },
+  {
+    sectionTitle: 'Training Loop y Comparacion con PyTorch',
+    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sortOrder: 1,
+    format: 'tf',
+    questionText: 'Un learning rate demasiado grande puede hacer que el modelo "sobrepase" el mínimo de la loss y diverga en lugar de converger.',
+    options: null,
+    correctAnswer: 'true',
+    explanation: 'Si el learning rate es muy grande, los pasos de actualización son demasiado amplios y el modelo oscila alrededor del mínimo o diverge. Karpathy lo demuestra en micrograd mostrando cómo la loss sube en lugar de bajar con un lr excesivo.',
+  },
+  {
+    sectionTitle: 'Training Loop y Comparacion con PyTorch',
+    positionAfterHeading: 'Training Loop y Comparacion con PyTorch',
+    sortOrder: 2,
+    format: 'mc2',
+    questionText: '¿Cuáles son diferencias entre micrograd y PyTorch?',
+    options: [
+      { label: 'A', text: 'PyTorch opera sobre tensores n-dimensionales, micrograd sobre escalares individuales' },
+      { label: 'B', text: 'PyTorch tiene las mismas operaciones fundamentales de autograd (forward + backward por operación)' },
+      { label: 'C', text: 'PyTorch no usa la chain rule internamente porque tiene un mecanismo diferente' },
+      { label: 'D', text: 'La API de PyTorch (.backward(), .grad, .zero_grad()) es esencialmente la misma que micrograd' },
+    ],
+    correctAnswer: '[A,B,D]',
+    justificationHint: 'Piensa en qué hace micrograd exactamente igual que PyTorch y qué difiere en escala pero no en concepto.',
+    explanation: 'PyTorch es micrograd a escala: misma idea de autograd (forward/backward por op), misma API (.backward(), .grad, .zero_grad()), pero opera sobre tensores en lugar de escalares. La chain rule es exactamente el mismo mecanismo en ambos.',
   },
 ];
 
