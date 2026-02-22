@@ -2,6 +2,9 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { ConceptVisual, hasConceptVisual } from './concept-visuals';
 import { InlineQuiz } from './inline-quiz';
 import { injectFigures } from '@/lib/figure-injector';
@@ -148,7 +151,8 @@ export function SectionContent({
       ) : (
         <div data-segment-index={0}>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
             components={markdownComponents}
           >
             {processed}
@@ -192,7 +196,8 @@ function InterleavedContent({
           <div key={segment.heading ?? `segment-${i}`} data-segment-index={i}>
             {segment.heading && (
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
                 components={markdownComponents}
               >
                 {`**${segment.heading}**`}
@@ -200,7 +205,8 @@ function InterleavedContent({
             )}
             {segment.content && (
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
                 components={markdownComponents}
               >
                 {segment.content}
