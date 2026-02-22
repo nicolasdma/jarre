@@ -9,6 +9,8 @@ interface TutorContextOverride {
   concepts?: ConceptForSession[];
   resourceTitle?: string;
   sectionId?: string;
+  sectionContent?: string;
+  sectionTitle?: string;
 }
 
 interface TutorContextValue {
