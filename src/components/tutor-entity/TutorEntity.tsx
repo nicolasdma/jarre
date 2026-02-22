@@ -11,7 +11,7 @@ import {
   type EntityStateParams,
 } from './entity-constants';
 import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
-import { getCurrentGeometryName } from './geometries';
+import { getCurrentGeometryName, setAudioBands, setVoiceActive, setWaveMicLevel } from './geometries';
 import { useTutorFrequency } from '../voice/use-tutor-frequency';
 import { useAudioLevel } from '../voice/use-audio-level';
 import type { TutorState } from '../voice/use-voice-session';
@@ -97,6 +97,12 @@ export function TutorEntity({
 
   const isVoiceActive = voiceState !== undefined;
 
+  // Activate/deactivate waveform morph on voice state change
+  useEffect(() => {
+    setVoiceActive(isVoiceActive);
+    return () => setVoiceActive(false);
+  }, [isVoiceActive]);
+
   const animate = useCallback(() => {
     const glowCanvas = glowCanvasRef.current;
     const sharpCanvas = sharpCanvasRef.current;
@@ -176,8 +182,11 @@ export function TutorEntity({
 
     // Compute geometry ONCE, paint to BOTH canvases
     const focal = mouseRef.current;
-    const bands = currentVoiceState === 'speaking' ? frequencyBandsRef.current : null;
+    // Feed audio bands to waveform geometry (all voice states, not just speaking)
+    const bands = voiceStateRef.current ? frequencyBandsRef.current : null;
+    setAudioBands(bands, dt);
     const mic = currentVoiceState === 'listening' ? micLevelRef.current : 0;
+    setWaveMicLevel(mic);
     computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands, mic);
     paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
     paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
