@@ -128,10 +128,11 @@ export interface UseUnifiedVoiceSessionParams {
   mode: VoiceMode;
   language: Language;
 
-  // Eval/Practice
+  // Eval/Practice/Learning
   resourceId?: string;
   concepts?: ConceptForSession[];
   masteryLevel?: number;
+  resourceTitle?: string;
 
   // Exploration
   userResourceId?: string;
@@ -141,6 +142,9 @@ export interface UseUnifiedVoiceSessionParams {
 
   // Teach
   conceptForTeach?: ConceptForSession;
+
+  // Learning (sidebar tutor) — sectionId for DB type 'teaching'
+  sectionId?: string;
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -186,6 +190,7 @@ function sessionTypeForMode(mode: VoiceMode): 'teaching' | 'evaluation' | 'pract
     case 'exploration': return 'exploration';
     case 'debate': return 'debate';
     case 'freeform': return 'freeform';
+    case 'learning': return 'teaching';
   }
 }
 
@@ -194,6 +199,7 @@ function sectionIdForMode(mode: VoiceMode, params: UseUnifiedVoiceSessionParams)
     case 'exploration': return params.userResourceId || '';
     case 'debate': return `debate-${params.debateTopic?.topic || ''}`;
     case 'freeform': return 'freeform';
+    case 'learning': return params.sectionId || '';
     default: return '';
   }
 }
@@ -209,6 +215,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     resourceId,
     concepts,
     masteryLevel,
+    resourceTitle,
     userResourceId,
     debateTopic,
     conceptForTeach,
@@ -406,6 +413,10 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         setResult({ mode: 'freeform' });
         setState('done');
         break;
+      case 'learning':
+        setResult({ mode: 'freeform' });
+        setState('done');
+        break;
     }
   }, [mode, scoreEvalSession, scorePracticeSession, scoreTeachSession, generateExplorationSummary]);
 
@@ -433,7 +444,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     sectionTitle: '',
     language,
     onSessionComplete: handleSessionComplete,
-    systemInstructionOverride: systemInstruction || undefined,
+    systemInstructionOverride: systemInstruction || 'pending',
     sessionType: sessionTypeForMode(mode),
     resourceId,
     initialMessage,
@@ -583,6 +594,15 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
           : "I've been thinking about some things and want to chat.";
         break;
       }
+      case 'learning': {
+        if (!concepts?.length) throw new Error('Concepts required for learning mode');
+        modeParams = { mode: 'learning', concepts, resourceTitle: resourceTitle || '' };
+        initialMsg = language === 'es'
+          ? 'Estoy estudiando el material y tengo algunas dudas.'
+          : "I'm studying the material and have some questions.";
+        cIds = concepts.map((c) => c.id);
+        break;
+      }
     }
 
     // Fetch learner memory for modes that don't fetch it themselves
@@ -618,7 +638,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     }
 
     return { instruction, initialMsg, conceptIds: cIds };
-  }, [mode, language, concepts, masteryLevel, userResourceId, debateTopic, conceptForTeach]);
+  }, [mode, language, concepts, masteryLevel, resourceTitle, userResourceId, debateTopic, conceptForTeach]);
 
   // ---- Start ----
 
@@ -628,6 +648,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    log.info(`[Start] mode=${mode}, resourceId=${resourceId ?? 'none'}, concepts=${concepts?.length ?? 0}`);
     setState('loading');
     setSessionError(null);
     setResult(null);

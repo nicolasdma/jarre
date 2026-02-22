@@ -1,12 +1,16 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { Language } from '@/lib/translations';
+import { useTutorContext } from '@/lib/tutor-context';
+import { createLogger } from '@/lib/logger';
 import { TutorDialog } from './tutor-entity/TutorDialog';
 import { useUnifiedVoiceSession } from './voice/use-unified-voice-session';
 import { VoiceSidebarControls } from './voice/VoiceSidebarControls';
+
+const log = createLogger('AppShell');
 
 const TutorEntity = dynamic(
   () => import('./tutor-entity/TutorEntity').then((m) => ({ default: m.TutorEntity })),
@@ -52,10 +56,21 @@ function useShouldShowSidebar(): boolean {
 export function AppShell({ children, language }: AppShellProps) {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const showSidebar = useShouldShowSidebar();
+  const { override } = useTutorContext();
+
+  const effectiveMode = override?.mode ?? 'freeform';
+
+  useEffect(() => {
+    log.info(`[TutorOverride] mode=${effectiveMode}, resourceId=${override?.resourceId ?? 'none'}, concepts=${override?.concepts?.length ?? 0}, title=${override?.resourceTitle ?? 'none'}`);
+  }, [effectiveMode, override]);
 
   const session = useUnifiedVoiceSession({
-    mode: 'freeform',
+    mode: effectiveMode,
     language,
+    resourceId: override?.resourceId,
+    concepts: override?.concepts,
+    resourceTitle: override?.resourceTitle,
+    sectionId: override?.sectionId,
   });
 
   const startVoice = useCallback(async () => {
@@ -122,7 +137,16 @@ export function AppShell({ children, language }: AppShellProps) {
             <div className={`shrink-0 px-3 pb-3 transition-opacity duration-500 ${
               isSessionLive ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'
             }`}>
-              <TutorDialog messages={TUTOR_GREETING} />
+              <TutorDialog messages={
+                override?.resourceTitle
+                  ? [effectiveMode === 'learning'
+                      ? `Estudiando ${override.resourceTitle}. Si tenés dudas, click para preguntar.`
+                      : effectiveMode === 'eval'
+                        ? `Evaluación de ${override.resourceTitle}. Click para empezar.`
+                        : `Practicando ${override.resourceTitle}. Click para iniciar.`
+                    ]
+                  : TUTOR_GREETING
+              } />
             </div>
           </aside>
         )}

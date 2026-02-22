@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
+import { TutorContextProvider } from "@/lib/tutor-context";
 import type { Language } from "@/lib/translations";
 import "./globals.css";
 
@@ -77,11 +78,13 @@ export default async function RootLayout({
         >
           Saltar al contenido principal
         </a>
-        <AppShell language={language}>
-          <main id="main-content">
-            {children}
-          </main>
-        </AppShell>
+        <TutorContextProvider>
+          <AppShell language={language}>
+            <main id="main-content">
+              {children}
+            </main>
+          </AppShell>
+        </TutorContextProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{
