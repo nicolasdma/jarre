@@ -15,7 +15,12 @@ import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions
 import { PracticeEvalStep } from './practice-eval-step';
 import { saveLearnProgress, type LearnProgress, type SectionState, type PracticeEvalState } from '@/lib/learn-progress';
 import { WhisperProvider } from '@/lib/whisper/whisper-context';
+import { useTutorContext } from '@/lib/tutor-context';
+import type { VoiceMode } from '@/lib/llm/voice-unified-prompt';
+import { createLogger } from '@/lib/logger';
 import { WhisperToggle } from './whisper-toggle';
+
+const log = createLogger('LearnFlow');
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz, Exercise } from '@/types';
 import { getExercisesForConcept } from '@/lib/exercises/registry';
@@ -33,6 +38,14 @@ interface Section {
 }
 
 type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
+
+const STEP_TO_TUTOR_MODE: Record<Step, VoiceMode> = {
+  activate: 'freeform',
+  learn: 'learning',
+  apply: 'learning',
+  'practice-eval': 'practice',
+  evaluate: 'eval',
+};
 
 interface EvalConcept {
   id: string;
@@ -288,6 +301,33 @@ export function LearnFlow({
   const [visitedSteps, setVisitedSteps] = useState<Set<Step>>(
     new Set((initialProgress?.visitedSteps as Step[]) ?? [(initialProgress?.currentStep as Step) ?? 'activate'])
   );
+
+  // Announce tutor context for sidebar voice session
+  const { setOverride } = useTutorContext();
+  useEffect(() => {
+    const tutorMode = STEP_TO_TUTOR_MODE[currentStep];
+    log.info(`[TutorOverride] Setting override: mode=${tutorMode}, step=${currentStep}, resourceId=${resourceId}, concepts=${concepts.length}, title=${resourceTitle}`);
+    setOverride({
+      mode: tutorMode,
+      resourceId,
+      concepts: concepts.map((c) => ({
+        id: c.id,
+        name: c.name,
+        definition: c.canonical_definition,
+      })),
+      resourceTitle,
+      sectionId: sections[activeSection]?.id,
+    });
+  }, [resourceId, concepts, resourceTitle, setOverride, currentStep, sections, activeSection]);
+
+  // Clear override on unmount (separate effect to avoid re-running cleanup on step change)
+  useEffect(() => {
+    return () => {
+      log.info('[TutorOverride] Clearing override (unmount)');
+      setOverride(null);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Evaluation mode: voice (default) or text fallback
   const [evalMode, setEvalMode] = useState<'voice' | 'text'>('voice');
