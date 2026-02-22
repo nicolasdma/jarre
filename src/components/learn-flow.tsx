@@ -317,6 +317,8 @@ export function LearnFlow({
       })),
       resourceTitle,
       sectionId: sections[activeSection]?.id,
+      sectionContent: sections[activeSection]?.contentMarkdown,
+      sectionTitle: sections[activeSection]?.sectionTitle,
     });
   }, [resourceId, concepts, resourceTitle, setOverride, currentStep, sections, activeSection]);
 

@@ -145,6 +145,8 @@ export interface UseUnifiedVoiceSessionParams {
 
   // Learning (sidebar tutor) — sectionId for DB type 'teaching'
   sectionId?: string;
+  sectionContent?: string;
+  sectionTitle?: string;
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -216,6 +218,8 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     concepts,
     masteryLevel,
     resourceTitle,
+    sectionContent,
+    sectionTitle,
     userResourceId,
     debateTopic,
     conceptForTeach,
@@ -440,11 +444,13 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const voiceSession = useVoiceSession({
     sectionId: sectionIdForMode(mode, params),
-    sectionContent: '',
-    sectionTitle: '',
+    sectionContent: sectionContent || '',
+    sectionTitle: sectionTitle || '',
     language,
     onSessionComplete: handleSessionComplete,
-    systemInstructionOverride: systemInstruction || 'pending',
+    // For learning mode, don't override — let useVoiceSession build the prompt
+    // via buildVoiceSystemInstruction with sectionContent (same as VoicePanel inline)
+    systemInstructionOverride: mode === 'learning' ? undefined : (systemInstruction || 'pending'),
     sessionType: sessionTypeForMode(mode),
     resourceId,
     initialMessage,
@@ -595,13 +601,14 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         break;
       }
       case 'learning': {
-        if (!concepts?.length) throw new Error('Concepts required for learning mode');
-        modeParams = { mode: 'learning', concepts, resourceTitle: resourceTitle || '' };
+        // No custom prompt — useVoiceSession builds it via buildVoiceSystemInstruction
+        // using sectionContent/sectionTitle (same experience as VoicePanel inline).
+        cIds = concepts?.map((c) => c.id) || [];
         initialMsg = language === 'es'
           ? 'Estoy estudiando el material y tengo algunas dudas.'
           : "I'm studying the material and have some questions.";
-        cIds = concepts.map((c) => c.id);
-        break;
+        // Return early — instruction is empty (not used, no override for learning)
+        return { instruction: '', initialMsg, conceptIds: cIds };
       }
     }
 
@@ -638,7 +645,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     }
 
     return { instruction, initialMsg, conceptIds: cIds };
-  }, [mode, language, concepts, masteryLevel, resourceTitle, userResourceId, debateTopic, conceptForTeach]);
+  }, [mode, language, concepts, masteryLevel, resourceTitle, sectionContent, sectionTitle, userResourceId, debateTopic, conceptForTeach]);
 
   // ---- Start ----
 

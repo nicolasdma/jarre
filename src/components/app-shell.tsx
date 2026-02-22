@@ -71,6 +71,8 @@ export function AppShell({ children, language }: AppShellProps) {
     concepts: override?.concepts,
     resourceTitle: override?.resourceTitle,
     sectionId: override?.sectionId,
+    sectionContent: override?.sectionContent,
+    sectionTitle: override?.sectionTitle,
   });
 
   const startVoice = useCallback(async () => {
