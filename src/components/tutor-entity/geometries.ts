@@ -51,6 +51,11 @@ export function setWaveMicLevel(level: number): void {
   _micLevel = level;
 }
 
+/** Current mic level (0-1) — used by renderer for luminance boost */
+export function getMicLevel(): number {
+  return _micLevel;
+}
+
 /** Feed audio frequency data for waveform visualization */
 export function setAudioBands(bands: Float32Array | null, dt?: number): void {
   if (bands && bands.length >= NUM_AUDIO_BANDS) {
@@ -208,7 +213,8 @@ const waveformFn: GeometryFn = (theta, phi, R1, R2, out) => {
   // Mic feedback — traveling wave when user speaks (listening state)
   // Gives visual proof that the system is hearing the user
   const micWave = _micLevel > 0.01
-    ? _micLevel * 0.25 * Math.sin(_waveTime * 6.0 - colFrac * 8.0)
+    ? _micLevel * 0.35                                              // uniform lift
+      + _micLevel * 0.45 * Math.sin(_waveTime * 3.0 - colFrac * 6.0) // traveling wave
     : 0;
 
   // Bar height: base + audio + breathing + mic feedback

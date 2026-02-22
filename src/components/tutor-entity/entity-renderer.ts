@@ -25,6 +25,7 @@ import {
   organicDisplacement,
   isWaveformFn,
   getAudioEnergy,
+  getMicLevel,
   type Vec3Out,
 } from './geometries';
 
@@ -240,9 +241,9 @@ export function computeEntityFrame(
         }
       }
 
-      // Mic reactivity — pulse inward when user speaks
+      // Mic reactivity — pulse inward when user speaks (fade out with waveform)
       if (micLevel && micLevel > 0.01) {
-        disp -= micLevel * R1 * 0.3;
+        disp -= micLevel * R1 * 0.3 * (1 - voiceBlend);
       }
 
       _pt.x += (px / pLen) * disp;
@@ -320,6 +321,8 @@ export function computeEntityFrame(
       const energy = getAudioEnergy();
       // Push luminance toward bright end proportional to audio energy
       luminance += voiceBlend * energy * 0.8;
+      // Brighten bars when user speaks (listening state feedback)
+      luminance += voiceBlend * getMicLevel() * 0.5;
     }
     const lumIndex = Math.max(0, Math.min(maxLum, ((luminance + 1) * 0.5 * maxLum + 0.5) | 0));
     _lumBuf[idx] = lumIndex;
