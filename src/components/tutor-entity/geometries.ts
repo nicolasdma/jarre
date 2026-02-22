@@ -10,6 +10,8 @@
 //   - Organic deformation via irrational-frequency sine sum
 // ============================================================================
 
+const TWO_PI = 6.283185307179586;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -32,6 +34,48 @@ export interface MorphState {
   fnA: GeometryFn;
   fnB: GeometryFn;
   t: number; // 0 = pure fnA, 1 = pure fnB
+}
+
+// ---------------------------------------------------------------------------
+// Shared audio buffer for waveform geometry (module-level, zero-alloc)
+// ---------------------------------------------------------------------------
+
+const NUM_AUDIO_BANDS = 8;
+const _audioBands = new Float32Array(NUM_AUDIO_BANDS);       // raw input
+const _smoothBands = new Float32Array(NUM_AUDIO_BANDS);      // smoothed (exponential decay)
+let _waveTime = 0;
+let _micLevel = 0;
+
+/** Feed mic level for listening-state feedback */
+export function setWaveMicLevel(level: number): void {
+  _micLevel = level;
+}
+
+/** Feed audio frequency data for waveform visualization */
+export function setAudioBands(bands: Float32Array | null, dt?: number): void {
+  if (bands && bands.length >= NUM_AUDIO_BANDS) {
+    _audioBands.set(bands.subarray(0, NUM_AUDIO_BANDS));
+  } else {
+    _audioBands.fill(0);
+  }
+
+  // Exponential smoothing — reactive but not jerky
+  const attack = 0.5;
+  const decay = 0.15;
+  for (let i = 0; i < NUM_AUDIO_BANDS; i++) {
+    const target = _audioBands[i];
+    const rate = target > _smoothBands[i] ? attack : decay;
+    _smoothBands[i] += (target - _smoothBands[i]) * rate;
+  }
+
+  if (dt !== undefined) _waveTime += dt;
+}
+
+/** Total audio energy (0-1 range) — used by renderer for color boost */
+export function getAudioEnergy(): number {
+  let sum = 0;
+  for (let i = 0; i < NUM_AUDIO_BANDS; i++) sum += _smoothBands[i];
+  return Math.min(1, sum / NUM_AUDIO_BANDS * 1.5);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +187,42 @@ const starFn: GeometryFn = (theta, phi, R1, R2, out) => {
   out.z = r * cv;
 };
 
+/** Waveform — vertical bars, bottom-aligned, driven by smoothed audio */
+const waveformFn: GeometryFn = (theta, phi, R1, R2, out) => {
+  // theta → horizontal position: each column = one bar
+  out.x = (theta / TWO_PI * 2 - 1) * R2;
+
+  // Smoothed audio band interpolation for this column
+  const colFrac = theta / TWO_PI;
+  const bandPos = colFrac * (NUM_AUDIO_BANDS - 1);
+  const bi = Math.floor(bandPos);
+  const bf = bandPos - bi;
+  const bandVal = _smoothBands[bi]
+    + (_smoothBands[Math.min(bi + 1, NUM_AUDIO_BANDS - 1)] - _smoothBands[bi]) * bf;
+
+  // Per-column organic breathing — each column pulses at its own phase
+  const colPhase = colFrac * 11.3; // irrational spread so columns don't sync
+  const breath = 0.02 * Math.sin(_waveTime * 1.8 + colPhase)
+    + 0.01 * Math.sin(_waveTime * 2.7 + colPhase * 1.6);
+
+  // Mic feedback — traveling wave when user speaks (listening state)
+  // Gives visual proof that the system is hearing the user
+  const micWave = _micLevel > 0.01
+    ? _micLevel * 0.25 * Math.sin(_waveTime * 6.0 - colFrac * 8.0)
+    : 0;
+
+  // Bar height: base + audio + breathing + mic feedback
+  const barH = Math.max(0.04, 0.05 + bandVal * 0.95 + breath + micWave);
+
+  // phi → vertical position within the bar, bottom-aligned
+  const bottom = -R2 * 0.50;
+  out.y = bottom + (phi / TWO_PI) * barH * R2 * 1.2;
+
+  // Slight Z ripple based on bar height → varied normals → richer ASCII lighting
+  const yFrac = phi / TWO_PI;
+  out.z = bandVal * R1 * 0.15 * Math.sin(yFrac * 3.14 + _waveTime * 2.0 + colPhase);
+};
+
 /** Dini's Surface — twisted pseudosphere spiral */
 const diniFn: GeometryFn = (theta, phi, R1, R2, out) => {
   // Remap: theta ∈ [0,2π] → u ∈ [0.1, 2π], phi ∈ [0,2π] → v ∈ [0.15, π-0.15]
@@ -217,6 +297,39 @@ let _currentCycle = _currentHold + _currentTransition;
 let _cycleStart = 0;
 let _initialized = false;
 
+// ---------------------------------------------------------------------------
+// Voice override — forces waveform as morph target
+// ---------------------------------------------------------------------------
+
+let _voiceActive = false;
+const _waveformGeometry: NamedGeometry = { fn: waveformFn, name: 'Waveform' };
+
+/** Activate/deactivate waveform morph target */
+export function setVoiceActive(active: boolean): void {
+  if (active === _voiceActive) return;
+  _voiceActive = active;
+
+  if (active) {
+    _next = _waveformGeometry;
+  } else {
+    _next = randomGeometry(_current);
+  }
+
+  // Start transitioning immediately with a 2s morph
+  _currentHold = 0;
+  _currentTransition = 2.0;
+  _currentCycle = _currentTransition;
+  _cycleStart = _lastMorphTime;
+}
+
+/** Check if a geometry function is the waveform */
+export function isWaveformFn(fn: GeometryFn): boolean {
+  return fn === waveformFn;
+}
+
+// Track last time for voice override sync
+let _lastMorphTime = 0;
+
 /** Current geometry name (for debug display) */
 export function getCurrentGeometryName(): string {
   return _current.name;
@@ -225,8 +338,11 @@ export function getCurrentGeometryName(): string {
 /**
  * Get the current morph state based on elapsed time.
  * Picks the next geometry randomly each cycle — never predictable.
+ * When voice is active, freezes on waveform geometry.
  */
 export function getMorphState(time: number): MorphState {
+  _lastMorphTime = time;
+
   if (!_initialized) {
     _cycleStart = time;
     _initialized = true;
@@ -236,7 +352,17 @@ export function getMorphState(time: number): MorphState {
 
   if (elapsed >= _currentCycle) {
     _current = _next;
-    _next = randomGeometry(_current);
+
+    // When voice active and waveform reached, freeze — don't pick next
+    if (_voiceActive && _current === _waveformGeometry) {
+      _currentHold = Infinity;
+      _currentTransition = 0;
+      _currentCycle = Infinity;
+      _cycleStart = time;
+      return { fnA: _current.fn, fnB: _current.fn, t: 0 };
+    }
+
+    _next = _voiceActive ? _waveformGeometry : randomGeometry(_current);
     _currentHold = randomInRange(HOLD_MIN, HOLD_MAX);
     _currentTransition = randomInRange(TRANSITION_MIN, TRANSITION_MAX);
     _currentCycle = _currentHold + _currentTransition;
@@ -248,7 +374,7 @@ export function getMorphState(time: number): MorphState {
 
   const withinCycle = time - _cycleStart;
   const t = withinCycle > _currentHold
-    ? smoothstep((withinCycle - _currentHold) / _currentTransition)
+    ? smoothstep(Math.min(1, (withinCycle - _currentHold) / _currentTransition))
     : 0;
 
   return { fnA: _current.fn, fnB: _next.fn, t };

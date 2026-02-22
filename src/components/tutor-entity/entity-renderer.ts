@@ -23,6 +23,8 @@ import {
   evalMorphedPoint,
   computeNormal,
   organicDisplacement,
+  isWaveformFn,
+  getAudioEnergy,
   type Vec3Out,
 } from './geometries';
 
@@ -142,16 +144,29 @@ export function computeEntityFrame(
 
   ensureBuffers(cols, rows);
 
+  // Morph state — needed early for voiceBlend
+  const morph = getMorphState(time);
+  const { fnA, fnB, t: morphT } = morph;
+
+  // Voice blend: how much waveform is currently visible (0 = none, 1 = full)
+  const isTargetWave = isWaveformFn(fnB);
+  const isCurrentWave = isWaveformFn(fnA);
+  const voiceBlend = isCurrentWave ? 1 : isTargetWave ? morphT : 0;
+
   // Accumulate rotation incrementally — direction never reverses on speed change
+  // Stop accumulating rotation when waveform is fully active
   const dt = _lastTime < 0 ? 0 : time - _lastTime;
   _lastTime = time;
-  _rotA += dt * params.rotSpeedA;
-  _rotB += dt * params.rotSpeedB;
+  const rotScale = 1 - voiceBlend;
+  _rotA += dt * params.rotSpeedA * rotScale;
+  _rotB += dt * params.rotSpeedB * rotScale;
 
   // Spring-damper tilt — entity orients toward cursor with inertia
+  // Dampen tilt toward zero when waveform active (bars should be upright)
   {
-    const targetA = focalPoint ? -(focalPoint.y - 0.5) * 2 * TILT_MAX : 0;
-    const targetB = focalPoint ? -(focalPoint.x - 0.5) * 2 * TILT_MAX : 0;
+    const tiltScale = 1 - voiceBlend;
+    const targetA = focalPoint ? -(focalPoint.y - 0.5) * 2 * TILT_MAX * tiltScale : 0;
+    const targetB = focalPoint ? -(focalPoint.x - 0.5) * 2 * TILT_MAX * tiltScale : 0;
 
     // F = -stiffness * displacement - damping * velocity
     const forceA = -TILT_STIFFNESS * (_tiltA - targetA) - TILT_DAMPING * _tiltVelA;
@@ -163,11 +178,15 @@ export function computeEntityFrame(
     _tiltB += _tiltVelB * dt;
   }
 
-  // Base rotation (X then Z axes) — continuous spin
-  const cosA = Math.cos(_rotA);
-  const sinA = Math.sin(_rotA);
-  const cosB = Math.cos(_rotB);
-  const sinB = Math.sin(_rotB);
+  // Base rotation (X then Z axes) — blend toward identity for waveform
+  const rawCosA = Math.cos(_rotA);
+  const rawSinA = Math.sin(_rotA);
+  const rawCosB = Math.cos(_rotB);
+  const rawSinB = Math.sin(_rotB);
+  const cosA = rawCosA + (1 - rawCosA) * voiceBlend;
+  const sinA = rawSinA * (1 - voiceBlend);
+  const cosB = rawCosB + (1 - rawCosB) * voiceBlend;
+  const sinB = rawSinB * (1 - voiceBlend);
   // Tilt: X-axis (up/down) and Y-axis (left/right) — cursor following
   const cosTiltX = Math.cos(_tiltA);
   const sinTiltX = Math.sin(_tiltA);
@@ -189,10 +208,6 @@ export function computeEntityFrame(
 
   const { thetaStep, phiStep } = params;
 
-  // Morph state
-  const morph = getMorphState(time);
-  const { fnA, fnB, t: morphT } = morph;
-
   // =========================================================================
   // PASS 1: Position → cheap displacement → rotate → project → z-buffer
   // Normal computation is DEFERRED to pass 2 (only for z-buffer winners)
@@ -211,24 +226,18 @@ export function computeEntityFrame(
       const pLen = Math.sqrt(px * px + py * py + pz * pz) || 1;
       let disp = organicDisplacement(theta, phi, time) * R1;
 
-      // === Audio-reactive displacement ===
+      // === Audio-reactive displacement (fades out as waveform takes over) ===
       if (frequencyBands && frequencyBands.length > 0) {
-        // Map theta position to a frequency band (equalizer effect)
-        // Each band deforms its angular region of the torus
-        const bandIndex = ((theta / TWO_PI) * frequencyBands.length) | 0;
-        const band = frequencyBands[Math.min(bandIndex, frequencyBands.length - 1)];
-
-        // Blend with neighbor bands for smooth transitions
-        const nextBand = frequencyBands[(bandIndex + 1) % frequencyBands.length];
-        const frac = (theta / TWO_PI) * frequencyBands.length - bandIndex;
-        const blended = band + (nextBand - band) * frac;
-
-        // Strong per-band deformation + overall energy boost
-        // The 8x multiplier makes the effect clearly visible
-        disp += blended * R1 * 0.8;
-
-        // Add high-frequency jitter from the raw band for "alive" texture
-        disp += band * R1 * 0.15 * Math.sin(phi * 13 + time * 8);
+        const dispScale = 1 - voiceBlend;
+        if (dispScale > 0.001) {
+          const bandIndex = ((theta / TWO_PI) * frequencyBands.length) | 0;
+          const band = frequencyBands[Math.min(bandIndex, frequencyBands.length - 1)];
+          const nextBand = frequencyBands[(bandIndex + 1) % frequencyBands.length];
+          const frac = (theta / TWO_PI) * frequencyBands.length - bandIndex;
+          const blended = band + (nextBand - band) * frac;
+          disp += blended * R1 * 0.8 * dispScale;
+          disp += band * R1 * 0.15 * Math.sin(phi * 13 + time * 8) * dispScale;
+        }
       }
 
       // Mic reactivity — pulse inward when user speaks
@@ -305,9 +314,14 @@ export function computeEntityFrame(
     const rny2 = nty;
     const rnz2 = -ntx * sinTiltY + ntz * cosTiltY;
 
-    // Lighting
-    const luminance = rnx2 * 0.4 + rny2 * 0.5 - rnz2 * 0.75;
-    const lumIndex = Math.max(0, ((luminance + 1) * 0.5 * maxLum + 0.5) | 0);
+    // Lighting — boost intensity when waveform is active and audio is loud
+    let luminance = rnx2 * 0.4 + rny2 * 0.5 - rnz2 * 0.75;
+    if (voiceBlend > 0) {
+      const energy = getAudioEnergy();
+      // Push luminance toward bright end proportional to audio energy
+      luminance += voiceBlend * energy * 0.8;
+    }
+    const lumIndex = Math.max(0, Math.min(maxLum, ((luminance + 1) * 0.5 * maxLum + 0.5) | 0));
     _lumBuf[idx] = lumIndex;
 
     // Glyph inscription
