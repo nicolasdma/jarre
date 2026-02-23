@@ -265,10 +265,12 @@ function StickyHeader({
         </div>
         <button
           onClick={onTocOpen}
-          className="lg:hidden w-10 h-10 flex items-center justify-center text-j-text-tertiary hover:text-j-text transition-colors"
+          className="lg:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px]"
           aria-label="Table of contents"
         >
-          &#9776;
+          <span className="block w-5 h-px bg-j-text transition-all duration-200" />
+          <span className="block w-5 h-px bg-j-text transition-all duration-200" />
+          <span className="block w-5 h-px bg-j-text transition-all duration-200" />
         </button>
       </div>
     </div>
