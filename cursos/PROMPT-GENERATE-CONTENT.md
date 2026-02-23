@@ -109,7 +109,8 @@ Seguir `TEMPLATE-CONTENT-GENERATION.md` pasos 0-8 para:
 - **No resumas.** Si algo del original tiene 10 páginas, el contenido enriquecido tiene 30, no 3.
 - **No inventes datos.** Si no está en el material fuente, no lo agregues como si lo estuviera.
 - **Sí agregá contexto.** Comparaciones con otros frameworks, contexto histórico, debugging — eso sí se agrega.
-- **El gold standard es kz2h-micrograd.** Ante la duda, mirá `scripts/output/kz2h-micrograd-resegmented.json` y hacé algo de calidad equivalente.
+- **El gold standard de *calidad pedagógica* es kz2h-micrograd** — el tono, los momentos eureka, la triple cobertura. Pero el *volumen* debe ajustarse al tipo de fuente (ver §7 del QUALITY-STANDARD). Ante la duda, mirá `scripts/output/kz2h-micrograd-resegmented.json` para referencia de calidad.
+- **No re-derives entre secciones.** Si un concepto ya fue explicado completo en S_n, S_{n+1} lo referencia ("como vimos en S_n..."), no lo re-explica desde cero.
 
 ---
 

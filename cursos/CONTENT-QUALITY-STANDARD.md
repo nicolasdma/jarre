@@ -179,6 +179,8 @@ Cuando un concepto reaparece en un contexto nuevo. La frase "la chain rule es so
 
 Cada repetición agrega contexto. No es redundancia — es refuerzo distribuido.
 
+> **Anti-patrón: re-derivación disfrazada de repetición distribuida.** Repetir distribuido significa que la *frase* o el *concepto* reaparece en contexto nuevo. NO significa re-explicar el concepto desde cero. Si S2 necesita la chain rule y S1 ya la explicó completa, S2 dice "como vimos en S1, la chain rule multiplica derivadas locales" — no re-deriva la chain rule.
+
 **Operación 6 — Explicitar código**
 
 Todo bloque de código de más de 3 líneas necesita explicación en prosa. El código NO se presenta como bloque final — se construye paso a paso:
@@ -405,7 +407,7 @@ Nunca solo la fórmula. Nunca solo la intuición. Siempre las dos:
 
 **Progresión clara:** más largas, más densas, más conectadas a medida que avanzan.
 
-### Métricas y Rangos Aceptables
+### Métricas y Rangos Aceptables (fuente de densidad media-alta)
 
 | Métrica | Valor en micrograd | Rango aceptable |
 |---------|-------------------|-----------------|
@@ -419,6 +421,19 @@ Nunca solo la fórmula. Nunca solo la intuición. Siempre las dos:
 | Analogías por recurso | 6 | 4-8 |
 | Reglas prácticas total | 13 | 8-15 |
 | Ratio expansión vs fuente | ~6x | 3-10x |
+
+### Rangos Ajustados por Tipo de Fuente
+
+Los valores anteriores corresponden a fuentes de densidad media-alta (capítulos de libro técnico, videos largos con alta densidad conceptual). Para otros tipos de fuente, los targets se ajustan:
+
+| Tipo de fuente | Densidad | Target total | Chars/sección | Ratio vs fuente |
+|--|--|--|--|--|
+| Video corto (1-2hrs) | Baja | 50K-80K | 10K-18K | 3-5x |
+| Video largo (3-5hrs) | Media | 80K-120K | 16K-25K | 2-3x |
+| Capítulo de libro técnico | Alta | 80K-130K | 16K-25K | 1.5-2.5x |
+| Paper académico | Muy alta | 60K-100K | 12K-20K | 3-5x |
+
+La clave no es alcanzar un número fijo, sino que cada carácter aporte valor. Un video de 2hrs con contenido repetitivo no justifica 100K+ chars de texto. Un capítulo denso de DDIA sí.
 
 ---
 
@@ -438,6 +453,8 @@ Nunca solo la fórmula. Nunca solo la intuición. Siempre las dos:
 | **Sin momentos eureka** | Pierde el engagement emocional | Presenta derivadas parciales como algo mundano |
 | **Afirmación sin demostración** | Pide fe ciega al lector | "la derivada es X" sin mostrar por qué |
 | **Tono uniforme** | Fatiga cognitiva | Todo explicación, o todo código, sin variación de ritmo |
+| **Re-derivación entre secciones** | El lector siente déjà vu, pierde confianza en la progresión | S1 explica derivada parcial completa, S2 la re-explica desde cero con ejemplo casi idéntico |
+| **Warm-up excesivo** | Las primeras ~2000 chars de una sección repiten la anterior en vez de avanzar | S4 abre recapitulando operaciones y verificación PyTorch que S3 ya cubrió completamente |
 
 ---
 
@@ -550,6 +567,8 @@ Antes de considerar una sección completa, verificar:
 - [ ] Título con metáfora o gancho ("Value — Un Número con Memoria")
 - [ ] Sub-secciones con headings descriptivos
 - [ ] Cierre que conecta con la siguiente sección
+- [ ] Ningún concepto se re-explica desde cero si ya se cubrió en una sección anterior (referenciar, no re-derivar)
+- [ ] El warm-up de cada sección es <500 chars antes de introducir contenido nuevo
 
 ### Profundidad
 - [ ] Cada concepto tiene: intuición + formalismo + verificación numérica
@@ -571,9 +590,9 @@ Antes de considerar una sección completa, verificar:
 - [ ] La sección final apunta explícitamente al siguiente recurso
 
 ### Volumen
-- [ ] Mínimo 16,000 caracteres por sección
-- [ ] 5 secciones por recurso
-- [ ] Total ~100,000+ caracteres por recurso
+- [ ] Caracteres por sección dentro del rango para el tipo de fuente (ver §7)
+- [ ] 4-6 secciones por recurso
+- [ ] Total dentro del rango para el tipo de fuente (ver §7)
 
 ### Tono
 - [ ] Conversacional pero preciso
