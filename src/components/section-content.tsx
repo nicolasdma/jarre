@@ -7,10 +7,11 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { ConceptVisual, hasConceptVisual } from './concept-visuals';
 import { InlineQuiz } from './inline-quiz';
+import { VideoSegment } from './video-segment';
 import { injectFigures } from '@/lib/figure-injector';
 import { splitAtBoldHeadings } from '@/lib/markdown-splitter';
 import type { FigureRegistry } from '@/lib/figure-registry';
-import type { InlineQuiz as InlineQuizType } from '@/types';
+import type { InlineQuiz as InlineQuizType, VideoSegment as VideoSegmentType } from '@/types';
 
 interface SectionContentProps {
   markdown: string;
@@ -18,6 +19,7 @@ interface SectionContentProps {
   sectionIndex?: number;
   figures?: FigureRegistry;
   inlineQuizzes?: InlineQuizType[];
+  videoSegments?: VideoSegmentType[];
 }
 
 /**
@@ -130,12 +132,15 @@ export function SectionContent({
   sectionIndex,
   figures,
   inlineQuizzes,
+  videoSegments,
 }: SectionContentProps) {
   // Pre-process markdown to inject figure images at caption positions
   const processed = figures ? injectFigures(markdown, figures) : markdown;
 
-  // If quizzes are provided, split content and interleave
+  // If quizzes or video segments are provided, split content and interleave
   const hasQuizzes = inlineQuizzes && inlineQuizzes.length > 0;
+  const hasVideoSegments = videoSegments && videoSegments.length > 0;
+  const needsInterleaving = hasQuizzes || hasVideoSegments;
 
   return (
     <div className="prose-jarre max-w-prose mx-auto">
@@ -143,10 +148,11 @@ export function SectionContent({
         <ConceptVisual conceptId={conceptId} sectionIndex={sectionIndex} />
       )}
 
-      {hasQuizzes ? (
+      {needsInterleaving ? (
         <InterleavedContent
           markdown={processed}
-          quizzes={inlineQuizzes}
+          quizzes={inlineQuizzes ?? []}
+          videoSegments={videoSegments ?? []}
         />
       ) : (
         <div data-segment-index={0}>
@@ -170,9 +176,11 @@ export function SectionContent({
 function InterleavedContent({
   markdown,
   quizzes,
+  videoSegments,
 }: {
   markdown: string;
   quizzes: InlineQuizType[];
+  videoSegments: VideoSegmentType[];
 }) {
   const segments = splitAtBoldHeadings(markdown);
 
@@ -185,9 +193,21 @@ function InterleavedContent({
     quizMap.set(key, existing);
   }
 
+  // Build video map: heading → video segments sorted by sortOrder
+  const videoMap = new Map<string, VideoSegmentType[]>();
+  for (const vs of videoSegments) {
+    const key = vs.positionAfterHeading;
+    const existing = videoMap.get(key) ?? [];
+    existing.push(vs);
+    videoMap.set(key, existing);
+  }
+
   return (
     <>
       {segments.map((segment, i) => {
+        const segmentVideos = segment.heading
+          ? videoMap.get(segment.heading) ?? []
+          : [];
         const segmentQuizzes = segment.heading
           ? quizMap.get(segment.heading) ?? []
           : [];
@@ -203,6 +223,12 @@ function InterleavedContent({
                 {`**${segment.heading}**`}
               </ReactMarkdown>
             )}
+
+            {/* Video segments: watch before reading */}
+            {segmentVideos.map((vs) => (
+              <VideoSegment key={vs.id} segment={vs} />
+            ))}
+
             {segment.content && (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
@@ -213,6 +239,7 @@ function InterleavedContent({
               </ReactMarkdown>
             )}
 
+            {/* Quizzes: verify after reading */}
             {segmentQuizzes.map((quiz) => (
               <InlineQuiz
                 key={quiz.id}

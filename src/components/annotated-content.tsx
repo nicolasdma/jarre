@@ -5,7 +5,7 @@ import { SectionContent } from './section-content';
 import { SelectionPopover } from './selection-popover';
 import { HighlightLayer } from './highlight-layer';
 import { createAnchor } from '@/lib/text-anchor';
-import type { Annotation, InlineQuiz } from '@/types';
+import type { Annotation, InlineQuiz, VideoSegment } from '@/types';
 import type { FigureRegistry } from '@/lib/figure-registry';
 
 interface AnnotatedContentProps {
@@ -15,6 +15,7 @@ interface AnnotatedContentProps {
   sectionIndex?: number;
   figures?: FigureRegistry;
   inlineQuizzes?: InlineQuiz[];
+  videoSegments?: VideoSegment[];
 }
 
 /**
@@ -28,6 +29,7 @@ export function AnnotatedContent({
   sectionIndex,
   figures,
   inlineQuizzes,
+  videoSegments,
 }: AnnotatedContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -116,6 +118,7 @@ export function AnnotatedContent({
         sectionIndex={sectionIndex}
         figures={figures}
         inlineQuizzes={inlineQuizzes}
+        videoSegments={videoSegments}
       />
 
       <SelectionPopover

@@ -5,7 +5,7 @@ import { AnnotatedContent } from './annotated-content';
 import { ConfidenceIndicator, type ConfidenceLevel } from './confidence-indicator';
 import { SelfExplanation } from './self-explanation';
 import { t, type Language } from '@/lib/translations';
-import type { ReviewSubmitResponse, InlineQuiz, Exercise, ExerciseResult } from '@/types';
+import type { ReviewSubmitResponse, InlineQuiz, VideoSegment, Exercise, ExerciseResult } from '@/types';
 import type { FigureRegistry } from '@/lib/figure-registry';
 import { useWhisper } from '@/lib/whisper/whisper-context';
 import type { SectionState } from '@/lib/learn-progress';
@@ -34,6 +34,7 @@ interface ConceptSectionProps {
   onStateChange?: (state: SectionState) => void;
   figureRegistry?: FigureRegistry;
   inlineQuizzes?: InlineQuiz[];
+  videoSegments?: VideoSegment[];
   exercises?: Exercise[];
 }
 
@@ -61,6 +62,7 @@ export const ConceptSection = memo(function ConceptSection({
   onStateChange,
   figureRegistry,
   inlineQuizzes,
+  videoSegments,
   exercises,
 }: ConceptSectionProps) {
   const hasExercises = exercises && exercises.length > 0;
@@ -431,6 +433,7 @@ export const ConceptSection = memo(function ConceptSection({
             sectionIndex={section.sortOrder}
             figures={figureRegistry}
             inlineQuizzes={inlineQuizzes}
+            videoSegments={videoSegments}
           />
 
           {phase === 'content' && (
