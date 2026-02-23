@@ -33,7 +33,7 @@ import { LearnFlow } from '@/components/learn-flow';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
 import type { LearnProgress } from '@/lib/learn-progress';
-import type { InlineQuiz } from '@/types';
+import type { InlineQuiz, VideoSegment } from '@/types';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -165,6 +165,13 @@ export default async function LearnPage({ params }: PageProps) {
       .eq('is_active', true)
       .order('sort_order');
 
+    // Fetch video segments for all sections in this resource
+    const { data: videoSegmentsRaw } = await supabase
+      .from('video_segments')
+      .select('*')
+      .in('section_id', sectionIds)
+      .order('sort_order');
+
     // Group quizzes by section_id
     const quizzesBySectionId: Record<string, InlineQuiz[]> = {};
     if (quizzesRaw) {
@@ -184,6 +191,26 @@ export default async function LearnPage({ params }: PageProps) {
         const arr = quizzesBySectionId[q.section_id] ?? [];
         arr.push(quiz);
         quizzesBySectionId[q.section_id] = arr;
+      }
+    }
+
+    // Group video segments by section_id
+    const videoSegmentsBySectionId: Record<string, VideoSegment[]> = {};
+    if (videoSegmentsRaw) {
+      for (const vs of videoSegmentsRaw) {
+        const segment: VideoSegment = {
+          id: vs.id,
+          sectionId: vs.section_id,
+          positionAfterHeading: vs.position_after_heading,
+          sortOrder: vs.sort_order,
+          youtubeVideoId: vs.youtube_video_id,
+          startSeconds: vs.start_seconds,
+          endSeconds: vs.end_seconds,
+          label: vs.label ?? null,
+        };
+        const arr = videoSegmentsBySectionId[vs.section_id] ?? [];
+        arr.push(segment);
+        videoSegmentsBySectionId[vs.section_id] = arr;
       }
     }
 
@@ -211,6 +238,7 @@ export default async function LearnPage({ params }: PageProps) {
         initialProgress={initialProgress}
         figureRegistry={FIGURE_REGISTRY}
         quizzesBySectionId={quizzesBySectionId}
+        videoSegmentsBySectionId={videoSegmentsBySectionId}
       />
     );
   }

@@ -22,7 +22,7 @@ import { WhisperToggle } from './whisper-toggle';
 
 const log = createLogger('LearnFlow');
 import type { FigureRegistry } from '@/lib/figure-registry';
-import type { InlineQuiz, Exercise } from '@/types';
+import type { InlineQuiz, VideoSegment, Exercise } from '@/types';
 import { getExercisesForConcept } from '@/lib/exercises/registry';
 
 // ============================================================================
@@ -68,6 +68,7 @@ interface LearnFlowProps {
   initialProgress?: LearnProgress;
   figureRegistry?: FigureRegistry;
   quizzesBySectionId?: Record<string, InlineQuiz[]>;
+  videoSegmentsBySectionId?: Record<string, VideoSegment[]>;
 }
 
 // ============================================================================
@@ -116,6 +117,7 @@ interface ConceptSectionWrapperProps {
   onStateChange: (conceptId: string, state: SectionState) => void;
   figureRegistry?: FigureRegistry;
   quizzesBySectionId?: Record<string, InlineQuiz[]>;
+  videoSegmentsBySectionId?: Record<string, VideoSegment[]>;
   exercises?: Exercise[];
 }
 
@@ -130,6 +132,7 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
   onStateChange,
   figureRegistry,
   quizzesBySectionId,
+  videoSegmentsBySectionId,
   exercises,
 }: ConceptSectionWrapperProps) {
   const handleComplete = useCallback(() => onComplete(index), [onComplete, index]);
@@ -150,6 +153,7 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
       onStateChange={handleStateChange}
       figureRegistry={figureRegistry}
       inlineQuizzes={quizzesBySectionId?.[section.id]}
+      videoSegments={videoSegmentsBySectionId?.[section.id]}
       exercises={exercises}
     />
   );
@@ -282,6 +286,7 @@ export function LearnFlow({
   initialProgress,
   figureRegistry,
   quizzesBySectionId,
+  videoSegmentsBySectionId,
 }: LearnFlowProps) {
   const [currentStep, setCurrentStep] = useState<Step>(
     (initialProgress?.currentStep as Step) ?? 'activate'
@@ -582,6 +587,7 @@ export function LearnFlow({
                   onStateChange={handleSectionStateChange}
                   figureRegistry={figureRegistry}
                   quizzesBySectionId={quizzesBySectionId}
+                  videoSegmentsBySectionId={videoSegmentsBySectionId}
                   exercises={getExercisesForConcept(section.conceptId)}
                 />
               ))}

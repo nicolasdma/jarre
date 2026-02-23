@@ -90,6 +90,21 @@ export interface InlineQuiz {
 }
 
 // ============================================================================
+// VIDEO SEGMENTS
+// ============================================================================
+
+export interface VideoSegment {
+  id: string;
+  sectionId: string;
+  positionAfterHeading: string;
+  sortOrder: number;
+  youtubeVideoId: string;
+  startSeconds: number;
+  endSeconds: number;
+  label: string | null;
+}
+
+// ============================================================================
 // REVIEW API TYPES
 // ============================================================================
 
