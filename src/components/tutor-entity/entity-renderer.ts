@@ -350,6 +350,7 @@ export function paintEntityFrame(
   height: number,
   params: EntityStateParams,
   focalPoint?: { x: number; y: number } | null,
+  time: number = 0,
 ): void {
   ctx.clearRect(0, 0, width, height);
   if (!_frameValid) return;
@@ -372,6 +373,9 @@ export function paintEntityFrame(
   const hasFocal = focalPoint != null;
   const fx = hasFocal ? focalPoint!.x : 0;
   const fy = hasFocal ? focalPoint!.y : 0;
+
+  const sparkleProb = params.sparkleProb;
+  const hasWaves = params.colorCycleSpeed > 0;
 
   for (let row = 0; row < rows; row++) {
     const rowOffset = row * cols;
@@ -401,12 +405,43 @@ export function paintEntityFrame(
 
       const normalized = lumIndex / maxLum;
       const boostedNorm = Math.min(1, normalized * focalBoost);
-      const opacity = charOpacity * (0.35 + 0.65 * boostedNorm) * Math.min(1.0, focalBoost * 0.7);
 
-      const blend = boostedNorm * boostedNorm;
-      const r = (cr + (ar - cr) * blend + 0.5) | 0;
-      const g = (cg + (ag - cg) * blend + 0.5) | 0;
-      const b = (cb + (ab - cb) * blend + 0.5) | 0;
+      // Sparkle: random chars flash bright white
+      const isSparkle = sparkleProb > 0 && Math.random() < sparkleProb && boostedNorm > 0.3;
+
+      // Surface waves: flowing brightness ripples across theta/phi
+      let waveBoost = 0;
+      if (hasWaves) {
+        const theta = _thetaBuf[idx];
+        const phi = _phiBuf[idx];
+        // Three waves at different speeds/directions for organic flow
+        const w1 = Math.sin(theta * 3.0 + phi * 1.5 + time * 2.2);
+        const w2 = Math.sin(theta * 1.2 - phi * 2.8 + time * 1.5);
+        const w3 = Math.sin(theta * 2.5 + phi * 3.5 - time * 3.0) * 0.5;
+        // Combine: range ~[-1, 1], bias toward positive
+        waveBoost = (w1 * 0.45 + w2 * 0.35 + w3 * 0.20) * 0.5 + 0.5;
+        // Sharpen peaks for distinct bright bands, dim valleys
+        waveBoost = waveBoost * waveBoost;
+      }
+
+      let opacity: number;
+      let r: number, g: number, b: number;
+
+      if (isSparkle) {
+        opacity = Math.min(1.0, charOpacity * 1.5);
+        r = 255; g = 255; b = 255;
+      } else {
+        const waveLum = hasWaves ? boostedNorm + waveBoost * 0.4 : boostedNorm;
+        const clampedLum = Math.min(1, waveLum);
+
+        opacity = charOpacity * (0.35 + 0.65 * clampedLum) * Math.min(1.0, focalBoost * 0.7);
+
+        // Blend toward accent color more aggressively on wave peaks
+        const blend = clampedLum * clampedLum;
+        r = (cr + (ar - cr) * blend + 0.5) | 0;
+        g = (cg + (ag - cg) * blend + 0.5) | 0;
+        b = (cb + (ab - cb) * blend + 0.5) | 0;
+      }
 
       ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
       ctx.fillText(ch, col * charW + charW * 0.5, cy);
@@ -427,7 +462,7 @@ export function renderEntityFrame(
   focalPoint?: { x: number; y: number } | null,
 ): void {
   computeEntityFrame(width, height, params, time, focalPoint);
-  paintEntityFrame(ctx, width, height, params, focalPoint);
+  paintEntityFrame(ctx, width, height, params, focalPoint, time);
 }
 
 // ---------------------------------------------------------------------------

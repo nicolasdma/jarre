@@ -321,9 +321,9 @@ export function setVoiceActive(active: boolean): void {
     _next = randomGeometry(_current);
   }
 
-  // Start transitioning immediately with a 2s morph
+  // Start transitioning immediately — slow morph for dramatic effect
   _currentHold = 0;
-  _currentTransition = 2.0;
+  _currentTransition = 3.5;
   _currentCycle = _currentTransition;
   _cycleStart = _lastMorphTime;
 }
