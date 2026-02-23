@@ -33,7 +33,7 @@ const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
 
 /**
  * Sidebar Table of Contents for the learn flow.
- * Desktop: sticky sidebar. Mobile: FAB + slide-over panel.
+ * Desktop: sticky sidebar. Mobile: slide-over panel (trigger in StickyHeader).
  */
 export function LearnTOC({
   language,
@@ -136,25 +136,27 @@ export function LearnTOC({
         {content}
       </aside>
 
-      {/* Mobile overlay */}
+      {/* Mobile slide-over — matches MobileNav overlay style */}
       {mobileOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 z-[70] bg-black/30"
+            className="lg:hidden fixed inset-0 bg-black/20 z-40"
             onClick={() => onMobileOpenChange(false)}
-            role="presentation"
             aria-hidden="true"
           />
-          <div className="lg:hidden fixed right-0 top-0 bottom-0 z-[80] w-[280px] max-w-[85vw] bg-j-bg border-l border-j-border overflow-y-auto">
+          <div className="lg:hidden fixed right-0 top-0 bottom-0 z-50 w-[280px] max-w-[85vw] bg-j-bg/95 backdrop-blur-lg border-l border-j-border overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b border-j-border">
               <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                 {language === 'es' ? 'Contenido' : 'Contents'}
               </span>
               <button
                 onClick={() => onMobileOpenChange(false)}
-                className="text-j-text-tertiary hover:text-j-text text-lg"
+                className="flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px]"
+                aria-label="Close menu"
               >
-                &#10005;
+                <span className="block w-5 h-px bg-j-text rotate-45 translate-y-[3.5px] transition-all duration-200" />
+                <span className="block w-5 h-px bg-j-text opacity-0 transition-all duration-200" />
+                <span className="block w-5 h-px bg-j-text -rotate-45 -translate-y-[3.5px] transition-all duration-200" />
               </button>
             </div>
             {content}
