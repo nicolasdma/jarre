@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { t, type Language } from '@/lib/translations';
 
 type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
@@ -18,6 +17,8 @@ interface LearnTOCProps {
   visitedSteps: Set<Step>;
   onSectionClick: (index: number) => void;
   onStepClick: (step: Step) => void;
+  mobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
 }
 
 const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'practice-eval', 'evaluate'];
@@ -43,17 +44,18 @@ export function LearnTOC({
   visitedSteps,
   onSectionClick,
   onStepClick,
+  mobileOpen,
+  onMobileOpenChange,
 }: LearnTOCProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSectionClick = (index: number) => {
     onSectionClick(index);
-    setMobileOpen(false);
+    onMobileOpenChange(false);
   };
 
   const handleStepClick = (step: Step) => {
     onStepClick(step);
-    setMobileOpen(false);
+    onMobileOpenChange(false);
   };
 
   const content = (
@@ -134,21 +136,12 @@ export function LearnTOC({
         {content}
       </aside>
 
-      {/* Mobile FAB */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed bottom-6 right-4 z-50 w-12 h-12 bg-j-accent text-j-text-on-accent rounded-full shadow-lg flex items-center justify-center font-mono text-sm hover:bg-j-accent-hover transition-colors"
-        aria-label="Table of contents"
-      >
-        &#9776;
-      </button>
-
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
           <div
             className="lg:hidden fixed inset-0 z-[70] bg-black/30"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => onMobileOpenChange(false)}
             role="presentation"
             aria-hidden="true"
           />
@@ -158,7 +151,7 @@ export function LearnTOC({
                 {language === 'es' ? 'Contenido' : 'Contents'}
               </span>
               <button
-                onClick={() => setMobileOpen(false)}
+                onClick={() => onMobileOpenChange(false)}
                 className="text-j-text-tertiary hover:text-j-text text-lg"
               >
                 &#10005;
