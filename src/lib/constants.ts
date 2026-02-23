@@ -172,3 +172,13 @@ export const CONTENT_TRUNCATION_CHARS = 32_000;
 
 /** Max chars for concept definitions in linking prompts */
 export const DEFINITION_TRUNCATION_CHARS = 80;
+
+// ============================================================================
+// VOICE COMPRESSION
+// ============================================================================
+
+/** Transcript buffer entries before triggering compression in fallback */
+export const VOICE_COMPRESS_THRESHOLD = 80;
+
+/** Recent turns to keep uncompressed in fallback context */
+export const VOICE_FALLBACK_RECENT_TURNS = 40;
