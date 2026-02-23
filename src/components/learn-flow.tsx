@@ -202,7 +202,7 @@ function StickyHeader({
     <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm transition-all duration-300 ${
       isFocusMode ? 'py-0' : ''
     }`}>
-      <div className={`mx-auto flex max-w-6xl items-center justify-between px-8 transition-all duration-300 ${
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-2 sm:px-8 transition-all duration-300 ${
         isFocusMode ? 'py-2' : 'py-4'
       }`}>
         <Link
@@ -243,8 +243,8 @@ function StickyHeader({
           })}
         </div>
 
-        {/* Whisper toggle */}
-        <WhisperToggle language={language} />
+        {/* Whisper toggle — disabled, feature toggled off */}
+        {/* <WhisperToggle language={language} /> */}
 
         {/* Right side: resource title + step info on desktop (lg+) */}
         <div className="hidden lg:flex items-center gap-3">
@@ -495,7 +495,7 @@ export function LearnFlow({
       )}
 
       {/* Step content — centered relative to full viewport (compensates for TOC + tutor sidebar) */}
-      <div className={`max-w-3xl px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' ? 'hidden' : ''}`}>
+      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' ? 'hidden' : ''}`}>
         {/* STEP 1: ACTIVATE — Advance organizer */}
         {currentStep === 'activate' && (
           <div>
