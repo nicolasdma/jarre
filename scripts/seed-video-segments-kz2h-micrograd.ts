@@ -32,281 +32,274 @@ interface VideoSegmentDef {
   label: string;
 }
 
-// Rigorous mapping verified by cross-referencing transcript content_original with
-// section content_markdown under each bold heading. Timestamps from the 39-part
-// transcript in scripts/output/youtube-VMj-3S1tku0-sections.json.
+// Timestamps based on official YouTube chapters from the video description:
 //
-// Methodology: for each bold heading, read what the text explains, then find which
-// transcript part(s) cover the SAME topic. Where a heading is purely editorial
-// (no video equivalent), we skip it — no forced mapping.
+// 00:00:00 intro
+// 00:00:25 micrograd overview
+// 00:08:08 derivative of a simple function with one input
+// 00:14:12 derivative of a function with multiple inputs
+// 00:19:09 starting the core Value object and its visualization
+// 00:32:10 manual backpropagation example #1: simple expression
+// 00:51:10 preview of a single optimization step
+// 00:52:52 manual backpropagation example #2: a neuron
+// 01:09:02 implementing the backward function for each operation
+// 01:17:32 implementing the backward function for a whole expression graph
+// 01:22:28 fixing a backprop bug when one node is used multiple times
+// 01:27:05 breaking up a tanh, exercising with more operations
+// 01:39:31 doing the same thing but in PyTorch: comparison
+// 01:43:55 building out a neural net library (MLP) in micrograd
+// 01:51:04 creating a tiny dataset, writing the loss function
+// 01:57:56 collecting all of the parameters of the neural net
+// 02:01:12 doing gradient descent optimization manually, training the network
+// 02:14:03 summary of what we learned, how to go towards modern neural nets
+// 02:16:46 walkthrough of the full code of micrograd on github
+// 02:21:10 real stuff: diving into PyTorch, finding backward pass for tanh
+// 02:24:39 conclusion
+// 02:25:20 outtakes
 //
 // Note: the resegmented sections reorganize content THEMATICALLY, not chronologically.
-// So timestamps may jump around the video timeline.
+// Editorial headings (no video equivalent) are skipped.
 
 const SEGMENTS: VideoSegmentDef[] = [
   // ────────────────────────────────────────────────
   // Section 0: Qué es ML — La Fábrica que Aprende Sola
-  // Bold headings: El cambio de paradigma, Los ingredientes del ML,
-  //   La fábrica con perillas, Micrograd y la clase Value, De micrograd a PyTorch
-  //
-  // NOTE: "El cambio de paradigma", "Los ingredientes del ML" and "La fábrica con
-  // perillas" are editorial/synthetic — Karpathy never discusses "paradigm shift",
-  // "3 ingredients of ML", or the "factory with knobs" analogy. Only "Micrograd y la
-  // clase Value" and "De micrograd a PyTorch" map directly to video content.
-  // ────────────────────────────────────────────────
   // SKIP: "El cambio de paradigma" — editorial, no video equivalent
   // SKIP: "Los ingredientes del ML" — editorial, no video equivalent
   // SKIP: "La fábrica con perillas" — editorial, no video equivalent
+  // ────────────────────────────────────────────────
   {
-    // Heading text: what is micrograd, autograd engine, backpropagation, Value object,
-    // expression graph, forward pass, backward pass, ~100 lines of code.
-    // Video: Parts 1-3 (0:00-10:09) cover this intro + "everything else is efficiency"
+    // Chapters: "intro" + "micrograd overview" (00:00:00 → 00:08:08)
+    // Covers: what is micrograd, autograd, backpropagation, Value object, expression graph,
+    // "everything else is just efficiency", engine.py + nn.py = ~150 lines
     sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
     positionAfterHeading: 'Micrograd y la clase Value',
     sortOrder: 0,
-    startSeconds: 0,
-    endSeconds: 609,
+    startSeconds: 0,       // 00:00:00 intro
+    endSeconds: 488,       // 00:08:08 next chapter starts
     label: 'Intro: qué es micrograd, Value y expression graphs',
   },
   {
-    // Heading text: comparison table micrograd vs PyTorch, scalars vs tensors,
-    // "none of the math changes, purely for efficiency"
-    // Video: Part 2 (3:23-6:44) explains scalar vs tensor + efficiency argument
-    // + Parts 27-28 (1:39:44-1:46:41) show PyTorch API equivalence
+    // Chapter: "doing the same thing but in PyTorch: comparison" (01:39:31 → 01:43:55)
+    // Covers: PyTorch API comparison, torch.Tensor, requires_grad, identical results
     sectionTitle: 'Qué es ML — La Fábrica que Aprende Sola',
     positionAfterHeading: 'De micrograd a PyTorch',
     sortOrder: 0,
-    startSeconds: 5984,
-    endSeconds: 6401,
+    startSeconds: 5971,    // 01:39:31
+    endSeconds: 6235,      // 01:43:55 next chapter starts
     label: 'Demo PyTorch: mismos resultados que micrograd',
   },
 
   // ────────────────────────────────────────────────
   // Section 1: Value — Un Número con Memoria
-  // Bold headings: Construyendo Value, El DAG, El gradiente
   // ────────────────────────────────────────────────
   {
-    // Heading text: Step-by-step Value class: skeleton, __add__, __mul__,
-    // _children/_prev, _op, label.
-    // Video: Parts 6-8 (16:57-28:07) — implements Value, add, mul, _prev, _op, label
+    // Chapter: "starting the core Value object and its visualization" (00:19:09 → 00:32:10)
+    // Covers: Value class step-by-step, __add__, __mul__, _prev, _op, label, graphviz
     sectionTitle: 'Value — Un Número con Memoria',
     positionAfterHeading: 'Construyendo Value',
     sortOrder: 0,
-    startSeconds: 1017,
-    endSeconds: 1687,
-    label: 'Clase Value: __add__, __mul__, _prev, _op, label',
+    startSeconds: 1149,    // 00:19:09
+    endSeconds: 1930,      // 00:32:10 next chapter starts
+    label: 'Clase Value: __add__, __mul__, _prev, _op, visualización',
   },
   {
-    // Heading text: DAG explanation, graphviz visualization, draw_dot, adding depth
-    // Video: Parts 8-9 (24:06-31:57) — drawdot, graphviz, expression graph, adds f and L
+    // Same chapter tail — graphviz visualization and DAG structure covered within
+    // "starting the core Value object" chapter (from ~24:00 when drawdot is introduced)
     sectionTitle: 'Value — Un Número con Memoria',
     positionAfterHeading: 'El DAG',
     sortOrder: 0,
-    startSeconds: 1446,
-    endSeconds: 1917,
+    startSeconds: 1440,    // ~24:00 drawdot introduced (within chapter)
+    endSeconds: 1930,      // 00:32:10 next chapter starts
     label: 'El DAG: visualización con Graphviz y draw_dot',
   },
   {
-    // Heading text: self.grad = 0.0, derivative of L w.r.t. L is 1, why "gradient" not "derivative"
-    // Video: Part 9 (28:05-31:57) — introduces self.grad, "zero means no effect", visualizes grad
+    // Chapter: "manual backpropagation example #1" start (00:32:10)
+    // The grad attribute (self.grad = 0.0) and dL/dL = 1 are set up at the START of this chapter
     sectionTitle: 'Value — Un Número con Memoria',
     positionAfterHeading: 'El gradiente',
     sortOrder: 0,
-    startSeconds: 1685,
-    endSeconds: 1917,
+    startSeconds: 1930,    // 00:32:10
+    endSeconds: 2100,      // ~35:00 after grad is introduced and dL/dL=1 established
     label: 'El atributo .grad y el caso base dL/dL = 1',
   },
 
   // ────────────────────────────────────────────────
   // Section 2: La Derivada Parcial — El Momento Eureka
-  // Bold headings: PARA. QUE. ES. ESTO., La multiplicación como amplificador,
-  //   La retropropagación manual, Verificación de gradientes
   // ────────────────────────────────────────────────
   {
-    // Heading text: formal name "partial derivative", limit definition, numerical evaluation
-    // Video: Parts 3-4 (6:42-12:56) — definition of derivative, f(x+h)-f(x)/h, slope at x=3 is 14
+    // Chapter: "derivative of a simple function with one input" (00:08:08 → 00:14:12)
+    // Covers: definition of derivative, limit, f(x+h)-f(x)/h, slope at x=3
     sectionTitle: 'La Derivada Parcial — El Momento Eureka',
     positionAfterHeading: 'PARA. QUE. ES. ESTO.',
     sortOrder: 0,
-    startSeconds: 402,
-    endSeconds: 776,
+    startSeconds: 488,     // 00:08:08
+    endSeconds: 852,       // 00:14:12 next chapter starts
     label: 'La derivada: definición, límite y evaluación numérica',
   },
   {
-    // Heading text: d(a*b)/da = b, the multiplication "crosses" variables, sum passes gradient directly
-    // Video: Parts 5-6 (12:54-20:54) — multi-variable expression d=a*b+c, derivatives of a,b,c
+    // Chapter: "derivative of a function with multiple inputs" (00:14:12 → 00:19:09)
+    // Covers: d=a*b+c, derivative of a is b, b is a, c is 1
     sectionTitle: 'La Derivada Parcial — El Momento Eureka',
     positionAfterHeading: 'La multiplicación como amplificador',
     sortOrder: 0,
-    startSeconds: 774,
-    endSeconds: 1254,
+    startSeconds: 852,     // 00:14:12
+    endSeconds: 1149,      // 00:19:09 next chapter starts
     label: 'Derivadas con múltiples variables: d=a*b+c',
   },
   {
-    // Heading text: full graph L=d*f, backprop step by step, dL/dL=1, dL/dd=f, dL/df=d,
-    // chain rule for dL/dc and dL/de, Wikipedia chain rule, car/bicycle/walker analogy
-    // Video: Parts 10-14 (31:55-51:21) — manual backprop through entire expression graph
+    // Chapter: "manual backpropagation example #1: simple expression" (00:32:10 → 00:51:10)
+    // Covers: full manual backprop through L=d*f, chain rule, Wikipedia, verification
     sectionTitle: 'La Derivada Parcial — El Momento Eureka',
     positionAfterHeading: 'La retropropagación manual',
     sortOrder: 0,
-    startSeconds: 1915,
-    endSeconds: 3081,
+    startSeconds: 1930,    // 00:32:10
+    endSeconds: 3070,      // 00:51:10 next chapter starts
     label: 'Backprop manual paso a paso + chain rule',
   },
   {
-    // Heading text: gradient check pattern, lol() function, bump variable by h, compare
-    // Video: Part 10 (31:55-35:46) — first numerical verification with lol()
-    // + Part 14 (47:03-51:21) — verification of a.grad=6 and b.grad=-4
+    // Within chapter "manual backprop example #1" — numerical verification with lol()
+    // Karpathy verifies gradients numerically throughout this section
     sectionTitle: 'La Derivada Parcial — El Momento Eureka',
     positionAfterHeading: 'Verificación de gradientes',
     sortOrder: 0,
-    startSeconds: 2823,
-    endSeconds: 3081,
+    startSeconds: 2820,    // ~47:00 final verification of a.grad=6 and b.grad=-4
+    endSeconds: 3070,      // 00:51:10 next chapter
     label: 'Verificación numérica: gradient checking',
   },
 
   // ────────────────────────────────────────────────
   // Section 3: Backpropagation y la Chain Rule
-  // Bold headings: Forward y backward a mano, Gradientes de la suma `z = xw + b`:,
-  //   Gradientes de la multiplicación `xw = x * w`:, El training step,
-  //   Backprop con tanh, El patrón _backward, El método backward(), El bug del +=
   // ────────────────────────────────────────────────
   {
-    // Heading text: minimal neuron x=2, w=-3, b=1, forward pass trivial
-    // Video: Parts 15-16 (51:19-58:59) — introduces neuron with inputs/weights/bias, builds expression
+    // Chapters: "preview of optimization step" + "manual backprop #2: a neuron" (00:51:10 → 01:09:02)
+    // Covers: neuron with inputs/weights/bias, tanh, forward pass, manual backprop of neuron
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'Forward y backward a mano',
     sortOrder: 0,
-    startSeconds: 3079,
-    endSeconds: 3539,
-    label: 'Neurona: inputs, weights, bias y forward pass',
+    startSeconds: 3070,    // 00:51:10 preview of optimization step
+    endSeconds: 4142,      // 01:09:02 next chapter starts
+    label: 'Neurona con tanh: forward pass y backprop manual',
   },
   {
-    // Heading text: in a sum, both gradients are 1, "distributor of gradients"
-    // Video: Part 18 (1:03:07-1:07:22) — "a plus is just a distributor of gradient... 0.5 will flow to both"
+    // Within "manual backprop #2" — sum gradients are 1, "distributor of gradients"
+    // Karpathy explains this around 1:03-1:07 in the video
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'Gradientes de la suma `z = xw + b`:',
     sortOrder: 0,
-    startSeconds: 3787,
-    endSeconds: 4042,
+    startSeconds: 3780,    // ~01:03:00 "a plus is just a distributor of gradient"
+    endSeconds: 4020,      // ~01:07:00
     label: 'La suma distribuye el gradiente sin amplificar',
   },
   {
-    // Heading text: local derivative of x is w, of w is x, chain rule application
-    // Video: Parts 18-19 (1:03:07-1:11:45) — backprop through * node: x2.grad=w2*grad, w2.grad=x2*grad
+    // Within "manual backprop #2" — multiplication gradients cross variables
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'Gradientes de la multiplicación `xw = x * w`:',
     sortOrder: 0,
-    startSeconds: 4040,
-    endSeconds: 4305,
+    startSeconds: 4020,    // ~01:07:00 backprop through * nodes
+    endSeconds: 4142,      // 01:09:02 next chapter
     label: 'La multiplicación cruza: grad_x = w, grad_w = x',
   },
   {
-    // Heading text: w -= lr * grad, learning rate, why subtract (gradient points to increase)
-    // Video: Parts 32-33 (1:57:59-2:06:55) — gradient descent step, "opposite direction", negative sign
+    // Chapters: "doing gradient descent" + part of "collecting parameters" (01:57:56 → 02:14:03)
+    // Covers: w -= lr * grad, learning rate, why subtract, training loop
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'El training step',
     sortOrder: 0,
-    startSeconds: 7079,
-    endSeconds: 7615,
-    label: 'Gradient descent: w -= lr * grad',
+    startSeconds: 7076,    // 01:57:56 collecting parameters
+    endSeconds: 8043,      // 02:14:03 summary
+    label: 'Gradient descent: parámetros, actualización y training loop',
   },
   {
-    // Heading text: tanh activation, math.exp implementation, derivative 1-tanh²(x),
-    // full backprop through neuron with tanh
-    // Video: Parts 16-19 (55:08-1:11:45) — implements tanh, derivative, full manual backprop
+    // Chapter: "manual backpropagation example #2: a neuron" (00:52:52 → 01:09:02)
+    // Covers: tanh implementation, derivative 1-tanh²(x), complete neuron backprop
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'Backprop con tanh',
     sortOrder: 0,
-    startSeconds: 3308,
-    endSeconds: 4305,
+    startSeconds: 3172,    // 00:52:52
+    endSeconds: 4142,      // 01:09:02 next chapter starts
     label: 'Implementando tanh y backprop completo de una neurona',
   },
   {
-    // Heading text: _backward closures for +, *, tanh
-    // Video: Parts 19-21 (1:07:20-1:21:13) — introduces _backward, implements for add/mul/tanh
+    // Chapter: "implementing backward function for each operation" (01:09:02 → 01:17:32)
+    // Covers: _backward closures for +, *, tanh
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'El patrón _backward',
     sortOrder: 0,
-    startSeconds: 4040,
-    endSeconds: 4873,
+    startSeconds: 4142,    // 01:09:02
+    endSeconds: 4652,      // 01:17:32 next chapter starts
     label: 'Closures _backward: automatizando gradientes por operación',
   },
   {
-    // Heading text: topological sort + self.grad=1 + reversed iteration
-    // Video: Parts 21-22 (1:16:45-1:25:34) — build_topo, reversed, backward() method in Value
+    // Chapter: "implementing backward for a whole expression graph" (01:17:32 → 01:22:28)
+    // Covers: topological sort, self.grad=1, reversed iteration, backward() method
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'El método backward()',
     sortOrder: 0,
-    startSeconds: 4605,
-    endSeconds: 5134,
+    startSeconds: 4652,    // 01:17:32
+    endSeconds: 4948,      // 01:22:28 next chapter starts
     label: 'Orden topológico y backward() automático',
   },
   {
-    // Heading text: a+a gives grad=1 instead of 2, multipath contributions, += vs =, zero_grad
-    // Also covers: rmul, exp, pow, sub, neg, division, tanh decomposition
-    // Video: Parts 22-26 (1:21:11-1:39:46) — bug discovery, fix with +=, new ops, tanh decomposed
+    // Chapters: "fixing backprop bug" + "breaking up tanh" (01:22:28 → 01:39:31)
+    // Covers: += vs = bug, multipath gradients, exp, pow, rmul, sub, neg, division, tanh decomposed
     sectionTitle: 'Backpropagation y la Chain Rule',
     positionAfterHeading: 'El bug del +=',
     sortOrder: 0,
-    startSeconds: 4871,
-    endSeconds: 5986,
+    startSeconds: 4948,    // 01:22:28
+    endSeconds: 5971,      // 01:39:31 next chapter starts
     label: 'El bug de acumular gradientes + operaciones adicionales',
   },
 
   // ────────────────────────────────────────────────
   // Section 4: De una Neurona a un MLP
-  // Bold headings: La clase Neuron, La clase MLP, El bucle de entrenamiento,
-  //   Las capas ocultas, Micrograd vs PyTorch
   // ────────────────────────────────────────────────
   {
-    // Heading text: Neuron class with __init__ (random weights, bias), __call__ (w·x+b+tanh), parameters()
-    // Video: Parts 28-29 (1:42:51-1:50:28) — class Neuron, __init__, __call__, forward pass
+    // Chapter: "building out a neural net library (MLP)" (01:43:55 → 01:51:04)
+    // Covers: Neuron class, Layer, MLP, 3→4→4→1 architecture
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'La clase Neuron',
     sortOrder: 0,
-    startSeconds: 6171,
-    endSeconds: 6628,
-    label: 'Clase Neuron: pesos, bias, forward y parameters()',
+    startSeconds: 6235,    // 01:43:55
+    endSeconds: 6664,      // 01:51:04 next chapter starts
+    label: 'Clase Neuron, Layer y MLP',
   },
   {
-    // Heading text: Layer = list of Neurons, MLP chains Layers, 3→4→4→1 architecture
-    // Video: Parts 29-30 (1:46:41-1:54:17) — class Layer, class MLP, n(x) produces huge graph
+    // Same chapter — Layer and MLP are built right after Neuron within this chapter
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'La clase MLP',
     sortOrder: 0,
-    startSeconds: 6401,
-    endSeconds: 6857,
+    startSeconds: 6420,    // ~01:47:00 Layer/MLP portion of the chapter
+    endSeconds: 6664,      // 01:51:04 next chapter starts
     label: 'Layer y MLP: capas encadenadas secuencialmente',
   },
   {
-    // Heading text: dataset, MSE loss, forward+backward+update, learning rate, zero_grad bug
-    // Video: Parts 30-35 (1:50:25-2:15:06) — dataset, loss, backward, gradient descent, training loop, zero_grad bug
+    // Chapters: "creating dataset/loss" + "collecting parameters" + "gradient descent" (01:51:04 → 02:14:03)
+    // Covers: dataset, MSE loss, forward+backward+update, learning rate, zero_grad bug
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'El bucle de entrenamiento',
     sortOrder: 0,
-    startSeconds: 6625,
-    endSeconds: 8106,
-    label: 'Training loop completo: dataset → loss → backprop → update',
+    startSeconds: 6664,    // 01:51:04
+    endSeconds: 8043,      // 02:14:03 next chapter starts
+    label: 'Training loop: dataset → loss → backprop → update',
   },
   {
-    // Heading text: hidden layers, emergent properties, connection to GPT
-    // Video: Part 36 (2:15:04-2:18:31) — "massive blob", emergent properties, GPT same principles
+    // Chapter: "summary of what we learned" (02:14:03 → 02:16:46)
+    // Covers: hidden layers, emergent properties, connection to GPT, modern neural nets
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'Las capas ocultas',
     sortOrder: 0,
-    startSeconds: 8104,
-    endSeconds: 8311,
-    label: 'Capas ocultas: propiedades emergentes y conexión con GPT',
+    startSeconds: 8043,    // 02:14:03
+    endSeconds: 8206,      // 02:16:46 next chapter starts
+    label: 'Resumen: capas ocultas, emergencia y conexión con GPT',
   },
   {
-    // Heading text: torch.autograd.Function, micrograd code walkthrough, tanh in PyTorch source
-    // Video: Parts 36-38 (2:15:04-2:25:31) — engine.py/nn.py walkthrough, demo.ipynb, PyTorch source
+    // Chapters: "walkthrough of micrograd" + "diving into PyTorch" + "conclusion" (02:16:46 → 02:24:39)
+    // Covers: engine.py/nn.py walkthrough, tanh in PyTorch source, torch.autograd.Function
     sectionTitle: 'De una Neurona a un MLP',
     positionAfterHeading: 'Micrograd vs PyTorch',
     sortOrder: 0,
-    startSeconds: 8309,
-    endSeconds: 8731,
+    startSeconds: 8206,    // 02:16:46
+    endSeconds: 8679,      // 02:24:39 conclusion
     label: 'Código de micrograd, búsqueda en PyTorch y cierre',
   },
 ];
