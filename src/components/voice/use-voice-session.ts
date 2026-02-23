@@ -10,6 +10,7 @@ import {
 import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
+import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
 import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
 
@@ -139,6 +140,8 @@ export function useVoiceSession({
   const resumptionHandleRef = useRef<string | null>(null);
   // Layer 2: Local transcript buffer for fallback context reconstruction
   const transcriptBufferRef = useRef<{ role: 'user' | 'model'; text: string; ts: number }[]>([]);
+  // Pre-compressed summary from onGoAway — avoids waiting for API during reconnect
+  const compressedSummaryRef = useRef<string | null>(null);
 
   // Pre-fetch refs
   const prefetchedTokenRef = useRef<string | null>(null);
@@ -407,29 +410,74 @@ export function useVoiceSession({
     }
   }, []);
 
-  // ---- Build fallback context from buffer (Layer 2) ----
+  // ---- Compress conversation via API ----
 
-  const buildFallbackContext = useCallback((): string | null => {
-    const buffer = transcriptBufferRef.current;
-    const { language: lang } = paramsRef.current;
-
-    if (buffer.length === 0) return null;
-
-    // Simple trim for large buffers: keep first 30 (topic) + last 70 (recent context)
-    const entries = buffer.length > 100
-      ? [...buffer.slice(0, 30), ...buffer.slice(-70)]
-      : buffer;
-
-    const transcript = entries
+  const compressConversation = useCallback(async (
+    turns: { role: 'user' | 'model'; text: string }[],
+    title: string,
+  ): Promise<string | null> => {
+    const conversation = turns
       .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
       .join('\n');
+    try {
+      const res = await fetch('/api/voice/session/compress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation, sectionTitle: title }),
+      });
+      if (!res.ok) return null;
+      const { summary } = await res.json();
+      return summary || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // ---- Build fallback context from buffer (Layer 2) ----
+
+  const buildFallbackContext = useCallback(async (): Promise<string | null> => {
+    const buffer = transcriptBufferRef.current;
+    const { language: lang, sectionTitle: st } = paramsRef.current;
+
+    if (buffer.length === 0) return null;
 
     const instruction = lang === 'es'
       ? 'Hubo una reconexión. Continuá la conversación desde donde se interrumpió.'
       : 'There was a reconnection. Continue the conversation from where it was interrupted.';
 
+    // If buffer is large, compress old turns to preserve full context
+    if (buffer.length > VOICE_COMPRESS_THRESHOLD) {
+      const recentTurns = buffer.slice(-VOICE_FALLBACK_RECENT_TURNS);
+      const recentTranscript = recentTurns
+        .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
+        .join('\n');
+
+      // Use pre-compressed summary if available (from onGoAway), otherwise compress now
+      const preCompressed = compressedSummaryRef.current;
+      const compressed = preCompressed
+        ?? await compressConversation(buffer.slice(0, buffer.length - VOICE_FALLBACK_RECENT_TURNS), st);
+
+      if (compressed) {
+        log.info(`[Fallback] Using compressed summary (${compressed.length} chars) + ${recentTurns.length} recent turns`);
+        return `COMPRESSED SUMMARY OF EARLIER CONVERSATION:\n${compressed}\n\nRECENT CONVERSATION:\n${recentTranscript}\n\n${instruction}`;
+      }
+
+      // Compression failed — fall back to old truncation strategy
+      log.info('[Fallback] Compression failed, using truncation fallback');
+      const fallbackEntries = [...buffer.slice(0, 30), ...buffer.slice(-70)];
+      const fallbackTranscript = fallbackEntries
+        .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
+        .join('\n');
+      return `CONVERSATION SO FAR:\n${fallbackTranscript}\n\n${instruction}`;
+    }
+
+    // Buffer is small enough to send as-is
+    const transcript = buffer
+      .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
+      .join('\n');
+
     return `CONVERSATION SO FAR:\n${transcript}\n\n${instruction}`;
-  }, []);
+  }, [compressConversation]);
 
   // ---- Connect ----
 
@@ -438,6 +486,7 @@ export function useVoiceSession({
 
     // Reset resilience refs for fresh session
     resumptionHandleRef.current = null;
+    compressedSummaryRef.current = null;
     transcriptBufferRef.current = [];
     setTranscript([]);
     lastLoggedStateRef.current = 'idle';
@@ -583,6 +632,20 @@ export function useVoiceSession({
         },
         onGoAway: (timeLeftMs) => {
           log.info(`GoAway received, ${timeLeftMs}ms remaining — initiating proactive reconnect`);
+
+          // Pre-compress buffer for Layer 2 in case Layer 1 fails
+          const buffer = transcriptBufferRef.current;
+          if (buffer.length > VOICE_COMPRESS_THRESHOLD) {
+            const { sectionTitle: st } = paramsRef.current;
+            const oldTurns = buffer.slice(0, buffer.length - VOICE_FALLBACK_RECENT_TURNS);
+            compressConversation(oldTurns, st).then((summary) => {
+              if (summary) {
+                compressedSummaryRef.current = summary;
+                log.info(`[GoAway] Pre-compressed ${oldTurns.length} turns (${summary.length} chars)`);
+              }
+            });
+          }
+
           const handle = resumptionHandleRef.current;
           if (!handle) {
             log.info('No resumption handle available, letting onclose handle reconnect');
@@ -644,7 +707,7 @@ export function useVoiceSession({
                   await c.reconnect(freshToken2);
                   c.resetRetryCount();
                   // Send reconstructed context
-                  const fallbackContext = buildFallbackContext();
+                  const fallbackContext = await buildFallbackContext();
                   if (fallbackContext) {
                     c.sendText(fallbackContext);
                   }
@@ -658,7 +721,7 @@ export function useVoiceSession({
               // No handle available — go straight to Layer 2
               await c.reconnect(freshToken);
               c.resetRetryCount();
-              const fallbackContext = buildFallbackContext();
+              const fallbackContext = await buildFallbackContext();
               if (fallbackContext) {
                 c.sendText(fallbackContext);
               }
