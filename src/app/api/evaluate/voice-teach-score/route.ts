@@ -21,7 +21,7 @@ import { buildVoiceTeachScoringPrompt } from '@/lib/llm/voice-eval-prompts';
 import { computeNewLevelFromTeaching, buildMasteryHistoryRecord } from '@/lib/mastery';
 import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { awardXP } from '@/lib/xp';
-import { XP_REWARDS } from '@/lib/constants';
+import { XP_REWARDS, TOKEN_BUDGETS } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
 
 const log = createLogger('Evaluate/VoiceTeachScore');
@@ -103,7 +103,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     const { content, tokensUsed } = await callDeepSeek({
       messages: [{ role: 'user', content: scoringPrompt }],
       temperature: 0.1,
-      maxTokens: 2000,
+      maxTokens: TOKEN_BUDGETS.VOICE_TEACH_SCORING,
       responseFormat: 'json',
     });
 

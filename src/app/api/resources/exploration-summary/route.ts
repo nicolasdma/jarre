@@ -19,6 +19,7 @@ import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('ExplorationSummary');
 
@@ -103,7 +104,7 @@ Return valid JSON matching the schema.`,
       },
     ],
     temperature: 0.2,
-    maxTokens: 3000,
+    maxTokens: TOKEN_BUDGETS.EXPLORATION_SUMMARY,
     responseFormat: 'json',
     timeoutMs: 60000,
   });

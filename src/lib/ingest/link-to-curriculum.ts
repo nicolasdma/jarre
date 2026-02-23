@@ -12,6 +12,7 @@ import { logTokenUsage } from '@/lib/db/token-usage';
 import { createLogger } from '@/lib/logger';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { TABLES } from '@/lib/db/tables';
+import { TOKEN_BUDGETS, DEFINITION_TRUNCATION_CHARS } from '@/lib/constants';
 import type { ConceptLink, ExtractedConceptRaw } from './types';
 
 const log = createLogger('LinkToCurriculum');
@@ -31,18 +32,42 @@ const LinkingResponseSchema = z.object({
 type LinkingResponse = z.infer<typeof LinkingResponseSchema>;
 
 /**
- * Fetch all curriculum concepts (id, name, definition).
- * These are public read, no RLS issues.
+ * Get phases relevant to the user's current phase (±2 range).
+ * E.g., phase '3' → ['1','2','3','4','5']
  */
-async function fetchAllCurriculumConcepts(supabase: SupabaseClient): Promise<Array<{
+function getRelevantPhases(currentPhase: string): string[] {
+  const phaseNum = parseInt(currentPhase, 10);
+  if (isNaN(phaseNum)) return [];
+
+  const phases: string[] = [];
+  for (let i = Math.max(1, phaseNum - 2); i <= Math.min(11, phaseNum + 2); i++) {
+    phases.push(String(i));
+  }
+  return phases;
+}
+
+/**
+ * Fetch curriculum concepts filtered by phases.
+ * Falls back to all concepts if no phases provided.
+ */
+async function fetchCurriculumConcepts(
+  supabase: SupabaseClient,
+  phases?: string[],
+): Promise<Array<{
   id: string;
   name: string;
   canonical_definition: string;
 }>> {
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLES.concepts)
     .select('id, name, canonical_definition')
     .order('name');
+
+  if (phases && phases.length > 0) {
+    query = query.in('phase', phases);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     log.error('Failed to fetch curriculum concepts:', error.message);
@@ -62,23 +87,34 @@ export async function linkToCurriculum(params: {
   supabase: SupabaseClient;
   userId: string;
   language?: string;
+  userPhase?: string;
 }): Promise<{ links: ConceptLink[]; coverageScore: number; tokensUsed: number }> {
-  const { extractedConcepts, resourceTitle, resourceSummary, supabase, userId, language = 'en' } = params;
+  const { extractedConcepts, resourceTitle, resourceSummary, supabase, userId, language = 'en', userPhase } = params;
 
   if (extractedConcepts.length === 0) {
     return { links: [], coverageScore: 0, tokensUsed: 0 };
   }
 
-  const curriculumConcepts = await fetchAllCurriculumConcepts(supabase);
+  const phases = userPhase ? getRelevantPhases(userPhase) : undefined;
+  const curriculumConcepts = await fetchCurriculumConcepts(supabase, phases);
+
+  if (phases) {
+    log.info(`Filtered to ${curriculumConcepts.length} concepts for phases [${phases.join(',')}]`);
+  }
 
   if (curriculumConcepts.length === 0) {
     log.warn('No curriculum concepts found in database');
     return { links: [], coverageScore: 0, tokensUsed: 0 };
   }
 
-  // Build curriculum reference for the prompt
+  // Build curriculum reference for the prompt (truncate definitions to save tokens)
   const curriculumList = curriculumConcepts
-    .map((c) => `- ${c.id} | ${c.name} | ${c.canonical_definition || 'No definition'}`)
+    .map((c) => {
+      const def = c.canonical_definition
+        ? c.canonical_definition.slice(0, DEFINITION_TRUNCATION_CHARS)
+        : 'No definition';
+      return `- ${c.id} | ${c.name} | ${def}`;
+    })
     .join('\n');
 
   const extractedList = extractedConcepts
@@ -134,7 +170,7 @@ ${curriculumList}`,
       },
     ],
     temperature: 0.2,
-    maxTokens: 3000,
+    maxTokens: TOKEN_BUDGETS.INGEST_LINK,
     responseFormat: 'json',
     timeoutMs: 90_000,
     retryOnTimeout: true,

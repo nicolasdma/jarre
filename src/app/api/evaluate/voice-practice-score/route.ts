@@ -29,6 +29,7 @@ import { buildVoicePracticeScoringPrompt } from '@/lib/llm/voice-practice-prompt
 import { buildConsolidationPrompt } from '@/lib/llm/consolidation-prompts';
 import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Evaluate/VoicePracticeScore');
 
@@ -134,7 +135,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: scoringPrompt },
       ],
       temperature: 0.1,
-      maxTokens: 4000,
+      maxTokens: TOKEN_BUDGETS.VOICE_SCORING,
       responseFormat: 'json',
     });
 
@@ -177,7 +178,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         }),
       }],
       temperature: 0.3,
-      maxTokens: 3000,
+      maxTokens: TOKEN_BUDGETS.VOICE_CONSOLIDATION,
       responseFormat: 'json',
     }).then(({ content: consolContent, tokensUsed: consolTokens }) => {
       logTokenUsage({ userId: user.id, category: 'voice_practice_consolidation', tokens: consolTokens });

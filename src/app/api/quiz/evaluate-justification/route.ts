@@ -10,6 +10,7 @@ import {
 } from '@/lib/llm/review-prompts';
 import { JUSTIFICATION_RUBRIC } from '@/lib/llm/rubrics';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Quiz/EvalJustification');
 
@@ -79,7 +80,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: prompt },
       ],
       temperature: 0,
-      maxTokens: 400,
+      maxTokens: TOKEN_BUDGETS.QUIZ_JUSTIFY,
       responseFormat: 'json',
     });
 

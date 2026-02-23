@@ -6,6 +6,7 @@ import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { GenerateQuestionsResponseSchema } from '@/lib/llm/schemas';
 import { buildGenerateQuestionsPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Evaluate/Generate');
 
@@ -37,7 +38,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.4, // Slightly creative but consistent
-      maxTokens: 2000,
+      maxTokens: TOKEN_BUDGETS.EVAL_GENERATE,
       responseFormat: 'json',
     });
 

@@ -27,6 +27,7 @@ import { buildConsolidationPrompt } from '@/lib/llm/consolidation-prompts';
 import { saveEvaluationResults } from '@/lib/evaluate/save-results';
 import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Evaluate/VoiceScore');
 
@@ -132,7 +133,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: scoringPrompt },
       ],
       temperature: 0.1,
-      maxTokens: 4000,
+      maxTokens: TOKEN_BUDGETS.VOICE_SCORING,
       responseFormat: 'json',
     });
 
@@ -207,7 +208,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     const consolidationPromise = callDeepSeek({
       messages: [{ role: 'user', content: consolidationPrompt }],
       temperature: 0.3,
-      maxTokens: 3000,
+      maxTokens: TOKEN_BUDGETS.VOICE_CONSOLIDATION,
       responseFormat: 'json',
     }).then(({ content: consolContent, tokensUsed: consolTokens }) => {
       logTokenUsage({ userId: user.id, category: 'voice_consolidation', tokens: consolTokens });

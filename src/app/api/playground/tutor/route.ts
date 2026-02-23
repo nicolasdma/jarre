@@ -12,6 +12,7 @@ import { callDeepSeekStream } from '@/lib/llm/streaming';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { buildTutorMessages } from '@/lib/llm/tutor-prompts';
 import { createLogger } from '@/lib/logger';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Tutor');
 
@@ -46,7 +47,7 @@ export const POST = withAuth(async (request, { }) => {
       const stream = await callDeepSeekStream({
         messages,
         temperature: 0.4,
-        maxTokens: 300,
+        maxTokens: TOKEN_BUDGETS.PLAYGROUND_TUTOR,
       });
 
       return new Response(stream, {
@@ -62,7 +63,7 @@ export const POST = withAuth(async (request, { }) => {
     const { content } = await callDeepSeek({
       messages,
       temperature: 0.5,
-      maxTokens: 150,
+      maxTokens: TOKEN_BUDGETS.PLAYGROUND_HINT,
       responseFormat: 'text',
     });
 

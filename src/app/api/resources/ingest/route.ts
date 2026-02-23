@@ -14,7 +14,7 @@ import { TABLES } from '@/lib/db/tables';
 import { resolveContent } from '@/lib/ingest/content-resolver';
 import { extractConcepts } from '@/lib/ingest/extract-concepts';
 import { linkToCurriculum } from '@/lib/ingest/link-to-curriculum';
-import { getUserLanguage } from '@/lib/db/queries/user';
+import { getUserProfile } from '@/lib/db/queries/user';
 import { createLogger } from '@/lib/logger';
 import { generateMasteryCatalystInsights, saveInsightSuggestions } from '@/lib/insights/generate-insights';
 import type { IngestResult } from '@/lib/ingest/types';
@@ -39,7 +39,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     throw badRequest('Either url or userNotes is required');
   }
 
-  const language = await getUserLanguage(supabase, user.id);
+  const { language, currentPhase } = await getUserProfile(supabase, user.id);
 
   // 1. Create resource record with status 'processing'
   const { data: resource, error: insertError } = await supabase
@@ -100,6 +100,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       supabase,
       userId: user.id,
       language,
+      userPhase: currentPhase,
     });
 
     // 5. Save results to resource
