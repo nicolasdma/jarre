@@ -137,3 +137,38 @@ export const XP_REWARDS = {
 
 /** Minimum score to consider an exercise "correct" */
 export const EXERCISE_PASS_SCORE = 70;
+
+// ============================================================================
+// TOKEN BUDGETS (maxTokens for LLM calls)
+// ============================================================================
+
+/** Centralized maxTokens for all DeepSeek API calls */
+export const TOKEN_BUDGETS = {
+  INGEST_EXTRACT: 2000,
+  INGEST_LINK: 2000,
+  VOICE_MEMORY: 500,
+  VOICE_COMPRESS: 400,
+  VOICE_SCORING: 4000,
+  VOICE_CONSOLIDATION: 2000,
+  VOICE_TEACH_SCORING: 2000,
+  REVIEW_EVALUATE: 500,
+  REVIEW_FALLBACK: 300,
+  QUIZ_JUSTIFY: 400,
+  EXPLORATION_SUMMARY: 2000,
+  INSIGHTS: 1000,
+  EVAL_GENERATE: 2000,
+  EVAL_SUBMIT: 2000,
+  SELF_EXPLANATION: 5,
+  PLAYGROUND_TUTOR: 300,
+  PLAYGROUND_HINT: 150,
+} as const;
+
+// ============================================================================
+// CONTENT TRUNCATION
+// ============================================================================
+
+/** Max chars to send to LLM for content analysis (~8K tokens) */
+export const CONTENT_TRUNCATION_CHARS = 32_000;
+
+/** Max chars for concept definitions in linking prompts */
+export const DEFINITION_TRUNCATION_CHARS = 80;

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { createLogger } from '@/lib/logger';
+import { TOKEN_BUDGETS, CONTENT_TRUNCATION_CHARS } from '@/lib/constants';
 import type { ExtractionResult } from './types';
 
 const log = createLogger('ExtractConcepts');
@@ -34,9 +35,9 @@ export async function extractConcepts(params: {
 }): Promise<ExtractionResult> {
   const { title, content, type, userId, language = 'en' } = params;
 
-  // Truncate content to avoid token limits (approx 12K tokens = ~48K chars)
-  const truncatedContent = content.length > 48000
-    ? content.slice(0, 48000) + '\n\n[Content truncated...]'
+  // Truncate content to avoid token limits (~8K tokens)
+  const truncatedContent = content.length > CONTENT_TRUNCATION_CHARS
+    ? content.slice(0, CONTENT_TRUNCATION_CHARS) + '\n\n[Content truncated...]'
     : content;
 
   const { content: responseText, tokensUsed } = await callDeepSeek({
@@ -69,7 +70,7 @@ The root keys MUST be "summary" and "concepts" (not "technical_concepts" or any 
       },
     ],
     temperature: 0.2,
-    maxTokens: 2000,
+    maxTokens: TOKEN_BUDGETS.INGEST_EXTRACT,
     responseFormat: 'json',
     timeoutMs: 90_000,
     retryOnTimeout: true,

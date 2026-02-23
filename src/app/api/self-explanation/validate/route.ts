@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { callDeepSeek } from '@/lib/llm/deepseek';
-import { SELF_EXPLANATION_AUTO_GENUINE_LENGTH } from '@/lib/constants';
+import { SELF_EXPLANATION_AUTO_GENUINE_LENGTH, TOKEN_BUDGETS } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
 import { logTokenUsage } from '@/lib/db/token-usage';
 
@@ -42,7 +42,7 @@ export const POST = withAuth(async (request, { user }) => {
         },
       ],
       temperature: 0,
-      maxTokens: 5,
+      maxTokens: TOKEN_BUDGETS.SELF_EXPLANATION,
       responseFormat: 'text',
     });
 

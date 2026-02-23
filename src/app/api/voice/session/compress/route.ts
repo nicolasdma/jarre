@@ -13,6 +13,7 @@ import { badRequest, jsonOk } from '@/lib/api/errors';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { createLogger } from '@/lib/logger';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('VoiceCompress');
 
@@ -49,7 +50,7 @@ Output 3-6 bullet points. Be factual and concise. One sentence per bullet. Plain
         },
       ],
       temperature: 0.2,
-      maxTokens: 400,
+      maxTokens: TOKEN_BUDGETS.VOICE_COMPRESS,
       responseFormat: 'text',
     });
 

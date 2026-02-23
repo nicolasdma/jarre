@@ -8,6 +8,7 @@
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { createLogger } from '@/lib/logger';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('VoiceMemory');
 
@@ -51,7 +52,7 @@ Be concise. Each bullet should be one sentence. Output plain text with "- " bull
         },
       ],
       temperature: 0.2,
-      maxTokens: 500,
+      maxTokens: TOKEN_BUDGETS.VOICE_MEMORY,
       responseFormat: 'text',
     });
 

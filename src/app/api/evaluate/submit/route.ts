@@ -8,6 +8,7 @@ import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
 import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { saveEvaluationResults } from '@/lib/evaluate/save-results';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Evaluate/Submit');
 
@@ -54,7 +55,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.2, // More deterministic for evaluation
-      maxTokens: 2000,
+      maxTokens: TOKEN_BUDGETS.EVAL_SUBMIT,
       responseFormat: 'json',
     });
 

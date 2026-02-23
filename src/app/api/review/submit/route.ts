@@ -17,7 +17,7 @@ import { scoreToRating, deriveFromRubric } from '@/lib/review-scoring';
 import { applyScheduleAndMastery } from '@/lib/review/apply-schedule';
 import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';
-import { XP_REWARDS } from '@/lib/constants';
+import { XP_REWARDS, TOKEN_BUDGETS } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import type { QuestionBankType, ReviewRating } from '@/types';
 import type { createClient } from '@/lib/supabase/server';
@@ -166,7 +166,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         { role: 'user', content: rubricPrompt },
       ],
       temperature: 0,
-      maxTokens: 500,
+      maxTokens: TOKEN_BUDGETS.REVIEW_EVALUATE,
       responseFormat: 'json',
     });
     tokensUsed = rubricTokens;
@@ -202,7 +202,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
           { role: 'user', content: legacyPrompt },
         ],
         temperature: 0.1,
-        maxTokens: 300,
+        maxTokens: TOKEN_BUDGETS.REVIEW_FALLBACK,
         responseFormat: 'json',
       });
 

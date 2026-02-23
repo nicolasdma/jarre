@@ -13,6 +13,7 @@ import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { createLogger } from '@/lib/logger';
 import { z } from 'zod';
+import { TOKEN_BUDGETS } from '@/lib/constants';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const log = createLogger('InsightEngine');
@@ -272,7 +273,7 @@ Return JSON with array of topics. Each topic has: topic (short title), position 
         },
       ],
       temperature: 0.5,
-      maxTokens: 1000,
+      maxTokens: TOKEN_BUDGETS.INSIGHTS,
       responseFormat: 'json',
     });
 
