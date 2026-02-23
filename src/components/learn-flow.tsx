@@ -172,6 +172,7 @@ interface StickyHeaderProps {
   activeSection: number;
   sectionsCount: number;
   onStepChange: (step: Step) => void;
+  onTocOpen: () => void;
 }
 
 function StickyHeader({
@@ -181,6 +182,7 @@ function StickyHeader({
   activeSection,
   sectionsCount,
   onStepChange,
+  onTocOpen,
 }: StickyHeaderProps) {
   const [scrolledPast200, setScrolledPast200] = useState(false);
 
@@ -202,7 +204,7 @@ function StickyHeader({
     <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm transition-all duration-300 ${
       isFocusMode ? 'py-0' : ''
     }`}>
-      <div className={`mx-auto flex max-w-6xl items-center justify-between px-2 sm:px-8 transition-all duration-300 ${
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-8 transition-all duration-300 ${
         isFocusMode ? 'py-2' : 'py-4'
       }`}>
         <Link
@@ -261,7 +263,13 @@ function StickyHeader({
             </span>
           )}
         </div>
-        <div className="lg:hidden w-16" />
+        <button
+          onClick={onTocOpen}
+          className="lg:hidden w-10 h-10 flex items-center justify-center text-j-text-tertiary hover:text-j-text transition-colors"
+          aria-label="Table of contents"
+        >
+          &#9776;
+        </button>
       </div>
     </div>
   );
@@ -306,6 +314,7 @@ export function LearnFlow({
   const [visitedSteps, setVisitedSteps] = useState<Set<Step>>(
     new Set((initialProgress?.visitedSteps as Step[]) ?? [(initialProgress?.currentStep as Step) ?? 'activate'])
   );
+  const [tocOpen, setTocOpen] = useState(false);
 
   // Announce tutor context for sidebar voice session
   const { setOverride } = useTutorContext();
@@ -453,6 +462,7 @@ export function LearnFlow({
         activeSection={activeSection}
         sectionsCount={sections.length}
         onStepChange={changeStep}
+        onTocOpen={() => setTocOpen(true)}
       />
 
       {/* TOC sidebar (fixed, doesn't affect content flow) */}
@@ -465,6 +475,8 @@ export function LearnFlow({
           visitedSteps={visitedSteps}
           onSectionClick={navigateToSection}
           onStepClick={(step) => changeStep(step)}
+          mobileOpen={tocOpen}
+          onMobileOpenChange={setTocOpen}
         />
 
       {/* STEP 3: PLAYGROUND — Full-width, no padding */}
@@ -521,7 +533,7 @@ export function LearnFlow({
         {/* STEP 2: LEARN — Concept sections with pre-q + content + post-test */}
         {currentStep === 'learn' && (
           <div className="py-16">
-            <header className="mb-12 px-2 sm:px-0 lg:hidden">
+            <header className="mb-12 px-4 sm:px-0 lg:hidden">
               {/* Step label + nav arrows — hidden on lg+ where sidebar covers this */}
               <div className="flex items-center justify-between mb-4">
                 <SectionLabel className="mb-0">
