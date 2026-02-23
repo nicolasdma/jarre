@@ -43,6 +43,10 @@ function lerpParams(
     color: lerpColor(a.color, b.color, t),
     accentColor: lerpColor(a.accentColor, b.accentColor, t),
     fontSize: a.fontSize,
+    colorCycleSpeed: lerp(a.colorCycleSpeed, b.colorCycleSpeed, t),
+    colorCycleIntensity: lerp(a.colorCycleIntensity, b.colorCycleIntensity, t),
+    sparkleProb: lerp(a.sparkleProb, b.sparkleProb, t),
+    glowBlur: lerp(a.glowBlur, b.glowBlur, t),
   };
 }
 
@@ -178,6 +182,27 @@ export function TutorEntity({
       };
     }
 
+    // Color cycling: gentle oscillation toward warm bright orange
+    const cur = currentParamsRef.current;
+    if (cur.colorCycleSpeed > 0 && cur.colorCycleIntensity > 0) {
+      const WARM_PEAK: [number, number, number] = [255, 190, 90];
+      const wave1 = Math.sin(timeRef.current * cur.colorCycleSpeed * Math.PI * 2);
+      const wave2 = Math.sin(timeRef.current * cur.colorCycleSpeed * Math.PI * 2 * 1.7 + 1.2);
+      const blend = ((wave1 * 0.7 + wave2 * 0.3) * 0.5 + 0.5) * cur.colorCycleIntensity;
+      currentParamsRef.current = {
+        ...cur,
+        color: lerpColor(cur.color, WARM_PEAK, blend),
+        accentColor: lerpColor(cur.accentColor, WARM_PEAK, blend * 0.6),
+        charOpacity: Math.min(1.0, cur.charOpacity + blend * 0.05),
+        glowOpacity: Math.min(1.0, cur.glowOpacity + blend * 0.08),
+      };
+    }
+
+    // Update glow canvas blur dynamically
+    if (glowCanvas) {
+      glowCanvas.style.filter = `blur(${Math.round(currentParamsRef.current.glowBlur)}px)`;
+    }
+
     const { w, h } = sizeRef.current;
 
     // Compute geometry ONCE, paint to BOTH canvases
@@ -188,8 +213,8 @@ export function TutorEntity({
     const mic = currentVoiceState === 'listening' ? micLevelRef.current : 0;
     setWaveMicLevel(mic);
     computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands, mic);
-    paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal);
-    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal);
+    paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal, timeRef.current);
+    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal, timeRef.current);
 
     // Debug: update geometry name label
     setDebugName(getCurrentGeometryName());

@@ -43,6 +43,14 @@ export interface EntityStateParams {
   accentColor: [number, number, number];
   /** Font size in px */
   fontSize: number;
+  /** Color cycle speed between base and white (Hz, 0 = off) */
+  colorCycleSpeed: number;
+  /** How far toward white the cycle goes (0-1) */
+  colorCycleIntensity: number;
+  /** Probability of a sparkle per visible char per frame (0-1) */
+  sparkleProb: number;
+  /** CSS blur for glow canvas in px */
+  glowBlur: number;
 }
 
 export const ENTITY_STATES = {
@@ -59,6 +67,10 @@ export const ENTITY_STATES = {
     color: WARM_MID,
     accentColor: WARM_BRIGHT,
     fontSize: 12,
+    colorCycleSpeed: 0,
+    colorCycleIntensity: 0,
+    sparkleProb: 0,
+    glowBlur: 6,
   },
   /** Settled idle — small, calm */
   idle: {
@@ -73,6 +85,10 @@ export const ENTITY_STATES = {
     color: WARM_DIM,
     accentColor: WARM_MID,
     fontSize: 12,
+    colorCycleSpeed: 0,
+    colorCycleIntensity: 0,
+    sparkleProb: 0,
+    glowBlur: 6,
   },
   /** Hover — gentle awareness, slightly warmer, subtle cursor response */
   hover: {
@@ -87,20 +103,28 @@ export const ENTITY_STATES = {
     color: WARM_MID,
     accentColor: WARM_BRIGHT,
     fontSize: 12,
+    colorCycleSpeed: 0,
+    colorCycleIntensity: 0,
+    sparkleProb: 0,
+    glowBlur: 6,
   },
   /** Speaking — Gemini is talking, large and energetic, audio drives deformation */
   speaking: {
-    majorRadius: 0.18,
-    minorRadius: 0.09,
-    rotSpeedA: 0.08,
-    rotSpeedB: 0.044,
-    thetaStep: 0.06,
-    phiStep: 0.018,
-    charOpacity: 0.80,
-    glowOpacity: 0.55,
-    color: WARM_BRIGHT,
-    accentColor: [255, 200, 100] as [number, number, number],
+    majorRadius: 0.20,
+    minorRadius: 0.10,
+    rotSpeedA: 0.09,
+    rotSpeedB: 0.05,
+    thetaStep: 0.055,
+    phiStep: 0.016,
+    charOpacity: 0.90,
+    glowOpacity: 0.65,
+    color: WARM_MID,
+    accentColor: WARM_BRIGHT,
     fontSize: 12,
+    colorCycleSpeed: 0.5,
+    colorCycleIntensity: 0.25,
+    sparkleProb: 0.03,
+    glowBlur: 10,
   },
   /** Listening — user is talking, warm and attentive, contracts with mic input */
   listening: {
@@ -115,6 +139,10 @@ export const ENTITY_STATES = {
     color: WARM_MID,
     accentColor: WARM_BRIGHT,
     fontSize: 12,
+    colorCycleSpeed: 0,
+    colorCycleIntensity: 0,
+    sparkleProb: 0,
+    glowBlur: 6,
   },
   /** Thinking — processing, slow breathing pulse applied in TutorEntity */
   thinking: {
@@ -129,6 +157,10 @@ export const ENTITY_STATES = {
     color: WARM_DIM,
     accentColor: WARM_MID,
     fontSize: 12,
+    colorCycleSpeed: 0,
+    colorCycleIntensity: 0,
+    sparkleProb: 0,
+    glowBlur: 6,
   },
 } as const satisfies Record<string, EntityStateParams>;
 
