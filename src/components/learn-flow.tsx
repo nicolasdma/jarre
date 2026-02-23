@@ -521,7 +521,7 @@ export function LearnFlow({
         {/* STEP 2: LEARN — Concept sections with pre-q + content + post-test */}
         {currentStep === 'learn' && (
           <div className="py-16">
-            <header className="mb-12 lg:hidden">
+            <header className="mb-12 px-2 sm:px-0 lg:hidden">
               {/* Step label + nav arrows — hidden on lg+ where sidebar covers this */}
               <div className="flex items-center justify-between mb-4">
                 <SectionLabel className="mb-0">
