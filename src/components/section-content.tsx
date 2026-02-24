@@ -7,7 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { ConceptVisual, hasConceptVisual } from './concept-visuals';
 import { InlineQuiz } from './inline-quiz';
-import { VideoSegment } from './video-segment';
+import { useVideoSeek } from '@/lib/video-seek-context';
 import { injectFigures } from '@/lib/figure-injector';
 import { splitAtBoldHeadings } from '@/lib/markdown-splitter';
 import type { FigureRegistry } from '@/lib/figure-registry';
@@ -169,9 +169,20 @@ export function SectionContent({
   );
 }
 
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 /**
  * Splits markdown at bold headings and interleaves quiz components.
  * Quizzes are placed after the segment whose heading matches quiz.positionAfterHeading.
+ * Video segments render as clickable timestamps next to headings (sticky player handles playback).
  */
 function InterleavedContent({
   markdown,
@@ -182,6 +193,7 @@ function InterleavedContent({
   quizzes: InlineQuizType[];
   videoSegments: VideoSegmentType[];
 }) {
+  const videoSeek = useVideoSeek();
   const segments = splitAtBoldHeadings(markdown);
 
   // Build quiz map: heading → quizzes sorted by sortOrder
@@ -193,21 +205,21 @@ function InterleavedContent({
     quizMap.set(key, existing);
   }
 
-  // Build video map: heading → video segments sorted by sortOrder
-  const videoMap = new Map<string, VideoSegmentType[]>();
+  // Build video map: heading → first video segment (for timestamp display)
+  const videoMap = new Map<string, VideoSegmentType>();
   for (const vs of videoSegments) {
     const key = vs.positionAfterHeading;
-    const existing = videoMap.get(key) ?? [];
-    existing.push(vs);
-    videoMap.set(key, existing);
+    if (!videoMap.has(key)) {
+      videoMap.set(key, vs);
+    }
   }
 
   return (
     <>
       {segments.map((segment, i) => {
-        const segmentVideos = segment.heading
-          ? videoMap.get(segment.heading) ?? []
-          : [];
+        const segmentVideo = segment.heading
+          ? videoMap.get(segment.heading)
+          : undefined;
         const segmentQuizzes = segment.heading
           ? quizMap.get(segment.heading) ?? []
           : [];
@@ -215,19 +227,28 @@ function InterleavedContent({
         return (
           <div key={segment.heading ?? `segment-${i}`} data-segment-index={i}>
             {segment.heading && (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={markdownComponents}
-              >
-                {`**${segment.heading}**`}
-              </ReactMarkdown>
+              <div className="flex items-baseline gap-3">
+                <div className="flex-1">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={markdownComponents}
+                  >
+                    {`**${segment.heading}**`}
+                  </ReactMarkdown>
+                </div>
+                {segmentVideo && videoSeek && (
+                  <button
+                    type="button"
+                    onClick={() => videoSeek.seekTo(segmentVideo.startSeconds)}
+                    className="shrink-0 font-mono text-xs text-j-text-tertiary hover:text-j-warm cursor-pointer transition-colors"
+                    title={segmentVideo.label ?? `Jump to ${formatTime(segmentVideo.startSeconds)}`}
+                  >
+                    ▸ {formatTime(segmentVideo.startSeconds)}
+                  </button>
+                )}
+              </div>
             )}
-
-            {/* Video segments: watch before reading */}
-            {segmentVideos.map((vs) => (
-              <VideoSegment key={vs.id} segment={vs} />
-            ))}
 
             {segment.content && (
               <ReactMarkdown
