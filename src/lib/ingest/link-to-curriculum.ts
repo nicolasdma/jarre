@@ -17,12 +17,20 @@ import type { ConceptLink, ExtractedConceptRaw } from './types';
 
 const log = createLogger('LinkToCurriculum');
 
+const VALID_RELATIONSHIPS = ['extends', 'applies', 'contrasts', 'exemplifies', 'relates'] as const;
+
 const LinkingResponseSchema = z.object({
   links: z.array(z.object({
     extractedConceptName: z.string().min(1),
     curriculumConceptId: z.string().min(1),
     curriculumConceptName: z.string().min(1),
-    relationship: z.enum(['extends', 'applies', 'contrasts', 'exemplifies', 'relates']),
+    relationship: z.string().transform((val) => {
+      const lower = val.toLowerCase().trim();
+      if ((VALID_RELATIONSHIPS as readonly string[]).includes(lower)) {
+        return lower as typeof VALID_RELATIONSHIPS[number];
+      }
+      return 'relates' as const;
+    }),
     relevanceScore: z.number().min(0).max(1),
     explanation: z.string().min(5),
   })),
