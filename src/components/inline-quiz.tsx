@@ -387,9 +387,13 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     return `${base} border-j-border-input`;
   };
 
-  // Map TF correctAnswer to "true"/"false" based on original option text
+  // Map TF correctAnswer to "true"/"false"
+  // New format: correctAnswer is already "true"/"false" with options: null
+  // Legacy format: correctAnswer is "A"/"B" label, resolve from option text
   const tfCorrectValue = useMemo(() => {
-    if (quiz.format !== 'tf' || !quiz.options) return 'false';
+    if (quiz.format !== 'tf') return 'false';
+    if (quiz.correctAnswer === 'true' || quiz.correctAnswer === 'false') return quiz.correctAnswer;
+    if (!quiz.options) return 'false';
     const correctOption = quiz.options.find(o => o.label === quiz.correctAnswer);
     if (!correctOption) return 'false';
     const text = correctOption.text.toLowerCase();
