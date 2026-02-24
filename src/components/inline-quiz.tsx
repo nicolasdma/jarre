@@ -233,7 +233,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
   const handleTrueFalse = (value: 'true' | 'false') => {
     setSelectedOption(value);
-    const correct = value === shuffledCorrect;
+    const correct = value === tfCorrectValue;
     setIsCorrect(correct);
     setState('answered');
     if (onAnswer) {
@@ -387,6 +387,15 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     return `${base} border-j-border-input`;
   };
 
+  // Map TF correctAnswer to "true"/"false" based on original option text
+  const tfCorrectValue = useMemo(() => {
+    if (quiz.format !== 'tf' || !quiz.options) return 'false';
+    const correctOption = quiz.options.find(o => o.label === quiz.correctAnswer);
+    if (!correctOption) return 'false';
+    const text = correctOption.text.toLowerCase();
+    return text.includes('true') || text.includes('verdadero') ? 'true' : 'false';
+  }, [quiz.format, quiz.options, quiz.correctAnswer]);
+
   const getTfButtonClasses = (value: 'true' | 'false'): string => {
     const base =
       'flex-1 py-3 px-4 font-mono text-[11px] tracking-[0.15em] uppercase border transition-all duration-200 min-h-[44px]';
@@ -395,10 +404,10 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       return `${base} border-j-border bg-[var(--j-bg)] text-j-text hover:border-j-warm cursor-pointer`;
     }
 
-    if (value === shuffledCorrect) {
+    if (value === tfCorrectValue) {
       return `${base} bg-j-accent-light border-j-accent text-j-accent`;
     }
-    if (selectedOption === value && value !== shuffledCorrect) {
+    if (selectedOption === value && value !== tfCorrectValue) {
       return `${base} bg-j-error-bg border-j-error text-j-error`;
     }
     return `${base} border-j-border bg-[var(--j-bg)] text-j-text-tertiary opacity-50`;
