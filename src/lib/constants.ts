@@ -161,7 +161,27 @@ export const TOKEN_BUDGETS = {
   SELF_EXPLANATION: 5,
   PLAYGROUND_TUTOR: 300,
   PLAYGROUND_HINT: 150,
+  // Pipeline stages
+  PIPELINE_SEGMENT: 2000,
+  PIPELINE_CONTENT: 8000,
+  PIPELINE_TRANSLATE: 8000,
+  PIPELINE_QUIZZES: 2000,
+  PIPELINE_ACTIVATE: 1500,
+  PIPELINE_LANGUAGE_DETECT: 100,
 } as const;
+
+// ============================================================================
+// PIPELINE
+// ============================================================================
+
+/** Total visible pipeline stages (quizzes run in background, invisible to user) */
+export const PIPELINE_TOTAL_STAGES = 6;
+
+/** Max concurrent LLM calls for section content generation */
+export const PIPELINE_MAX_CONCURRENT = 5;
+
+/** Polling interval for pipeline status (ms) */
+export const PIPELINE_POLL_INTERVAL_MS = 3000;
 
 // ============================================================================
 // CONTENT TRUNCATION
