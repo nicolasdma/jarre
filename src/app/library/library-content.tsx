@@ -76,7 +76,7 @@ interface LibraryContentProps {
   projectsByPhase: Record<string, ProjectWithDetails>;
   supplementaryResources: ResourceWithStatus[];
   userResources: UserResource[];
-  pipelineCourses: PipelineCourse[];
+  pipelineCourses?: PipelineCourse[];
   isLoggedIn: boolean;
   language: Language;
   phaseNames: Record<string, string>;
@@ -89,7 +89,7 @@ export function LibraryContent({
   projectsByPhase,
   supplementaryResources,
   userResources,
-  pipelineCourses,
+  pipelineCourses = [],
   isLoggedIn,
   language,
   phaseNames,
