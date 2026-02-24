@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo, useRef } from 'react';
 import Link from 'next/link';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
@@ -24,6 +24,8 @@ const log = createLogger('LearnFlow');
 import type { FigureRegistry } from '@/lib/figure-registry';
 import type { InlineQuiz, VideoSegment, Exercise } from '@/types';
 import { getExercisesForConcept } from '@/lib/exercises/registry';
+import { StickyVideoPlayer } from './sticky-video-player';
+import { VideoSeekProvider } from '@/lib/video-seek-context';
 
 // ============================================================================
 // Types
@@ -318,6 +320,20 @@ export function LearnFlow({
   );
   const [tocOpen, setTocOpen] = useState(false);
 
+  // Sticky video player: extract videoId from first available segment
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const youtubeVideoId = useMemo(() => {
+    if (!videoSegmentsBySectionId) return null;
+    for (const segments of Object.values(videoSegmentsBySectionId)) {
+      if (segments.length > 0) return segments[0].youtubeVideoId;
+    }
+    return null;
+  }, [videoSegmentsBySectionId]);
+  const allVideoSegments = useMemo(() => {
+    if (!videoSegmentsBySectionId) return [];
+    return Object.values(videoSegmentsBySectionId).flat();
+  }, [videoSegmentsBySectionId]);
+
   // Announce tutor context for sidebar voice session
   const { setOverride } = useTutorContext();
   useEffect(() => {
@@ -534,6 +550,7 @@ export function LearnFlow({
 
         {/* STEP 2: LEARN — Concept sections with pre-q + content + post-test */}
         {currentStep === 'learn' && (
+          <VideoSeekProvider iframeRef={iframeRef} videoSegments={allVideoSegments}>
           <div className="py-16">
             <header className="mb-12 px-4 sm:px-0 lg:hidden">
               {/* Step label + nav arrows — hidden on lg+ where sidebar covers this */}
@@ -586,6 +603,11 @@ export function LearnFlow({
               </div>
             </header>
 
+            {/* Video player — inline at the top when video exists */}
+            {youtubeVideoId && (
+              <StickyVideoPlayer ref={iframeRef} youtubeVideoId={youtubeVideoId} />
+            )}
+
             {/* Concept sections */}
             <div className="space-y-4">
               {sections.map((section, i) => (
@@ -627,6 +649,7 @@ export function LearnFlow({
               </div>
             )}
           </div>
+          </VideoSeekProvider>
         )}
 
         {/* STEP 4: PRACTICE EVAL — Voice guided practice (default) or text fallback */}
