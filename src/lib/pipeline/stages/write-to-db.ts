@@ -31,12 +31,13 @@ function generateResourceId(videoId: string): string {
 }
 
 /**
- * Stage 7: Write all pipeline outputs to the database.
+ * Stage: Write all pipeline outputs to the database.
+ * Quizzes are optional — they may be generated later in background.
  */
 export async function writeToDb(params: {
   resolve: ResolveOutput;
   content: ContentOutput;
-  quizzes: QuizOutput;
+  quizzes?: QuizOutput;
   videoMap: VideoMapOutput;
   concepts: ConceptOutput;
   userId: string;
@@ -212,32 +213,34 @@ export async function writeToDb(params: {
     sectionIdMap.set(section.title, inserted.id);
   }
 
-  // Step 4: Create inline_quizzes
+  // Step 4: Create inline_quizzes (only if quizzes were provided)
   let quizzesCreated = 0;
-  for (const sectionQuizzes of quizzes.quizzesBySection) {
-    const sectionId = sectionIdMap.get(sectionQuizzes.sectionTitle);
-    if (!sectionId) {
-      log.warn(`No section ID for quizzes: "${sectionQuizzes.sectionTitle}"`);
-      continue;
-    }
+  if (quizzes) {
+    for (const sectionQuizzes of quizzes.quizzesBySection) {
+      const sectionId = sectionIdMap.get(sectionQuizzes.sectionTitle);
+      if (!sectionId) {
+        log.warn(`No section ID for quizzes: "${sectionQuizzes.sectionTitle}"`);
+        continue;
+      }
 
-    for (const quiz of sectionQuizzes.quizzes) {
-      const { error } = await supabase.from(TABLES.inlineQuizzes).insert({
-        section_id: sectionId,
-        position_after_heading: quiz.positionAfterHeading,
-        sort_order: quiz.sortOrder,
-        format: quiz.format,
-        question_text: quiz.questionText,
-        options: quiz.options,
-        correct_answer: quiz.correctAnswer,
-        explanation: quiz.explanation,
-        justification_hint: quiz.justificationHint || null,
-      });
+      for (const quiz of sectionQuizzes.quizzes) {
+        const { error } = await supabase.from(TABLES.inlineQuizzes).insert({
+          section_id: sectionId,
+          position_after_heading: quiz.positionAfterHeading,
+          sort_order: quiz.sortOrder,
+          format: quiz.format,
+          question_text: quiz.questionText,
+          options: quiz.options,
+          correct_answer: quiz.correctAnswer,
+          explanation: quiz.explanation,
+          justification_hint: quiz.justificationHint || null,
+        });
 
-      if (error) {
-        log.warn(`Failed to insert quiz: ${error.message}`);
-      } else {
-        quizzesCreated++;
+        if (error) {
+          log.warn(`Failed to insert quiz: ${error.message}`);
+        } else {
+          quizzesCreated++;
+        }
       }
     }
   }
