@@ -86,6 +86,6 @@ export default async function Home() {
     );
   }
 
-  // Authenticated — redirect to library
+  // Authenticated — redirect to library (main curricular experience)
   redirect('/library');
 }

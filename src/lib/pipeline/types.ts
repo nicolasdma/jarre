@@ -15,6 +15,7 @@ export interface PipelineConfig {
   url: string;
   title?: string;
   targetLanguage: string;
+  deepseekApiKey?: string;
 }
 
 export type PipelineStage =

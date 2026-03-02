@@ -13,10 +13,16 @@ import type { User } from '@supabase/supabase-js';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+export interface ByokKeys {
+  deepseek?: string;
+  gemini?: string;
+}
+
 interface AuthContext<P = undefined> {
   supabase: SupabaseClient;
   user: User;
   params: P;
+  byokKeys: ByokKeys;
 }
 
 /**
@@ -49,7 +55,12 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
         ? await routeContext.params
         : ({} as P);
 
-      return await handler(request, { supabase, user, params });
+      const byokKeys: ByokKeys = {
+        deepseek: request.headers.get('X-DeepSeek-Key') || undefined,
+        gemini: request.headers.get('X-Gemini-Key') || undefined,
+      };
+
+      return await handler(request, { supabase, user, params, byokKeys });
     } catch (error) {
       if (error instanceof ApiError) {
         return errorResponse(error);

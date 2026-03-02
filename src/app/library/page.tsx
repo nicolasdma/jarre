@@ -81,7 +81,7 @@ export default async function LibraryPage() {
     lastEvaluatedAt: string;
     evalCount: number;
   };
-  let evaluationStats: Record<string, EvalStats> = {};
+  const evaluationStats: Record<string, EvalStats> = {};
 
   if (user) {
     const { data: evaluations } = await supabase
@@ -121,7 +121,7 @@ export default async function LibraryPage() {
     status: string;
     concepts: Array<{ id: string; name: string }>;
   };
-  let projectsByPhase: Record<string, ProjectWithDetails> = {};
+  const projectsByPhase: Record<string, ProjectWithDetails> = {};
 
   if (user) {
     const [
@@ -202,7 +202,7 @@ export default async function LibraryPage() {
     type: string;
     url: string | null;
   };
-  let userResourcesByConceptId = new Map<string, RelatedUserResource[]>();
+  const userResourcesByConceptId = new Map<string, RelatedUserResource[]>();
 
   if (user) {
     const { data: urcLinks } = await supabase
@@ -229,6 +229,15 @@ export default async function LibraryPage() {
     conceptsTaught: string[];
     evalStats: EvalStats | null;
     relatedUserResources: RelatedUserResource[];
+  };
+
+  type PipelineCourse = {
+    id: string;
+    title: string;
+    url: string | null;
+    type: string;
+    activate_data: { summary?: string } | null;
+    created_at: string;
   };
 
   const resourcesWithStatus: ResourceWithStatus[] = (resources || []).map((resource) => {
@@ -268,6 +277,19 @@ export default async function LibraryPage() {
       relatedUserResources,
     };
   });
+
+  // Pipeline-generated courses live in phase 0 with ids prefixed by yt-
+  const pipelineCourses: PipelineCourse[] = resourcesWithStatus
+    .filter((r) => r.id.startsWith('yt-') || (r.phase === '0' && (r.type === 'video' || r.type === 'lecture')))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      url: r.url || null,
+      type: r.type,
+      activate_data: (r.activate_data as { summary?: string } | null) || null,
+      created_at: r.created_at,
+    }));
 
   // Filter out courses, videos, and specific resources from main view
   const hiddenTypes = ['course', 'video'];
@@ -325,6 +347,25 @@ export default async function LibraryPage() {
               : 'When surface-level understanding isn\'t enough. Validate real comprehension of papers, books, and complex concepts.'}
           </p>
 
+          {user && (
+            <div className="mt-6 inline-flex flex-wrap items-center gap-3 border border-j-border px-4 py-3">
+              <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-tertiary">
+                {lang === 'es' ? 'Nuevo en esta fase' : 'New in this phase'}
+              </span>
+              <Link
+                href="/dashboard"
+                className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
+              >
+                {lang === 'es' ? 'Studio YouTube' : 'YouTube Studio'}
+              </Link>
+              <span className="text-xs text-j-text-secondary">
+                {lang === 'es'
+                  ? 'Generá cursos y aparecen en la pestaña Cursos.'
+                  : 'Generate courses and they appear in the Courses tab.'}
+              </span>
+            </div>
+          )}
+
           {!user && (
             <p className="mt-6 text-sm text-j-warm-dark">
               <Link href="/login" className="underline hover:text-j-accent transition-colors">
@@ -373,6 +414,7 @@ export default async function LibraryPage() {
           projectsByPhase={projectsByPhase}
           supplementaryResources={supplementaryResources}
           userResources={userResources}
+          pipelineCourses={pipelineCourses}
           isLoggedIn={!!user}
           language={lang}
           phaseNames={phaseNames}

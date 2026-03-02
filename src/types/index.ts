@@ -87,6 +87,7 @@ export interface InlineQuiz {
   correctAnswer: string;
   explanation: string;
   justificationHint?: string;
+  pendingTranslation?: boolean;
 }
 
 // ============================================================================

@@ -44,4 +44,16 @@ export const TABLES = {
   userResourceConcepts: 'user_resource_concepts',
   consumptionLog: 'consumption_log',
   insightSuggestions: 'insight_suggestions',
+
+  // Translation cache
+  sectionTranslations: 'section_translations',
+  resourceTranslations: 'resource_translations',
+  quizTranslations: 'quiz_translations',
+
+  // Pipeline
+  pipelineJobs: 'pipeline_jobs',
+
+  // Billing idempotency
+  processedStripeEvents: 'processed_stripe_events',
+  processedLemonsqueezyEvents: 'processed_lemonsqueezy_events',
 } as const;

@@ -164,10 +164,12 @@ export const TOKEN_BUDGETS = {
   // Pipeline stages
   PIPELINE_SEGMENT: 2000,
   PIPELINE_CONTENT: 8192,
-  PIPELINE_TRANSLATE: 8000,
+  PIPELINE_TRANSLATE: 8192,
   PIPELINE_QUIZZES: 2000,
   PIPELINE_ACTIVATE: 1500,
   PIPELINE_LANGUAGE_DETECT: 100,
+  // Curriculum
+  CURRICULUM_GENERATE: 4000,
 } as const;
 
 // ============================================================================
@@ -179,6 +181,9 @@ export const PIPELINE_TOTAL_STAGES = 6;
 
 /** Max concurrent LLM calls for section content generation */
 export const PIPELINE_MAX_CONCURRENT = 5;
+
+/** Max concurrent LLM calls for on-demand translations (lower to avoid rate limits) */
+export const TRANSLATION_MAX_CONCURRENT = 3;
 
 /** Polling interval for pipeline status (ms) */
 export const PIPELINE_POLL_INTERVAL_MS = 3000;
@@ -192,6 +197,25 @@ export const CONTENT_TRUNCATION_CHARS = 32_000;
 
 /** Max chars for concept definitions in linking prompts */
 export const DEFINITION_TRUNCATION_CHARS = 80;
+
+// ============================================================================
+// VOICE (Gemini Live)
+// ============================================================================
+
+/** Free tier voice limit shown to user (minutes) */
+export const FREE_VOICE_MINUTES = 10;
+
+/** Actual hard cutoff for free tier (seconds) — 2 extra minutes as grace */
+export const FREE_VOICE_HARD_LIMIT_SECONDS = 720; // 12 min
+
+/** Warning fires this many seconds before the *displayed* limit (FREE_VOICE_MINUTES) */
+export const VOICE_TIME_WARNING_SECONDS = 120; // 2 min before the "10 min" mark
+
+/** Gemini model for voice sessions */
+export const GEMINI_VOICE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+
+/** Voice persona used in Gemini Live sessions */
+export const GEMINI_VOICE_NAME = 'Kore';
 
 // ============================================================================
 // VOICE COMPRESSION
