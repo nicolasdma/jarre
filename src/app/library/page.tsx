@@ -6,6 +6,10 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { LanguageSelector } from '@/components/language-selector';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
 import { CornerBrackets } from '@/components/ui/corner-brackets';
+import { PlanBanner } from '@/components/billing/plan-banner';
+import { IS_MANAGED } from '@/lib/config';
+import { FREE_VOICE_MINUTES } from '@/lib/constants';
+import { TABLES } from '@/lib/db/tables';
 import { LibraryContent } from './library-content';
 
 export const metadata: Metadata = {
@@ -23,17 +27,59 @@ export default async function LibraryPage() {
   let lang: Language = 'es';
   if (user) {
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from(TABLES.userProfiles)
       .select('language')
       .eq('id', user.id)
       .single();
     lang = (profile?.language || 'es') as Language;
   }
 
+  let subscriptionStatus = 'free';
+  let monthlyUsed = 0;
+  let voiceMinutesUsed = 0;
+  let voiceMinutesLimit = FREE_VOICE_MINUTES;
+  if (user && IS_MANAGED) {
+    const { data: billingProfile } = await supabase
+      .from(TABLES.userProfiles)
+      .select('subscription_status')
+      .eq('id', user.id)
+      .single();
+    subscriptionStatus = billingProfile?.subscription_status || 'free';
+    voiceMinutesLimit = subscriptionStatus === 'active' ? Infinity : FREE_VOICE_MINUTES;
+
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+    const { data: tokenRows } = await supabase
+      .from(TABLES.tokenUsage)
+      .select('tokens')
+      .eq('user_id', user.id)
+      .gte('created_at', monthStart.toISOString())
+      .lt('created_at', monthEnd.toISOString());
+    monthlyUsed = (tokenRows || []).reduce((sum, row) => sum + (row.tokens || 0), 0);
+
+    if (subscriptionStatus !== 'active') {
+      const { data: voiceRows } = await supabase
+        .from(TABLES.voiceSessions)
+        .select('duration_seconds')
+        .eq('user_id', user.id)
+        .gte('created_at', monthStart.toISOString())
+        .lt('created_at', monthEnd.toISOString());
+
+      const totalSeconds = (voiceRows || []).reduce(
+        (sum, row) => sum + (row.duration_seconds || 0),
+        0,
+      );
+      voiceMinutesUsed = Math.round((totalSeconds / 60) * 10) / 10;
+    }
+  }
+  const monthlyLimit = subscriptionStatus === 'active' ? 2_000_000 : 50_000;
+
   const phaseNames = getPhaseNames(lang);
 
-  const { data: resources, error } = await supabase
-    .from('resources')
+  let resourcesQuery = supabase
+    .from(TABLES.resources)
     .select(`
       *,
       resource_concepts!inner (
@@ -41,7 +87,13 @@ export default async function LibraryPage() {
         is_prerequisite
       )
     `)
-    .eq('is_archived', false)
+    .eq('is_archived', false);
+
+  resourcesQuery = user
+    ? resourcesQuery.or(`created_by.is.null,created_by.eq.${user.id}`)
+    : resourcesQuery.is('created_by', null);
+
+  const { data: resources, error } = await resourcesQuery
     .order('phase')
     .order('sort_order');
 
@@ -278,7 +330,7 @@ export default async function LibraryPage() {
     };
   });
 
-  // Pipeline-generated courses live in phase 0 with ids prefixed by yt-
+  // Pipeline-generated courses use ids prefixed by yt- and can be placed in inferred phases.
   const pipelineCourses: PipelineCourse[] = resourcesWithStatus
     .filter((r) => r.id.startsWith('yt-') || (r.phase === '0' && (r.type === 'video' || r.type === 'lecture')))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -353,16 +405,34 @@ export default async function LibraryPage() {
                 {lang === 'es' ? 'Nuevo en esta fase' : 'New in this phase'}
               </span>
               <Link
-                href="/dashboard"
+                href="/library?tab=courses"
                 className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
               >
-                {lang === 'es' ? 'Studio YouTube' : 'YouTube Studio'}
+                {lang === 'es' ? 'Pestaña Cursos' : 'Courses Tab'}
+              </Link>
+              <Link
+                href="/dashboard"
+                className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-secondary hover:underline"
+              >
+                {lang === 'es' ? 'Studio secundario' : 'Secondary Studio'}
               </Link>
               <span className="text-xs text-j-text-secondary">
                 {lang === 'es'
-                  ? 'Generá cursos y aparecen en la pestaña Cursos.'
-                  : 'Generate courses and they appear in the Courses tab.'}
+                  ? 'La ingestión vive en Library y se integra en la currícula por fase.'
+                  : 'Ingestion lives in Library and integrates into phase curriculum.'}
               </span>
+            </div>
+          )}
+
+          {user && IS_MANAGED && (
+            <div className="mt-6">
+              <PlanBanner
+                status={subscriptionStatus}
+                used={monthlyUsed}
+                limit={monthlyLimit}
+                voiceMinutesUsed={voiceMinutesUsed}
+                voiceMinutesLimit={voiceMinutesLimit}
+              />
             </div>
           )}
 

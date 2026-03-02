@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
@@ -10,6 +10,7 @@ import { ProjectMilestone } from './project-milestone';
 import { AddResourceModal } from '@/components/resources/AddResourceModal';
 import { InsightBar } from '@/components/insights/InsightBar';
 import { VoiceModeLauncher } from '@/components/voice/VoiceModeLauncher';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 interface EvalStats {
   resourceId: string;
@@ -95,6 +96,7 @@ export function LibraryContent({
   phaseNames,
 }: LibraryContentProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activePhase, setActivePhase] = useState<ActivePhase>('all');
   const [hydrated, setHydrated] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
@@ -102,10 +104,13 @@ export function LibraryContent({
   const phases = Object.keys(byPhase);
 
   useEffect(() => {
+    const tab = searchParams.get('tab');
+    const tabFromUrl = tab && /^(all|courses|external|\d+)$/.test(tab) ? tab : null;
     const saved = localStorage.getItem('jarre-library-phase');
-    setActivePhase(saved ?? '1');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActivePhase((tabFromUrl || saved || '1') as ActivePhase);
     setHydrated(true);
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (hydrated) localStorage.setItem('jarre-library-phase', activePhase);
@@ -438,18 +443,36 @@ function CreateCourseModal({
   const [error, setError] = useState<string | null>(null);
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [needsUpgrade, setNeedsUpgrade] = useState(false);
 
   const handleSubmit = async () => {
     if (!url.trim()) return;
     setSubmitting(true);
     setError(null);
+    setNeedsUpgrade(false);
 
     try {
-      const res = await fetch('/api/pipeline', {
+      const res = await fetchWithKeys('/api/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), title: title.trim() || undefined }),
       });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({} as { used?: number; limit?: number; error?: string }));
+        const used = typeof data.used === 'number' ? data.used.toLocaleString() : null;
+        const limit = typeof data.limit === 'number' ? data.limit.toLocaleString() : null;
+        setNeedsUpgrade(true);
+        setError(
+          used && limit
+            ? (language === 'es'
+              ? `Alcanzaste el límite mensual (${used}/${limit} tokens).`
+              : `You reached the monthly limit (${used}/${limit} tokens).`)
+            : (data.error || (language === 'es' ? 'Límite mensual alcanzado.' : 'Monthly limit reached.')),
+        );
+        setSubmitting(false);
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -474,7 +497,7 @@ function CreateCourseModal({
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/pipeline/${jobId}`);
+        const res = await fetchWithKeys(`/api/pipeline/${jobId}`);
         if (!res.ok) return;
 
         const data = await res.json();
@@ -547,7 +570,17 @@ function CreateCourseModal({
             </div>
 
             {error && (
-              <p className="mt-4 text-sm text-j-error">{error}</p>
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-j-error">{error}</p>
+                {needsUpgrade && (
+                  <a
+                    href="/profile"
+                    className="inline-block font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
+                  >
+                    {language === 'es' ? 'Ver plan y consumo' : 'View plan and usage'}
+                  </a>
+                )}
+              </div>
             )}
 
             <div className="flex justify-end gap-3 mt-6">

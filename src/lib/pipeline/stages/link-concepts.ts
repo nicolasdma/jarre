@@ -24,6 +24,50 @@ function slugify(text: string): string {
     .slice(0, 60);
 }
 
+function choosePhaseByFrequency(phases: string[]): string | null {
+  const frequencies = new Map<string, number>();
+  for (const phase of phases) {
+    if (!phase || phase === '0') continue;
+    frequencies.set(phase, (frequencies.get(phase) ?? 0) + 1);
+  }
+
+  if (frequencies.size === 0) return null;
+
+  return [...frequencies.entries()]
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return Number(a[0]) - Number(b[0]);
+    })[0][0];
+}
+
+async function inferTargetPhase(params: {
+  linkedConceptIds: string[];
+  userId: string;
+  supabase: SupabaseClient;
+}): Promise<string> {
+  const { linkedConceptIds, userId, supabase } = params;
+
+  if (linkedConceptIds.length > 0) {
+    const { data: conceptRows } = await supabase
+      .from(TABLES.concepts)
+      .select('phase')
+      .in('id', linkedConceptIds);
+
+    if (conceptRows?.length) {
+      const inferred = choosePhaseByFrequency(conceptRows.map((row) => String(row.phase)));
+      if (inferred) return inferred;
+    }
+  }
+
+  const { data: profile } = await supabase
+    .from(TABLES.userProfiles)
+    .select('current_phase')
+    .eq('id', userId)
+    .maybeSingle();
+
+  return profile?.current_phase ? String(profile.current_phase) : '0';
+}
+
 /**
  * Stage 6: Extract and link concepts.
  */
@@ -67,6 +111,11 @@ export async function linkConceptsStage(params: {
   // Step 3: Build concept output
   // Linked concepts come from curriculum
   const linkedConceptIds = new Set(linking.links.map((l) => l.curriculumConceptId));
+  const targetPhase = await inferTargetPhase({
+    linkedConceptIds: [...linkedConceptIds],
+    userId,
+    supabase,
+  });
 
   const concepts: ConceptOutput['concepts'] = [];
   const resourceConcepts: ConceptOutput['resourceConcepts'] = [];
@@ -104,12 +153,12 @@ export async function linkConceptsStage(params: {
         .single();
 
       if (!existing) {
-        // Create new concept (phase '0' = supplementary, not part of main curriculum)
+        // New concepts inherit the inferred curriculum phase when possible.
         const { error } = await supabase.from(TABLES.concepts).insert({
           id: newId,
           name: extracted.name,
           canonical_definition: extracted.description,
-          phase: '0',
+          phase: targetPhase,
         });
 
         if (error) {
@@ -132,7 +181,7 @@ export async function linkConceptsStage(params: {
   }
 
   log.info(
-    `Linked ${concepts.length} concepts (${concepts.filter((c) => !c.isNew).length} existing, ${concepts.filter((c) => c.isNew).length} new) — ${totalTokens} tokens`,
+    `Linked ${concepts.length} concepts (${concepts.filter((c) => !c.isNew).length} existing, ${concepts.filter((c) => c.isNew).length} new) in phase ${targetPhase} — ${totalTokens} tokens`,
   );
 
   return {

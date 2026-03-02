@@ -17,6 +17,10 @@ import { getUserLanguage } from '@/lib/db/queries/user';
 import { TABLES } from '@/lib/db/tables';
 import { checkTokenBudget } from '@/lib/api/rate-limit';
 
+function buildUserVideoResourceId(videoId: string, userId: string): string {
+  return `yt-${videoId}-${userId.slice(0, 8)}`;
+}
+
 export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const body = await request.json();
   const { url, title } = body as { url?: string; title?: string };
@@ -32,7 +36,7 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   }
 
   // Skip pipeline if this video was already processed
-  const resourceId = `yt-${videoId}`;
+  const resourceId = buildUserVideoResourceId(videoId, user.id);
   const { data: existing } = await supabase
     .from(TABLES.resources)
     .select('id')

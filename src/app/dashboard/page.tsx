@@ -10,6 +10,7 @@ import { FREE_VOICE_MINUTES } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
 import { DashboardContent } from './dashboard-content';
 import type { PipelineCourseData } from './pipeline-course-card';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'YouTube Studio — Jarre',
@@ -22,25 +23,27 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect('/login');
+  }
+
   let lang: Language = 'es';
   const sectionCounts: Record<string, number> = {};
   const evalStats: Record<string, { bestScore: number; evalCount: number }> = {};
 
-  if (user) {
-    // Fetch user profile (personal data — requires auth)
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('language')
-      .eq('id', user.id)
-      .single();
+  // Fetch user profile (personal data — requires auth)
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('language')
+    .eq('id', user.id)
+    .single();
 
-    lang = (profile?.language || 'es') as Language;
-  }
+  lang = (profile?.language || 'es') as Language;
 
   // Fetch subscription status and token usage for billing banner
   let subscriptionStatus = 'free';
   let monthlyUsed = 0;
-  if (user && IS_MANAGED) {
+  if (IS_MANAGED) {
     const { data: billingProfile } = await supabase
       .from(TABLES.userProfiles)
       .select('subscription_status')
@@ -64,7 +67,7 @@ export default async function DashboardPage() {
   // Voice minutes used this month
   let voiceMinutesUsed = 0;
   const voiceMinutesLimit = subscriptionStatus === 'active' ? Infinity : FREE_VOICE_MINUTES;
-  if (user && IS_MANAGED && subscriptionStatus !== 'active') {
+  if (IS_MANAGED && subscriptionStatus !== 'active') {
     const now2 = new Date();
     const mStart = new Date(Date.UTC(now2.getUTCFullYear(), now2.getUTCMonth(), 1));
     const mEnd = new Date(Date.UTC(now2.getUTCFullYear(), now2.getUTCMonth() + 1, 1));
@@ -82,6 +85,7 @@ export default async function DashboardPage() {
   const { data: resources } = await supabase
     .from('resources')
     .select('id, title, type, url, activate_data, created_at')
+    .eq('created_by', user.id)
     .in('type', ['video', 'lecture']);
 
   const allResources = resources || [];
@@ -110,7 +114,7 @@ export default async function DashboardPage() {
   const progressMap: Record<string, { activeSection: number; completedSections: number[] }> = {};
   const ownedResourceIds = new Set<string>();
 
-  if (user && resourceIds.length > 0) {
+  if (resourceIds.length > 0) {
     const [evalResult, progressResult, userResourcesResult] = await Promise.all([
       supabase
         .from('evaluations')
@@ -220,7 +224,7 @@ export default async function DashboardPage() {
               {lang === 'es' ? 'Volver a Library' : 'Back to Library'}
             </Link>
           </div>
-          {IS_MANAGED && user && (
+          {IS_MANAGED && (
             <div className="mt-4">
               <PlanBanner status={subscriptionStatus} used={monthlyUsed} limit={monthlyLimit} voiceMinutesUsed={voiceMinutesUsed} voiceMinutesLimit={voiceMinutesLimit} />
             </div>

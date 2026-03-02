@@ -21,13 +21,77 @@ import type {
   ConceptOutput,
   ResolveOutput,
   WriteOutput,
-  ActivateData,
 } from '../types';
 
 const log = createLogger('Pipeline:WriteDB');
 
-function generateResourceId(videoId: string): string {
-  return `yt-${videoId}`;
+function generateResourceId(videoId: string, userId: string): string {
+  return `yt-${videoId}-${userId.slice(0, 8)}`;
+}
+
+function choosePhaseByFrequency(phases: string[]): string | null {
+  const frequencies = new Map<string, number>();
+  for (const phase of phases) {
+    if (!phase || phase === '0') continue;
+    frequencies.set(phase, (frequencies.get(phase) ?? 0) + 1);
+  }
+
+  if (frequencies.size === 0) return null;
+
+  return [...frequencies.entries()]
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return Number(a[0]) - Number(b[0]);
+    })[0][0];
+}
+
+async function inferPlacement(params: {
+  userId: string;
+  concepts: ConceptOutput;
+}): Promise<{ phase: string; sortOrder: number }> {
+  const { userId, concepts } = params;
+  const supabase = createAdminClient();
+
+  const linkedConceptIds = concepts.concepts
+    .filter((concept) => !concept.isNew)
+    .map((concept) => concept.id);
+
+  let inferredPhase: string | null = null;
+
+  if (linkedConceptIds.length > 0) {
+    const { data: conceptRows } = await supabase
+      .from(TABLES.concepts)
+      .select('phase')
+      .in('id', linkedConceptIds);
+
+    if (conceptRows?.length) {
+      inferredPhase = choosePhaseByFrequency(
+        conceptRows.map((row) => String(row.phase)),
+      );
+    }
+  }
+
+  if (!inferredPhase) {
+    const { data: profile } = await supabase
+      .from(TABLES.userProfiles)
+      .select('current_phase')
+      .eq('id', userId)
+      .single();
+
+    inferredPhase = profile?.current_phase ? String(profile.current_phase) : '0';
+  }
+
+  const { data: lastInPhase } = await supabase
+    .from(TABLES.resources)
+    .select('sort_order')
+    .eq('phase', inferredPhase)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const sortOrder = (lastInPhase?.sort_order ?? 0) + 10;
+
+  return { phase: inferredPhase, sortOrder };
 }
 
 /**
@@ -45,7 +109,8 @@ export async function writeToDb(params: {
 }): Promise<WriteOutput> {
   const { resolve, content, quizzes, videoMap, concepts, userId, title } = params;
   const supabase = createAdminClient();
-  const resourceId = generateResourceId(resolve.videoId);
+  const resourceId = generateResourceId(resolve.videoId, userId);
+  const placement = await inferPlacement({ userId, concepts });
 
   log.info(`Writing resource ${resourceId} to database...`);
 
@@ -99,6 +164,8 @@ export async function writeToDb(params: {
       .from(TABLES.resources)
       .update({
         title: title || resolve.title,
+        phase: placement.phase,
+        sort_order: placement.sortOrder,
         activate_data: content.activateData as unknown as Record<string, unknown>,
         updated_at: new Date().toISOString(),
       })
@@ -106,12 +173,13 @@ export async function writeToDb(params: {
 
     if (error) throw new Error(`Failed to update resource: ${error.message}`);
   } else {
-    // Create new resource (phase '0' = auto-generated, hidden from curriculum phases)
+    // Create new resource and place it in the phase inferred from linked curriculum concepts.
     const { error } = await supabase.from(TABLES.resources).insert({
       id: resourceId,
       title: title || resolve.title,
       type: 'lecture',
-      phase: '0',
+      phase: placement.phase,
+      sort_order: placement.sortOrder,
       author: null,
       url: `https://www.youtube.com/watch?v=${resolve.videoId}`,
       is_archived: false,
@@ -154,7 +222,7 @@ export async function writeToDb(params: {
         c.slug === section.conceptSlug,
     )?.id;
 
-    // No match — create a dedicated concept for this section
+    // No match — create a dedicated concept for this section in the inferred phase.
     if (!conceptId) {
       const slug = section.conceptSlug || section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
       const newConceptId = `auto-${slug}`;
@@ -171,7 +239,7 @@ export async function writeToDb(params: {
           id: newConceptId,
           name: section.conceptName || section.title,
           canonical_definition: `Key topic from "${resolve.title}": ${section.title}`,
-          phase: '0',
+          phase: placement.phase,
         });
 
         if (conceptErr) {
