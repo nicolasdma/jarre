@@ -2,11 +2,13 @@
   "name": "jarre-app",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check": "npm run lint && npm run test && npm run build",
     "engine": "tsx engine/src/server.ts",
     "engine:dev": "tsx watch engine/src/server.ts",
     "test": "vitest run"

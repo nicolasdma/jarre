@@ -53,3 +53,18 @@ supabase/.temp/
 /engine/data/*
 !/engine/data/.gitkeep
 scripts/__pycache__/
+
+# internal / personal — not for public repo
+/cursos/
+/investigations/
+/investigation/
+/plan/
+BACKLOG.md
+/PLAN-storage-engine.md
+
+# personal seed scripts (curriculum-specific)
+scripts/seed-*-sections.ts
+scripts/seed-inline-quizzes-*.ts
+scripts/seed-horace-*.ts
+scripts/seed-video-segments-*.ts
+scripts/process-ddia-*.py

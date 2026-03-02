@@ -210,7 +210,7 @@ function HashIndexDiagram() {
       <div className="bg-white border border-[#dde5dd] px-2 py-2">
         <p className="font-mono text-[10px] text-j-accent mb-1">GET ciudad →</p>
         <p className="font-mono text-[9px] text-[#999] leading-relaxed">
-          RAM dice "byte 39" → lee SOLO ese byte del disco.
+          RAM dice &quot;byte 39&quot; → lee SOLO ese byte del disco.
           <span className="text-j-accent"> Siempre 1 lectura, sin importar el tamaño.</span>
         </p>
       </div>

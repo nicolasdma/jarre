@@ -1,131 +1,112 @@
 # Jarre
 
-> Named after Jean-Michel Jarre - the orchestrator of sound.
-> This system orchestrates deep learning.
+Jarre is a curriculum-first learning system for mastering technical topics with deep understanding, not shallow recall.
 
-A personal learning system for mastering complex technical knowledge. Not flashcards. Not memorization. **Deep comprehension validation.**
+The app combines guided study flows, AI-based evaluation, review decks, and voice tutoring in a single workflow.
 
-## What is this?
+## Status
 
-Jarre helps you truly understand papers, books, and courses by:
+- Active development.
+- Self-hosted mode is supported via Supabase + BYOK API keys.
+- Interfaces and APIs may change as features are stabilized.
 
-1. **Mapping knowledge** - Before reading, see what concepts you'll learn and what prerequisites you need
-2. **Validating understanding** - After reading, AI generates hard questions to test real comprehension
-3. **Tracking mastery** - See your progress across concepts, identify gaps, get recommendations
-4. **Connecting practice** - Each phase has projects that force you to apply what you learned
+## Core Features
 
-## Mastery Levels
-
-| Level | Name | Criteria |
-|-------|------|----------|
-| 0 | Exposed | Read/watched the material |
-| 1 | Understood | Can explain without notes |
-| 2 | Applied | Used in a project/exercise |
-| 3 | Criticized | Can say when NOT to use it and why |
-| 4 | Taught | Can explain to others and answer questions |
-
-## Study Plan
-
-Built around becoming an **AI/LLM Systems Architect**:
-
-| Phase | Focus | Key Resources |
-|-------|-------|---------------|
-| 1 | Distributed Systems | DDIA, MIT 6.824, Hussein Nasser (System Design) |
-| 2 | LLMs & Agents | Karpathy (Zero to Hero), ReAct paper, Stanford CS25 |
-| 3 | RAG & Memory | RAG paper, LlamaIndex pitfalls, Pinecone talks |
-| 4 | Safety & Evaluation | Constitutional AI, Anthropic talks, DeepLearning.AI evals |
-| 5 | Economics & Infra | Scaling Laws, vLLM, Modal/Vercel infrastructure talks |
-| 6 | Framework Critique | LangChain, AutoGen, LlamaIndex (to know when NOT to use them) |
-
-### Video Resources by Phase
-
-**Phase 1 - Distributed Systems (la base invisible de todo)**
-- MIT 6.824 (YouTube) - Replication, Consensus, Fault tolerance, Scalability
-- Hussein Nasser - System Design Fundamentals, Latency vs Throughput, Backpressure
-
-**Phase 2 - LLMs de verdad (no marketing)**
-- Andrej Karpathy - Neural Networks: Zero to Hero, Let's Build GPT, How LLMs work
-- Stanford CS25 - Transformers United (scaling laws, inference optimization)
-- AssemblyAI/DeepLearning.AI - ReAct prompting, Chain of Thought explained
-
-**Phase 3 - RAG & Memory**
-- Pinecone - RAG in production
-- LlamaIndex - RAG pitfalls
-
-**Phase 4 - Evaluación, fallos y seguridad**
-- Anthropic - Safety research talks (hallucinations, alignment, prompt injection)
-- DeepLearning.AI - LLM evaluation
-- Harvard CS - AI Ethics (applied, not philosophical)
-- Stanford HAI - Technical talks
-
-**Phase 5 - Infraestructura LLM (Frontera 2024-2025)**
-- Modal/Vercel/Replicate - LLM inference infrastructure
-- OpenAI/DeepMind - Research talks
-
-**Phase 6 - Frameworks (sin casarte con ellos)**
-- LangChain - Architecture overview, LangGraph concepts
-- Microsoft AutoGen - Multi-agent systems
-- LlamaIndex - Internals
+- Curriculum phases with prerequisite-aware unlocking
+- Learn -> apply -> evaluate loops for each resource
+- AI-generated and AI-scored evaluations
+- Review deck with mastery/progression tracking
+- YouTube-to-course ingestion pipeline
+- Voice tutor flows (guided, freeform, and review-oriented)
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+ (App Router), Tailwind CSS, shadcn/ui
-- **Auth + DB**: Supabase (Auth + Postgres + RLS)
-- **LLM**: DeepSeek V3 (primary), Kimi K2 (fallback)
-- **Hosting**: Vercel
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- Supabase (Auth + Postgres + RLS)
+- DeepSeek + Gemini APIs
+- Optional billing providers: Stripe / LemonSqueezy
 
-## Development
+## Quickstart
+
+### 1) Install dependencies
 
 ```bash
-# Install dependencies
 npm install
-
-# Set up environment
-cp .env.example .env.local
-# Edit .env.local with your keys
-
-# Run development server
-npm run dev
-
-# Open http://localhost:3000
 ```
+
+### 2) Configure environment
+
+```bash
+cp .env.example .env.local
+```
+
+Fill required values in `.env.local`:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `DEEPSEEK_API_KEY`
+- `GEMINI_API_KEY`
+
+### 3) Apply database migrations
+
+Run the SQL files in [`supabase/migrations`](./supabase/migrations) against your Supabase project.
+
+If you use Supabase CLI:
+
+```bash
+supabase db push
+```
+
+### 4) Start the app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Available Scripts
+
+- `npm run dev` -> start development server
+- `npm run build` -> production build
+- `npm run start` -> serve production build
+- `npm run lint` -> ESLint checks
+- `npm run test` -> Vitest test suite
+- `npm run check` -> lint + test + build
+- `npm run engine` -> start local storage engine server
 
 ## Environment Variables
 
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
+See [`.env.example`](./.env.example) for the full list and comments.
 
-# LLM APIs
-DEEPSEEK_API_KEY=your_key
-KIMI_API_KEY=your_key (optional fallback)
-```
+## Repository Layout
 
-## Project Structure
+- [`src/app`](./src/app) -> routes, API endpoints, and page-level features
+- [`src/components`](./src/components) -> reusable UI and interaction components
+- [`src/lib`](./src/lib) -> core business logic and shared utilities
+- [`supabase/migrations`](./supabase/migrations) -> schema changes
+- [`engine/src`](./engine/src) -> storage engine playground backend
+- [`scripts`](./scripts) -> ingestion and content-processing utilities
 
-```
-jarre/
-├── src/
-│   ├── app/           # Next.js pages
-│   ├── components/    # React components
-│   ├── lib/           # Utilities (supabase, llm, etc.)
-│   └── types/         # TypeScript types
-├── supabase/
-│   └── migrations/    # Database migrations
-├── plan/              # Session plans by date
-├── CLAUDE.md          # AI assistant rules
-├── BACKLOG.md         # Pending tasks
-└── README.md          # This file
-```
+## Linting Note
 
-## Documentation
+The current lint configuration is set to keep CI/dev checks usable while legacy rule debt is being reduced.  
+Warnings are expected in some areas (especially older modules and generated learning content).
 
-- **BACKLOG.md** - All pending tasks, updated every session
-- **plan/** - Session logs with decisions and progress
-- **CLAUDE.md** - Rules for AI-assisted development
+## Contributing
+
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening pull requests.
+
+## Security
+
+See [SECURITY.md](./SECURITY.md) for vulnerability reporting guidance.
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT
+MIT. See [LICENSE](./LICENSE).
