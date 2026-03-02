@@ -14,6 +14,7 @@
 import { createLogger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/server';
 import { TABLES } from '@/lib/db/tables';
+import { syncPipelineResourceToUserKnowledge } from '@/lib/pipeline/sync-user-resource';
 import type {
   ContentOutput,
   QuizOutput,
@@ -344,6 +345,18 @@ export async function writeToDb(params: {
   log.info(
     `Written: resource=${resourceId}, sections=${content.sections.length}, quizzes=${quizzesCreated}, videoSegments=${videoSegmentsCreated}, concepts=${concepts.concepts.length}`,
   );
+
+  // Keep pipeline-generated courses visible in the reactive knowledge system
+  // (Mi Sistema / Journal), same integration path as "Agregar recurso".
+  try {
+    await syncPipelineResourceToUserKnowledge({
+      supabase,
+      userId,
+      resourceId,
+    });
+  } catch (error) {
+    log.warn(`Failed to sync user resource mirror for ${resourceId}: ${(error as Error).message}`);
+  }
 
   return {
     resourceId,

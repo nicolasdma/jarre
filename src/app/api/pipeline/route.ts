@@ -16,6 +16,7 @@ import { extractYouTubeVideoId } from '@/lib/pipeline/stages/resolve-youtube';
 import { getUserLanguage } from '@/lib/db/queries/user';
 import { TABLES } from '@/lib/db/tables';
 import { checkTokenBudget } from '@/lib/api/rate-limit';
+import { syncPipelineResourceToUserKnowledge } from '@/lib/pipeline/sync-user-resource';
 
 function buildUserVideoResourceId(videoId: string, userId: string): string {
   return `yt-${videoId}-${userId.slice(0, 8)}`;
@@ -44,6 +45,12 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
     .single();
 
   if (existing) {
+    await syncPipelineResourceToUserKnowledge({
+      supabase,
+      userId: user.id,
+      resourceId,
+    }).catch(() => {});
+
     return jsonOk({ resourceId, status: 'completed', alreadyExists: true });
   }
 

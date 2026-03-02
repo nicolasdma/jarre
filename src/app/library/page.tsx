@@ -410,16 +410,10 @@ export default async function LibraryPage() {
               >
                 {lang === 'es' ? 'Pestaña Cursos' : 'Courses Tab'}
               </Link>
-              <Link
-                href="/dashboard"
-                className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-secondary hover:underline"
-              >
-                {lang === 'es' ? 'Studio secundario' : 'Secondary Studio'}
-              </Link>
               <span className="text-xs text-j-text-secondary">
                 {lang === 'es'
-                  ? 'La ingestión vive en Library y se integra en la currícula por fase.'
-                  : 'Ingestion lives in Library and integrates into phase curriculum.'}
+                  ? 'Los cursos creados desde YouTube se integran a tu currícula y a Mi Sistema.'
+                  : 'YouTube-generated courses are integrated into your curriculum and My System.'}
               </span>
             </div>
           )}
@@ -432,6 +426,7 @@ export default async function LibraryPage() {
                 limit={monthlyLimit}
                 voiceMinutesUsed={voiceMinutesUsed}
                 voiceMinutesLimit={voiceMinutesLimit}
+                language={lang}
               />
             </div>
           )}
