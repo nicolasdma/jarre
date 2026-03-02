@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookOpen, Layers, Plus, Sparkles, Video } from 'lucide-react';
+import { BookOpen, Layers, Plus, Sparkles } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { UserResourceCard } from './user-resource-card';
@@ -76,7 +76,7 @@ interface LibraryContentProps {
   phaseNames: Record<string, string>;
 }
 
-type ActivePhase = 'all' | 'external' | 'courses' | string;
+type ActivePhase = 'all' | 'resources' | string;
 
 export function LibraryContent({
   byPhase,
@@ -100,10 +100,16 @@ export function LibraryContent({
   );
 
   useEffect(() => {
+    const normalizeTab = (value: string | null): ActivePhase | null => {
+      if (!value) return null;
+      if (value === 'courses' || value === 'external') return 'resources';
+      return value as ActivePhase;
+    };
+
     const tab = searchParams.get('tab');
-    const tabFromUrl = tab && /^(all|courses|external|\d+)$/.test(tab) ? tab : null;
+    const tabFromUrl = tab && /^(all|resources|courses|external|\d+)$/.test(tab) ? tab : null;
     const saved = localStorage.getItem('jarre-library-phase');
-    const initial = (tabFromUrl || saved || 'all') as ActivePhase;
+    const initial = normalizeTab(tabFromUrl) || normalizeTab(saved) || 'all';
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActivePhase(initial);
@@ -115,7 +121,7 @@ export function LibraryContent({
   }, [activePhase, hydrated]);
 
   const activeView: ActivePhase =
-    activePhase === 'all' || activePhase === 'courses' || activePhase === 'external' || phases.includes(activePhase)
+    activePhase === 'all' || activePhase === 'resources' || phases.includes(activePhase)
       ? activePhase
       : 'all';
 
@@ -159,21 +165,11 @@ export function LibraryContent({
 
             {isLoggedIn && (
               <TabButton
-                active={activeView === 'courses'}
-                onClick={() => setActivePhase('courses')}
-                label={language === 'es' ? 'Cursos' : 'Courses'}
-                icon={<Video size={13} />}
-                badge={pipelineCourses.length}
-              />
-            )}
-
-            {isLoggedIn && (
-              <TabButton
-                active={activeView === 'external'}
-                onClick={() => setActivePhase('external')}
-                label={language === 'es' ? 'Mis Recursos' : 'My Resources'}
+                active={activeView === 'resources'}
+                onClick={() => setActivePhase('resources')}
+                label={language === 'es' ? 'Recursos' : 'Resources'}
                 icon={<Sparkles size={13} />}
-                badge={userResources.length}
+                badge={pipelineCourses.length + userResources.length}
               />
             )}
 
@@ -200,9 +196,20 @@ export function LibraryContent({
 
       {isLoggedIn && <InsightBar language={language} />}
 
-      {activeView === 'courses' && isLoggedIn && (
+      {activeView === 'resources' && isLoggedIn && (
         <section className="mb-16">
           <div className="mb-6 border border-j-border bg-j-surface/50 p-4 sm:p-5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+              {language === 'es' ? 'Recursos Personales' : 'Personal Resources'}
+            </p>
+            <p className="mt-2 text-sm text-j-text-secondary">
+              {language === 'es'
+                ? 'Tus cursos de YouTube y recursos externos se gestionan juntos y se conectan con currícula, evaluación y Mi Sistema.'
+                : 'Your YouTube courses and external resources are managed together and connected to curriculum, evaluation, and My System.'}
+            </p>
+          </div>
+
+          <div className="mb-8 border border-j-border bg-j-surface/50 p-4 sm:p-5">
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
               {language === 'es' ? 'Studio de Cursos' : 'Course Studio'}
             </p>
@@ -213,12 +220,8 @@ export function LibraryContent({
             </p>
           </div>
           <DashboardContent courses={pipelineCourses} language={language} />
-        </section>
-      )}
 
-      {activeView === 'external' && isLoggedIn && (
-        <section className="mb-16">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="mt-10 flex items-center gap-3 mb-6">
             <Sparkles size={16} className="text-j-accent" />
             <h2 className="text-xl font-medium text-j-text">
               {language === 'es' ? 'Mis Recursos Externos' : 'My External Resources'}
@@ -255,7 +258,7 @@ export function LibraryContent({
         </section>
       )}
 
-      {activeView !== 'external' && activeView !== 'courses' && visiblePhases.map((phase) => {
+      {activeView !== 'resources' && visiblePhases.map((phase) => {
         const phaseResources = byPhase[phase];
         if (!phaseResources) return null;
 

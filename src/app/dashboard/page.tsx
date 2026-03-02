@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  redirect('/library?tab=courses');
+  redirect('/library?tab=resources');
 }

@@ -455,10 +455,10 @@ export default async function LibraryPage() {
                 {lang === 'es' ? 'Nuevo en esta fase' : 'New in this phase'}
               </span>
               <Link
-                href="/library?tab=courses"
+                href="/library?tab=resources"
                 className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
               >
-                {lang === 'es' ? 'Pestaña Cursos' : 'Courses Tab'}
+                {lang === 'es' ? 'Pestaña Recursos' : 'Resources Tab'}
               </Link>
               <span className="text-xs text-j-text-secondary">
                 {lang === 'es'
