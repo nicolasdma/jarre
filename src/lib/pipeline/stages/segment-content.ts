@@ -47,7 +47,6 @@ function slugify(text: string): string {
  */
 export async function segmentContent(
   resolve: ResolveOutput,
-  apiKey?: string,
 ): Promise<{ output: SegmentOutput; tokensUsed: number }> {
   const truncatedTranscript =
     resolve.fullTranscript.length > CONTENT_TRUNCATION_CHARS
@@ -57,7 +56,6 @@ export async function segmentContent(
   const chaptersContext = formatChapters(resolve.chapters);
 
   const { content, tokensUsed } = await callDeepSeek({
-    apiKey,
     messages: [
       {
         role: 'system',

@@ -102,13 +102,11 @@ async function translateMarkdown(
   fromLang: string,
   toLang: string,
   context: string,
-  apiKey?: string,
 ): Promise<{ translated: string; tokensUsed: number }> {
   const fromName = LANG_NAMES[fromLang] || fromLang;
   const toName = LANG_NAMES[toLang] || toLang;
 
   const { content, tokensUsed } = await callDeepSeek({
-    apiKey,
     messages: [
       {
         role: 'system',
@@ -144,11 +142,10 @@ async function translateMarkdownChunked(
   fromLang: string,
   toLang: string,
   context: string,
-  apiKey?: string,
 ): Promise<{ translated: string; tokensUsed: number }> {
   const chunks = splitByHeadings(markdown, CHUNK_THRESHOLD);
   if (chunks.length === 1) {
-    return translateMarkdown(markdown, fromLang, toLang, context, apiKey);
+    return translateMarkdown(markdown, fromLang, toLang, context);
   }
 
   log.info(`Chunked translation: ${chunks.length} chunks (${markdown.length} chars)`);
@@ -156,7 +153,7 @@ async function translateMarkdownChunked(
   const translatedChunks: string[] = [];
 
   for (const chunk of chunks) {
-    const { translated, tokensUsed } = await translateMarkdown(chunk, fromLang, toLang, context, apiKey);
+    const { translated, tokensUsed } = await translateMarkdown(chunk, fromLang, toLang, context);
     translatedChunks.push(translated);
     totalTokens += tokensUsed;
   }
@@ -169,13 +166,11 @@ async function translatePlainText(
   fromLang: string,
   toLang: string,
   context: string,
-  apiKey?: string,
 ): Promise<{ translated: string; tokensUsed: number }> {
   const fromName = LANG_NAMES[fromLang] || fromLang;
   const toName = LANG_NAMES[toLang] || toLang;
 
   const { content, tokensUsed } = await callDeepSeek({
-    apiKey,
     messages: [
       {
         role: 'system',
