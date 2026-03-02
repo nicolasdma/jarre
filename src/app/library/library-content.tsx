@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { BookOpen, Layers, Plus, Sparkles, Video } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { UserResourceCard } from './user-resource-card';
@@ -10,7 +10,8 @@ import { ProjectMilestone } from './project-milestone';
 import { AddResourceModal } from '@/components/resources/AddResourceModal';
 import { InsightBar } from '@/components/insights/InsightBar';
 import { VoiceModeLauncher } from '@/components/voice/VoiceModeLauncher';
-import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
+import { DashboardContent } from '../dashboard/dashboard-content';
+import type { PipelineCourseData } from '../dashboard/pipeline-course-card';
 
 interface EvalStats {
   resourceId: string;
@@ -64,20 +65,12 @@ interface UserResource {
   url: string | null;
 }
 
-interface PipelineCourse {
-  id: string;
-  title: string;
-  url: string | null;
-  type: string;
-  activate_data: { summary?: string } | null;
-}
-
 interface LibraryContentProps {
   byPhase: Record<string, ResourceWithStatus[]>;
   projectsByPhase: Record<string, ProjectWithDetails>;
   supplementaryResources: ResourceWithStatus[];
   userResources: UserResource[];
-  pipelineCourses?: PipelineCourse[];
+  pipelineCourses?: PipelineCourseData[];
   isLoggedIn: boolean;
   language: Language;
   phaseNames: Record<string, string>;
@@ -100,15 +93,20 @@ export function LibraryContent({
   const [activePhase, setActivePhase] = useState<ActivePhase>('all');
   const [hydrated, setHydrated] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
-  const [showCreateCourse, setShowCreateCourse] = useState(false);
-  const phases = Object.keys(byPhase);
+
+  const phases = useMemo(
+    () => Object.keys(byPhase).sort((a, b) => Number(a) - Number(b)),
+    [byPhase],
+  );
 
   useEffect(() => {
     const tab = searchParams.get('tab');
     const tabFromUrl = tab && /^(all|courses|external|\d+)$/.test(tab) ? tab : null;
     const saved = localStorage.getItem('jarre-library-phase');
+    const initial = (tabFromUrl || saved || 'all') as ActivePhase;
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActivePhase((tabFromUrl || saved || '1') as ActivePhase);
+    setActivePhase(initial);
     setHydrated(true);
   }, [searchParams]);
 
@@ -116,91 +114,136 @@ export function LibraryContent({
     if (hydrated) localStorage.setItem('jarre-library-phase', activePhase);
   }, [activePhase, hydrated]);
 
-  const visiblePhases = activePhase === 'all' ? phases : [activePhase];
+  const activeView: ActivePhase =
+    activePhase === 'all' || activePhase === 'courses' || activePhase === 'external' || phases.includes(activePhase)
+      ? activePhase
+      : 'all';
+
+  const visiblePhases = activeView === 'all' ? phases : [activeView];
+  const totalPhaseResources = phases.reduce((sum, phase) => sum + byPhase[phase].length, 0);
 
   return (
     <>
-      {/* Phase Tab Bar */}
-      <div className="sticky top-0 z-10 bg-j-bg/95 backdrop-blur-sm border-b border-j-border mb-10 -mx-4 px-4 sm:-mx-8 sm:px-8">
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2">
-          <TabButton
-            active={activePhase === 'all'}
-            onClick={() => setActivePhase('all')}
-            label={language === 'es' ? 'TODAS' : 'ALL'}
-          />
-          {phases.map((phase) => {
-            const phaseResources = byPhase[phase];
-            const evaluated = phaseResources.filter(r => r.evalStats !== null).length;
-            const total = phaseResources.length;
-            const hasProgress = evaluated > 0;
-            const isComplete = evaluated === total;
+      <div className="sticky top-0 z-20 bg-j-bg/95 backdrop-blur-md border border-j-border mb-10 -mx-4 px-4 sm:-mx-8 sm:px-8">
+        <div className="py-3">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+                {language === 'es' ? 'Hub Unificado' : 'Unified Hub'}
+              </p>
+              <p className="text-sm text-j-text-secondary">
+                {language === 'es'
+                  ? 'Currícula, cursos de YouTube y recursos externos en un solo flujo.'
+                  : 'Curriculum, YouTube courses, and external resources in one flow.'}
+              </p>
+            </div>
+            {isLoggedIn && (
+              <button
+                onClick={() => setShowAddResource(true)}
+                className="flex items-center gap-1.5 px-3 py-2 font-mono text-[11px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors"
+              >
+                <Plus size={14} />
+                {language === 'es' ? 'Recurso' : 'Resource'}
+              </button>
+            )}
+          </div>
 
-            return (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <TabButton
+              active={activeView === 'all'}
+              onClick={() => setActivePhase('all')}
+              label={language === 'es' ? 'Currícula' : 'Curriculum'}
+              icon={<Layers size={13} />}
+              badge={totalPhaseResources}
+            />
+
+            {isLoggedIn && (
               <TabButton
-                key={phase}
-                active={activePhase === phase}
-                onClick={() => setActivePhase(phase)}
-                label={phase.toString().padStart(2, '0')}
-                dot={
-                  isLoggedIn && hasProgress
-                    ? isComplete ? 'complete' : 'partial'
-                    : undefined
-                }
+                active={activeView === 'courses'}
+                onClick={() => setActivePhase('courses')}
+                label={language === 'es' ? 'Cursos' : 'Courses'}
+                icon={<Video size={13} />}
+                badge={pipelineCourses.length}
               />
-            );
-          })}
-          {isLoggedIn && (
-            <TabButton
-              active={activePhase === 'courses'}
-              onClick={() => setActivePhase('courses')}
-              label={language === 'es' ? 'CURSOS' : 'COURSES'}
-              badge={pipelineCourses.length > 0 ? pipelineCourses.length : undefined}
-            />
-          )}
-          {isLoggedIn && (
-            <button
-              onClick={() => setShowAddResource(true)}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[11px] tracking-[0.15em] uppercase border-b-2 border-transparent text-j-accent hover:text-j-accent/80 transition-colors ml-auto"
-            >
-              <Plus size={14} />
-              {language === 'es' ? 'Recurso' : 'Resource'}
-            </button>
-          )}
-          {isLoggedIn && userResources.length > 0 && (
-            <TabButton
-              active={activePhase === 'external'}
-              onClick={() => setActivePhase('external')}
-              label="✦"
-              badge={userResources.length}
-            />
-          )}
+            )}
+
+            {isLoggedIn && (
+              <TabButton
+                active={activeView === 'external'}
+                onClick={() => setActivePhase('external')}
+                label={language === 'es' ? 'Mis Recursos' : 'My Resources'}
+                icon={<Sparkles size={13} />}
+                badge={userResources.length}
+              />
+            )}
+
+            {phases.map((phase) => {
+              const phaseResources = byPhase[phase];
+              const evaluated = phaseResources.filter((r) => r.evalStats !== null).length;
+              const isComplete = phaseResources.length > 0 && evaluated === phaseResources.length;
+              const hasProgress = evaluated > 0;
+
+              return (
+                <TabButton
+                  key={phase}
+                  active={activeView === phase}
+                  onClick={() => setActivePhase(phase)}
+                  label={`${phase.toString().padStart(2, '0')} · ${phaseNames[phase] || phase}`}
+                  icon={<BookOpen size={13} />}
+                  dot={isLoggedIn && hasProgress ? (isComplete ? 'complete' : 'partial') : undefined}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Insight suggestions */}
       {isLoggedIn && <InsightBar language={language} />}
 
-      {/* External resources view */}
-      {activePhase === 'external' && isLoggedIn && (
+      {activeView === 'courses' && isLoggedIn && (
         <section className="mb-16">
-          <div className="flex items-center gap-4 mb-8">
-            <span className="font-mono text-3xl sm:text-5xl font-light text-j-border">
-              ✦
+          <div className="mb-6 border border-j-border bg-j-surface/50 p-4 sm:p-5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+              {language === 'es' ? 'Studio de Cursos' : 'Course Studio'}
+            </p>
+            <p className="mt-2 text-sm text-j-text-secondary">
+              {language === 'es'
+                ? 'Creá cursos desde YouTube y se integran automáticamente a la currícula, evaluación y Mi Sistema.'
+                : 'Create courses from YouTube and they are automatically integrated into curriculum, evaluation, and My System.'}
+            </p>
+          </div>
+          <DashboardContent courses={pipelineCourses} language={language} />
+        </section>
+      )}
+
+      {activeView === 'external' && isLoggedIn && (
+        <section className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <Sparkles size={16} className="text-j-accent" />
+            <h2 className="text-xl font-medium text-j-text">
+              {language === 'es' ? 'Mis Recursos Externos' : 'My External Resources'}
+            </h2>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              ({userResources.length})
             </span>
-            <div>
-              <h2 className="text-xl font-medium text-j-text">
-                {language === 'es' ? 'Mis Recursos' : 'My Resources'}
-              </h2>
-              <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
-                {userResources.length} {language === 'es' ? 'externos' : 'external'}
+          </div>
+
+          {userResources.length === 0 ? (
+            <div className="border border-dashed border-j-border p-10 text-center">
+              <p className="text-sm text-j-text-secondary">
+                {language === 'es'
+                  ? 'Todavía no agregaste recursos externos.'
+                  : 'You have not added external resources yet.'}
               </p>
             </div>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {userResources.map((ur) => (
-              <UserResourceCard key={ur.id} resource={ur} language={language} />
-            ))}
-          </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {userResources.map((ur) => (
+                <UserResourceCard key={ur.id} resource={ur} language={language} />
+              ))}
+            </div>
+          )}
+
           <div className="mt-10">
             <VoiceModeLauncher
               language={language}
@@ -212,87 +255,14 @@ export function LibraryContent({
         </section>
       )}
 
-      {/* Pipeline Courses view */}
-      {activePhase === 'courses' && isLoggedIn && (
-        <section className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <span className="font-mono text-3xl sm:text-5xl font-light text-j-border">
-                ▶
-              </span>
-              <div>
-                <h2 className="text-xl font-medium text-j-text">
-                  {language === 'es' ? 'Mis Cursos' : 'My Courses'}
-                </h2>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
-                  {pipelineCourses.length > 0
-                    ? `${pipelineCourses.length} ${language === 'es' ? 'generados desde YouTube' : 'generated from YouTube'}`
-                    : (language === 'es' ? 'Pega una URL de YouTube y genera un curso completo' : 'Paste a YouTube URL and generate a full course')}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowCreateCourse(true)}
-              className="flex items-center gap-1.5 px-4 py-2 font-mono text-[11px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors"
-            >
-              <Plus size={14} />
-              {language === 'es' ? 'Crear Curso' : 'Create Course'}
-            </button>
-          </div>
-
-          {pipelineCourses.length === 0 && (
-            <div className="text-center py-16 border border-dashed border-j-border">
-              <p className="text-4xl mb-4">▶</p>
-              <p className="text-j-text-secondary mb-6">
-                {language === 'es'
-                  ? 'Aún no has creado ningún curso. Pega una URL de YouTube para empezar.'
-                  : 'You haven\'t created any courses yet. Paste a YouTube URL to get started.'}
-              </p>
-              <button
-                onClick={() => setShowCreateCourse(true)}
-                className="px-6 py-2.5 font-mono text-[11px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors"
-              >
-                {language === 'es' ? 'Crear mi primer curso' : 'Create my first course'}
-              </button>
-            </div>
-          )}
-
-          {pipelineCourses.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {pipelineCourses.map((course) => (
-                <a
-                  key={course.id}
-                  href={`/learn/${course.id}`}
-                  className="group block p-6 border border-j-border hover:border-j-accent transition-colors"
-                >
-                  <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mb-2">
-                    {course.type}
-                  </p>
-                  <h3 className="text-j-text group-hover:text-j-accent transition-colors mb-2 line-clamp-2">
-                    {course.title}
-                  </h3>
-                  {course.activate_data?.summary && (
-                    <p className="text-xs text-j-text-secondary line-clamp-3">
-                      {course.activate_data.summary}
-                    </p>
-                  )}
-                </a>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Resources by Phase */}
-      {activePhase !== 'external' && activePhase !== 'courses' && visiblePhases.map((phase) => {
+      {activeView !== 'external' && activeView !== 'courses' && visiblePhases.map((phase) => {
         const phaseResources = byPhase[phase];
         if (!phaseResources) return null;
 
         return (
           <section key={phase} className="mb-16">
-            {/* Phase Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-3xl sm:text-5xl font-light text-j-border">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="font-mono text-2xl sm:text-3xl font-light text-j-border">
                 {phase.toString().padStart(2, '0')}
               </span>
               <div>
@@ -303,14 +273,13 @@ export function LibraryContent({
                   {phaseResources.length} {phaseResources.length === 1 ? t('library.resource', language) : t('library.resources', language)}
                   {isLoggedIn && (
                     <span className="ml-3">
-                      {phaseResources.filter(r => r.evalStats !== null).length} {t('library.evaluated', language)}
+                      {phaseResources.filter((r) => r.evalStats !== null).length} {t('library.evaluated', language)}
                     </span>
                   )}
                 </p>
               </div>
             </div>
 
-            {/* Resource Grid */}
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {phaseResources.map((resource) => (
                 <ResourceCard
@@ -322,7 +291,6 @@ export function LibraryContent({
               ))}
             </div>
 
-            {/* Project Milestone after this phase */}
             {isLoggedIn && projectsByPhase[phase] && (
               <ProjectMilestone
                 project={projectsByPhase[phase]}
@@ -334,28 +302,20 @@ export function LibraryContent({
         );
       })}
 
-      {/* Supplementary Resources - only in "all" view */}
-      {activePhase === 'all' && supplementaryResources.length > 0 && (
-        <details className="mb-16 group">
+      {activeView === 'all' && supplementaryResources.length > 0 && (
+        <details className="mb-16 group border border-j-border">
           <summary className="cursor-pointer list-none">
-            <div className="flex items-center gap-4 py-4 border-t border-b border-j-border hover:bg-j-bg-hover transition-colors">
+            <div className="flex items-center gap-3 p-4 hover:bg-j-bg-hover transition-colors">
               <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                 {language === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
               </span>
               <span className="text-xs text-j-text-tertiary">
-                ({supplementaryResources.length} videos)
+                ({supplementaryResources.length})
               </span>
-              <span className="ml-auto text-j-text-tertiary group-open:rotate-180 transition-transform">
-                ▼
-              </span>
+              <span className="ml-auto text-j-text-tertiary group-open:rotate-180 transition-transform">▼</span>
             </div>
           </summary>
-          <div className="pt-8">
-            <p className="text-sm text-j-text-secondary mb-6">
-              {language === 'es'
-                ? 'Videos y materiales adicionales para profundizar en los temas.'
-                : 'Videos and additional materials to dive deeper into topics.'}
-            </p>
+          <div className="p-4 sm:p-6 border-t border-j-border">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {supplementaryResources.map((resource) => (
                 <a
@@ -381,300 +341,13 @@ export function LibraryContent({
         </details>
       )}
 
-      {/* Add Resource Modal */}
       <AddResourceModal
         isOpen={showAddResource}
         onClose={() => setShowAddResource(false)}
         language={language}
         onResourceAdded={() => router.refresh()}
       />
-
-      {/* Create Course Modal */}
-      {showCreateCourse && (
-        <CreateCourseModal
-          onClose={() => setShowCreateCourse(false)}
-          language={language}
-          onComplete={() => {
-            setShowCreateCourse(false);
-            router.refresh();
-          }}
-        />
-      )}
     </>
-  );
-}
-
-const STAGE_LABELS: Record<string, Record<string, string>> = {
-  es: {
-    resolve: 'Descargando transcripción...',
-    segment: 'Segmentando contenido...',
-    content: 'Generando secciones...',
-    video_map: 'Mapeando video...',
-    concepts: 'Enlazando conceptos...',
-    write_db: 'Guardando en base de datos...',
-  },
-  en: {
-    resolve: 'Downloading transcript...',
-    segment: 'Segmenting content...',
-    content: 'Generating sections...',
-    video_map: 'Mapping video...',
-    concepts: 'Linking concepts...',
-    write_db: 'Writing to database...',
-  },
-};
-
-function CreateCourseModal({
-  onClose,
-  language,
-  onComplete,
-}: {
-  onClose: () => void;
-  language: Language;
-  onComplete: () => void;
-}) {
-  const router = useRouter();
-  const [url, setUrl] = useState('');
-  const [title, setTitle] = useState('');
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>('idle'); // idle | polling | completed | failed
-  const [currentStage, setCurrentStage] = useState<string | null>(null);
-  const [stagesCompleted, setStagesCompleted] = useState(0);
-  const [totalStages, setTotalStages] = useState(6);
-  const [error, setError] = useState<string | null>(null);
-  const [resourceId, setResourceId] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [needsUpgrade, setNeedsUpgrade] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!url.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    setNeedsUpgrade(false);
-
-    try {
-      const res = await fetchWithKeys('/api/pipeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), title: title.trim() || undefined }),
-      });
-
-      if (res.status === 429) {
-        const data = await res.json().catch(() => ({} as { used?: number; limit?: number; error?: string }));
-        const used = typeof data.used === 'number' ? data.used.toLocaleString() : null;
-        const limit = typeof data.limit === 'number' ? data.limit.toLocaleString() : null;
-        setNeedsUpgrade(true);
-        setError(
-          used && limit
-            ? (language === 'es'
-              ? `Alcanzaste el límite mensual (${used}/${limit} tokens).`
-              : `You reached the monthly limit (${used}/${limit} tokens).`)
-            : (data.error || (language === 'es' ? 'Límite mensual alcanzado.' : 'Monthly limit reached.')),
-        );
-        setSubmitting(false);
-        return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Error creating course');
-        setSubmitting(false);
-        return;
-      }
-
-      const data = await res.json();
-      setJobId(data.jobId);
-      setStatus('polling');
-    } catch {
-      setError(language === 'es' ? 'Error de conexión' : 'Connection error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Poll for pipeline status
-  useEffect(() => {
-    if (status !== 'polling' || !jobId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetchWithKeys(`/api/pipeline/${jobId}`);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setCurrentStage(data.currentStage);
-        setStagesCompleted(data.stagesCompleted);
-        setTotalStages(data.totalStages);
-
-        if (data.status === 'completed') {
-          setStatus('completed');
-          setResourceId(data.resourceId);
-          clearInterval(interval);
-        } else if (data.status === 'failed') {
-          setStatus('failed');
-          setError(data.error || 'Pipeline failed');
-          clearInterval(interval);
-        }
-      } catch {
-        // Ignore polling errors
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [status, jobId]);
-
-  const progressPercent = totalStages > 0 ? Math.round((stagesCompleted / totalStages) * 100) : 0;
-  const labels = STAGE_LABELS[language] || STAGE_LABELS.es;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-j-bg border border-j-border w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg text-j-text">
-            {language === 'es' ? 'Crear Curso desde YouTube' : 'Create Course from YouTube'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-j-text-tertiary hover:text-j-text transition-colors text-xl"
-          >
-            ×
-          </button>
-        </div>
-
-        {status === 'idle' && (
-          <>
-            <div className="space-y-4">
-              <div>
-                <label className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase block mb-2">
-                  YouTube URL *
-                </label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 border border-j-border bg-transparent text-j-text text-sm focus:border-j-accent focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase block mb-2">
-                  {language === 'es' ? 'Título (opcional)' : 'Title (optional)'}
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={language === 'es' ? 'Se detecta automáticamente' : 'Auto-detected from video'}
-                  className="w-full px-3 py-2 border border-j-border bg-transparent text-j-text text-sm focus:border-j-accent focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="mt-4 space-y-2">
-                <p className="text-sm text-j-error">{error}</p>
-                {needsUpgrade && (
-                  <a
-                    href="/profile"
-                    className="inline-block font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
-                  >
-                    {language === 'es' ? 'Ver plan y consumo' : 'View plan and usage'}
-                  </a>
-                )}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 font-mono text-[11px] tracking-[0.15em] uppercase text-j-text-tertiary hover:text-j-text transition-colors"
-              >
-                {language === 'es' ? 'Cancelar' : 'Cancel'}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !url.trim()}
-                className="px-4 py-2 font-mono text-[11px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors disabled:opacity-50"
-              >
-                {submitting
-                  ? (language === 'es' ? 'Creando...' : 'Creating...')
-                  : (language === 'es' ? 'Crear Curso' : 'Create Course')}
-              </button>
-            </div>
-          </>
-        )}
-
-        {(status === 'polling' || status === 'completed' || status === 'failed') && (
-          <div className="space-y-4">
-            {/* Progress bar */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-                  {language === 'es' ? 'Progreso' : 'Progress'}
-                </span>
-                <span className="font-mono text-[10px] text-j-text-tertiary">
-                  {stagesCompleted}/{totalStages}
-                </span>
-              </div>
-              <div className="w-full h-2 bg-j-border overflow-hidden">
-                <div
-                  className="h-full bg-j-accent transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Current stage */}
-            {status === 'polling' && currentStage && (
-              <p className="text-sm text-j-text-secondary animate-pulse">
-                {labels[currentStage] || currentStage}
-              </p>
-            )}
-
-            {/* Completed */}
-            {status === 'completed' && (
-              <div className="text-center py-4">
-                <p className="text-j-accent mb-4">
-                  {language === 'es' ? '¡Curso creado exitosamente!' : 'Course created successfully!'}
-                </p>
-                <button
-                  onClick={() => {
-                    if (resourceId) {
-                      router.push(`/learn/${resourceId}`);
-                    } else {
-                      onComplete();
-                    }
-                  }}
-                  className="px-6 py-2 font-mono text-[11px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors"
-                >
-                  {language === 'es' ? 'Ir al Curso →' : 'Go to Course →'}
-                </button>
-              </div>
-            )}
-
-            {/* Failed */}
-            {status === 'failed' && (
-              <div className="py-4">
-                <p className="text-j-error text-sm mb-2">
-                  {language === 'es' ? 'Error en el pipeline:' : 'Pipeline error:'}
-                </p>
-                <p className="text-xs text-j-text-secondary">{error}</p>
-                <button
-                  onClick={() => {
-                    setStatus('idle');
-                    setJobId(null);
-                    setError(null);
-                    setStagesCompleted(0);
-                  }}
-                  className="mt-4 px-4 py-2 font-mono text-[11px] tracking-[0.15em] uppercase border border-j-border text-j-text-tertiary hover:text-j-text transition-colors"
-                >
-                  {language === 'es' ? 'Intentar de nuevo' : 'Try again'}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -682,12 +355,14 @@ function TabButton({
   active,
   onClick,
   label,
+  icon,
   dot,
   badge,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  icon: ReactNode;
   dot?: 'complete' | 'partial';
   badge?: number;
 }) {
@@ -695,15 +370,16 @@ function TabButton({
     <button
       onClick={onClick}
       className={`
-        flex-shrink-0 px-3 py-2 font-mono text-[11px] tracking-[0.15em] uppercase
-        border-b-2 transition-colors min-h-[44px] flex items-center
+        flex-shrink-0 px-3 py-2 font-mono text-[11px] tracking-[0.12em] uppercase
+        border transition-colors min-h-[44px] flex items-center
         ${active
-          ? 'border-j-accent text-j-text'
-          : 'border-transparent text-j-text-tertiary hover:text-j-text-secondary'
+          ? 'border-j-accent text-j-text bg-j-surface'
+          : 'border-j-border text-j-text-tertiary hover:text-j-text-secondary hover:border-j-accent/40'
         }
       `}
     >
-      <span className="flex items-center gap-1.5">
+      <span className="flex items-center gap-2">
+        {icon}
         {label}
         {dot && (
           <span

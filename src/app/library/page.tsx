@@ -11,6 +11,7 @@ import { IS_MANAGED } from '@/lib/config';
 import { FREE_VOICE_MINUTES } from '@/lib/constants';
 import { TABLES } from '@/lib/db/tables';
 import { LibraryContent } from './library-content';
+import type { PipelineCourseData } from '../dashboard/pipeline-course-card';
 
 export const metadata: Metadata = {
   title: 'Library — Jarre',
@@ -109,6 +110,20 @@ export default async function LibraryPage() {
     );
   }
 
+  const allResourceIds = (resources || []).map((resource) => resource.id);
+  const sectionCounts: Record<string, number> = {};
+
+  if (allResourceIds.length > 0) {
+    const { data: sections } = await supabase
+      .from(TABLES.resourceSections)
+      .select('resource_id')
+      .in('resource_id', allResourceIds);
+
+    for (const section of sections || []) {
+      sectionCounts[section.resource_id] = (sectionCounts[section.resource_id] || 0) + 1;
+    }
+  }
+
   let userProgress: Record<string, number> = {};
   if (user) {
     const { data: progress } = await supabase
@@ -124,6 +139,22 @@ export default async function LibraryPage() {
         },
         {} as Record<string, number>
       );
+    }
+  }
+
+  const learnProgressMap: Record<string, { activeSection: number; completedSections: number[] }> = {};
+  if (user && allResourceIds.length > 0) {
+    const { data: learnProgressRows } = await supabase
+      .from(TABLES.learnProgress)
+      .select('resource_id, active_section, completed_sections')
+      .eq('user_id', user.id)
+      .in('resource_id', allResourceIds);
+
+    for (const row of learnProgressRows || []) {
+      learnProgressMap[row.resource_id] = {
+        activeSection: row.active_section ?? 1,
+        completedSections: row.completed_sections ?? [],
+      };
     }
   }
 
@@ -281,15 +312,7 @@ export default async function LibraryPage() {
     conceptsTaught: string[];
     evalStats: EvalStats | null;
     relatedUserResources: RelatedUserResource[];
-  };
-
-  type PipelineCourse = {
-    id: string;
-    title: string;
-    url: string | null;
-    type: string;
-    activate_data: { summary?: string } | null;
-    created_at: string;
+    progress: { activeSection: number; completedSections: number[] } | null;
   };
 
   const resourcesWithStatus: ResourceWithStatus[] = (resources || []).map((resource) => {
@@ -327,21 +350,48 @@ export default async function LibraryPage() {
       conceptsTaught,
       evalStats: evaluationStats[resource.id] || null,
       relatedUserResources,
+      progress: learnProgressMap[resource.id] || null,
     };
   });
 
   // Pipeline-generated courses use ids prefixed by yt- and can be placed in inferred phases.
-  const pipelineCourses: PipelineCourse[] = resourcesWithStatus
-    .filter((r) => r.id.startsWith('yt-') || (r.phase === '0' && (r.type === 'video' || r.type === 'lecture')))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((r) => ({
-      id: r.id,
-      title: r.title,
-      url: r.url || null,
-      type: r.type,
-      activate_data: (r.activate_data as { summary?: string } | null) || null,
-      created_at: r.created_at,
+  const pipelineCourses: PipelineCourseData[] = resourcesWithStatus
+    .filter((resource) => {
+      const isPipelineResource = resource.id.startsWith('yt-')
+        || (resource.phase === '0' && (resource.type === 'video' || resource.type === 'lecture'));
+      return isPipelineResource && (sectionCounts[resource.id] || 0) > 0;
+    })
+    .map((resource) => ({
+      id: resource.id,
+      title: resource.title,
+      type: resource.type,
+      url: resource.url || null,
+      summary: (resource.activate_data as { summary?: string } | null)?.summary ?? null,
+      sectionCount: sectionCounts[resource.id] || 0,
+      createdAt: resource.created_at,
+      isOwner: !!user && resource.created_by === user.id,
+      evalStats: resource.evalStats
+        ? { bestScore: resource.evalStats.bestScore, evalCount: resource.evalStats.evalCount }
+        : null,
+      progress: resource.progress,
     }));
+
+  pipelineCourses.sort((a, b) => {
+    const priority = (course: PipelineCourseData) => {
+      if (
+        course.progress
+        && course.progress.completedSections.length > 0
+        && course.progress.completedSections.length < course.sectionCount
+      ) return 0;
+      if (!course.evalStats) return 1;
+      return 2;
+    };
+
+    const pa = priority(a);
+    const pb = priority(b);
+    if (pa !== pb) return pa - pb;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   // Filter out courses, videos, and specific resources from main view
   const hiddenTypes = ['course', 'video'];
