@@ -2,10 +2,8 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Header } from '@/components/header';
-import { SectionLabel } from '@/components/ui/section-label';
 import { LanguageSelector } from '@/components/language-selector';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
-import { CornerBrackets } from '@/components/ui/corner-brackets';
 import { PlanBanner } from '@/components/billing/plan-banner';
 import { IS_MANAGED } from '@/lib/config';
 import { FREE_VOICE_MINUTES } from '@/lib/constants';
@@ -429,99 +427,46 @@ export default async function LibraryPage() {
     <div className="min-h-screen bg-j-bg j-bg-texture">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-16 sm:pt-24 pb-12 sm:pb-16 j-grid-bg j-hero-gradient">
-        {/* Hero Section */}
-        <div className="mb-16">
-          <SectionLabel>
-            {lang === 'es' ? 'Sistema de Aprendizaje' : 'Learning System'}
-          </SectionLabel>
+      <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-8 pb-12 sm:pb-16">
+        {/* Plan banner + sign-in — functional only, no marketing copy */}
+        {user && IS_MANAGED && (
+          <div className="mb-4">
+            <PlanBanner
+              status={subscriptionStatus}
+              used={monthlyUsed}
+              limit={monthlyLimit}
+              voiceMinutesUsed={voiceMinutesUsed}
+              voiceMinutesLimit={voiceMinutesLimit}
+              language={lang}
+            />
+          </div>
+        )}
 
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-normal italic tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
-            {t('library.title', lang)}
-          </h1>
-          <p className="text-xl sm:text-2xl md:text-3xl font-light text-j-text-tertiary">
-            {lang === 'es' ? 'para dominar sistemas de IA' : 'for AI systems mastery'}
+        {!user && (
+          <p className="mb-4 text-sm text-j-warm-dark">
+            <Link href="/login" className="underline hover:text-j-accent transition-colors">
+              {t('common.signin', lang)}
+            </Link>{' '}
+            {t('library.signInPrompt', lang)}
           </p>
+        )}
 
-          <p className="mt-6 text-j-text-secondary max-w-xl leading-relaxed">
-            {lang === 'es'
-              ? 'Cuando la comprensión superficial no es suficiente. Valida tu conocimiento real de papers, libros y conceptos complejos.'
-              : 'When surface-level understanding isn\'t enough. Validate real comprehension of papers, books, and complex concepts.'}
-          </p>
-
-          {user && (
-            <div className="mt-6 inline-flex flex-wrap items-center gap-3 border border-j-border px-4 py-3">
-              <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-tertiary">
-                {lang === 'es' ? 'Nuevo en esta fase' : 'New in this phase'}
-              </span>
-              <Link
-                href="/library?tab=resources"
-                className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-accent hover:underline"
-              >
-                {lang === 'es' ? 'Pestaña Recursos' : 'Resources Tab'}
-              </Link>
-              <span className="text-xs text-j-text-secondary">
-                {lang === 'es'
-                  ? 'Los cursos creados desde YouTube se integran a tu currícula y a Mi Sistema.'
-                  : 'YouTube-generated courses are integrated into your curriculum and My System.'}
-              </span>
-            </div>
-          )}
-
-          {user && IS_MANAGED && (
-            <div className="mt-6">
-              <PlanBanner
-                status={subscriptionStatus}
-                used={monthlyUsed}
-                limit={monthlyLimit}
-                voiceMinutesUsed={voiceMinutesUsed}
-                voiceMinutesLimit={voiceMinutesLimit}
-                language={lang}
-              />
-            </div>
-          )}
-
-          {!user && (
-            <p className="mt-6 text-sm text-j-warm-dark">
-              <Link href="/login" className="underline hover:text-j-accent transition-colors">
-                {t('common.signin', lang)}
-              </Link>{' '}
-              {t('library.signInPrompt', lang)}
-            </p>
-          )}
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 mb-12 sm:mb-16">
-          <div className="relative text-center p-4">
-            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-text">{totalResources}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('library.resources', lang)}
-            </p>
+        {/* Compact stats strip */}
+        {user && (
+          <div className="flex items-center gap-6 mb-6 py-3 border-y border-j-border/50">
+            <StatChip value={totalResources} label={t('library.resources', lang)} />
+            <span className="text-j-border">·</span>
+            <StatChip value={totalUnlocked} label={lang === 'es' ? 'desbloqueados' : 'unlocked'} accent />
+            <span className="text-j-border">·</span>
+            <StatChip value={totalEvaluated} label={lang === 'es' ? 'evaluados' : 'evaluated'} accent />
+            {avgScore > 0 && (
+              <>
+                <span className="text-j-border">·</span>
+                <StatChip value={`${avgScore}%`} label={lang === 'es' ? 'promedio' : 'avg'} warm />
+              </>
+            )}
           </div>
-          <div className="relative text-center p-4">
-            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-accent">{totalUnlocked}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('library.unlocked', lang)}
-            </p>
-          </div>
-          <div className="relative text-center p-4">
-            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-accent">{totalEvaluated}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {t('library.evaluated', lang)}
-            </p>
-          </div>
-          <div className="relative text-center p-4">
-            <CornerBrackets size="sm" className="border-j-border dark:border-j-accent/20" />
-            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-j-warm-dark">{avgScore > 0 ? `${avgScore}%` : '—'}</p>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mt-2">
-              {lang === 'es' ? 'Promedio' : 'Average'}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Phase Tabs + Resources + Supplementary */}
         <LibraryContent
@@ -555,6 +500,31 @@ export default async function LibraryPage() {
         </div>
       </footer>
 
+    </div>
+  );
+}
+
+function StatChip({
+  value,
+  label,
+  accent,
+  warm,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+  warm?: boolean;
+}) {
+  const valueColor = warm
+    ? 'text-j-warm-dark'
+    : accent
+      ? 'text-j-accent'
+      : 'text-j-text';
+
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className={`font-mono text-sm font-medium ${valueColor}`}>{value}</span>
+      <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-tertiary">{label}</span>
     </div>
   );
 }
