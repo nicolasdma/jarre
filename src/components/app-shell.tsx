@@ -43,7 +43,6 @@ const TUTOR_SIDEBAR_ROUTES = [
   '/evaluation',
   '/review',
   '/learn',
-  '/journal',
   '/mi-sistema',
   '/playground',
 ];

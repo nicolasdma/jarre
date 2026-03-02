@@ -347,7 +347,7 @@ export async function writeToDb(params: {
   );
 
   // Keep pipeline-generated courses visible in the reactive knowledge system
-  // (Mi Sistema / Journal), same integration path as "Agregar recurso".
+  // (Mi Sistema), same integration path as "Agregar recurso".
   try {
     await syncPipelineResourceToUserKnowledge({
       supabase,
