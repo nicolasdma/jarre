@@ -96,8 +96,18 @@ export async function linkToCurriculum(params: {
   userId: string;
   language?: string;
   userPhase?: string;
+  apiKey?: string;
 }): Promise<{ links: ConceptLink[]; coverageScore: number; tokensUsed: number }> {
-  const { extractedConcepts, resourceTitle, resourceSummary, supabase, userId, language = 'en', userPhase } = params;
+  const {
+    extractedConcepts,
+    resourceTitle,
+    resourceSummary,
+    supabase,
+    userId,
+    language = 'en',
+    userPhase,
+    apiKey,
+  } = params;
 
   if (extractedConcepts.length === 0) {
     return { links: [], coverageScore: 0, tokensUsed: 0 };
@@ -130,6 +140,7 @@ export async function linkToCurriculum(params: {
     .join('\n');
 
   const { content: responseText, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',

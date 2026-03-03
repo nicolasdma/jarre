@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { t, type Language } from '@/lib/translations';
 import type { ReviewSubmitResponse } from '@/types';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 interface QuickQuizProps {
   language: Language;
@@ -64,7 +65,7 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
     setError(null);
 
     try {
-      const res = await fetch('/api/review/submit', {
+      const res = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

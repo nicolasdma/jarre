@@ -1,14 +1,12 @@
 # Jarre
 
-Jarre is a curriculum-first learning system for mastering technical topics with deep understanding, not shallow recall.
+Jarre is a curriculum-first learning platform for mastering technical topics through guided study, applied practice, AI-based evaluation, review decks, and voice tutoring.
 
-The app combines guided study flows, AI-based evaluation, review decks, and voice tutoring in a single workflow.
+## Project Status
 
-## Status
-
-- Active development.
-- Self-hosted mode is supported via Supabase + BYOK API keys.
-- Interfaces and APIs may change as features are stabilized.
+- Active development
+- Self-hosted mode is supported (Supabase + BYOK API keys)
+- Public APIs and UI flows can change while the platform stabilizes
 
 ## Core Features
 
@@ -51,7 +49,7 @@ Fill required values in `.env.local`:
 
 ### 3) Apply database migrations
 
-Run the SQL files in [`supabase/migrations`](./supabase/migrations) against your Supabase project.
+Run SQL files in [`supabase/migrations`](./supabase/migrations) against your Supabase project.
 
 If you use Supabase CLI:
 
@@ -67,46 +65,45 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Available Scripts
+## Scripts
 
 - `npm run dev` -> start development server
 - `npm run build` -> production build
 - `npm run start` -> serve production build
 - `npm run lint` -> ESLint checks
 - `npm run test` -> Vitest test suite
-- `npm run check` -> lint + test + build
+- `npm run typecheck` -> TypeScript checks (`tsc --noEmit`)
+- `npm run check` -> lint + test + typecheck + build
 - `npm run engine` -> start local storage engine server
-
-## Environment Variables
-
-See [`.env.example`](./.env.example) for the full list and comments.
 
 ## Repository Layout
 
 - [`src/app`](./src/app) -> routes, API endpoints, and page-level features
 - [`src/components`](./src/components) -> reusable UI and interaction components
-- [`src/lib`](./src/lib) -> core business logic and shared utilities
+- [`src/lib`](./src/lib) -> business logic and shared utilities
 - [`supabase/migrations`](./supabase/migrations) -> schema changes
 - [`engine/src`](./engine/src) -> storage engine playground backend
 - [`scripts`](./scripts) -> ingestion and content-processing utilities
+- [`docs`](./docs) -> architecture and project policies
 
-## Linting Note
+## Open Source Standards
 
-The current lint configuration is set to keep CI/dev checks usable while legacy rule debt is being reduced.  
-Warnings are expected in some areas (especially older modules and generated learning content).
+- License: [MIT](./LICENSE)
+- Contributor guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- Governance model: [GOVERNANCE.md](./GOVERNANCE.md)
+- Support channels: [SUPPORT.md](./SUPPORT.md)
+- Changelog format: [CHANGELOG.md](./CHANGELOG.md)
+- Architecture reference: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- OSS readiness checklist: [docs/OPEN_SOURCE_CHECKLIST.md](./docs/OPEN_SOURCE_CHECKLIST.md)
+- Content policy: [docs/CONTENT_POLICY.md](./docs/CONTENT_POLICY.md)
+
+## Content and Licensing Note
+
+Jarre includes educational integrations and references to third-party materials.
+Contributors must only add content/assets they are authorized to redistribute. See [docs/CONTENT_POLICY.md](./docs/CONTENT_POLICY.md).
 
 ## Contributing
 
 Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening pull requests.
-
-## Security
-
-See [SECURITY.md](./SECURITY.md) for vulnerability reporting guidance.
-
-## Code of Conduct
-
-See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
-
-## License
-
-MIT. See [LICENSE](./LICENSE).

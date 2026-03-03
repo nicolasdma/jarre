@@ -47,6 +47,7 @@ async function generateSectionQuizzes(
   contentMarkdown: string,
   headings: string[],
   language: string,
+  apiKey?: string,
 ): Promise<{ quizzes: InlineQuizDef[]; tokensUsed: number }> {
   if (headings.length === 0) {
     log.warn(`Section "${sectionTitle}" has no headings — skipping quiz generation`);
@@ -61,6 +62,7 @@ async function generateSectionQuizzes(
   const headingsList = headings.map((h, i) => `  ${i + 1}. "${h}"`).join('\n');
 
   const { content, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',
@@ -174,6 +176,7 @@ ${contentMarkdown.slice(0, 8_000)}`,
 export async function generateQuizzes(
   contentOutput: ContentOutput,
   language: string,
+  apiKey?: string,
 ): Promise<{ output: QuizOutput; tokensUsed: number }> {
   let totalTokens = 0;
 
@@ -184,6 +187,7 @@ export async function generateQuizzes(
         section.contentMarkdown,
         section.headings,
         language,
+        apiKey,
       );
       return { sectionTitle: section.title, ...result };
     };

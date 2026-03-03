@@ -11,6 +11,7 @@
 
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
+import { NextResponse } from 'next/server';
 import { TABLES } from '@/lib/db/tables';
 import { getUserLanguage } from '@/lib/db/queries/user';
 import { parseMasteryLevel, serializeMasteryLevel } from '@/lib/db/helpers';
@@ -23,14 +24,22 @@ import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { awardXP } from '@/lib/xp';
 import { XP_REWARDS, TOKEN_BUDGETS } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('Evaluate/VoiceTeachScore');
 
 const MIN_USER_TURNS = 3;
-const TEACH_PROMPT_VERSION = 'teach-v1.0.0';
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const { voiceSessionId, conceptId } = body;
 
@@ -105,6 +114,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0.1,
       maxTokens: TOKEN_BUDGETS.VOICE_TEACH_SCORING,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     });
 
     const parsed = parseJsonResponse(content, VoiceEvalScoringResponseSchema);

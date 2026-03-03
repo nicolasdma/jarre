@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { PDF_CACHE_TTL_MS } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
+import { withAuth } from '@/lib/api/middleware';
 
 const log = createLogger('ProxyPDF');
 
@@ -52,10 +53,11 @@ function isAllowedDomain(urlString: string): boolean {
  * GET /api/proxy-pdf?url=...&start=...&end=...
  * Proxies external PDFs from whitelisted domains and optionally extracts page range
  */
-export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url');
-  const startPage = request.nextUrl.searchParams.get('start');
-  const endPage = request.nextUrl.searchParams.get('end');
+export const GET = withAuth(async (request) => {
+  const { searchParams } = new URL(request.url);
+  const url = searchParams.get('url');
+  const startPage = searchParams.get('start');
+  const endPage = searchParams.get('end');
 
   if (!url) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -150,4 +152,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

@@ -32,8 +32,9 @@ export async function extractConcepts(params: {
   type: string;
   userId: string;
   language?: string;
+  apiKey?: string;
 }): Promise<ExtractionResult> {
-  const { title, content, type, userId, language = 'en' } = params;
+  const { title, content, type, userId, language = 'en', apiKey } = params;
 
   // Truncate content to avoid token limits (~8K tokens)
   const truncatedContent = content.length > CONTENT_TRUNCATION_CHARS
@@ -41,6 +42,7 @@ export async function extractConcepts(params: {
     : content;
 
   const { content: responseText, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',

@@ -24,10 +24,11 @@ import {
 } from '@/lib/llm/voice-unified-prompt';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { TUTOR_TOOLS } from '@/lib/voice/tool-declarations';
-import { handleToolCall, type ToolAction, type ToolDispatch } from '@/lib/voice/tool-handler';
+import { handleToolCall, type ToolDispatch } from '@/lib/voice/tool-handler';
 import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
 import type { FunctionCall } from '@google/genai';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 const log = createLogger('UnifiedVoice');
 
@@ -206,6 +207,47 @@ function sectionIdForMode(mode: VoiceMode, params: UseUnifiedVoiceSessionParams)
   }
 }
 
+function summarizeConceptNames(concepts?: ConceptForSession[]): string | null {
+  if (!concepts?.length) return null;
+  const names = concepts
+    .map((concept) => concept.name?.trim())
+    .filter((name): name is string => Boolean(name));
+
+  if (!names.length) return null;
+
+  const visibleNames = names.slice(0, 3);
+  const extraCount = names.length - visibleNames.length;
+  const suffix = extraCount > 0 ? ` +${extraCount} more` : '';
+  return `${visibleNames.join(', ')}${suffix}`;
+}
+
+function sectionTitleForMode(mode: VoiceMode, params: UseUnifiedVoiceSessionParams): string {
+  const explicitSectionTitle = params.sectionTitle?.trim();
+  if (explicitSectionTitle) return explicitSectionTitle;
+
+  const explicitResourceTitle = params.resourceTitle?.trim();
+  const conceptSummary = summarizeConceptNames(params.concepts);
+  const teachConceptName = params.conceptForTeach?.name?.trim();
+  const debateTopic = params.debateTopic?.topic?.trim();
+
+  switch (mode) {
+    case 'eval':
+      return explicitResourceTitle || conceptSummary || 'Voice evaluation';
+    case 'practice':
+      return explicitResourceTitle || conceptSummary || 'Voice practice';
+    case 'teach':
+      return teachConceptName || 'Teach session';
+    case 'exploration':
+      return explicitResourceTitle || 'Resource exploration';
+    case 'debate':
+      return debateTopic || 'Debate session';
+    case 'freeform':
+      return 'Freeform session';
+    case 'learning':
+      return explicitResourceTitle || 'Learning session';
+  }
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -251,13 +293,16 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // and sendToolResponse, but both are defined later.
   const sendToolResponseRef = useRef<(r: FunctionResponse[]) => void>(() => {});
   const handleSessionCompleteRef = useRef<() => void>(() => {});
+  const stopVoiceSessionRef = useRef<() => void>(() => {});
 
   const handleGeminiToolCall = useCallback((functionCalls: FunctionCall[]) => {
+    let shouldCompleteSession = false;
+
     for (const call of functionCalls) {
       const result = handleToolCall(call, (action) => {
         onToolActionRef.current?.(action);
         if (action.type === 'END_SESSION') {
-          handleSessionCompleteRef.current();
+          shouldCompleteSession = true;
         }
       });
       sendToolResponseRef.current([{
@@ -266,6 +311,10 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         response: { output: result },
       } as FunctionResponse]);
     }
+
+    if (shouldCompleteSession) {
+      handleSessionCompleteRef.current();
+    }
   }, []);
 
   // ---- Post-session scoring ----
@@ -273,7 +322,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const scoreEvalSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
     try {
-      const res = await fetch('/api/evaluate/voice-score', {
+      const res = await fetchWithKeys('/api/evaluate/voice-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voiceSessionId }),
@@ -305,7 +354,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const scorePracticeSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
     try {
-      const res = await fetch('/api/evaluate/voice-practice-score', {
+      const res = await fetchWithKeys('/api/evaluate/voice-practice-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voiceSessionId }),
@@ -336,7 +385,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const scoreTeachSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
     try {
-      const res = await fetch('/api/evaluate/voice-teach-score', {
+      const res = await fetchWithKeys('/api/evaluate/voice-teach-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voiceSessionId, conceptId: conceptForTeach?.id }),
@@ -368,7 +417,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const generateExplorationSummary = useCallback(async (sessionId: string) => {
     setState('summarizing');
     try {
-      const res = await fetch('/api/resources/exploration-summary', {
+      const res = await fetchWithKeys('/api/resources/exploration-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, userResourceId }),
@@ -430,6 +479,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     if (postProcessStartedRef.current) return;
     postProcessStartedRef.current = true;
 
+    // Ensure live audio stream/socket is closed before post-processing.
+    stopVoiceSessionRef.current();
+
     const sid = sessionIdRef.current;
     if (sid) {
       runPostProcess(sid);
@@ -442,10 +494,12 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   // ---- Base voice session ----
 
+  const effectiveSectionTitle = sectionTitleForMode(mode, params);
+
   const voiceSession = useVoiceSession({
     sectionId: sectionIdForMode(mode, params),
     sectionContent: sectionContent || '',
-    sectionTitle: sectionTitle || '',
+    sectionTitle: effectiveSectionTitle,
     language,
     onSessionComplete: handleSessionComplete,
     // For learning mode, don't override — let useVoiceSession build the prompt
@@ -461,6 +515,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   // Keep sendToolResponse ref in sync
   sendToolResponseRef.current = voiceSession.sendToolResponse;
+  stopVoiceSessionRef.current = voiceSession.disconnect;
 
   // Track session ID
   if (voiceSession.sessionId && voiceSession.sessionId !== sessionIdRef.current) {

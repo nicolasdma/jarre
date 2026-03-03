@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { PricingModal } from '@/components/billing/pricing-modal';
 import { toast } from 'sonner';
 import { InlineQuiz } from '@/components/inline-quiz';
 import { ReviewPrediction } from '@/components/review-prediction';
@@ -11,6 +13,7 @@ import { CornerBrackets } from '@/components/ui/corner-brackets';
 import { categorizeError } from '@/lib/utils/categorize-error';
 import { t, type Language } from '@/lib/translations';
 import type { UnifiedReviewCard, ReviewSubmitResponse } from '@/types';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 type SessionPhase = 'start' | 'card' | 'feedback' | 'summary';
 
@@ -144,10 +147,11 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
   const [currentResult, setCurrentResult] = useState<ReviewSubmitResponse | null>(null);
   const [completed, setCompleted] = useState<CompletedCard[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
+  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | 'upgrade' | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [prediction, setPrediction] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const pendingAnswerRef = useRef<{
     type: 'open'; answer: string
@@ -200,7 +204,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
 
     try {
       const card = cards[currentIndex];
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -246,7 +250,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     pendingAnswerRef.current = { type: 'closed', quizId, selectedOption, isCorrect };
 
     try {
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,7 +292,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     pendingAnswerRef.current = { type: 'selfRating', rating };
 
     try {
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -321,7 +325,7 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
     pendingAnswerRef.current = { type: 'deterministic', answer: selectedAnswer };
 
     try {
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -454,8 +458,19 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
             <ErrorMessage
               message={error}
               variant="block"
-              onRetry={errorAction !== 'relogin' ? startSession : undefined}
+              onRetry={errorAction === 'retry' || errorAction === 'wait' ? startSession : undefined}
             />
+            {errorAction === 'upgrade' && (
+              <div className="mt-3 flex gap-3 justify-center">
+                <Link href="/settings" className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  {language === 'es' ? 'Agregar API keys' : 'Add API keys'}
+                </Link>
+                <button onClick={() => setShowPricing(true)} className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  Upgrade a Pro
+                </button>
+                <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -737,6 +752,17 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
                 {language === 'es' ? 'Iniciar sesion' : 'Log in'}
               </button>
             )}
+            {errorAction === 'upgrade' && (
+              <div className="mt-3 flex gap-3">
+                <Link href="/settings" className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  {language === 'es' ? 'Agregar API keys' : 'Add API keys'}
+                </Link>
+                <button onClick={() => setShowPricing(true)} className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  Upgrade a Pro
+                </button>
+                <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -745,7 +771,6 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
 
   // ==== FEEDBACK DISPLAY ====
   if (phase === 'feedback' && currentResult) {
-    const card = cards[currentIndex];
     const isLast = currentIndex + 1 >= cards.length;
 
     return (

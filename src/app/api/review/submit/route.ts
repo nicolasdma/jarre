@@ -19,6 +19,7 @@ import { getRubricForQuestionType } from '@/lib/llm/rubrics';
 import { awardXP } from '@/lib/xp';
 import { XP_REWARDS, TOKEN_BUDGETS } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 import type { QuestionBankType, ReviewRating } from '@/types';
 import type { createClient } from '@/lib/supabase/server';
 
@@ -37,7 +38,7 @@ const log = createLogger('Review/Submit');
  * Returns: { score, feedback, isCorrect, expectedAnswer, rating, nextReviewAt, intervalDays,
  *            dimensionScores?, reasoning?, masteryAdvanced? }
  */
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
     const body = await request.json();
     const { questionId, cardId, userAnswer, selectedAnswer, selfRating, confidence } = body;
@@ -150,6 +151,15 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     let reasoning: string | undefined;
     let tokensUsed: number;
 
+    // Rate limit check (only open questions use DeepSeek)
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     const rubric = getRubricForQuestionType(questionType);
     const rubricPrompt = buildRubricReviewPrompt({
       conceptName,
@@ -168,6 +178,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0,
       maxTokens: TOKEN_BUDGETS.REVIEW_EVALUATE,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     });
     tokensUsed = rubricTokens;
 
@@ -204,6 +215,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
         temperature: 0.1,
         maxTokens: TOKEN_BUDGETS.REVIEW_FALLBACK,
         responseFormat: 'json',
+        apiKey: byokKeys.deepseek,
       });
 
       const legacyResult = parseJsonResponse(legacyContent, ReviewEvaluationSchema);

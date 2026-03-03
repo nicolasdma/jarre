@@ -55,7 +55,7 @@ export const POST = withAuth<{ projectId: string }>(async (request, { supabase, 
     }
 
     // If completing, advance mapped concepts to level 2
-    let advancedConcepts: string[] = [];
+    const advancedConcepts: string[] = [];
 
     if (status === 'completed') {
       const { data: mappedConcepts } = await supabase
@@ -77,30 +77,31 @@ export const POST = withAuth<{ projectId: string }>(async (request, { supabase, 
           const newLevel = computeNewLevelFromProject(currentLevel);
 
           if (newLevel > currentLevel) {
-            // Update concept_progress
-            await supabase.from(TABLES.conceptProgress).upsert(
-              {
-                user_id: user.id,
-                concept_id,
+            // Conditional update: only advance if level hasn't changed concurrently
+            const { count } = await supabase.from(TABLES.conceptProgress)
+              .update({
                 level: serializeMasteryLevel(newLevel),
                 level_2_project_id: projectId,
-              },
-              { onConflict: 'user_id,concept_id' }
-            );
-
-            // Log mastery history
-            await supabase.from(TABLES.masteryHistory).insert(
-              buildMasteryHistoryRecord({
-                userId: user.id,
-                conceptId: concept_id,
-                oldLevel: currentLevel,
-                newLevel,
-                triggerType: 'project',
-                triggerId: projectId,
               })
-            );
+              .eq('user_id', user.id)
+              .eq('concept_id', concept_id)
+              .eq('level', serializeMasteryLevel(currentLevel));
 
-            advancedConcepts.push(concept_id);
+            if (count === null || count > 0) {
+              // Log mastery history
+              await supabase.from(TABLES.masteryHistory).insert(
+                buildMasteryHistoryRecord({
+                  userId: user.id,
+                  conceptId: concept_id,
+                  oldLevel: currentLevel,
+                  newLevel,
+                  triggerType: 'project',
+                  triggerId: projectId,
+                })
+              );
+
+              advancedConcepts.push(concept_id);
+            }
           }
         }
       }

@@ -131,12 +131,13 @@ async function generateAndWriteQuizzes(
   resourceId: string,
   targetLanguage: string,
   userId: string,
+  apiKey?: string,
 ): Promise<void> {
   const supabase = createAdminClient();
 
   try {
     log.info(`[${jobId}] Background: Generating quizzes...`);
-    const { output: quizzes, tokensUsed } = await generateQuizzes(content, targetLanguage);
+    const { output: quizzes, tokensUsed } = await generateQuizzes(content, targetLanguage, apiKey);
 
     // Fetch section title → ID mapping from DB
     const { data: sections, error: sectionsErr } = await supabase
@@ -262,7 +263,7 @@ async function executePipeline(
       await updateJob(jobId, { current_stage: 'segment' });
       log.info(`[${jobId}] Stage 2/${PIPELINE_TOTAL_STAGES}: Segmenting content...`);
 
-      const { output, tokensUsed } = await segmentContent(data.resolve);
+      const { output, tokensUsed } = await segmentContent(data.resolve, config.deepseekApiKey);
       data.segment = output;
       totalTokens += tokensUsed;
       stagesCompleted++;
@@ -287,6 +288,7 @@ async function executePipeline(
         data.segment,
         videoTitle,
         data.resolve.language,
+        config.deepseekApiKey,
       );
       totalTokens += contentTokens;
 
@@ -295,6 +297,7 @@ async function executePipeline(
         rawContent,
         data.resolve.language,
         targetLang,
+        config.deepseekApiKey,
       );
       totalTokens += translateTokens;
 
@@ -410,6 +413,7 @@ async function executePipeline(
         data.write!.resourceId,
         config.targetLanguage,
         config.userId,
+        config.deepseekApiKey,
       ).catch((err) => {
         log.error(`[${jobId}] Background quiz generation crashed: ${(err as Error).message}`);
       });

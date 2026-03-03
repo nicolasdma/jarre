@@ -8,16 +8,18 @@
  * so the client can maintain context without growing the buffer indefinitely.
  */
 
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { createLogger } from '@/lib/logger';
 import { TOKEN_BUDGETS } from '@/lib/constants';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('VoiceCompress');
 
-export const POST = withAuth(async (request, { user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const body = await request.json().catch(() => null);
 
   const conversation = body?.conversation;
@@ -30,8 +32,17 @@ export const POST = withAuth(async (request, { user }) => {
     throw badRequest('sectionTitle is required');
   }
 
+  const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+      { status: 429 },
+    );
+  }
+
   try {
     const { content, tokensUsed } = await callDeepSeek({
+      apiKey: byokKeys.deepseek,
       messages: [
         {
           role: 'system',

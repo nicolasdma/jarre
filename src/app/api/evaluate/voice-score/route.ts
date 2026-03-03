@@ -15,6 +15,7 @@
  * 7. Update learner concept memory with misconceptions/strengths
  */
 
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
@@ -28,6 +29,7 @@ import { saveEvaluationResults } from '@/lib/evaluate/save-results';
 import { updateLearnerConceptMemory } from '@/lib/learner-memory';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { TOKEN_BUDGETS } from '@/lib/constants';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('Evaluate/VoiceScore');
 
@@ -35,8 +37,16 @@ const MIN_USER_TURNS = 4;
 const MIN_DURATION_SECONDS = 180; // 3 minutes
 const VOICE_EVAL_PROMPT_VERSION = 'voice-v2.0.0';
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const { voiceSessionId } = body;
 
@@ -106,6 +116,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       throw badRequest('No concepts found for this resource');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase join returns dynamic shape
     const concepts = resourceConcepts.map((rc: any) => ({
       id: rc.concepts.id,
       name: rc.concepts.name,
@@ -135,6 +146,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0.1,
       maxTokens: TOKEN_BUDGETS.VOICE_SCORING,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     });
 
     const parsed = parseJsonResponse(content, VoiceEvalScoringResponseSchema);
@@ -210,6 +222,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0.3,
       maxTokens: TOKEN_BUDGETS.VOICE_CONSOLIDATION,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     }).then(({ content: consolContent, tokensUsed: consolTokens }) => {
       logTokenUsage({ userId: user.id, category: 'voice_consolidation', tokens: consolTokens });
       return parseJsonResponse(consolContent, ConsolidationResponseSchema);

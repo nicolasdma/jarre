@@ -100,6 +100,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   let intentionalClose = false;
   let retryCount = 0;
   let lastConfig: GeminiLiveConfig | null = null;
+  let connectionEpoch = 0;
 
   function setState(next: ConnectionState) {
     state = next;
@@ -108,6 +109,8 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
   return {
     async connect(ephemeralToken: string, config: GeminiLiveConfig): Promise<void> {
+      intentionalClose = false;
+      const epoch = ++connectionEpoch;
       setState('connecting');
       lastConfig = config;
       retryCount = 0;
@@ -117,7 +120,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
           apiKey: ephemeralToken,
         });
 
-        session = await client.live.connect({
+        const nextSession = await client.live.connect({
           model: config.model,
           config: {
             responseModalities: [Modality.AUDIO],
@@ -143,10 +146,12 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
           },
           callbacks: {
             onopen: () => {
+              if (epoch !== connectionEpoch) return;
               log.info('Session opened');
               setState('connected');
             },
             onmessage: (message) => {
+              if (epoch !== connectionEpoch) return;
               // Audio response from model
               if (message.serverContent?.modelTurn?.parts) {
                 for (const part of message.serverContent.modelTurn.parts) {
@@ -249,6 +254,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               }
             },
             onerror: (error) => {
+              if (epoch !== connectionEpoch) return;
               log.error('Session error:', error);
               setState('error');
               const msg = error instanceof Error
@@ -259,6 +265,10 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               callbacks.onError(msg);
             },
             onclose: (event) => {
+              if (epoch !== connectionEpoch) {
+                log.info('Ignoring close event from stale session');
+                return;
+              }
               if (intentionalClose) {
                 log.info('Session closed (user disconnected)');
                 return;
@@ -290,6 +300,18 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             },
           },
         });
+
+        // If another connect/reconnect happened while awaiting this one, discard safely.
+        if (epoch !== connectionEpoch) {
+          try {
+            nextSession.close();
+          } catch {
+            // Session may already be closed
+          }
+          return;
+        }
+
+        session = nextSession;
 
         // If onopen hasn't fired yet, session creation success means connected
         if (state === 'connecting') {
@@ -361,6 +383,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
     disconnect() {
       intentionalClose = true;
+      connectionEpoch++;
       setState('disconnected');
       if (session) {
         try {

@@ -39,10 +39,9 @@ export const GET = withAuth<{ resourceId: string }>(async (request, { supabase, 
       .select('*')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found (ok, return empty)
+    if (error) {
       log.error('Error fetching notes:', error);
       return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });
     }

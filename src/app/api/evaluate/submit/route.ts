@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { ApiError, badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
@@ -8,12 +9,22 @@ import { EvaluateAnswersResponseSchema } from '@/lib/llm/schemas';
 import { buildEvaluateAnswersPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { saveEvaluationResults } from '@/lib/evaluate/save-results';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 import { TOKEN_BUDGETS } from '@/lib/constants';
 
 const log = createLogger('Evaluate/Submit');
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
+    // Check token budget
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     // Get user's language preference
     const language = await getUserLanguage(supabase, user.id);
 
@@ -57,6 +68,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0.2, // More deterministic for evaluation
       maxTokens: TOKEN_BUDGETS.EVAL_SUBMIT,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     });
 
     // Parse and validate response

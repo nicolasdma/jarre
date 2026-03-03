@@ -5,6 +5,7 @@ import { X, Plus, Loader2, ExternalLink, Link2, ArrowRight, RefreshCw } from 'lu
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Language } from '@/lib/translations';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 type ResourceType = 'youtube' | 'article' | 'paper' | 'book' | 'podcast' | 'other';
 
@@ -89,7 +90,7 @@ export function AddResourceModal({ isOpen, onClose, language, onResourceAdded }:
     setError(null);
 
     try {
-      const res = await fetch('/api/resources/ingest', {
+      const res = await fetchWithKeys('/api/resources/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

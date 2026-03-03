@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorMessage } from '@/components/error-message';
+import { PricingModal } from '@/components/billing/pricing-modal';
 import { SectionLabel } from '@/components/ui/section-label';
 import { categorizeError } from '@/lib/utils/categorize-error';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 type Language = 'es' | 'en';
 
@@ -179,9 +182,10 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
     summary: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | null>(null);
+  const [errorAction, setErrorAction] = useState<'retry' | 'relogin' | 'wait' | 'upgrade' | null>(null);
   const [saveError, setSaveError] = useState(false);
   const [showCancelButton, setShowCancelButton] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -286,7 +290,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
     const controller = startLoadingState();
 
     try {
-      const response = await fetch('/api/evaluate/generate', {
+      const response = await fetchWithKeys('/api/evaluate/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -340,7 +344,7 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
     const controller = startLoadingState();
 
     try {
-      const response = await fetch('/api/evaluate/submit', {
+      const response = await fetchWithKeys('/api/evaluate/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -510,6 +514,17 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
                 {language === 'es' ? 'Iniciar sesion' : 'Log in'}
               </button>
             )}
+            {errorAction === 'upgrade' && (
+              <div className="mt-3 flex gap-3">
+                <Link href="/settings" className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  {language === 'es' ? 'Agregar API keys' : 'Add API keys'}
+                </Link>
+                <button onClick={() => setShowPricing(true)} className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  Upgrade a Pro
+                </button>
+                <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+              </div>
+            )}
           </div>
         )}
 
@@ -598,8 +613,19 @@ export function EvaluationFlow({ resource, concepts, userId, language, onCancel 
             <ErrorMessage
               message={error}
               variant="block"
-              onRetry={errorAction !== 'relogin' ? handleSubmitAnswers : undefined}
+              onRetry={errorAction === 'retry' || errorAction === 'wait' ? handleSubmitAnswers : undefined}
             />
+            {errorAction === 'upgrade' && (
+              <div className="mt-3 flex gap-3">
+                <Link href="/settings" className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  {language === 'es' ? 'Agregar API keys' : 'Add API keys'}
+                </Link>
+                <button onClick={() => setShowPricing(true)} className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                  Upgrade a Pro
+                </button>
+                <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+              </div>
+            )}
           </div>
         )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 // ============================================================================
 // Types
@@ -259,7 +260,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
     setState('evaluating');
 
     try {
-      const response = await fetch('/api/quiz/evaluate-justification', {
+      const response = await fetchWithKeys('/api/quiz/evaluate-justification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
 import { getUserLanguage } from '@/lib/db/queries/user';
@@ -7,11 +8,20 @@ import { GenerateQuestionsResponseSchema } from '@/lib/llm/schemas';
 import { buildGenerateQuestionsPrompt, getSystemPrompt, PROMPT_VERSIONS } from '@/lib/llm/prompts';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { TOKEN_BUDGETS } from '@/lib/constants';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('Evaluate/Generate');
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     // Get user's language preference
     const language = await getUserLanguage(supabase, user.id);
 
@@ -40,6 +50,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       temperature: 0.4, // Slightly creative but consistent
       maxTokens: TOKEN_BUDGETS.EVAL_GENERATE,
       responseFormat: 'json',
+      apiKey: byokKeys.deepseek,
     });
 
     // Parse and validate response

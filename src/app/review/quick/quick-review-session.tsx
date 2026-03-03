@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { CardRouter } from '@/components/review/card-router';
 import { ErrorMessage } from '@/components/error-message';
 import { categorizeError } from '@/lib/utils/categorize-error';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 import type { Language } from '@/lib/translations';
 import type { UnifiedReviewCard, ReviewSubmitResponse } from '@/types';
 
@@ -66,7 +66,7 @@ export function QuickReviewSession({ language }: QuickReviewSessionProps) {
         ? { cardId: card.sourceId, selfRating: rating }
         : { questionId: card.sourceId, userAnswer: rating }; // fallback
 
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -100,7 +100,7 @@ export function QuickReviewSession({ language }: QuickReviewSessionProps) {
         ? { cardId: card.sourceId, selectedAnswer: answer }
         : { questionId: card.sourceId, selectedAnswer: answer };
 
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -130,7 +130,7 @@ export function QuickReviewSession({ language }: QuickReviewSessionProps) {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/review/submit', {
+      const response = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questionId: card.sourceId, userAnswer: answer }),

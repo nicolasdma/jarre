@@ -87,7 +87,7 @@ export async function applyScheduleAndMastery({
     .select(selectColumns)
     .eq('user_id', userId)
     .eq(idColumn, itemId)
-    .single();
+    .maybeSingle();
 
   const schedule = rawSchedule as unknown as ScheduleRow | null;
 
@@ -183,7 +183,7 @@ export async function applyScheduleAndMastery({
       .select('level')
       .eq('user_id', userId)
       .eq('concept_id', conceptId)
-      .single();
+      .maybeSingle();
 
     const currentLevel = parseMasteryLevel(progress?.level);
 

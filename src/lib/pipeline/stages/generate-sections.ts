@@ -189,10 +189,12 @@ async function generateSectionContent(
   language: string,
   sectionIndex: number,
   totalSections: number,
+  apiKey?: string,
 ): Promise<{ contentMarkdown: string; tokensUsed: number }> {
   const positionContext = buildPositionContext(sectionIndex, totalSections);
 
   const { content, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',
@@ -232,6 +234,7 @@ async function generateActivateData(
   videoTitle: string,
   sections: Array<{ title: string; conceptName: string }>,
   language: string,
+  apiKey?: string,
 ): Promise<{ activateData: ActivateData; tokensUsed: number }> {
   const langInstruction =
     language === 'es'
@@ -243,6 +246,7 @@ async function generateActivateData(
     .join('\n');
 
   const { content, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',
@@ -285,6 +289,7 @@ export async function generateSections(
   segment: SegmentOutput,
   videoTitle: string,
   language: string,
+  apiKey?: string,
 ): Promise<{ output: ContentOutput; tokensUsed: number }> {
   let totalTokens = 0;
 
@@ -299,6 +304,7 @@ export async function generateSections(
         language,
         index,
         totalSections,
+        apiKey,
       );
       return result;
     };
@@ -311,6 +317,7 @@ export async function generateSections(
     videoTitle,
     segment.sections,
     language,
+    apiKey,
   );
   totalTokens += activateTokens;
 

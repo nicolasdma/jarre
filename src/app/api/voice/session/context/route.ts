@@ -53,17 +53,17 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     const links = linksResult.data || [];
 
     // Fetch concept names + definitions for links
-    const linkConceptIds = links.map((l: any) => l.concept_id);
+    const linkConceptIds = links.map((l: { concept_id: string }) => l.concept_id);
     let conceptDetails: Record<string, { name: string; definition: string }> = {};
     if (linkConceptIds.length > 0) {
       const { data: concepts } = await supabase
         .from(TABLES.concepts)
         .select('id, name, definition')
         .in('id', linkConceptIds);
-      conceptDetails = (concepts || []).reduce((acc: any, c: any) => {
+      conceptDetails = (concepts || []).reduce((acc: Record<string, { name: string; definition: string }>, c: { id: string; name: string; definition: string }) => {
         acc[c.id] = { name: c.name, definition: c.definition };
         return acc;
-      }, {});
+      }, {} as Record<string, { name: string; definition: string }>);
     }
 
     // Fetch concept progress
@@ -74,15 +74,15 @@ export const GET = withAuth(async (request, { supabase, user }) => {
         .select('concept_id, level')
         .eq('user_id', user.id)
         .in('concept_id', linkConceptIds);
-      progressMap = (progress || []).reduce((acc: any, p: any) => {
+      progressMap = (progress || []).reduce((acc: Record<string, number>, p: { concept_id: string; level: string }) => {
         acc[p.concept_id] = parseInt(p.level);
         return acc;
-      }, {});
+      }, {} as Record<string, number>);
     }
 
     return jsonOk({
       resource,
-      links: links.map((l: any) => ({
+      links: links.map((l: { concept_id: string; [key: string]: unknown }) => ({
         ...l,
         conceptName: conceptDetails[l.concept_id]?.name || 'Unknown',
         conceptDefinition: conceptDetails[l.concept_id]?.definition || '',
@@ -102,7 +102,7 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     .not('cached_summary', 'is', null)
     .order('started_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   let memoryPromise: Promise<LearnerConceptMemory[]> = Promise.resolve([]);
   if (conceptIdsParam) {

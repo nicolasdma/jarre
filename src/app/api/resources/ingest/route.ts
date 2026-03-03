@@ -8,6 +8,7 @@
  * Response: IngestResult
  */
 
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
@@ -17,13 +18,14 @@ import { linkToCurriculum } from '@/lib/ingest/link-to-curriculum';
 import { getUserProfile } from '@/lib/db/queries/user';
 import { createLogger } from '@/lib/logger';
 import { generateMasteryCatalystInsights, saveInsightSuggestions } from '@/lib/insights/generate-insights';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 import type { IngestResult } from '@/lib/ingest/types';
 
 const log = createLogger('Ingest');
 
 const VALID_TYPES = ['youtube', 'article', 'paper', 'book', 'podcast', 'other'];
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const body = await request.json().catch(() => null);
 
   if (!body?.title || typeof body.title !== 'string') {
@@ -40,6 +42,14 @@ export const POST = withAuth(async (request, { supabase, user }) => {
   }
 
   const { language, currentPhase } = await getUserProfile(supabase, user.id);
+
+  const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+      { status: 429 },
+    );
+  }
 
   // 1. Create resource record with status 'processing'
   const { data: resource, error: insertError } = await supabase
@@ -90,6 +100,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       type,
       userId: user.id,
       language,
+      apiKey: byokKeys.deepseek,
     });
 
     // 4. Link to curriculum
@@ -101,6 +112,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
       userId: user.id,
       language,
       userPhase: currentPhase,
+      apiKey: byokKeys.deepseek,
     });
 
     // 5. Save results to resource

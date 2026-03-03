@@ -25,10 +25,9 @@ export const GET = withAuth(async (request, { supabase, user }) => {
       .select('current_step, active_section, completed_sections, section_state, review_state')
       .eq('user_id', user.id)
       .eq('resource_id', resourceId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found (expected for new resources)
+    if (error) {
       log.error('GET error:', error);
       return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
     }

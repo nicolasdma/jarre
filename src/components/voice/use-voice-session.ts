@@ -13,6 +13,7 @@ import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
 import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 const log = createLogger('VoiceSession');
 
@@ -75,12 +76,16 @@ interface VoiceSession {
 const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
-// Session end signal: the voice prompt instructs the tutor to say this exact phrase when done.
-// Must be specific enough to never appear in normal explanations — "quiz" alone caused false positives.
-// Word boundaries prevent partial matches (e.g. "session completely" won't trigger).
-const SESSION_END_KEYWORD = /\bsession complete\b/i;
-// Minimum elapsed seconds before session end detection activates (prevents false triggers)
-const MIN_ELAPSED_FOR_END_S = 120;
+// Session end signals (strong + soft fallback).
+// Strong signals are explicit completion phrases.
+// Soft signals are conversational farewells used as fallback in unified modes.
+const SESSION_END_STRONG_SIGNAL =
+  /\b(session complete|session completed|session ended|sesion terminada|sesión terminada)\b/i;
+const SESSION_END_SOFT_SIGNAL =
+  /\b(chau|chao|adios|adiós|hasta luego|nos vemos|bye|goodbye)\b/i;
+const SESSION_END_WINDOW_CHARS = 320;
+const MIN_ELAPSED_FOR_STRONG_END_S = 45;
+const MIN_ELAPSED_FOR_SOFT_END_S = 90;
 
 // ============================================================================
 // Hook
@@ -122,6 +127,7 @@ export function useVoiceSession({
   // Session end keyword detection — debounce to prevent multiple disconnects
   const sessionEndDetectedRef = useRef(false);
   const endKeywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modelTranscriptWindowRef = useRef('');
 
   // State logging: track last logged state to avoid repetitive logs (e.g., every audio chunk)
   const lastLoggedStateRef = useRef<TutorState>('idle');
@@ -180,7 +186,7 @@ export function useVoiceSession({
           .catch(() => null);
 
     const [tokenData, contextData] = await Promise.all([
-      fetch('/api/voice/token', { method: 'POST' })
+      fetchWithKeys('/api/voice/token', { method: 'POST' })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
       contextFetch,
@@ -391,21 +397,36 @@ export function useVoiceSession({
       // Fire-and-forget: don't block audio for transcript failures
     });
 
-    // Detect AI-driven session completion: the prompt instructs the tutor
-    // to say "session complete" when wrapping up. Only activates after
-    // MIN_ELAPSED_FOR_END_S to prevent false triggers early in the session.
-    // Uses sessionEndDetectedRef to prevent multiple disconnects from rapid transcript chunks.
-    if (role === 'model' && !sessionEndDetectedRef.current && SESSION_END_KEYWORD.test(text)) {
+    // Detect AI-driven session completion from model transcript window.
+    // Gemini often streams transcripts in chunks, so we inspect a rolling window
+    // instead of only the current chunk.
+    if (role === 'model' && !sessionEndDetectedRef.current) {
+      const combined = `${modelTranscriptWindowRef.current} ${text}`.trim();
+      modelTranscriptWindowRef.current = combined.slice(-SESSION_END_WINDOW_CHARS);
+
       const elapsedS = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      if (elapsedS >= MIN_ELAPSED_FOR_END_S) {
+      const hasStrongEndSignal = SESSION_END_STRONG_SIGNAL.test(modelTranscriptWindowRef.current);
+      const hasSoftEndSignal =
+        !hasStrongEndSignal && SESSION_END_SOFT_SIGNAL.test(modelTranscriptWindowRef.current);
+
+      const minElapsed = hasStrongEndSignal
+        ? MIN_ELAPSED_FOR_STRONG_END_S
+        : MIN_ELAPSED_FOR_SOFT_END_S;
+
+      if ((hasStrongEndSignal || hasSoftEndSignal) && elapsedS >= minElapsed) {
         sessionEndDetectedRef.current = true;
-        log.info(`[Session] End keyword detected after ${elapsedS}s, auto-disconnecting in 3s`);
+        const signalType = hasStrongEndSignal ? 'strong' : 'soft';
+        log.info(
+          `[Session] ${signalType} end signal detected after ${elapsedS}s, auto-disconnecting in 3s`,
+        );
         endKeywordTimerRef.current = setTimeout(() => {
           disconnectRef.current();
           onSessionCompleteRef.current?.();
         }, 3000);
-      } else {
-        log.info(`[Session] End keyword detected but too early (${elapsedS}s < ${MIN_ELAPSED_FOR_END_S}s), ignoring`);
+      } else if (hasStrongEndSignal || hasSoftEndSignal) {
+        log.info(
+          `[Session] End signal detected but too early (${elapsedS}s < ${minElapsed}s), ignoring`,
+        );
       }
     }
   }, []);
@@ -420,7 +441,7 @@ export function useVoiceSession({
       .map((t) => `${t.role === 'user' ? 'Student' : 'Tutor'}: ${t.text}`)
       .join('\n');
     try {
-      const res = await fetch('/api/voice/session/compress', {
+      const res = await fetchWithKeys('/api/voice/session/compress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversation, sectionTitle: title }),
@@ -489,6 +510,7 @@ export function useVoiceSession({
     compressedSummaryRef.current = null;
     transcriptBufferRef.current = [];
     setTranscript([]);
+    modelTranscriptWindowRef.current = '';
     lastLoggedStateRef.current = 'idle';
     sessionEndDetectedRef.current = false;
     if (endKeywordTimerRef.current) {
@@ -502,7 +524,7 @@ export function useVoiceSession({
       // Use pre-fetched token if available, otherwise fetch fresh
       const tokenPromise = prefetchedTokenRef.current
         ? Promise.resolve(prefetchedTokenRef.current)
-        : fetch('/api/voice/token', { method: 'POST' })
+        : fetchWithKeys('/api/voice/token', { method: 'POST' })
             .then((r) => {
               if (!r.ok) throw new Error('Failed to get voice token');
               return r.json();
@@ -654,7 +676,7 @@ export function useVoiceSession({
           // Proactive reconnect before the WebSocket drops
           (async () => {
             try {
-              const res = await fetch('/api/voice/token', { method: 'POST' });
+              const res = await fetchWithKeys('/api/voice/token', { method: 'POST' });
               if (!res.ok) throw new Error('Failed to get token for proactive reconnect');
               const { token: freshToken } = await res.json();
               const c = clientRef.current;
@@ -677,10 +699,17 @@ export function useVoiceSession({
           // Clear stale playback
           stopPlayback();
 
+          // Ensure only one reconnect timer is active at a time
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+
           reconnectTimerRef.current = setTimeout(async () => {
+            reconnectTimerRef.current = null;
             try {
               // Fetch a fresh ephemeral token
-              const res = await fetch('/api/voice/token', { method: 'POST' });
+              const res = await fetchWithKeys('/api/voice/token', { method: 'POST' });
               if (!res.ok) throw new Error('Failed to get fresh token for reconnect');
               const { token: freshToken } = await res.json();
 
@@ -701,7 +730,7 @@ export function useVoiceSession({
                   log.info('[Reconnect] Layer 1 failed (handle expired?), falling back to Layer 2:', layer1Err);
                   resumptionHandleRef.current = null;
                   // Need a fresh token since the previous one was consumed
-                  const res2 = await fetch('/api/voice/token', { method: 'POST' });
+                  const res2 = await fetchWithKeys('/api/voice/token', { method: 'POST' });
                   if (!res2.ok) throw new Error('Failed to get token for Layer 2');
                   const { token: freshToken2 } = await res2.json();
                   await c.reconnect(freshToken2);
@@ -812,6 +841,7 @@ export function useVoiceSession({
     // Reset resilience refs
     resumptionHandleRef.current = null;
     transcriptBufferRef.current = [];
+    modelTranscriptWindowRef.current = '';
     sessionEndDetectedRef.current = false;
     if (endKeywordTimerRef.current) {
       clearTimeout(endKeywordTimerRef.current);

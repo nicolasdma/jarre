@@ -36,7 +36,7 @@ export const GET = withAuth(async (_request, { supabase, user }) => {
       .eq('user_id', user.id)
       .order('streak', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     // Total cards in schedule
     const { count: totalCards } = await supabase

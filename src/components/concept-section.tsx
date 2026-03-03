@@ -9,6 +9,7 @@ import type { ReviewSubmitResponse, InlineQuiz, VideoSegment, Exercise, Exercise
 import type { FigureRegistry } from '@/lib/figure-registry';
 import { useWhisper } from '@/lib/whisper/whisper-context';
 import type { SectionState } from '@/lib/learn-progress';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 import { ExerciseShell } from '@/components/exercises/exercise-shell';
 import { VoicePanel } from '@/components/voice/voice-panel';
 
@@ -192,7 +193,7 @@ export const ConceptSection = memo(function ConceptSection({
     setPostError(null);
 
     try {
-      const res = await fetch('/api/review/submit', {
+      const res = await fetchWithKeys('/api/review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -228,7 +229,7 @@ export const ConceptSection = memo(function ConceptSection({
       setPostConfidence(level);
       // Send confidence to backend (fire-and-forget)
       if (postQuestion) {
-        fetch('/api/review/submit', {
+        fetchWithKeys('/api/review/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

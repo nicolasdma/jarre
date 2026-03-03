@@ -10,6 +10,7 @@
  * Body: { sessionId: string, userResourceId: string }
  */
 
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
@@ -20,10 +21,11 @@ import { logTokenUsage } from '@/lib/db/token-usage';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { TOKEN_BUDGETS } from '@/lib/constants';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('ExplorationSummary');
 
-export const POST = withAuth(async (request, { supabase, user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const body = await request.json().catch(() => null);
   const sessionId = body?.sessionId;
   const userResourceId = body?.userResourceId;
@@ -33,6 +35,14 @@ export const POST = withAuth(async (request, { supabase, user }) => {
   }
   if (!userResourceId || typeof userResourceId !== 'string') {
     throw badRequest('userResourceId is required');
+  }
+
+  const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+      { status: 429 },
+    );
   }
 
   const admin = createAdminClient();
@@ -79,6 +89,7 @@ export const POST = withAuth(async (request, { supabase, user }) => {
 
   // Call DeepSeek for analysis
   const { content: responseText, tokensUsed } = await callDeepSeek({
+    apiKey: byokKeys.deepseek,
     messages: [
       {
         role: 'system',

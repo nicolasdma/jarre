@@ -1,15 +1,16 @@
 # Contributing to Jarre
 
-Thanks for contributing.
+Thanks for contributing. This guide keeps collaboration fast, reviewable, and safe for a public open source project.
 
 ## Ground Rules
 
 - Keep pull requests focused and small.
-- Prefer clear, incremental changes over broad refactors.
-- Do not commit secrets, tokens, or `.env.local`.
-- Update docs when behavior or setup changes.
+- Prefer incremental changes over broad refactors.
+- Do not commit secrets, credentials, or `.env.local`.
+- Update docs when behavior, setup, or APIs change.
+- Only contribute content/assets you are authorized to redistribute.
 
-## Development Setup
+## Local Setup
 
 1. Install dependencies:
 
@@ -31,7 +32,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-## Quality Checks
+## Quality Gates
 
 Run before opening a PR:
 
@@ -43,26 +44,44 @@ This runs:
 
 - `npm run lint`
 - `npm run test`
+- `npm run typecheck`
 - `npm run build`
 
-## Pull Request Expectations
+## Pull Request Checklist
 
-- Describe what changed and why.
-- Link related issues.
+- Explain what changed and why.
+- Link related issue(s).
 - Include screenshots for UI changes.
-- Mention any migrations, env var additions, or breaking changes.
+- Mention migrations, env var additions, or breaking changes.
+- Add or update tests when behavior changes.
+
+## Database Changes
+
+When changing data shape or constraints:
+
+- Add a new migration in `supabase/migrations` (never rewrite old migrations).
+- Keep migrations deterministic and re-runnable.
+- Document data impact in the PR description.
 
 ## Commit Style
 
-No strict convention is required, but use clear imperative subjects, for example:
+No strict convention is required, but use clear imperative subjects.
+
+Examples:
 
 - `Fix review deck due-date badge logic`
 - `Add onboarding hint for resources tab`
 - `Refactor voice context route typing`
 
-## Areas with Known Debt
+## Review Expectations
 
-- Lint warnings exist in older modules.
-- Some content-heavy pages intentionally relax strict JSX text rules.
+Maintainers prioritize:
 
-Contributions that reduce this debt without breaking behavior are welcome.
+- correctness and regression risk
+- security and data safety
+- API and schema compatibility
+- test coverage for critical paths
+
+## Need Help?
+
+See [SUPPORT.md](./SUPPORT.md).

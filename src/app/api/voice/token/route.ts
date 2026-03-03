@@ -15,12 +15,32 @@
 
 import { withAuth } from '@/lib/api/middleware';
 import { jsonOk } from '@/lib/api/errors';
+import { NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { checkTokenBudget, checkVoiceTimeBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('VoiceToken');
 
-export const POST = withAuth(async () => {
-  const apiKey = process.env.GEMINI_API_KEY;
+export const POST = withAuth(async (_request, { supabase, user, byokKeys }) => {
+  // Keep budget checks active for managed mode users without BYOK keys.
+  const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+      { status: 429 },
+    );
+  }
+
+  const voiceBudget = await checkVoiceTimeBudget(supabase, user.id, !!byokKeys.gemini);
+  if (!voiceBudget.allowed) {
+    return NextResponse.json(
+      { error: 'Monthly voice time limit exceeded', remainingSeconds: 0 },
+      { status: 429 },
+    );
+  }
+
+  // Temporary approach while Gemini ephemeral tokens remain unstable.
+  const apiKey = byokKeys.gemini || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     log.error('GEMINI_API_KEY not configured');
     throw new Error('Voice service not configured');
@@ -28,5 +48,8 @@ export const POST = withAuth(async () => {
 
   log.info('Voice session token issued');
 
-  return jsonOk({ token: apiKey });
+  const remainingSeconds = Number.isFinite(voiceBudget.remainingSeconds)
+    ? voiceBudget.remainingSeconds
+    : null;
+  return jsonOk({ token: apiKey, remainingSeconds });
 });

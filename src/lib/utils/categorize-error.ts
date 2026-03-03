@@ -2,7 +2,7 @@
  * Categorizes client-side errors into user-friendly messages with suggested actions.
  */
 
-type ErrorAction = 'retry' | 'relogin' | 'wait';
+type ErrorAction = 'retry' | 'relogin' | 'wait' | 'upgrade';
 
 interface CategorizedError {
   message: string;
@@ -12,6 +12,13 @@ interface CategorizedError {
 export function categorizeError(error: unknown): CategorizedError {
   const raw = error instanceof Error ? error.message : String(error);
   const lower = raw.toLowerCase();
+
+  if (lower.includes('token limit') || lower.includes('budget') || lower.includes('429')) {
+    return {
+      message: 'Alcanzaste tu limite mensual de tokens. Agrega tus API keys o haz upgrade a Pro.',
+      action: 'upgrade',
+    };
+  }
 
   if (lower.includes('timeout') || lower.includes('abort')) {
     return {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { TABLES } from '@/lib/db/tables';
+import { REVIEW_SESSION_CAP } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
 import {
   mapQuestionToUnifiedCard,
@@ -24,7 +25,7 @@ const log = createLogger('Review/Quick');
 export const GET = withAuth(async (request, { supabase, user }) => {
   try {
     const url = new URL(request.url);
-    const count = Math.min(20, Math.max(1, parseInt(url.searchParams.get('count') || '10', 10)));
+    const count = Math.min(REVIEW_SESSION_CAP, Math.max(1, parseInt(url.searchParams.get('count') || '10', 10)));
 
     // Get unlocked concept IDs (mastery >= 1)
     // concept_progress.level is stored as enum text ('0'-'4')

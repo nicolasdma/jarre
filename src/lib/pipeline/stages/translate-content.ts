@@ -46,6 +46,7 @@ async function translateSection(
   fromLang: string,
   toLang: string,
   sectionTitle: string,
+  apiKey?: string,
 ): Promise<{ translatedMarkdown: string; tokensUsed: number }> {
   const langNames: Record<string, string> = {
     en: 'English',
@@ -59,6 +60,7 @@ async function translateSection(
   const toName = langNames[toLang] || toLang;
 
   const { content, tokensUsed } = await callDeepSeek({
+    apiKey,
     messages: [
       {
         role: 'system',
@@ -108,6 +110,7 @@ export async function translateContent(
   contentOutput: ContentOutput,
   sourceLanguage: string,
   targetLanguage: string,
+  apiKey?: string,
 ): Promise<{ output: ContentOutput; tokensUsed: number }> {
   // No translation needed if languages match
   if (sourceLanguage === targetLanguage) {
@@ -126,6 +129,7 @@ export async function translateContent(
         sourceLanguage,
         targetLanguage,
         section.title,
+        apiKey,
       );
       return result;
     };

@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, memo } from 'react';
+import Link from 'next/link';
 import { SectionLabel } from '@/components/ui/section-label';
+import { PricingModal } from '@/components/billing/pricing-modal';
 import { t, type Language } from '@/lib/translations';
 import type { PracticeEvalState, PracticeEvalAnswer } from '@/lib/learn-progress';
 import type { ReviewSubmitResponse } from '@/types';
+import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 
 // ============================================================================
 // Types
@@ -249,7 +252,7 @@ QuestionCard.displayName = 'QuestionCard';
 export function PracticeEvalStep({
   language,
   resourceId,
-  conceptIds,
+  conceptIds: _conceptIds,
   initialState,
   onStateChange,
   onComplete,
@@ -261,6 +264,8 @@ export function PracticeEvalStep({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState<Set<string>>(new Set());
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPricing, setShowPricing] = useState(false);
 
   const scaffoldLevel = evalState.currentScaffoldLevel;
 
@@ -313,13 +318,23 @@ export function PracticeEvalStep({
       if (!answer) return;
 
       setEvaluating((prev) => new Set(prev).add(questionId));
+      setSubmitError(null);
 
       try {
-        const res = await fetch('/api/review/submit', {
+        const res = await fetchWithKeys('/api/review/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ questionId, userAnswer: answer }),
         });
+
+        if (res.status === 429) {
+          setSubmitError(
+            language === 'es'
+              ? 'Alcanzaste tu limite mensual de tokens. Agrega tus API keys en Configuracion o haz upgrade a Pro.'
+              : 'Monthly token limit exceeded. Add your API keys in Settings or upgrade to Pro.',
+          );
+          return;
+        }
 
         if (!res.ok) throw new Error('Failed to evaluate');
         const data: ReviewSubmitResponse = await res.json();
@@ -344,6 +359,11 @@ export function PracticeEvalStep({
         updateState(next);
       } catch (err) {
         console.error('[PracticeEval] Submit error:', err);
+        setSubmitError(
+          language === 'es'
+            ? 'Error al evaluar tu respuesta. Intenta de nuevo.'
+            : 'Failed to evaluate your answer. Try again.',
+        );
       } finally {
         setEvaluating((prev) => {
           const s = new Set(prev);
@@ -352,7 +372,7 @@ export function PracticeEvalStep({
         });
       }
     },
-    [evalState, scaffoldLevel, updateState]
+    [evalState, scaffoldLevel, updateState, language]
   );
 
   const answeredCount = Object.keys(evalState.answers).length;
@@ -448,6 +468,23 @@ export function PracticeEvalStep({
           />
         ))}
       </div>
+
+      {submitError && (
+        <div className="mt-6 p-4 border border-j-error bg-j-error-bg">
+          <p className="text-sm text-j-error mb-2">{submitError}</p>
+          {submitError.includes('limite') && (
+            <div className="flex gap-3">
+              <Link href="/settings" className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                {language === 'es' ? 'Agregar API keys' : 'Add API keys'}
+              </Link>
+              <button onClick={() => setShowPricing(true)} className="font-mono text-[10px] tracking-[0.15em] text-j-accent underline uppercase">
+                Upgrade a Pro
+              </button>
+              <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary + CTA */}
       {allAnswered && (
