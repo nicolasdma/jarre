@@ -3,7 +3,7 @@
  *
  * Creates a new voice session row for tracking.
  * Body: { sectionId?: string, sessionType?: 'teaching' | 'evaluation' | 'practice' | 'exploration' | 'freeform' | 'debate', resourceId?: string, conceptIds?: string[], userResourceId?: string }
- * Response: { sessionId: string }
+ * Response: { sessionId: string, writeToken: string }
  *
  * For teaching sessions: sectionId is required.
  * For evaluation sessions: resourceId and conceptIds are required.
@@ -14,6 +14,7 @@ import { withAuth } from '@/lib/api/middleware';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
 import { createLogger } from '@/lib/logger';
+import { issueVoiceSessionWriteToken } from '@/lib/voice/session-write-token';
 
 const log = createLogger('VoiceSession');
 
@@ -74,7 +75,12 @@ export const POST = withAuth(async (request, { supabase, user }) => {
     throw new Error('Failed to create voice session');
   }
 
+  const writeToken = issueVoiceSessionWriteToken({
+    sessionId: data.id,
+    userId: user.id,
+  });
+
   log.info(`Voice session started: ${data.id} (type: ${sessionType})`);
 
-  return jsonOk({ sessionId: data.id });
+  return jsonOk({ sessionId: data.id, writeToken });
 });

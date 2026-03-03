@@ -129,8 +129,8 @@ export async function checkVoiceTimeBudget(
     .from(TABLES.voiceSessions)
     .select('duration_seconds')
     .eq('user_id', userId)
-    .gte('created_at', monthStart.toISOString())
-    .lt('created_at', monthEnd.toISOString());
+    .gte('started_at', monthStart.toISOString())
+    .lt('started_at', monthEnd.toISOString());
 
   if (error) {
     log.error('Failed to check voice time budget:', error.message);

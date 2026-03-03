@@ -3,10 +3,8 @@
 
 -- 1. Remove old resource-concept mappings
 DELETE FROM resource_concepts WHERE resource_id = 'p0-math-for-ml';
-
 -- 2. Remove old resource
 DELETE FROM resources WHERE id = 'p0-math-for-ml';
-
 -- 3. Insert 3 new thematic resources
 INSERT INTO resources (id, title, type, url, author, phase, description, estimated_hours)
 VALUES
@@ -31,7 +29,6 @@ VALUES
    'Espacios de probabilidad, distribuciones, Bayes, MLE/MAP, entropía, cross-entropy, KL divergence y sus aplicaciones en deep learning. Basado en el capítulo 6 de Mathematics for Machine Learning con suplemento de teoría de la información.',
    10)
 ON CONFLICT (id) DO NOTHING;
-
 -- 4. Resource-concept mappings for the 3 new resources
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES

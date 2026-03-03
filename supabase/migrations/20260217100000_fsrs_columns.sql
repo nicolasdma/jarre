@@ -8,7 +8,6 @@
 
 -- Add 'good' to review_rating enum (before 'easy')
 ALTER TYPE review_rating ADD VALUE 'good' BEFORE 'easy';
-
 -- FSRS state columns
 ALTER TABLE review_schedule ADD COLUMN fsrs_stability REAL;
 ALTER TABLE review_schedule ADD COLUMN fsrs_difficulty REAL;

@@ -7,7 +7,6 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================================================
 -- ENUMS
 -- ============================================================================
@@ -18,7 +17,6 @@ CREATE TYPE mastery_level AS ENUM ('0', '1', '2', '3', '4');
 CREATE TYPE evaluation_type AS ENUM ('explanation', 'scenario', 'error_detection', 'connection', 'tradeoff');
 CREATE TYPE evaluation_status AS ENUM ('in_progress', 'completed', 'abandoned');
 CREATE TYPE project_status AS ENUM ('not_started', 'in_progress', 'completed');
-
 -- ============================================================================
 -- CORE TABLES
 -- ============================================================================
@@ -33,7 +31,6 @@ CREATE TABLE concepts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Concept prerequisites (DAG)
 CREATE TABLE concept_prerequisites (
     concept_id TEXT NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
@@ -41,7 +38,6 @@ CREATE TABLE concept_prerequisites (
     PRIMARY KEY (concept_id, prerequisite_id),
     CHECK (concept_id != prerequisite_id)
 );
-
 -- Resources: papers, books, videos, courses, articles
 CREATE TABLE resources (
     id TEXT PRIMARY KEY,
@@ -55,7 +51,6 @@ CREATE TABLE resources (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Resource-Concept mapping (what concepts a resource teaches)
 CREATE TABLE resource_concepts (
     resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
@@ -63,7 +58,6 @@ CREATE TABLE resource_concepts (
     is_prerequisite BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (resource_id, concept_id)
 );
-
 -- Projects: practical exercises per phase
 CREATE TABLE projects (
     id TEXT PRIMARY KEY,
@@ -74,7 +68,6 @@ CREATE TABLE projects (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- ============================================================================
 -- USER TABLES (with RLS)
 -- ============================================================================
@@ -90,7 +83,6 @@ CREATE TABLE user_profiles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- User progress on concepts
 CREATE TABLE concept_progress (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -102,7 +94,6 @@ CREATE TABLE concept_progress (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, concept_id)
 );
-
 -- User progress on projects
 CREATE TABLE project_progress (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -116,7 +107,6 @@ CREATE TABLE project_progress (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, project_id)
 );
-
 -- Evaluations: sessions where user is tested
 CREATE TABLE evaluations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -128,7 +118,6 @@ CREATE TABLE evaluations (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ
 );
-
 -- Evaluation questions
 CREATE TABLE evaluation_questions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -140,7 +129,6 @@ CREATE TABLE evaluation_questions (
     related_concept_id TEXT REFERENCES concepts(id), -- for connection type
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Evaluation responses (user answers + AI feedback)
 CREATE TABLE evaluation_responses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -151,7 +139,6 @@ CREATE TABLE evaluation_responses (
     feedback TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- User notes on resources
 CREATE TABLE user_notes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -161,7 +148,6 @@ CREATE TABLE user_notes (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Flagged questions (user reports bad question)
 CREATE TABLE flagged_questions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -171,7 +157,6 @@ CREATE TABLE flagged_questions (
     details TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
@@ -184,7 +169,6 @@ CREATE INDEX idx_concept_progress_level ON concept_progress(level);
 CREATE INDEX idx_evaluations_user ON evaluations(user_id);
 CREATE INDEX idx_evaluations_status ON evaluations(status);
 CREATE INDEX idx_evaluation_questions_evaluation ON evaluation_questions(evaluation_id);
-
 -- ============================================================================
 -- ROW LEVEL SECURITY
 -- ============================================================================
@@ -198,59 +182,46 @@ ALTER TABLE evaluation_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evaluation_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flagged_questions ENABLE ROW LEVEL SECURITY;
-
 -- Policies for user_profiles
 CREATE POLICY "Users can view own profile"
     ON user_profiles FOR SELECT
     USING (auth.uid() = id);
-
 CREATE POLICY "Users can update own profile"
     ON user_profiles FOR UPDATE
     USING (auth.uid() = id);
-
 CREATE POLICY "Users can insert own profile"
     ON user_profiles FOR INSERT
     WITH CHECK (auth.uid() = id);
-
 -- Policies for concept_progress
 CREATE POLICY "Users can view own progress"
     ON concept_progress FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own progress"
     ON concept_progress FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own progress"
     ON concept_progress FOR UPDATE
     USING (auth.uid() = user_id);
-
 -- Policies for project_progress
 CREATE POLICY "Users can view own project progress"
     ON project_progress FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own project progress"
     ON project_progress FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own project progress"
     ON project_progress FOR UPDATE
     USING (auth.uid() = user_id);
-
 -- Policies for evaluations
 CREATE POLICY "Users can view own evaluations"
     ON evaluations FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own evaluations"
     ON evaluations FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own evaluations"
     ON evaluations FOR UPDATE
     USING (auth.uid() = user_id);
-
 -- Policies for evaluation_questions (through evaluation ownership)
 CREATE POLICY "Users can view questions from own evaluations"
     ON evaluation_questions FOR SELECT
@@ -261,7 +232,6 @@ CREATE POLICY "Users can view questions from own evaluations"
             AND evaluations.user_id = auth.uid()
         )
     );
-
 CREATE POLICY "Users can insert questions to own evaluations"
     ON evaluation_questions FOR INSERT
     WITH CHECK (
@@ -271,7 +241,6 @@ CREATE POLICY "Users can insert questions to own evaluations"
             AND evaluations.user_id = auth.uid()
         )
     );
-
 -- Policies for evaluation_responses (through question → evaluation ownership)
 CREATE POLICY "Users can view responses from own evaluations"
     ON evaluation_responses FOR SELECT
@@ -283,7 +252,6 @@ CREATE POLICY "Users can view responses from own evaluations"
             AND e.user_id = auth.uid()
         )
     );
-
 CREATE POLICY "Users can insert responses to own evaluations"
     ON evaluation_responses FOR INSERT
     WITH CHECK (
@@ -294,33 +262,26 @@ CREATE POLICY "Users can insert responses to own evaluations"
             AND e.user_id = auth.uid()
         )
     );
-
 -- Policies for user_notes
 CREATE POLICY "Users can view own notes"
     ON user_notes FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own notes"
     ON user_notes FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own notes"
     ON user_notes FOR UPDATE
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can delete own notes"
     ON user_notes FOR DELETE
     USING (auth.uid() = user_id);
-
 -- Policies for flagged_questions
 CREATE POLICY "Users can view own flags"
     ON flagged_questions FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert flags"
     ON flagged_questions FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 -- ============================================================================
 -- PUBLIC READ ACCESS (for content tables)
 -- ============================================================================
@@ -340,36 +301,28 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
 -- Apply trigger to all tables with updated_at
 CREATE TRIGGER update_concepts_updated_at
     BEFORE UPDATE ON concepts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_resources_updated_at
     BEFORE UPDATE ON resources
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_projects_updated_at
     BEFORE UPDATE ON projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_user_profiles_updated_at
     BEFORE UPDATE ON user_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_concept_progress_updated_at
     BEFORE UPDATE ON concept_progress
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_project_progress_updated_at
     BEFORE UPDATE ON project_progress
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_user_notes_updated_at
     BEFORE UPDATE ON user_notes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 -- ============================================================================
 -- AUTO-CREATE USER PROFILE ON SIGNUP
 -- ============================================================================
@@ -390,7 +343,6 @@ EXCEPTION WHEN OTHERS THEN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION handle_new_user();

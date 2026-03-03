@@ -5,35 +5,27 @@
 -- ============================================================================
 
 BEGIN;
-
 -- ============================================================================
 -- STEP 1: Cascade resources (reverse order to avoid overwrites)
 -- ============================================================================
 
 -- F9 partial -> F10 (System Design absorbs integrated content)
 UPDATE resources SET phase = '10' WHERE id IN ('dspy-paper','dspy-docs','applied-llms-blog');
-
 -- F8 -> F9
 UPDATE resources SET phase = '9' WHERE phase = '8';
-
 -- F7 -> F8
 UPDATE resources SET phase = '8' WHERE phase = '7';
-
 -- F5 -> F7
 UPDATE resources SET phase = '7' WHERE phase = '5';
-
 -- F4 -> F6
 UPDATE resources SET phase = '6' WHERE phase = '4';
-
 -- F2 -> F5
 UPDATE resources SET phase = '5' WHERE phase = '2';
-
 -- F3 advanced -> F4 (Scaling Laws, LoRA, DPO leave Transformers)
 UPDATE resources SET phase = '4' WHERE id IN (
   'scaling-laws-paper','chinchilla-paper','lora-paper',
   'karpathy-llm-os','dpo-paper','gpt3-paper'
 );
-
 -- Math + Karpathy foundational -> F2
 UPDATE resources SET phase = '2' WHERE id IN (
   'p0-3b1b-linear-algebra','p0-3b1b-neural-networks',
@@ -41,14 +33,12 @@ UPDATE resources SET phase = '2' WHERE id IN (
   'p0-cs229-probability','p0-statquest',
   'karpathy-nn-zero-to-hero','karpathy-intro-llms'
 );
-
 -- Enterprise F10 -> F11
 UPDATE resources SET phase = '11' WHERE id IN (
   'p10-ai-strategy','p10-ai-discovery','p10-build-vs-buy',
   'p10-ai-governance','p10-enterprise-arch','p10-change-management',
   'p10-ai-economics','p10-ai-consulting','p10-aws-ai-cert'
 );
-
 -- ============================================================================
 -- STEP 2: Cascade concepts (same reverse order)
 -- ============================================================================
@@ -61,34 +51,26 @@ UPDATE concepts SET phase = '10' WHERE id IN (
   'agent-ui-generation','plugin-channel-architecture','langchain-architecture',
   'llamaindex-architecture'
 );
-
 -- F8 -> F9
 UPDATE concepts SET phase = '9' WHERE phase = '8';
-
 -- F7 -> F8
 UPDATE concepts SET phase = '8' WHERE phase = '7';
-
 -- F5 -> F7
 UPDATE concepts SET phase = '7' WHERE phase = '5';
-
 -- F4 -> F6
 UPDATE concepts SET phase = '6' WHERE phase = '4';
-
 -- F2 -> F5
 UPDATE concepts SET phase = '5' WHERE phase = '2';
-
 -- F3 advanced -> F4
 UPDATE concepts SET phase = '4' WHERE id IN (
   'scaling-laws','compute-optimal-training','foundation-models',
   'fine-tuning-efficiency','dpo','context-extension','power-law-loss'
 );
-
 -- Math concepts -> F2
 UPDATE concepts SET phase = '2' WHERE id IN (
   'linear-algebra-ml','probability-statistics','information-theory',
   'optimization-ml','calculus-backprop','dimensionality-reduction'
 );
-
 -- Enterprise concepts F10 -> F11
 UPDATE concepts SET phase = '11' WHERE id IN (
   'ai-strategy-roi','ai-maturity-models','ai-use-case-discovery',
@@ -97,7 +79,6 @@ UPDATE concepts SET phase = '11' WHERE id IN (
   'enterprise-ai-integration','ai-change-management','inference-economics',
   'ai-pricing-models','ai-consulting-practice','aws-ai-services'
 );
-
 -- ============================================================================
 -- STEP 2b: Cascade projects
 -- ============================================================================
@@ -106,7 +87,6 @@ UPDATE projects SET phase = '9' WHERE phase = '8';
 UPDATE projects SET phase = '8' WHERE phase = '7';
 UPDATE projects SET phase = '7' WHERE phase = '5';
 UPDATE projects SET phase = '6' WHERE phase = '4';
-
 -- ============================================================================
 -- STEP 3: New concepts
 -- ============================================================================
@@ -124,7 +104,6 @@ INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
   ('residual-connections', 'Residual Connections', 'residual-connections', '2',
    'Skip connections, gradient flow, foundation of transformers')
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, canonical_definition = EXCLUDED.canonical_definition;
-
 -- F3: Sequences, Attention & Transformers (7 new)
 INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
   ('word-embeddings', 'Word Embeddings', 'word-embeddings', '3',
@@ -142,7 +121,6 @@ INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
   ('autoregressive-generation', 'Autoregressive Generation', 'autoregressive-generation', '3',
    'Left-to-right generation, decoder-only, GPT')
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, canonical_definition = EXCLUDED.canonical_definition;
-
 -- F4: LLMs: Training, Alignment & Scaling (5 new)
 INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
   ('language-model-pretraining', 'Language Model Pretraining', 'language-model-pretraining', '4',
@@ -156,7 +134,6 @@ INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
   ('scaling-behavior', 'Scaling Behavior', 'scaling-behavior', '4',
    'Emergent abilities, phase transitions')
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, canonical_definition = EXCLUDED.canonical_definition;
-
 -- ============================================================================
 -- STEP 4: New resources
 -- ============================================================================
@@ -170,7 +147,6 @@ INSERT INTO resources (id, title, type, url, phase, estimated_hours, sort_order)
   ('p2-resnet-paper', 'Deep Residual Learning for Image Recognition', 'paper',
    'https://arxiv.org/abs/1512.03385', '2', 2, 220)
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, title = EXCLUDED.title;
-
 -- F3: 8 new resources
 INSERT INTO resources (id, title, type, url, phase, estimated_hours, sort_order) VALUES
   ('p3-word2vec-paper', 'Efficient Estimation of Word Representations in Vector Space', 'paper',
@@ -190,7 +166,6 @@ INSERT INTO resources (id, title, type, url, phase, estimated_hours, sort_order)
   ('p3-illustrated-gpt2', 'The Illustrated GPT-2 (Jay Alammar)', 'article',
    'https://jalammar.github.io/illustrated-gpt2/', '3', 1.5, 220)
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, title = EXCLUDED.title;
-
 -- F4: 7 new resources
 INSERT INTO resources (id, title, type, url, phase, estimated_hours, sort_order) VALUES
   ('p4-gpt1-paper', 'Improving Language Understanding by Generative Pre-Training', 'paper',
@@ -208,7 +183,6 @@ INSERT INTO resources (id, title, type, url, phase, estimated_hours, sort_order)
   ('p4-cs224n', 'Stanford CS224n: NLP with Deep Learning', 'course',
    'https://web.stanford.edu/class/cs224n/', '4', 25, 200)
 ON CONFLICT (id) DO UPDATE SET phase = EXCLUDED.phase, title = EXCLUDED.title;
-
 -- ============================================================================
 -- STEP 5: Resource-concept mappings & concept prerequisites
 -- ============================================================================
@@ -236,7 +210,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   ('p2-resnet-paper', 'neural-network-fundamentals', true),
   ('p2-resnet-paper', 'backpropagation-training', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- F3 resource mappings
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   -- p3-word2vec-paper TEACHES
@@ -280,7 +253,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   -- p3-illustrated-gpt2 REQUIRES
   ('p3-illustrated-gpt2', 'transformer-architecture', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- F4 resource mappings
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   -- p4-gpt1-paper TEACHES
@@ -321,7 +293,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   ('p4-cs224n', 'neural-network-fundamentals', true),
   ('p4-cs224n', 'backpropagation-training', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- STEP 6: Clean up old duplicate resources
 -- ============================================================================
@@ -329,9 +300,7 @@ ON CONFLICT (resource_id, concept_id) DO NOTHING;
 -- Remove old gpt3-paper (replaced by p4-gpt3-paper)
 DELETE FROM resource_concepts WHERE resource_id = 'gpt3-paper';
 DELETE FROM resources WHERE id = 'gpt3-paper';
-
 -- Remove old dpo-paper (replaced by p4-dpo-paper)
 DELETE FROM resource_concepts WHERE resource_id = 'dpo-paper';
 DELETE FROM resources WHERE id = 'dpo-paper';
-
 COMMIT;

@@ -12,12 +12,9 @@ CREATE TABLE learner_concept_memory (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(user_id, concept_id)
 );
-
 ALTER TABLE learner_concept_memory ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users manage own memory"
   ON learner_concept_memory FOR ALL
   USING (auth.uid() = user_id);
-
 CREATE INDEX idx_learner_concept_memory_user
   ON learner_concept_memory(user_id);

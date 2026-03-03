@@ -11,7 +11,6 @@ VALUES (
   20
 )
 ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
   ('p10-chip-huyen-ai-eng', 'llm-application-patterns', FALSE),

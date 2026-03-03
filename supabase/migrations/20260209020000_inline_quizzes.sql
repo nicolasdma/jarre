@@ -12,7 +12,6 @@ CREATE TABLE inline_quizzes (
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE inline_quizzes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read" ON inline_quizzes FOR SELECT USING (true);
 CREATE INDEX idx_inline_quizzes_section ON inline_quizzes(section_id, sort_order);

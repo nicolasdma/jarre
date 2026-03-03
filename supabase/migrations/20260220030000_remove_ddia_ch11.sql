@@ -4,11 +4,8 @@
 -- All translated content, quizzes, and sections are preserved for potential reactivation.
 
 BEGIN;
-
 -- 1. Add is_archived column to resources (soft-delete pattern)
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;
-
 -- 2. Archive ddia-ch11
 UPDATE resources SET is_archived = TRUE WHERE id = 'ddia-ch11';
-
 COMMIT;

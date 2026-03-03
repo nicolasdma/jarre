@@ -13,22 +13,17 @@ CREATE TABLE learn_progress (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(user_id, resource_id)
 );
-
 -- RLS
 ALTER TABLE learn_progress ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users can read own learn progress"
   ON learn_progress FOR SELECT
   USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own learn progress"
   ON learn_progress FOR INSERT
   WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own learn progress"
   ON learn_progress FOR UPDATE
   USING (auth.uid() = user_id);
-
 -- Index for fast lookups
 CREATE INDEX idx_learn_progress_user_resource
   ON learn_progress(user_id, resource_id);

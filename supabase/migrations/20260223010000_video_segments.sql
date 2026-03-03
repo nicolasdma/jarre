@@ -12,10 +12,7 @@ CREATE TABLE video_segments (
   label TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE video_segments ENABLE ROW LEVEL SECURITY;
-
 -- Public read — content is not user-specific
 CREATE POLICY "Public read" ON video_segments FOR SELECT USING (true);
-
 CREATE INDEX idx_video_segments_section ON video_segments(section_id, sort_order);

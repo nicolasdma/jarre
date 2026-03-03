@@ -12,7 +12,6 @@ VALUES
   ('power-law-loss', 'Power-Law Loss Scaling', 'power-law-loss',
    'Empirical observation that neural language model loss decreases as a power law with model size, dataset size, and compute. L(x) = (x_c/x)^alpha where alpha varies by axis.', '2'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- Add prerequisites
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES

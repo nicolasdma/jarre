@@ -36,7 +36,6 @@ VALUES
    '0'::study_phase)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 2. Concept prerequisites (internal to Phase 0)
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES
@@ -44,7 +43,6 @@ VALUES
   ('dimensionality-reduction', 'linear-algebra-ml'),
   ('information-theory', 'probability-statistics')
 ON CONFLICT DO NOTHING;
-
 -- 3. Resources (5)
 INSERT INTO resources (id, title, type, url, author, phase, description, estimated_hours)
 VALUES
@@ -84,7 +82,6 @@ VALUES
    10)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 4. Resource-concept mappings
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
@@ -111,5 +108,4 @@ VALUES
   ('p0-statquest', 'probability-statistics', FALSE)
 
 ON CONFLICT DO NOTHING;
-
--- No project for Phase 0 — it's supplementary.
+-- No project for Phase 0 — it's supplementary.;

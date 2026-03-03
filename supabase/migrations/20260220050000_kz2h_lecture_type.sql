@@ -5,17 +5,12 @@
 -- ============================================================================
 
 BEGIN;
-
 -- Add 'lecture' to the resource_type enum
 ALTER TYPE resource_type ADD VALUE IF NOT EXISTS 'lecture';
-
 COMMIT;
-
 -- Must be in a separate transaction after ALTER TYPE
 BEGIN;
-
 -- Update kz2h-* videos to 'lecture' type
 UPDATE resources SET type = 'lecture'
 WHERE id LIKE 'kz2h-%';
-
 COMMIT;

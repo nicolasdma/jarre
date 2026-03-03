@@ -19,7 +19,6 @@ VALUES
    'Declarative frameworks for agents to generate rich, updateable UIs. JSON-based component catalogs, security-first rendering (no executable code from agents), framework-agnostic portability. The separation of UI intent from implementation.',
    '9'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- Prerequisites
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES

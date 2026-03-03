@@ -19,7 +19,6 @@ VALUES (
   ]
 )
 ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO project_concepts (project_id, concept_id)
 VALUES
   ('project-ai-strategy', 'ai-strategy-roi'),

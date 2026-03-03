@@ -46,7 +46,6 @@ VALUES
    '11'::study_phase)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 2. Concept prerequisites
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES
@@ -63,7 +62,6 @@ VALUES
   ('kernel-optimization', 'cuda-gpu-programming'),
   ('kernel-optimization', 'flash-attention')
 ON CONFLICT DO NOTHING;
-
 -- 3. Resources (5)
 INSERT INTO resources (id, title, type, url, author, phase, description, estimated_hours)
 VALUES
@@ -103,7 +101,6 @@ VALUES
    4)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 4. Resource-concept mappings
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
@@ -137,7 +134,6 @@ VALUES
   ('p11-gptq-paper', 'quantization', TRUE)
 
 ON CONFLICT DO NOTHING;
-
 -- 5. Project: High-Performance LLM Serving System
 INSERT INTO projects (id, title, phase, description, deliverables)
 VALUES (
@@ -155,7 +151,6 @@ VALUES (
   ]
 )
 ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO project_concepts (project_id, concept_id)
 VALUES
   ('project-llm-serving', 'cuda-gpu-programming'),

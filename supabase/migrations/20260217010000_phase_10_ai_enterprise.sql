@@ -92,7 +92,6 @@ VALUES
    '10'::study_phase)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 3. Concept prerequisites (Phase 10 builds on earlier phases)
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES
@@ -103,7 +102,6 @@ VALUES
   ('ai-consulting-practice', 'ai-strategy-roi'),
   ('ai-consulting-practice', 'ai-use-case-discovery')
 ON CONFLICT DO NOTHING;
-
 -- 4. Resources
 INSERT INTO resources (id, title, type, url, author, phase, description, estimated_hours)
 VALUES
@@ -180,7 +178,6 @@ VALUES
    12)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- 5. Resource-concept mappings
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES

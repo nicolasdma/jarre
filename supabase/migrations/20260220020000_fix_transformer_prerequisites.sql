@@ -9,14 +9,12 @@
 -- ============================================================================
 
 BEGIN;
-
 -- attention-paper requires Bahdanau attention + residual connections
 -- (the two key innovations it builds upon)
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   ('attention-paper', 'attention-bahdanau', true),
   ('attention-paper', 'residual-connections', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- yarn-paper is already correct (requires positional-encoding, attention-mechanism)
 
 -- karpathy-build-gpt should require transformer-architecture
@@ -24,5 +22,4 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   ('karpathy-build-gpt', 'transformer-architecture', true),
   ('karpathy-build-gpt', 'backpropagation-training', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 COMMIT;

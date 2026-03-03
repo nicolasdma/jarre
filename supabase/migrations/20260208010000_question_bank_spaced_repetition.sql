@@ -21,11 +21,8 @@ CREATE TYPE question_bank_type AS ENUM (
     'complexity',
     'comparison'
 );
-
 CREATE TYPE review_rating AS ENUM ('wrong', 'hard', 'easy');
-
 CREATE TYPE mastery_trigger_type AS ENUM ('evaluation', 'project', 'manual', 'decay');
-
 -- ============================================================================
 -- TABLES
 -- ============================================================================
@@ -43,7 +40,6 @@ CREATE TABLE question_bank (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Review Schedule: SM-2 state per user/question (user table, with RLS)
 CREATE TABLE review_schedule (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -62,7 +58,6 @@ CREATE TABLE review_schedule (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, question_id)
 );
-
 -- Mastery History: audit trail of level changes (user table, with RLS)
 CREATE TABLE mastery_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -74,14 +69,12 @@ CREATE TABLE mastery_history (
     trigger_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 -- Project Concepts: maps projects to concepts for level 2 advancement
 CREATE TABLE project_concepts (
     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     concept_id TEXT NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
     PRIMARY KEY (project_id, concept_id)
 );
-
 -- ============================================================================
 -- ALTER EXISTING TABLES
 -- ============================================================================
@@ -89,7 +82,6 @@ CREATE TABLE project_concepts (
 ALTER TABLE concept_progress ADD COLUMN level_1_score INTEGER;
 ALTER TABLE concept_progress ADD COLUMN level_2_project_id TEXT REFERENCES projects(id);
 ALTER TABLE concept_progress ADD COLUMN level_3_score INTEGER;
-
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
@@ -99,7 +91,6 @@ CREATE INDEX idx_question_bank_active ON question_bank(is_active) WHERE is_activ
 CREATE INDEX idx_review_schedule_user_next ON review_schedule(user_id, next_review_at);
 CREATE INDEX idx_mastery_history_user ON mastery_history(user_id);
 CREATE INDEX idx_mastery_history_concept ON mastery_history(user_id, concept_id);
-
 -- ============================================================================
 -- ROW LEVEL SECURITY
 -- ============================================================================
@@ -107,30 +98,23 @@ CREATE INDEX idx_mastery_history_concept ON mastery_history(user_id, concept_id)
 -- question_bank: public read (content table), no RLS needed
 -- review_schedule: user-scoped
 ALTER TABLE review_schedule ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users can view own review schedule"
     ON review_schedule FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own review schedule"
     ON review_schedule FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "Users can update own review schedule"
     ON review_schedule FOR UPDATE
     USING (auth.uid() = user_id);
-
 -- mastery_history: user-scoped
 ALTER TABLE mastery_history ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users can view own mastery history"
     ON mastery_history FOR SELECT
     USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can insert own mastery history"
     ON mastery_history FOR INSERT
     WITH CHECK (auth.uid() = user_id);
-
 -- project_concepts: public read (content table), no RLS needed
 
 -- ============================================================================
@@ -140,7 +124,6 @@ CREATE POLICY "Users can insert own mastery history"
 CREATE TRIGGER update_question_bank_updated_at
     BEFORE UPDATE ON question_bank
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
 CREATE TRIGGER update_review_schedule_updated_at
     BEFORE UPDATE ON review_schedule
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();

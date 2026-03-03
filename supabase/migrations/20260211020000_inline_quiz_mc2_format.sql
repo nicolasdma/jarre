@@ -5,6 +5,5 @@
 ALTER TABLE inline_quizzes DROP CONSTRAINT inline_quizzes_format_check;
 ALTER TABLE inline_quizzes ADD CONSTRAINT inline_quizzes_format_check
   CHECK (format IN ('mc', 'tf', 'mc2'));
-
 -- Optional hint shown after justification for self-comparison
 ALTER TABLE inline_quizzes ADD COLUMN justification_hint TEXT;

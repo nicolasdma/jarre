@@ -33,7 +33,6 @@ DELETE FROM resource_concepts
 WHERE resource_id = 'vllm-paper'
   AND concept_id = 'kv-cache'
   AND is_prerequisite = TRUE;
-
 -- A2: Fix framework-tradeoffs dead prerequisites
 -- framework-tradeoffs requires langchain-architecture and llamaindex-architecture,
 -- but both are being cleaned (no resource teaches them). Remove those prereqs.
@@ -42,7 +41,6 @@ WHERE resource_id = 'vllm-paper'
 DELETE FROM concept_prerequisites
 WHERE concept_id = 'framework-tradeoffs'
   AND prerequisite_id IN ('langchain-architecture', 'llamaindex-architecture');
-
 -- ============================================================================
 -- PART B: CLEAN orphan/noise concepts
 -- ============================================================================
@@ -70,7 +68,6 @@ WHERE resource_section_id IN (
     'multimodal-rag', 'image-generation-arch', 'plugin-channel-architecture'
   )
 );
-
 DELETE FROM resource_sections
 WHERE concept_id IN (
   'feature-stores', 'experiment-tracking', 'gpu-memory-management',
@@ -78,7 +75,6 @@ WHERE concept_id IN (
   'langchain-architecture', 'llamaindex-architecture',
   'multimodal-rag', 'image-generation-arch', 'plugin-channel-architecture'
 );
-
 -- evaluation_questions: null out related_concept_id references
 UPDATE evaluation_questions
 SET related_concept_id = NULL
@@ -88,7 +84,6 @@ WHERE related_concept_id IN (
   'langchain-architecture', 'llamaindex-architecture',
   'multimodal-rag', 'image-generation-arch', 'plugin-channel-architecture'
 );
-
 -- B2: Delete the orphan concepts (cascades handle the rest)
 DELETE FROM concepts
 WHERE id IN (
@@ -115,9 +110,8 @@ WHERE id IN (
   -- Phase 9: too specific to one case study
   'plugin-channel-architecture'
 );
-
 -- ============================================================================
 -- DONE
 -- Repaired: kv-cache (circular dep removed), framework-tradeoffs (dead prereqs removed)
 -- Cleaned: 11 orphan/noise concepts that were deadlocking the DAG
--- ============================================================================
+-- ============================================================================;

@@ -25,7 +25,6 @@ UPDATE resources SET phase = '3' WHERE id IN (
   'yarn-paper',
   'gpt3-paper'
 );
-
 -- ============================================================================
 -- STEP 2: Phase 7 → Phase 4 (Agents & Reasoning)
 -- ============================================================================
@@ -45,7 +44,6 @@ UPDATE resources SET phase = '4' WHERE id IN (
   'minimal-agent-loop',
   'openclaw-casestudy'
 );
-
 -- ============================================================================
 -- STEP 3: Phase 8 → Phase 5 (RAG, Memory & Context)
 -- ============================================================================
@@ -65,7 +63,6 @@ UPDATE resources SET phase = '5' WHERE id IN (
   'rag-from-scratch',
   'rag-without-frameworks'
 );
-
 -- ============================================================================
 -- STEP 4: Remove duplicate Phase 2 resources
 -- ============================================================================
@@ -81,11 +78,9 @@ DELETE FROM resources WHERE id IN (
   'p2-mixed-precision-paper',
   'p2-hidden-tech-debt-paper'
 );
-
 -- Also remove duplicate megatron-lm-paper (keep p11-megatron-lm which has Phase 11 mappings)
 DELETE FROM resource_concepts WHERE resource_id = 'megatron-lm-paper';
 DELETE FROM resources WHERE id = 'megatron-lm-paper';
-
 -- ============================================================================
 -- DONE
--- ============================================================================
+-- ============================================================================;

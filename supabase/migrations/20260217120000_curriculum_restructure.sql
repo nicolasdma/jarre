@@ -42,7 +42,6 @@ UPDATE resources SET phase = '3' WHERE id IN (
   'yarn-paper',
   'gpt3-paper'
 );
-
 -- ============================================================================
 -- STEP 2: REMAP RESOURCES — Old Phase 2 → Phase 4 (Agents & Reasoning)
 -- ============================================================================
@@ -61,7 +60,6 @@ UPDATE resources SET phase = '4' WHERE id IN (
   'autogen-paper',
   'anthropic-effective-agents'
 );
-
 -- ============================================================================
 -- STEP 3: REMAP RESOURCES — Old Phase 0 → Phase 3 (integrate math)
 -- ============================================================================
@@ -74,7 +72,6 @@ UPDATE resources SET phase = '3' WHERE id IN (
   'p0-calculus-optimization',
   'p0-probability'
 );
-
 -- ============================================================================
 -- STEP 4: REMAP RESOURCES — Old Phase 3 → Phase 5 (RAG, Memory & Context)
 -- ============================================================================
@@ -95,7 +92,6 @@ UPDATE resources SET phase = '5' WHERE id IN (
   'needle-in-haystack',
   'clawvault-agent-memory'
 );
-
 -- ============================================================================
 -- STEP 5: REMAP RESOURCES — Old Phase 4 → Phase 7 (Safety, Guardrails & Eval)
 -- ============================================================================
@@ -119,7 +115,6 @@ UPDATE resources SET phase = '7' WHERE id IN (
   'llm-as-judge-paper',
   'anthropic-alignment-paper'
 );
-
 -- ============================================================================
 -- STEP 6: REMAP RESOURCES — Old Phase 5 → Phase 8 (Inference & Economics)
 -- ============================================================================
@@ -140,7 +135,6 @@ UPDATE resources SET phase = '8' WHERE id IN (
   'openai-research-talks',
   'deepmind-systems-talks'
 );
-
 -- ============================================================================
 -- STEP 7: REMAP RESOURCES — Old Phase 6 → redistribute
 -- ============================================================================
@@ -149,19 +143,16 @@ UPDATE resources SET phase = '5' WHERE id IN (
   'rag-from-scratch',
   'rag-without-frameworks'
 );
-
 UPDATE resources SET phase = '4' WHERE id IN (
   'minimal-agent-loop',
   'openclaw-casestudy'
 );
-
 -- Remaining Phase 6 resources that aren't redistributed → Phase 9
 UPDATE resources SET phase = '9' WHERE id IN (
   'dspy-paper',
   'dspy-docs',
   'applied-llms-blog'
 );
-
 -- ============================================================================
 -- STEP 8: CATCH-ALL — Any remaining resources in old phases
 -- ============================================================================
@@ -171,7 +162,6 @@ UPDATE resources SET phase = '5' WHERE phase = '3' AND id NOT LIKE 'p%';
 UPDATE resources SET phase = '7' WHERE phase = '4' AND id NOT LIKE 'p%';
 UPDATE resources SET phase = '8' WHERE phase = '5' AND id NOT LIKE 'p%';
 UPDATE resources SET phase = '9' WHERE phase = '6';
-
 -- ============================================================================
 -- STEP 9: REMAP CONCEPTS — Same pattern as resources
 -- ============================================================================
@@ -191,7 +181,6 @@ UPDATE concepts SET phase = '3' WHERE id IN (
   'multi-head-attention',
   'power-law-loss'
 );
-
 -- Old Phase 2 → Phase 4 (Agent concepts)
 UPDATE concepts SET phase = '4' WHERE id IN (
   'chain-of-thought',
@@ -207,7 +196,6 @@ UPDATE concepts SET phase = '4' WHERE id IN (
   'multi-agent-systems',
   'agent-reliability'
 );
-
 -- Phase 0 → Phase 3 (math concepts integrated)
 UPDATE concepts SET phase = '3' WHERE id IN (
   'linear-algebra-ml',
@@ -217,7 +205,6 @@ UPDATE concepts SET phase = '3' WHERE id IN (
   'calculus-backprop',
   'dimensionality-reduction'
 );
-
 -- Old Phase 3 → Phase 5 (RAG concepts)
 UPDATE concepts SET phase = '5' WHERE id IN (
   'embeddings',
@@ -236,7 +223,6 @@ UPDATE concepts SET phase = '5' WHERE id IN (
   'rag-evaluation',
   'rag-vs-long-context'
 );
-
 -- Old Phase 4 → Phase 7 (Safety concepts)
 UPDATE concepts SET phase = '7' WHERE id IN (
   'constitutional-ai',
@@ -251,7 +237,6 @@ UPDATE concepts SET phase = '7' WHERE id IN (
   'content-moderation',
   'eval-harnesses'
 );
-
 -- Old Phase 5 → Phase 8 (Inference concepts)
 UPDATE concepts SET phase = '8' WHERE id IN (
   'kv-cache',
@@ -268,7 +253,6 @@ UPDATE concepts SET phase = '8' WHERE id IN (
   'compound-ai-systems',
   'mixture-of-experts'
 );
-
 -- Old Phase 6 → Phase 9 (System Design concepts)
 UPDATE concepts SET phase = '9' WHERE id IN (
   'langchain-architecture',
@@ -285,13 +269,11 @@ UPDATE concepts SET phase = '9' WHERE id IN (
   'agent-memory-persistence',
   'agent-ui-generation'
 );
-
 -- Catch-all for concepts
 UPDATE concepts SET phase = '5' WHERE phase = '3';
 UPDATE concepts SET phase = '7' WHERE phase = '4';
 UPDATE concepts SET phase = '8' WHERE phase = '5';
 UPDATE concepts SET phase = '9' WHERE phase = '6';
-
 -- ============================================================================
 -- STEP 10: DELETE CUT RESOURCES
 -- ============================================================================
@@ -304,7 +286,6 @@ DELETE FROM resource_concepts WHERE resource_id IN (
 DELETE FROM resources WHERE id IN (
   'foundation-models-paper'
 );
-
 -- Phase 4 cuts
 DELETE FROM resource_concepts WHERE resource_id IN (
   'tree-of-thoughts-paper',
@@ -318,7 +299,6 @@ DELETE FROM resources WHERE id IN (
   'prompt-report-paper',
   'gorilla-paper'
 );
-
 -- Phase 5 cuts
 DELETE FROM resource_concepts WHERE resource_id IN (
   'generative-agents-paper'
@@ -326,7 +306,6 @@ DELETE FROM resource_concepts WHERE resource_id IN (
 DELETE FROM resources WHERE id IN (
   'generative-agents-paper'
 );
-
 -- Phase 7 cuts
 DELETE FROM resource_concepts WHERE resource_id IN (
   'self-consistency-paper',
@@ -336,7 +315,6 @@ DELETE FROM resources WHERE id IN (
   'self-consistency-paper',
   'ml-testing-survey'
 );
-
 -- Phase 8 cuts
 DELETE FROM resource_concepts WHERE resource_id IN (
   'openai-research-talks',
@@ -346,7 +324,6 @@ DELETE FROM resources WHERE id IN (
   'openai-research-talks',
   'deepmind-systems-talks'
 );
-
 -- Phase 9 (old Phase 6) framework docs/videos — DELETE
 DELETE FROM resource_concepts WHERE resource_id IN (
   'langchain-docs',
@@ -360,17 +337,14 @@ DELETE FROM resources WHERE id IN (
   'langchain-videos',
   'autogen-videos'
 );
-
 -- ============================================================================
 -- STEP 11: CROSS-PHASE MOVES
 -- ============================================================================
 
 -- Move Megatron-LM from Phase 11 → Phase 2 (ML Infrastructure Bridge)
 UPDATE resources SET phase = '2' WHERE id = 'p11-megatron-lm';
-
 -- Move Chip Huyen AI Engineering from Phase 10 → Phase 8
 UPDATE resources SET phase = '8' WHERE id = 'p10-chip-huyen-ai-eng';
-
 -- ============================================================================
 -- STEP 12: INSERT NEW PHASE 2 RESOURCES (ML Infrastructure Bridge)
 -- ============================================================================
@@ -406,7 +380,6 @@ VALUES
    6)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- Phase 2 concepts (for new resources)
 INSERT INTO concepts (id, name, slug, canonical_definition, phase)
 VALUES
@@ -431,7 +404,6 @@ VALUES
    '2'::study_phase)
 
 ON CONFLICT (id) DO NOTHING;
-
 -- Resource-concept mappings for new Phase 2 resources
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
@@ -452,7 +424,6 @@ VALUES
   ('p11-megatron-lm', 'distributed-training', TRUE)
 
 ON CONFLICT DO NOTHING;
-
 -- Concept prerequisites for new Phase 2 concepts
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES
@@ -461,7 +432,6 @@ VALUES
   ('ml-technical-debt', 'ml-data-pipelines'),
   ('model-containerization', 'model-serving-infra')
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 13: INSERT NEW PHASE 7 RESOURCE (NIST AI RMF)
 -- ============================================================================
@@ -475,13 +445,11 @@ VALUES
    'Federal framework for managing AI risks. Four core functions: Govern, Map, Measure, Manage. Defines risk tiers and organizational practices for responsible AI deployment. Increasingly referenced in enterprise AI governance.',
    6)
 ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
   ('p7-nist-ai-rmf', 'red-teaming', FALSE),
   ('p7-nist-ai-rmf', 'eval-harnesses', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 14: INSERT NEW PHASE 8 RESOURCES
 -- ============================================================================
@@ -502,7 +470,6 @@ VALUES
    'Practitioner-focused guide covering prompting, RAG, evaluation, guardrails, and operational concerns for LLM applications. Distilled from a year of production experience across multiple teams.',
    6)
 ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
   ('p8-a16z-inference-economics', 'token-economics', FALSE),
@@ -511,7 +478,6 @@ VALUES
   ('p8-eugene-yan-applied-llms', 'compound-ai-systems', FALSE),
   ('p8-eugene-yan-applied-llms', 'llm-observability', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 15: UPDATE PROJECTS — Phase remapping
 -- ============================================================================
@@ -521,10 +487,9 @@ ON CONFLICT DO NOTHING;
 DELETE FROM project_concepts WHERE project_id = 'project-multimodal-rag';
 DELETE FROM project_progress WHERE project_id = 'project-multimodal-rag';
 DELETE FROM projects WHERE id = 'project-multimodal-rag';
-
 -- Phase 10 project stays (alternate track)
 -- Phase 11 project stays (aspirational)
 
 -- ============================================================================
 -- DONE
--- ============================================================================
+-- ============================================================================;

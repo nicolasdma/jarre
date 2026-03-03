@@ -9,11 +9,8 @@ CREATE TABLE voice_tool_calls (
   latency_ms INTEGER,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX idx_voice_tool_calls_session ON voice_tool_calls(session_id, created_at);
-
 ALTER TABLE voice_tool_calls ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users can manage own tool calls" ON voice_tool_calls
   FOR ALL USING (
     session_id IN (SELECT id FROM voice_sessions WHERE user_id = auth.uid())

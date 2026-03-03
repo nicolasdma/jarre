@@ -18,15 +18,12 @@ CREATE TABLE resource_sections (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(resource_id, concept_id, sort_order)
 );
-
 -- RLS: content is public read
 ALTER TABLE resource_sections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read" ON resource_sections FOR SELECT USING (true);
-
 -- Index for learn page queries (fetch all sections for a resource, ordered)
 CREATE INDEX idx_resource_sections_resource
   ON resource_sections(resource_id, sort_order);
-
 -- Index for concept-based lookups
 CREATE INDEX idx_resource_sections_concept
   ON resource_sections(concept_id);

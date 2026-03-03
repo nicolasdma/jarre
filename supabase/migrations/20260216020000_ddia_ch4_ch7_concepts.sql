@@ -12,7 +12,6 @@ VALUES
   ('dataflow-modes', 'Modes of Dataflow', 'dataflow-modes',
    'The three main ways data flows between processes: through databases, through service calls (REST/RPC), and through asynchronous message passing.', '1'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- DDIA Chapter 7: Transactions — concepts
 INSERT INTO concepts (id, name, slug, canonical_definition, phase)
 VALUES
@@ -27,7 +26,6 @@ VALUES
   ('serializability', 'Serializability', 'serializability',
    'The strongest isolation level guaranteeing that concurrent transactions behave as if executed serially, achievable via actual serial execution, two-phase locking (2PL), or serializable snapshot isolation (SSI).', '1'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- Prerequisites
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES
@@ -41,7 +39,6 @@ VALUES
   ('write-skew', 'weak-isolation'),
   ('serializability', 'write-skew')
 ON CONFLICT DO NOTHING;
-
 -- Ensure resources exist
 INSERT INTO resources (id, title, type, phase)
 VALUES

@@ -55,6 +55,12 @@ function choosePhaseByFrequency(phases: string[]): string | null {
     })[0][0];
 }
 
+function isUniqueConstraintError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === '23505') return true;
+  return /duplicate key|unique constraint/i.test(error.message || '');
+}
+
 async function inferPlacement(params: {
   userId: string;
   concepts: ConceptOutput;
@@ -222,69 +228,104 @@ export async function writeToDb(params: {
   // If no curriculum concept matched, create a new one for this section.
   const sectionIdMap = new Map<string, string>(); // sectionTitle → section UUID
 
+  const ensureSectionConcept = async (params: {
+    sectionTitle: string;
+    conceptName: string;
+    conceptSlug: string;
+    candidateConceptId?: string;
+  }): Promise<string> => {
+    const { sectionTitle, conceptName, conceptSlug, candidateConceptId } = params;
+
+    if (candidateConceptId) {
+      const { data: byId } = await supabase
+        .from(TABLES.concepts)
+        .select('id')
+        .eq('id', candidateConceptId)
+        .maybeSingle();
+
+      if (byId?.id) return byId.id;
+    }
+
+    const { data: bySlug } = await supabase
+      .from(TABLES.concepts)
+      .select('id')
+      .eq('slug', conceptSlug)
+      .maybeSingle();
+
+    if (bySlug?.id) return bySlug.id;
+
+    const conceptId = candidateConceptId || `auto-${conceptSlug}`;
+    const insertConcept = async () => {
+      const { error } = await supabase.from(TABLES.concepts).insert({
+        id: conceptId,
+        name: conceptName,
+        slug: conceptSlug,
+        canonical_definition: `Key topic from "${resolve.title}": ${sectionTitle}`,
+        phase: placement.phase,
+      });
+      return error ?? null;
+    };
+
+    const createError = await insertConcept();
+    if (createError) {
+      // Handle race conditions gracefully (same id/slug created in a parallel run).
+      if (isUniqueConstraintError(createError)) {
+        const { data: retryById } = await supabase
+          .from(TABLES.concepts)
+          .select('id')
+          .eq('id', conceptId)
+          .maybeSingle();
+        if (retryById?.id) return retryById.id;
+
+        const { data: retryBySlug } = await supabase
+          .from(TABLES.concepts)
+          .select('id')
+          .eq('slug', conceptSlug)
+          .maybeSingle();
+        if (retryBySlug?.id) return retryBySlug.id;
+      }
+
+      throw new Error(
+        `Failed to create concept "${conceptId}" for section "${sectionTitle}": ${createError.message}`,
+      );
+    }
+
+    log.info(`Created concept "${conceptId}" for section "${sectionTitle}"`);
+    return conceptId;
+  };
+
   for (let i = 0; i < content.sections.length; i++) {
     const section = content.sections[i];
 
-    // Try to find a matching concept from the linking stage
-    let conceptId = concepts.concepts.find(
+    const linkedConceptId = concepts.concepts.find(
       (c) =>
         c.name.toLowerCase() === section.conceptName.toLowerCase() ||
         c.slug === section.conceptSlug,
     )?.id;
 
-    // No match — create a dedicated concept for this section in the inferred phase.
-    if (!conceptId) {
-      const slug = section.conceptSlug || slugify(section.title);
-      const newConceptId = `auto-${slug}`;
+    const conceptId = await ensureSectionConcept({
+      sectionTitle: section.title,
+      conceptName: section.conceptName || section.title,
+      conceptSlug: section.conceptSlug || slugify(section.title),
+      candidateConceptId: linkedConceptId,
+    });
 
-      // Check if it already exists by id first (idempotent)
-      const { data: existingById } = await supabase
-        .from(TABLES.concepts)
-        .select('id')
-        .eq('id', newConceptId)
-        .maybeSingle();
-
-      if (existingById) {
-        conceptId = existingById.id;
-      } else {
-        // Reuse a concept if slug already exists to avoid unique-slug collisions.
-        const { data: existingBySlug } = await supabase
-          .from(TABLES.concepts)
-          .select('id')
-          .eq('slug', slug)
-          .maybeSingle();
-
-        if (existingBySlug) {
-          conceptId = existingBySlug.id;
-        } else {
-          const { error: conceptErr } = await supabase.from(TABLES.concepts).insert({
-            id: newConceptId,
-            name: section.conceptName || section.title,
-            slug,
-            canonical_definition: `Key topic from "${resolve.title}": ${section.title}`,
-            phase: placement.phase,
-          });
-
-          if (conceptErr) {
-            throw new Error(
-              `Failed to create concept "${newConceptId}" for section "${section.title}": ${conceptErr.message}`,
-            );
-          }
-
-          conceptId = newConceptId;
-          log.info(`Created concept "${newConceptId}" for section "${section.title}"`);
-        }
-      }
-
-      // Also link this concept to the resource
-      const { error: linkErr } = await supabase.from(TABLES.resourceConcepts).insert({
-        resource_id: resourceId,
-        concept_id: conceptId,
-        is_prerequisite: false,
-      });
-      if (linkErr) {
-        log.warn(`Failed to link concept "${conceptId}" to resource: ${linkErr.message}`);
-      }
+    // Ensure resource↔concept mapping exists even when concept creation happened after stage-2 inserts.
+    const { error: linkErr } = await supabase
+      .from(TABLES.resourceConcepts)
+      .upsert(
+        {
+          resource_id: resourceId,
+          concept_id: conceptId,
+          is_prerequisite: false,
+        },
+        {
+          onConflict: 'resource_id,concept_id',
+          ignoreDuplicates: true,
+        },
+      );
+    if (linkErr) {
+      log.warn(`Failed to link concept "${conceptId}" to resource: ${linkErr.message}`);
     }
 
     const { data: inserted, error } = await supabase

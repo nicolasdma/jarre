@@ -34,7 +34,6 @@ VALUES
   ('cot-prompting-videos', 'prompt-engineering', FALSE),
   ('react-prompting-videos', 'prompt-engineering', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- FIX 2: structured-output — map to instructor-docs (P7)
 -- ============================================================================
@@ -46,11 +45,9 @@ DELETE FROM resource_concepts
 WHERE resource_id = 'instructor-docs'
   AND concept_id = 'structured-output'
   AND is_prerequisite = TRUE;
-
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES ('instructor-docs', 'structured-output', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- Also remove structured-output as prereq from nemo-guardrails-docs and
 -- anthropic-effective-agents — you learn structured output in the curriculum
 -- (Phase 7 via Instructor), not before it.
@@ -58,7 +55,6 @@ DELETE FROM resource_concepts
 WHERE concept_id = 'structured-output'
   AND is_prerequisite = TRUE
   AND resource_id IN ('nemo-guardrails-docs', 'anthropic-effective-agents');
-
 -- ============================================================================
 -- FIX 3: quantization — map to speculative-decoding-paper (P8)
 -- ============================================================================
@@ -69,7 +65,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
   ('vllm-paper', 'quantization', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- FIX 4: Delete orphan concepts (redundant, no resource teaches them)
 -- ============================================================================
@@ -82,18 +77,15 @@ WHERE resource_section_id IN (
     'multi-head-attention', 'power-law-loss', 'tree-of-thoughts', 'llm-evaluation'
   )
 );
-
 DELETE FROM resource_sections
 WHERE concept_id IN (
   'multi-head-attention', 'power-law-loss', 'tree-of-thoughts', 'llm-evaluation'
 );
-
 UPDATE evaluation_questions
 SET related_concept_id = NULL
 WHERE related_concept_id IN (
   'multi-head-attention', 'power-law-loss', 'tree-of-thoughts', 'llm-evaluation'
 );
-
 -- Now delete the concepts (cascades handle concept_prerequisites,
 -- resource_concepts, concept_progress, etc.)
 DELETE FROM concepts WHERE id IN (
@@ -102,7 +94,6 @@ DELETE FROM concepts WHERE id IN (
   'tree-of-thoughts',       -- paper was deliberately cut in restructure, no resource teaches it
   'llm-evaluation'          -- duplicate of offline-evaluation + online-evaluation (P7)
 );
-
 -- ============================================================================
 -- FIX 5: Remove backward cross-phase prerequisites from openclaw-casestudy
 -- ============================================================================
@@ -113,10 +104,9 @@ DELETE FROM resource_concepts
 WHERE resource_id = 'openclaw-casestudy'
   AND concept_id IN ('external-memory', 'system-design-patterns', 'production-architectures')
   AND is_prerequisite = TRUE;
-
 -- ============================================================================
 -- DONE — All phases should now be progressive and coherent:
 -- - Every prerequisite concept has at least one resource that teaches it
 -- - No orphan concepts without resource mappings
 -- - No backward cross-phase prerequisites
--- ============================================================================
+-- ============================================================================;

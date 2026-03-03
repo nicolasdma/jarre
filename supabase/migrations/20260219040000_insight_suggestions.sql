@@ -11,23 +11,20 @@ CREATE TABLE insight_suggestions (
   description TEXT NOT NULL,
   action_type TEXT NOT NULL CHECK (action_type IN ('evaluate', 'explore', 'freeform', 'debate', 'review')),
   action_data JSONB DEFAULT '{}',
-  concept_ids TEXT[] DEFAULT '{}',
+  concept_ids UUID[] DEFAULT '{}',
   priority REAL DEFAULT 0.5,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ
 );
-
 -- RLS
 ALTER TABLE insight_suggestions ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users see own suggestions"
   ON insight_suggestions FOR SELECT USING (user_id = auth.uid());
 CREATE POLICY "Users insert own suggestions"
   ON insight_suggestions FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "Users update own suggestions"
   ON insight_suggestions FOR UPDATE USING (user_id = auth.uid());
-
 -- Indexes
 CREATE INDEX idx_insight_suggestions_user_status
   ON insight_suggestions(user_id, status, created_at DESC);

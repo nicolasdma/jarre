@@ -50,6 +50,14 @@ interface TranscriptEntry {
   text: string;
 }
 
+interface QueuedTranscriptEvent {
+  turnId: string;
+  seq: number;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: string;
+}
+
 interface VoiceSession {
   connectionState: ConnectionState;
   tutorState: TutorState;
@@ -76,6 +84,9 @@ interface VoiceSession {
 const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
+const TRANSCRIPT_FLUSH_INTERVAL_MS = 500;
+const TRANSCRIPT_BATCH_SIZE = 40;
+const TRANSCRIPT_MAX_RETRY_DELAY_MS = 4000;
 // Session end signals (strong + soft fallback).
 // Strong signals are explicit completion phrases.
 // Soft signals are conversational farewells used as fallback in unified modes.
@@ -123,6 +134,13 @@ export function useVoiceSession({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
+  const sessionWriteTokenRef = useRef<string | null>(null);
+  const transcriptSeqRef = useRef(0);
+  const transcriptQueueRef = useRef<QueuedTranscriptEvent[]>([]);
+  const transcriptFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcriptFlushInFlightRef = useRef(false);
+  const transcriptRetryDelayRef = useRef(250);
+  const transcriptFlushPromiseRef = useRef<Promise<boolean> | null>(null);
 
   // Session end keyword detection — debounce to prevent multiple disconnects
   const sessionEndDetectedRef = useRef(false);
@@ -381,7 +399,115 @@ export function useVoiceSession({
   // Ref for disconnect so saveTranscript can call it without circular dependency
   const disconnectRef = useRef<() => void>(() => {});
 
-  // ---- Transcript saving (fire-and-forget) ----
+  // ---- Transcript queue + flushing ----
+
+  const flushTranscriptQueue = useCallback(
+    async (opts?: {
+      keepalive?: boolean;
+      forceAll?: boolean;
+      reason?: string;
+      sessionId?: string;
+      writeToken?: string;
+    }): Promise<boolean> => {
+      if (transcriptFlushInFlightRef.current) return false;
+
+      const sid = opts?.sessionId ?? sessionIdRef.current;
+      const writeToken = opts?.writeToken ?? sessionWriteTokenRef.current;
+      if (!sid || !writeToken) return false;
+      if (transcriptQueueRef.current.length === 0) return true;
+
+      transcriptFlushInFlightRef.current = true;
+      const forceAll = !!opts?.forceAll;
+      let sentAny = false;
+
+      try {
+        do {
+          const batch = transcriptQueueRef.current.slice(0, TRANSCRIPT_BATCH_SIZE);
+          if (batch.length === 0) break;
+
+          const res = await fetch('/api/voice/session/transcript', {
+            method: 'POST',
+            keepalive: !!opts?.keepalive,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Voice-Session-Token': writeToken,
+            },
+            body: JSON.stringify({
+              sessionId: sid,
+              writeToken,
+              events: batch.map((event) => ({
+                turnId: event.turnId,
+                seq: event.seq,
+                role: event.role,
+                text: event.text,
+                timestamp: event.timestamp,
+              })),
+            }),
+          });
+
+          if (!res.ok) {
+            if (res.status === 401) {
+              log.warn(
+                `[TranscriptFlush] Unauthorized sid=${sid} reason=${opts?.reason ?? 'unknown'}`,
+              );
+            }
+            throw new Error(`Transcript flush failed with ${res.status}`);
+          }
+
+          transcriptQueueRef.current.splice(0, batch.length);
+          transcriptRetryDelayRef.current = 250;
+          sentAny = true;
+        } while (forceAll && transcriptQueueRef.current.length > 0);
+
+        if (transcriptQueueRef.current.length > 0 && !transcriptFlushTimerRef.current) {
+          transcriptFlushTimerRef.current = setTimeout(() => {
+            transcriptFlushTimerRef.current = null;
+            const pending = flushTranscriptQueue({ reason: 'follow_up' });
+            transcriptFlushPromiseRef.current = pending;
+            pending.catch(() => {});
+          }, 0);
+        }
+
+        return sentAny;
+      } catch (err) {
+        const delay = transcriptRetryDelayRef.current;
+        transcriptRetryDelayRef.current = Math.min(
+          TRANSCRIPT_MAX_RETRY_DELAY_MS,
+          delay * 2,
+        );
+        if (!transcriptFlushTimerRef.current) {
+          transcriptFlushTimerRef.current = setTimeout(() => {
+            transcriptFlushTimerRef.current = null;
+            const pending = flushTranscriptQueue({ reason: 'retry' });
+            transcriptFlushPromiseRef.current = pending;
+            pending.catch(() => {});
+          }, delay);
+        }
+        log.warn(
+          `[TranscriptFlush] Failed sid=${sid} reason=${opts?.reason ?? 'unknown'} queue=${transcriptQueueRef.current.length} err=${err instanceof Error ? err.message : String(err)}`,
+        );
+        return false;
+      } finally {
+        transcriptFlushInFlightRef.current = false;
+        transcriptFlushPromiseRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const scheduleTranscriptFlush = useCallback((delayMs = TRANSCRIPT_FLUSH_INTERVAL_MS) => {
+    if (transcriptFlushTimerRef.current) return;
+    if (transcriptQueueRef.current.length === 0) return;
+
+    transcriptFlushTimerRef.current = setTimeout(() => {
+      transcriptFlushTimerRef.current = null;
+      const pending = flushTranscriptQueue({ reason: 'scheduled' });
+      transcriptFlushPromiseRef.current = pending;
+      pending.catch(() => {});
+    }, delayMs);
+  }, [flushTranscriptQueue]);
+
+  // ---- Transcript saving (queued + batched) ----
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
     const sid = sessionIdRef.current;
@@ -394,15 +520,24 @@ export function useVoiceSession({
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
     // Update React state for UI consumption
-    setTranscript(prev => [...prev, { role, text }]);
+    setTranscript((prev) => [...prev, { role, text }]);
 
-    fetch('/api/voice/session/transcript', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: sid, role, text }),
-    }).catch(() => {
-      // Fire-and-forget: don't block audio for transcript failures
+    const seq = ++transcriptSeqRef.current;
+    transcriptQueueRef.current.push({
+      turnId: `${sid}-${seq}`,
+      seq,
+      role,
+      text,
+      timestamp: new Date().toISOString(),
     });
+
+    if (transcriptQueueRef.current.length >= TRANSCRIPT_BATCH_SIZE) {
+      const pending = flushTranscriptQueue({ reason: 'batch_full' });
+      transcriptFlushPromiseRef.current = pending;
+      pending.catch(() => {});
+    } else {
+      scheduleTranscriptFlush();
+    }
 
     // Detect AI-driven session completion from model transcript window.
     // Gemini often streams transcripts in chunks, so we inspect a rolling window
@@ -443,7 +578,7 @@ export function useVoiceSession({
         );
       }
     }
-  }, []);
+  }, [flushTranscriptQueue, scheduleTranscriptFlush]);
 
   // ---- Compress conversation via API ----
 
@@ -523,6 +658,14 @@ export function useVoiceSession({
     resumptionHandleRef.current = null;
     compressedSummaryRef.current = null;
     transcriptBufferRef.current = [];
+    transcriptQueueRef.current = [];
+    transcriptSeqRef.current = 0;
+    transcriptRetryDelayRef.current = 250;
+    sessionWriteTokenRef.current = null;
+    if (transcriptFlushTimerRef.current) {
+      clearTimeout(transcriptFlushTimerRef.current);
+      transcriptFlushTimerRef.current = null;
+    }
     setTranscript([]);
     modelTranscriptWindowRef.current = '';
     lastLoggedStateRef.current = 'idle';
@@ -593,8 +736,12 @@ export function useVoiceSession({
         const errData = await sessionRes.json().catch(() => ({}));
         throw new Error(errData.error || 'Failed to start voice session');
       }
-      const { sessionId: sid } = await sessionRes.json();
+      const { sessionId: sid, writeToken } = await sessionRes.json();
+      if (!writeToken || typeof writeToken !== 'string') {
+        throw new Error('Failed to start voice session: missing write token');
+      }
       sessionIdRef.current = sid;
+      sessionWriteTokenRef.current = writeToken;
       setSessionId(sid);
 
       const summary = context?.summary;
@@ -857,7 +1004,9 @@ export function useVoiceSession({
   // ---- Disconnect ----
 
   const disconnect = useCallback(() => {
-    log.info(`[Disconnect] Requested sid=${sessionIdRef.current ?? 'none'}`);
+    const sid = sessionIdRef.current;
+    const writeToken = sessionWriteTokenRef.current;
+    log.info(`[Disconnect] Requested sid=${sid ?? 'none'}`);
 
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
@@ -865,17 +1014,15 @@ export function useVoiceSession({
       reconnectTimerRef.current = null;
     }
 
-    // End session in backend (fire-and-forget)
-    if (sessionIdRef.current) {
-      fetch('/api/voice/session/end', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionIdRef.current }),
-      }).catch(() => {});
-      log.info('[Disconnect] /api/voice/session/end fired');
-      sessionIdRef.current = null;
-      setSessionId(null);
+    if (transcriptFlushTimerRef.current) {
+      clearTimeout(transcriptFlushTimerRef.current);
+      transcriptFlushTimerRef.current = null;
     }
+
+    // Freeze session refs immediately so no more transcript events are queued.
+    sessionIdRef.current = null;
+    sessionWriteTokenRef.current = null;
+    setSessionId(null);
 
     stopMic();
     stopPlayback();
@@ -898,9 +1045,41 @@ export function useVoiceSession({
     setTutorState('idle');
     setConnectionState('disconnected');
     setError(null);
+
+    // Flush pending transcript queue + end session in backend (best effort).
+    if (sid) {
+      (async () => {
+        if (transcriptQueueRef.current.length > 0 && writeToken) {
+          const pending = flushTranscriptQueue({
+            keepalive: true,
+            forceAll: true,
+            reason: 'disconnect',
+            sessionId: sid,
+            writeToken,
+          });
+          transcriptFlushPromiseRef.current = pending;
+          await pending.catch(() => false);
+        }
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (writeToken) {
+          headers['X-Voice-Session-Token'] = writeToken;
+        }
+        await fetch('/api/voice/session/end', {
+          method: 'POST',
+          keepalive: true,
+          headers,
+          body: JSON.stringify({ sessionId: sid, writeToken }),
+        }).catch(() => {});
+        log.info('[Disconnect] /api/voice/session/end fired');
+      })();
+    } else {
+      transcriptQueueRef.current = [];
+    }
+
     // NOTE: manual disconnect does NOT call onSessionComplete.
     // Only AI-driven completion (via transcript detection) unlocks the quiz.
-  }, [stopMic, stopPlayback, stopTimer]);
+  }, [flushTranscriptQueue, logTransition, stopMic, stopPlayback, stopTimer]);
 
   // Keep disconnectRef in sync so saveTranscript can call it
   disconnectRef.current = disconnect;
@@ -918,6 +1097,35 @@ export function useVoiceSession({
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
+      if (transcriptFlushTimerRef.current) {
+        clearTimeout(transcriptFlushTimerRef.current);
+        transcriptFlushTimerRef.current = null;
+      }
+
+      const sid = sessionIdRef.current;
+      const writeToken = sessionWriteTokenRef.current;
+      if (sid) {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (writeToken) {
+          headers['X-Voice-Session-Token'] = writeToken;
+        }
+
+        void flushTranscriptQueue({
+          keepalive: true,
+          forceAll: true,
+          reason: 'unmount',
+          sessionId: sid,
+          writeToken: writeToken ?? undefined,
+        }).finally(() => {
+          fetch('/api/voice/session/end', {
+            method: 'POST',
+            keepalive: true,
+            headers,
+            body: JSON.stringify({ sessionId: sid, writeToken }),
+          }).catch(() => {});
+        });
+      }
+
       stopMic();
       stopPlayback();
       stopTimer();
@@ -926,7 +1134,7 @@ export function useVoiceSession({
         clientRef.current = null;
       }
     };
-  }, [stopMic, stopPlayback, stopTimer]);
+  }, [flushTranscriptQueue, stopMic, stopPlayback, stopTimer]);
 
   return {
     connectionState,

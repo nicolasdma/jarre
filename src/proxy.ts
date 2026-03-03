@@ -2,6 +2,15 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  const passthroughPaths = new Set([
+    '/api/voice/session/transcript',
+    '/api/voice/session/end',
+  ]);
+
+  if (passthroughPaths.has(request.nextUrl.pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

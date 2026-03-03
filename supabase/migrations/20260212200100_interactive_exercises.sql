@@ -16,17 +16,13 @@ CREATE TABLE exercise_results (
   time_spent_seconds INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 CREATE INDEX idx_exercise_results_user ON exercise_results(user_id, created_at DESC);
 CREATE INDEX idx_exercise_results_exercise ON exercise_results(exercise_id, user_id);
-
 -- RLS: users read/insert own
 ALTER TABLE exercise_results ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users read own exercise_results"
   ON exercise_results FOR SELECT
   USING (auth.uid() = user_id);
-
 CREATE POLICY "Users insert own exercise_results"
   ON exercise_results FOR INSERT
   WITH CHECK (auth.uid() = user_id);

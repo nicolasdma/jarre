@@ -17,7 +17,6 @@ ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
   description = EXCLUDED.description,
   estimated_hours = EXCLUDED.estimated_hours;
-
 -- 2. Ensure concepts exist (created in 20260215010000_paper_concepts.sql, but safety net)
 INSERT INTO concepts (id, name, slug, canonical_definition, phase)
 VALUES
@@ -28,7 +27,6 @@ VALUES
   ('fan-out-latency', 'Fan-out Latency', 'fan-out-latency',
    'In systems where a single user request fans out to many backend servers, the overall latency is determined by the slowest server. Tail latency amplification grows with fan-out degree.', '1'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- 3. Link concepts taught by this paper
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
@@ -36,7 +34,6 @@ VALUES
   ('tail-at-scale-paper', 'hedged-requests', false),
   ('tail-at-scale-paper', 'fan-out-latency', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- 4. Link prerequisite concepts (from DDIA ch1)
 INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES

@@ -29,7 +29,6 @@ CREATE TABLE user_resources (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- ===========================================
 -- 2. user_resource_concepts
 -- ===========================================
@@ -45,7 +44,6 @@ CREATE TABLE user_resource_concepts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_resource_id, concept_id, extracted_concept_name)
 );
-
 -- ===========================================
 -- 3. consumption_log
 -- ===========================================
@@ -65,38 +63,29 @@ CREATE TABLE consumption_log (
     (resource_id IS NULL AND user_resource_id IS NULL)
   )
 );
-
 -- ===========================================
 -- 4. Extend voice_sessions
 -- ===========================================
 ALTER TABLE voice_sessions DROP CONSTRAINT IF EXISTS voice_sessions_session_type_check;
 ALTER TABLE voice_sessions ADD CONSTRAINT voice_sessions_session_type_check
   CHECK (session_type IN ('teaching', 'evaluation', 'practice', 'exploration'));
-
 ALTER TABLE voice_sessions ADD COLUMN IF NOT EXISTS user_resource_id UUID REFERENCES user_resources(id);
-
 -- ===========================================
 -- 5. RLS Policies
 -- ===========================================
 
 -- user_resources
 ALTER TABLE user_resources ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "user_resources_select" ON user_resources
   FOR SELECT USING (user_id = auth.uid());
-
 CREATE POLICY "user_resources_insert" ON user_resources
   FOR INSERT WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "user_resources_update" ON user_resources
   FOR UPDATE USING (user_id = auth.uid());
-
 CREATE POLICY "user_resources_delete" ON user_resources
   FOR DELETE USING (user_id = auth.uid());
-
 -- user_resource_concepts (ownership checked via join to user_resources)
 ALTER TABLE user_resource_concepts ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "user_resource_concepts_select" ON user_resource_concepts
   FOR SELECT USING (
     EXISTS (
@@ -105,7 +94,6 @@ CREATE POLICY "user_resource_concepts_select" ON user_resource_concepts
         AND user_id = auth.uid()
     )
   );
-
 CREATE POLICY "user_resource_concepts_insert" ON user_resource_concepts
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -114,7 +102,6 @@ CREATE POLICY "user_resource_concepts_insert" ON user_resource_concepts
         AND user_id = auth.uid()
     )
   );
-
 CREATE POLICY "user_resource_concepts_delete" ON user_resource_concepts
   FOR DELETE USING (
     EXISTS (
@@ -123,27 +110,20 @@ CREATE POLICY "user_resource_concepts_delete" ON user_resource_concepts
         AND user_id = auth.uid()
     )
   );
-
 -- consumption_log
 ALTER TABLE consumption_log ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "consumption_log_select" ON consumption_log
   FOR SELECT USING (user_id = auth.uid());
-
 CREATE POLICY "consumption_log_insert" ON consumption_log
   FOR INSERT WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "consumption_log_update" ON consumption_log
   FOR UPDATE USING (user_id = auth.uid());
-
 -- ===========================================
 -- 6. Indexes
 -- ===========================================
 CREATE INDEX idx_user_resources_user_created ON user_resources (user_id, created_at DESC);
-
 CREATE INDEX idx_user_resource_concepts_resource ON user_resource_concepts (user_resource_id);
 CREATE INDEX idx_user_resource_concepts_concept ON user_resource_concepts (concept_id);
-
 CREATE INDEX idx_consumption_log_user_created ON consumption_log (user_id, created_at DESC);
 CREATE INDEX idx_consumption_log_resource ON consumption_log (resource_id);
 CREATE INDEX idx_consumption_log_user_resource ON consumption_log (user_resource_id);

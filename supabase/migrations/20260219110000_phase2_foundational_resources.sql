@@ -37,7 +37,6 @@ VALUES
    'Patterns for deploying ML models in production: online vs batch inference, containerization, scaling strategies, health checks, model versioning. Bridge between model development and production deployment.',
    '2'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- ============================================================================
 -- STEP 2: Create 3 introductory resources (no prerequisites — entry points)
 -- ============================================================================
@@ -70,7 +69,6 @@ VALUES
    'Google''s canonical MLOps guide defining three maturity levels (0-2). Covers ML pipelines, CI/CD for ML, feature stores, model monitoring, and serving patterns. Foundation for understanding production ML infrastructure.',
    3)
 ON CONFLICT (id) DO NOTHING;
-
 -- ============================================================================
 -- STEP 3: Map resource_concepts for the 3 new introductory resources
 -- ============================================================================
@@ -87,7 +85,6 @@ VALUES
   ('p2-google-mlops', 'ml-data-pipelines', FALSE),
   ('p2-google-mlops', 'model-serving-infra', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 4: Re-insert advanced Phase 2 resources that may be missing
 -- ============================================================================
@@ -121,7 +118,6 @@ VALUES
    'Practical guide to containerizing and serving ML models. Docker fundamentals for ML workflows. BentoML for building production-ready model serving endpoints. Bridge between model development and deployment.',
    6)
 ON CONFLICT (id) DO NOTHING;
-
 -- ============================================================================
 -- STEP 5: Re-insert advanced Phase 2 concepts that may be missing
 -- ============================================================================
@@ -140,7 +136,6 @@ VALUES
    'Packaging ML models with their dependencies into containers for reproducible deployment. Tools: Docker, BentoML, Triton. Covers dependency management, GPU passthrough, health checks, and scaling strategies.',
    '2'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- ============================================================================
 -- STEP 6: Resource-concept mappings for advanced resources (teaches)
 -- ============================================================================
@@ -151,7 +146,6 @@ VALUES
   ('p2-hidden-tech-debt-paper', 'ml-technical-debt', FALSE),
   ('p2-docker-bentoml-tutorial', 'model-containerization', FALSE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 7: Resource prerequisite mappings (requires)
 -- ============================================================================
@@ -164,7 +158,6 @@ VALUES
   ('p2-docker-bentoml-tutorial', 'model-serving-infra', TRUE),
   ('p11-megatron-lm', 'distributed-training', TRUE)
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 8: Concept prerequisites
 -- ============================================================================
@@ -175,7 +168,6 @@ VALUES
   ('ml-technical-debt', 'ml-data-pipelines'),
   ('model-containerization', 'model-serving-infra')
 ON CONFLICT DO NOTHING;
-
 -- ============================================================================
 -- STEP 9: Clean up phantom concept references
 -- ============================================================================
@@ -184,16 +176,13 @@ ON CONFLICT DO NOTHING;
 DELETE FROM resource_concepts
 WHERE concept_id IN ('slos-slis', 'monitoring')
   AND NOT EXISTS (SELECT 1 FROM concepts WHERE id = resource_concepts.concept_id);
-
 -- Also clean concept_prerequisites if any reference these phantoms
 DELETE FROM concept_prerequisites
 WHERE prerequisite_id IN ('slos-slis', 'monitoring')
   AND NOT EXISTS (SELECT 1 FROM concepts WHERE id = concept_prerequisites.prerequisite_id);
-
 DELETE FROM concept_prerequisites
 WHERE concept_id IN ('slos-slis', 'monitoring')
   AND NOT EXISTS (SELECT 1 FROM concepts WHERE id = concept_prerequisites.concept_id);
-
 -- ============================================================================
 -- DONE — Phase 2 DAG is now:
 --
@@ -208,4 +197,4 @@ WHERE concept_id IN ('slos-slis', 'monitoring')
 --   ├── p2-hidden-tech-debt-paper (4h) ← requires ml-data-pipelines
 --   ├── p2-docker-bentoml-tutorial (6h) ← requires model-serving-infra
 --   └── p11-megatron-lm (8h) ← requires distributed-training
--- ============================================================================
+-- ============================================================================;

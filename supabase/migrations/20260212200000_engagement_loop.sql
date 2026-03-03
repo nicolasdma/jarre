@@ -10,7 +10,6 @@ ALTER TABLE user_profiles
   ADD COLUMN IF NOT EXISTS daily_xp_date DATE NOT NULL DEFAULT CURRENT_DATE,
   ADD COLUMN IF NOT EXISTS daily_xp_target INTEGER NOT NULL DEFAULT 50,
   ADD COLUMN IF NOT EXISTS longest_streak INTEGER NOT NULL DEFAULT 0;
-
 -- XP events audit trail (append-only)
 CREATE TABLE xp_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,20 +19,15 @@ CREATE TABLE xp_events (
   source_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 CREATE INDEX idx_xp_events_user ON xp_events(user_id, created_at DESC);
-
 -- RLS: users read/insert own
 ALTER TABLE xp_events ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users read own xp_events"
   ON xp_events FOR SELECT
   USING (auth.uid() = user_id);
-
 CREATE POLICY "Users insert own xp_events"
   ON xp_events FOR INSERT
   WITH CHECK (auth.uid() = user_id);
-
 -- ============================================================================
 -- award_xp RPC: atomic XP grant + streak + level update
 -- ============================================================================

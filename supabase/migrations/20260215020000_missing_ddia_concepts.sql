@@ -15,7 +15,6 @@ VALUES
   ('processing-streams', 'Processing Streams', 'processing-streams',
    'Stream processing handles unbounded datasets. Key challenges: event time vs processing time, windowing, stream joins (stream-stream, stream-table, table-table), and fault tolerance with microbatching or checkpointing.', '1'::study_phase)
 ON CONFLICT (id) DO NOTHING;
-
 -- Prerequisites
 INSERT INTO concept_prerequisites (concept_id, prerequisite_id)
 VALUES

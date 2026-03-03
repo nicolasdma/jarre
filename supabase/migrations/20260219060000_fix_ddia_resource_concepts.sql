@@ -22,7 +22,6 @@ VALUES
   ('ddia-ch4', 'schema-evolution', false),
   ('ddia-ch4', 'dataflow-modes', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- Chapter 7: Transactions
 -- Currently only has: transactions (taught), replication (prereq), storage-engines (prereq)
@@ -36,7 +35,6 @@ VALUES
   ('ddia-ch7', 'write-skew', false),
   ('ddia-ch7', 'serializability', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- Chapter 8: The Trouble with Distributed Systems
 -- Currently only has: distributed-failures (taught), partitioning (prereq), replication (prereq)
@@ -48,7 +46,6 @@ VALUES
   ('ddia-ch8', 'unreliable-clocks', false),
   ('ddia-ch8', 'knowledge-truth', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- Chapter 9: Consistency and Consensus
 -- Currently only has: consensus (taught), consistency-models (taught), distributed-failures (prereq)
@@ -58,7 +55,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite)
 VALUES
   ('ddia-ch9', 'ordering', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- Chapter 11: Stream Processing
 -- Currently only has: stream-processing (taught), partitioning (prereq)
@@ -69,7 +65,6 @@ VALUES
   ('ddia-ch11', 'databases-streams', false),
   ('ddia-ch11', 'processing-streams', false)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- ============================================================================
 -- Chapter 1: Also link fan-out-latency and tail-latency (discussed in ch1)
 -- Currently only has: maintainability, reliability, scalability

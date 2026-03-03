@@ -6,7 +6,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- ============================================================================
 -- STEP 1: Archive obsolete resources
 -- Clean up FK references without ON DELETE CASCADE first, then delete resources.
@@ -32,7 +31,6 @@ DELETE FROM question_bank WHERE resource_section_id IN (
     'karpathy-nn-zero-to-hero', 'karpathy-intro-llms'
   )
 );
-
 -- Clean resource_sections (no ON DELETE CASCADE)
 DELETE FROM resource_sections WHERE resource_id IN (
   'p0-3b1b-linear-algebra', 'p0-3b1b-neural-networks',
@@ -43,7 +41,6 @@ DELETE FROM resource_sections WHERE resource_id IN (
   'p2-hidden-tech-debt-paper', 'p2-docker-bentoml-tutorial',
   'karpathy-nn-zero-to-hero', 'karpathy-intro-llms'
 );
-
 -- Clean voice_sessions (no ON DELETE CASCADE)
 UPDATE voice_sessions SET resource_id = NULL WHERE resource_id IN (
   'p0-3b1b-linear-algebra', 'p0-3b1b-neural-networks',
@@ -54,7 +51,6 @@ UPDATE voice_sessions SET resource_id = NULL WHERE resource_id IN (
   'p2-hidden-tech-debt-paper', 'p2-docker-bentoml-tutorial',
   'karpathy-nn-zero-to-hero', 'karpathy-intro-llms'
 );
-
 -- Delete resources (cascades to resource_concepts, evaluations, notes, learn_progress)
 DELETE FROM resources WHERE id IN (
   'p0-3b1b-linear-algebra', 'p0-3b1b-neural-networks',
@@ -65,7 +61,6 @@ DELETE FROM resources WHERE id IN (
   'p2-hidden-tech-debt-paper', 'p2-docker-bentoml-tutorial',
   'karpathy-nn-zero-to-hero', 'karpathy-intro-llms'
 );
-
 -- ============================================================================
 -- STEP 2: Ensure lilian-weng and horace-he are in Phase 5
 -- (They should already be there from curriculum_restructure_v2, but be safe)
@@ -74,7 +69,6 @@ DELETE FROM resources WHERE id IN (
 UPDATE resources SET phase = '5'
 WHERE id IN ('p2-lilian-weng-distributed', 'p2-horace-he-gpu')
   AND phase != '5';
-
 -- ============================================================================
 -- STEP 3: Create 4 new concepts for Phase 2
 -- ============================================================================
@@ -91,7 +85,6 @@ INSERT INTO concepts (id, name, slug, phase, canonical_definition) VALUES
 ON CONFLICT (id) DO UPDATE SET
   phase = EXCLUDED.phase,
   canonical_definition = EXCLUDED.canonical_definition;
-
 -- ============================================================================
 -- STEP 4: Move 4 concepts from Phase 3 → Phase 2
 -- (multi-head-attention was already deleted in fix_remaining_deadlocks)
@@ -103,7 +96,6 @@ UPDATE concepts SET phase = '2' WHERE id IN (
   'tokenization-bpe',
   'word-embeddings'
 );
-
 -- ============================================================================
 -- STEP 5: Insert 8 new kz2h-* resources + p2-bengio-lm-paper
 -- ============================================================================
@@ -131,17 +123,14 @@ ON CONFLICT (id) DO UPDATE SET
   phase = EXCLUDED.phase,
   sort_order = EXCLUDED.sort_order,
   title = EXCLUDED.title;
-
 -- ============================================================================
 -- STEP 6: Move attention-paper to Phase 2, update sort orders
 -- ============================================================================
 
 UPDATE resources SET phase = '2', sort_order = 190
 WHERE id = 'attention-paper';
-
 UPDATE resources SET sort_order = 160
 WHERE id = 'p2-resnet-paper';
-
 -- ============================================================================
 -- STEP 7: Resource-concept mappings (teaches + requires)
 -- ============================================================================
@@ -203,7 +192,6 @@ INSERT INTO resource_concepts (resource_id, concept_id, is_prerequisite) VALUES
   -- kz2h-tokenizers REQUIRES
   ('kz2h-tokenizers', 'character-level-lm', true)
 ON CONFLICT (resource_id, concept_id) DO NOTHING;
-
 -- attention-paper already has mappings:
 --   TEACHES: attention-mechanism (from original seed)
 --   REQUIRES: attention-bahdanau, residual-connections (from fix_transformer_prerequisites)
