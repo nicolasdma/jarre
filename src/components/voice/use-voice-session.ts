@@ -80,12 +80,12 @@ const MIC_CHUNK_INTERVAL_MS = 100;
 // Strong signals are explicit completion phrases.
 // Soft signals are conversational farewells used as fallback in unified modes.
 const SESSION_END_STRONG_SIGNAL =
-  /\b(session complete|session completed|session ended|sesion terminada|sesión terminada)\b/i;
+  /\b(session complete|session completed|session ended|sesion terminada|sesión terminada|hemos terminado|con esto terminamos|terminamos aca|terminamos acá|that'?s all for today|we are done)\b/i;
 const SESSION_END_SOFT_SIGNAL =
-  /\b(chau|chao|adios|adiós|hasta luego|nos vemos|bye|goodbye)\b/i;
+  /\b(chau|chao|ciao|adios|adiós|hasta luego|hasta la proxima|hasta la próxima|nos vemos|bye|goodbye|see you|take care)\b/i;
 const SESSION_END_WINDOW_CHARS = 320;
-const MIN_ELAPSED_FOR_STRONG_END_S = 45;
-const MIN_ELAPSED_FOR_SOFT_END_S = 90;
+const MIN_ELAPSED_FOR_STRONG_END_S = 15;
+const MIN_ELAPSED_FOR_SOFT_END_S = 30;
 
 // ============================================================================
 // Hook
@@ -186,7 +186,11 @@ export function useVoiceSession({
           .catch(() => null);
 
     const [tokenData, contextData] = await Promise.all([
-      fetchWithKeys('/api/voice/token', { method: 'POST' })
+      fetchWithKeys('/api/voice/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'prefetch', sessionType }),
+      })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
       contextFetch,
@@ -383,6 +387,9 @@ export function useVoiceSession({
     const sid = sessionIdRef.current;
     if (!sid) return;
 
+    const preview = text.length > 140 ? `${text.slice(0, 140)}...` : text;
+    log.info(`[Transcript] role=${role} sid=${sid} text="${preview}"`);
+
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
@@ -413,16 +420,23 @@ export function useVoiceSession({
         ? MIN_ELAPSED_FOR_STRONG_END_S
         : MIN_ELAPSED_FOR_SOFT_END_S;
 
+      if (hasStrongEndSignal || hasSoftEndSignal) {
+        const signalType = hasStrongEndSignal ? 'strong' : 'soft';
+        log.info(
+          `[Session] ${signalType} end signal candidate detected at ${elapsedS}s (min=${minElapsed}s)`,
+        );
+      }
+
       if ((hasStrongEndSignal || hasSoftEndSignal) && elapsedS >= minElapsed) {
         sessionEndDetectedRef.current = true;
         const signalType = hasStrongEndSignal ? 'strong' : 'soft';
         log.info(
-          `[Session] ${signalType} end signal detected after ${elapsedS}s, auto-disconnecting in 3s`,
+          `[Session] ${signalType} end signal detected after ${elapsedS}s, auto-disconnecting in 1s`,
         );
         endKeywordTimerRef.current = setTimeout(() => {
           disconnectRef.current();
           onSessionCompleteRef.current?.();
-        }, 3000);
+        }, 1000);
       } else if (hasStrongEndSignal || hasSoftEndSignal) {
         log.info(
           `[Session] End signal detected but too early (${elapsedS}s < ${minElapsed}s), ignoring`,
@@ -524,7 +538,11 @@ export function useVoiceSession({
       // Use pre-fetched token if available, otherwise fetch fresh
       const tokenPromise = prefetchedTokenRef.current
         ? Promise.resolve(prefetchedTokenRef.current)
-        : fetchWithKeys('/api/voice/token', { method: 'POST' })
+        : fetchWithKeys('/api/voice/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'connect', sessionType: sessType }),
+          })
             .then((r) => {
               if (!r.ok) throw new Error('Failed to get voice token');
               return r.json();
@@ -646,6 +664,11 @@ export function useVoiceSession({
         },
         onTranscript: saveTranscript,
         onToolCall: (functionCalls) => {
+          log.info(
+            `[ToolCall] Forwarding ${functionCalls.length} call(s): ${functionCalls
+              .map((call) => call.name || 'unknown')
+              .join(', ')}`,
+          );
           paramsRef.current.onToolCall?.(functionCalls);
         },
         onResumptionUpdate: (handle, resumable) => {
@@ -653,6 +676,10 @@ export function useVoiceSession({
           log.info(`Resumption handle stored (resumable: ${resumable})`);
         },
         onGoAway: (timeLeftMs) => {
+          if (sessionEndDetectedRef.current || !sessionIdRef.current) {
+            log.info('[Reconnect] GoAway ignored because session is ending/ended');
+            return;
+          }
           log.info(`GoAway received, ${timeLeftMs}ms remaining — initiating proactive reconnect`);
 
           // Pre-compress buffer for Layer 2 in case Layer 1 fails
@@ -676,7 +703,11 @@ export function useVoiceSession({
           // Proactive reconnect before the WebSocket drops
           (async () => {
             try {
-              const res = await fetchWithKeys('/api/voice/token', { method: 'POST' });
+              const res = await fetchWithKeys('/api/voice/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: 'goaway_reconnect', sessionType: paramsRef.current.sessionType }),
+              });
               if (!res.ok) throw new Error('Failed to get token for proactive reconnect');
               const { token: freshToken } = await res.json();
               const c = clientRef.current;
@@ -693,6 +724,10 @@ export function useVoiceSession({
           })();
         },
         onReconnectNeeded: (attempt) => {
+          if (sessionEndDetectedRef.current || !sessionIdRef.current) {
+            log.info('[Reconnect] Skipping reconnect because session is ending/ended');
+            return;
+          }
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
           log.info(`[Reconnect] Scheduling in ${delay}ms (attempt ${attempt + 1})`);
 
@@ -709,7 +744,11 @@ export function useVoiceSession({
             reconnectTimerRef.current = null;
             try {
               // Fetch a fresh ephemeral token
-              const res = await fetchWithKeys('/api/voice/token', { method: 'POST' });
+              const res = await fetchWithKeys('/api/voice/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: 'reconnect', sessionType: paramsRef.current.sessionType }),
+              });
               if (!res.ok) throw new Error('Failed to get fresh token for reconnect');
               const { token: freshToken } = await res.json();
 
@@ -730,7 +769,11 @@ export function useVoiceSession({
                   log.info('[Reconnect] Layer 1 failed (handle expired?), falling back to Layer 2:', layer1Err);
                   resumptionHandleRef.current = null;
                   // Need a fresh token since the previous one was consumed
-                  const res2 = await fetchWithKeys('/api/voice/token', { method: 'POST' });
+                  const res2 = await fetchWithKeys('/api/voice/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: 'reconnect_layer2', sessionType: paramsRef.current.sessionType }),
+                  });
                   if (!res2.ok) throw new Error('Failed to get token for Layer 2');
                   const { token: freshToken2 } = await res2.json();
                   await c.reconnect(freshToken2);
@@ -814,6 +857,8 @@ export function useVoiceSession({
   // ---- Disconnect ----
 
   const disconnect = useCallback(() => {
+    log.info(`[Disconnect] Requested sid=${sessionIdRef.current ?? 'none'}`);
+
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
@@ -827,6 +872,7 @@ export function useVoiceSession({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: sessionIdRef.current }),
       }).catch(() => {});
+      log.info('[Disconnect] /api/voice/session/end fired');
       sessionIdRef.current = null;
       setSessionId(null);
     }

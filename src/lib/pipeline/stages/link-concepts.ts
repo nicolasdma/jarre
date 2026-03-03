@@ -144,39 +144,68 @@ export async function linkConceptsStage(params: {
     if (!isLinked && extracted.relevance >= 0.6) {
       const slug = slugify(extracted.name);
       const newId = `auto-${slug}`;
+      let conceptId = newId;
+      let conceptName = extracted.name;
+      let conceptSlug = slug;
+      let isNew = false;
 
       // Check if concept already exists (from a previous pipeline run)
-      const { data: existing } = await supabase
+      const { data: existingById } = await supabase
         .from(TABLES.concepts)
-        .select('id')
+        .select('id, name, slug')
         .eq('id', newId)
-        .single();
+        .maybeSingle();
 
-      if (!existing) {
-        // New concepts inherit the inferred curriculum phase when possible.
-        const { error } = await supabase.from(TABLES.concepts).insert({
-          id: newId,
-          name: extracted.name,
-          canonical_definition: extracted.description,
-          phase: targetPhase,
-        });
+      if (existingById) {
+        conceptId = existingById.id;
+        conceptName = existingById.name;
+        conceptSlug = existingById.slug;
+      } else {
+        // Slug is globally unique in this schema. Reuse existing concept if a slug collision exists.
+        const { data: existingBySlug } = await supabase
+          .from(TABLES.concepts)
+          .select('id, name, slug')
+          .eq('slug', slug)
+          .maybeSingle();
 
-        if (error) {
-          log.warn(`Failed to create concept "${newId}": ${error.message}`);
-          continue;
+        if (existingBySlug) {
+          conceptId = existingBySlug.id;
+          conceptName = existingBySlug.name;
+          conceptSlug = existingBySlug.slug;
+        } else {
+          // New concepts inherit the inferred curriculum phase when possible.
+          const { error } = await supabase.from(TABLES.concepts).insert({
+            id: newId,
+            name: extracted.name,
+            slug,
+            canonical_definition: extracted.description,
+            phase: targetPhase,
+          });
+
+          if (error) {
+            log.warn(`Failed to create concept "${newId}": ${error.message}`);
+            continue;
+          }
+
+          isNew = true;
         }
       }
 
-      concepts.push({
-        id: newId,
-        name: extracted.name,
-        slug,
-        isNew: !existing,
-      });
-      resourceConcepts.push({
-        conceptId: newId,
-        isPrerequisite: false,
-      });
+      if (!concepts.some((c) => c.id === conceptId)) {
+        concepts.push({
+          id: conceptId,
+          name: conceptName,
+          slug: conceptSlug,
+          isNew,
+        });
+      }
+
+      if (!resourceConcepts.some((rc) => rc.conceptId === conceptId)) {
+        resourceConcepts.push({
+          conceptId,
+          isPrerequisite: false,
+        });
+      }
     }
   }
 

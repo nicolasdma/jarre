@@ -228,6 +228,7 @@ export default async function LearnPage({ params }: PageProps) {
         resourceId={resourceId}
         resourceTitle={resource.title}
         resourceType={resource.type}
+        resourceUrl={resource.url}
         sections={flowSections}
         activateComponent={renderContent?.()}
         playgroundHref={practical?.href}
@@ -244,6 +245,22 @@ export default async function LearnPage({ params }: PageProps) {
   }
 
   // If no sections and no explanation component, show message
+  if (resourceId.startsWith('yt-')) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
+        <p className="mb-3 text-center text-j-text-secondary">
+          El curso existe pero no tiene secciones completas todavía.
+        </p>
+        <p className="mb-6 text-center text-sm text-j-text-tertiary">
+          Volvé al dashboard y reintentá generar este video para completar APRENDER.
+        </p>
+        <Link href="/dashboard" className="text-j-accent hover:underline">
+          ← Ir al dashboard
+        </Link>
+      </div>
+    );
+  }
+
   if (!AVAILABLE_RESOURCES.has(resourceId)) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">

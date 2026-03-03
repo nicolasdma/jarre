@@ -164,8 +164,9 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
               // Audio transcriptions (both input and output come as separate fields)
               const serverContent = (message as unknown as Record<string, unknown>).serverContent;
+              let sc: Record<string, unknown> | null = null;
               if (serverContent && typeof serverContent === 'object') {
-                const sc = serverContent as Record<string, unknown>;
+                sc = serverContent as Record<string, unknown>;
 
                 // Model output audio transcription
                 if ('outputTranscription' in sc) {
@@ -221,20 +222,32 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 callbacks.onGoAway(timeLeft);
               }
 
-              // Tool calls from model
-              if (msg.toolCall && callbacks.onToolCall) {
-                const toolCall = msg.toolCall as Record<string, unknown>;
+              // Tool calls from model. Different SDK versions may place this either
+              // at the top-level message or nested under serverContent.
+              const toolCallPayload = msg.toolCall ?? (sc ? sc.toolCall : undefined);
+              if (toolCallPayload && callbacks.onToolCall) {
+                const toolCall = toolCallPayload as Record<string, unknown>;
                 const functionCalls = toolCall.functionCalls as FunctionCall[] | undefined;
                 if (functionCalls?.length) {
+                  const source = msg.toolCall ? 'root' : 'serverContent';
+                  log.info(
+                    `[ToolCall] Received ${functionCalls.length} call(s) from ${source}: ${functionCalls
+                      .map((c) => c.name || 'unknown')
+                      .join(', ')}`,
+                  );
                   callbacks.onToolCall(functionCalls);
                 }
               }
 
-              // Tool call cancellation
-              if (msg.toolCallCancellation && callbacks.onToolCallCancellation) {
-                const cancellation = msg.toolCallCancellation as Record<string, unknown>;
+              // Tool call cancellation (root or serverContent).
+              const cancellationPayload =
+                msg.toolCallCancellation ?? (sc ? sc.toolCallCancellation : undefined);
+              if (cancellationPayload && callbacks.onToolCallCancellation) {
+                const cancellation = cancellationPayload as Record<string, unknown>;
                 const ids = cancellation.ids as string[] | undefined;
                 if (ids?.length) {
+                  const source = msg.toolCallCancellation ? 'root' : 'serverContent';
+                  log.info(`[ToolCall] Cancellation from ${source}: ${ids.join(', ')}`);
                   callbacks.onToolCallCancellation(ids);
                 }
               }

@@ -45,13 +45,22 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
     .single();
 
   if (existing) {
-    await syncPipelineResourceToUserKnowledge({
-      supabase,
-      userId: user.id,
-      resourceId,
-    }).catch(() => {});
+    const { count: sectionCount } = await supabase
+      .from(TABLES.resourceSections)
+      .select('id', { count: 'exact', head: true })
+      .eq('resource_id', resourceId);
 
-    return jsonOk({ resourceId, status: 'completed', alreadyExists: true });
+    // A pipeline-generated resource should have at least 2 sections.
+    // If it has fewer, treat it as incomplete and regenerate instead of short-circuiting.
+    if ((sectionCount ?? 0) >= 2) {
+      await syncPipelineResourceToUserKnowledge({
+        supabase,
+        userId: user.id,
+        resourceId,
+      }).catch(() => {});
+
+      return jsonOk({ resourceId, status: 'completed', alreadyExists: true });
+    }
   }
 
   // Get user's preferred language

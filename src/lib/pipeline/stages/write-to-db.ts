@@ -30,6 +30,15 @@ function generateResourceId(videoId: string, userId: string): string {
   return `yt-${videoId}-${userId.slice(0, 8)}`;
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60);
+}
+
 function choosePhaseByFrequency(phases: string[]): string | null {
   const frequencies = new Map<string, number>();
   for (const phase of phases) {
@@ -225,30 +234,47 @@ export async function writeToDb(params: {
 
     // No match — create a dedicated concept for this section in the inferred phase.
     if (!conceptId) {
-      const slug = section.conceptSlug || section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+      const slug = section.conceptSlug || slugify(section.title);
       const newConceptId = `auto-${slug}`;
 
-      // Check if it already exists (idempotent)
-      const { data: existing } = await supabase
+      // Check if it already exists by id first (idempotent)
+      const { data: existingById } = await supabase
         .from(TABLES.concepts)
         .select('id')
         .eq('id', newConceptId)
-        .single();
+        .maybeSingle();
 
-      if (!existing) {
-        const { error: conceptErr } = await supabase.from(TABLES.concepts).insert({
-          id: newConceptId,
-          name: section.conceptName || section.title,
-          canonical_definition: `Key topic from "${resolve.title}": ${section.title}`,
-          phase: placement.phase,
-        });
+      if (existingById) {
+        conceptId = existingById.id;
+      } else {
+        // Reuse a concept if slug already exists to avoid unique-slug collisions.
+        const { data: existingBySlug } = await supabase
+          .from(TABLES.concepts)
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle();
 
-        if (conceptErr) {
-          log.warn(`Failed to create concept "${newConceptId}": ${conceptErr.message}`);
+        if (existingBySlug) {
+          conceptId = existingBySlug.id;
+        } else {
+          const { error: conceptErr } = await supabase.from(TABLES.concepts).insert({
+            id: newConceptId,
+            name: section.conceptName || section.title,
+            slug,
+            canonical_definition: `Key topic from "${resolve.title}": ${section.title}`,
+            phase: placement.phase,
+          });
+
+          if (conceptErr) {
+            throw new Error(
+              `Failed to create concept "${newConceptId}" for section "${section.title}": ${conceptErr.message}`,
+            );
+          }
+
+          conceptId = newConceptId;
+          log.info(`Created concept "${newConceptId}" for section "${section.title}"`);
         }
       }
-
-      conceptId = newConceptId;
 
       // Also link this concept to the resource
       const { error: linkErr } = await supabase.from(TABLES.resourceConcepts).insert({
@@ -259,8 +285,6 @@ export async function writeToDb(params: {
       if (linkErr) {
         log.warn(`Failed to link concept "${conceptId}" to resource: ${linkErr.message}`);
       }
-
-      log.info(`Created concept "${newConceptId}" for section "${section.title}"`);
     }
 
     const { data: inserted, error } = await supabase

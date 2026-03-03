@@ -21,7 +21,11 @@ import { checkTokenBudget, checkVoiceTimeBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('VoiceToken');
 
-export const POST = withAuth(async (_request, { supabase, user, byokKeys }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
+  const body = await request.json().catch(() => null);
+  const reason = typeof body?.reason === 'string' ? body.reason : 'unspecified';
+  const sessionType = typeof body?.sessionType === 'string' ? body.sessionType : 'unknown';
+
   // Keep budget checks active for managed mode users without BYOK keys.
   const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
   if (!budget.allowed) {
@@ -46,7 +50,7 @@ export const POST = withAuth(async (_request, { supabase, user, byokKeys }) => {
     throw new Error('Voice service not configured');
   }
 
-  log.info('Voice session token issued');
+  log.info(`Voice session token issued (reason=${reason}, sessionType=${sessionType})`);
 
   const remainingSeconds = Number.isFinite(voiceBudget.remainingSeconds)
     ? voiceBudget.remainingSeconds

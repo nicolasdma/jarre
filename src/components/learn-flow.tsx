@@ -19,6 +19,7 @@ import { useTutorContext } from '@/lib/tutor-context';
 import type { VoiceMode } from '@/lib/llm/voice-unified-prompt';
 import { createLogger } from '@/lib/logger';
 import { WhisperToggle } from './whisper-toggle';
+import { extractYoutubeId } from '@/lib/utils/youtube';
 
 const log = createLogger('LearnFlow');
 import type { FigureRegistry } from '@/lib/figure-registry';
@@ -60,6 +61,7 @@ interface LearnFlowProps {
   resourceId: string;
   resourceTitle: string;
   resourceType: string;
+  resourceUrl?: string | null;
   sections: Section[];
   activateComponent: React.ReactNode;
   playgroundHref?: string;
@@ -288,6 +290,7 @@ export function LearnFlow({
   resourceId,
   resourceTitle,
   resourceType,
+  resourceUrl,
   sections,
   activateComponent,
   playgroundHref,
@@ -327,8 +330,8 @@ export function LearnFlow({
     for (const segments of Object.values(videoSegmentsBySectionId)) {
       if (segments.length > 0) return segments[0].youtubeVideoId;
     }
-    return null;
-  }, [videoSegmentsBySectionId]);
+    return extractYoutubeId(resourceUrl ?? null);
+  }, [videoSegmentsBySectionId, resourceUrl]);
   const allVideoSegments = useMemo(() => {
     if (!videoSegmentsBySectionId) return [];
     return Object.values(videoSegmentsBySectionId).flat();

@@ -296,12 +296,18 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   const stopVoiceSessionRef = useRef<() => void>(() => {});
 
   const handleGeminiToolCall = useCallback((functionCalls: FunctionCall[]) => {
+    log.info(
+      `[ToolCall] Received ${functionCalls.length} call(s): ${functionCalls
+        .map((call) => call.name || 'unknown')
+        .join(', ')}`,
+    );
     let shouldCompleteSession = false;
 
     for (const call of functionCalls) {
       const result = handleToolCall(call, (action) => {
         onToolActionRef.current?.(action);
         if (action.type === 'END_SESSION') {
+          log.info(`[ToolCall] END_SESSION requested (reason=${action.reason})`);
           shouldCompleteSession = true;
         }
       });
@@ -313,6 +319,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     }
 
     if (shouldCompleteSession) {
+      log.info('[ToolCall] Triggering handleSessionComplete from END_SESSION');
       handleSessionCompleteRef.current();
     }
   }, []);
@@ -321,6 +328,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const scoreEvalSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
+    log.info(`[PostProcess] Scoring eval session ${voiceSessionId}`);
     try {
       const res = await fetchWithKeys('/api/evaluate/voice-score', {
         method: 'POST',
@@ -332,6 +340,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         throw new Error(data.error || 'Failed to score evaluation');
       }
       const data = await res.json();
+      log.info(
+        `[PostProcess] Eval scoring complete for ${voiceSessionId}: score=${data.overallScore}, saved=${data.saved}`,
+      );
       setResult({
         mode: 'eval',
         evaluationResult: {
@@ -346,6 +357,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
       setState('done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Scoring failed';
+      log.error(`[PostProcess] Eval scoring failed for ${voiceSessionId}:`, msg);
       setSessionError(msg);
       setState('error');
     }
@@ -353,6 +365,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const scorePracticeSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
+    log.info(`[PostProcess] Scoring practice session ${voiceSessionId}`);
     try {
       const res = await fetchWithKeys('/api/evaluate/voice-practice-score', {
         method: 'POST',
@@ -364,6 +377,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         throw new Error(data.error || 'Failed to score practice');
       }
       const data = await res.json();
+      log.info(
+        `[PostProcess] Practice scoring complete for ${voiceSessionId}: score=${data.overallScore}, passedGate=${data.passedGate}`,
+      );
       setResult({
         mode: 'practice',
         practiceResult: {
@@ -377,6 +393,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
       setState('done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Scoring failed';
+      log.error(`[PostProcess] Practice scoring failed for ${voiceSessionId}:`, msg);
       setSessionError(msg);
       setState('error');
     }
@@ -384,6 +401,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const scoreTeachSession = useCallback(async (voiceSessionId: string) => {
     setState('scoring');
+    log.info(`[PostProcess] Scoring teach session ${voiceSessionId}`);
     try {
       const res = await fetchWithKeys('/api/evaluate/voice-teach-score', {
         method: 'POST',
@@ -395,6 +413,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         throw new Error(data.error || 'Failed to score teaching');
       }
       const data = await res.json();
+      log.info(
+        `[PostProcess] Teach scoring complete for ${voiceSessionId}: score=${data.overallScore}, masteryAdvanced=${data.masteryAdvanced}`,
+      );
       setResult({
         mode: 'teach',
         teachResult: {
@@ -409,6 +430,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
       setState('done');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Scoring failed';
+      log.error(`[PostProcess] Teach scoring failed for ${voiceSessionId}:`, msg);
       setSessionError(msg);
       setState('error');
     }
@@ -416,6 +438,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const generateExplorationSummary = useCallback(async (sessionId: string) => {
     setState('summarizing');
+    log.info(`[PostProcess] Generating exploration summary for session ${sessionId}`);
     try {
       const res = await fetchWithKeys('/api/resources/exploration-summary', {
         method: 'POST',
@@ -427,6 +450,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         throw new Error(data.error || 'Failed to generate summary');
       }
       const data = await res.json();
+      log.info(
+        `[PostProcess] Exploration summary complete for ${sessionId}: discoveredConnections=${data.discoveredConnections?.length || 0}`,
+      );
       const explorationResult: ExplorationResult = {
         summary: data.summary,
         discoveredConnections: data.discoveredConnections?.length || 0,
@@ -437,6 +463,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
       onExplorationCompleteRef.current?.(explorationResult);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Summary failed';
+      log.error(`[PostProcess] Exploration summary failed for ${sessionId}:`, msg);
       setSessionError(msg);
       setState('error');
     }
@@ -445,6 +472,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // ---- Post-session dispatch ----
 
   const runPostProcess = useCallback(async (sessionId: string) => {
+    log.info(`[PostProcess] Starting for mode=${mode}, sessionId=${sessionId}`);
     switch (mode) {
       case 'eval':
         await scoreEvalSession(sessionId);
@@ -471,6 +499,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         setState('done');
         break;
     }
+    log.info(`[PostProcess] Completed dispatch for mode=${mode}, sessionId=${sessionId}`);
   }, [mode, scoreEvalSession, scorePracticeSession, scoreTeachSession, generateExplorationSummary]);
 
   // ---- Handle session completion (from keyword or tool call) ----
@@ -479,15 +508,19 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     if (postProcessStartedRef.current) return;
     postProcessStartedRef.current = true;
 
+    const sid = sessionIdRef.current;
+    log.info(`[SessionComplete] Triggered for mode=${mode}, sessionId=${sid ?? 'none'}`);
+
     // Ensure live audio stream/socket is closed before post-processing.
     stopVoiceSessionRef.current();
 
-    const sid = sessionIdRef.current;
     if (sid) {
       runPostProcess(sid);
+    } else {
+      log.warn('[SessionComplete] No sessionId available, skipping post-process');
     }
     onSessionCompleteRef.current?.();
-  }, [runPostProcess]);
+  }, [mode, runPostProcess]);
 
   // Keep ref in sync for tool call handler
   handleSessionCompleteRef.current = handleSessionComplete;
