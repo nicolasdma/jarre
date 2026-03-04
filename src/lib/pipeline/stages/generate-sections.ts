@@ -7,11 +7,16 @@
 
 import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
 import { createLogger } from '@/lib/logger';
-import { TOKEN_BUDGETS, PIPELINE_MAX_CONCURRENT } from '@/lib/constants';
+import { TOKEN_BUDGETS, PIPELINE_MAX_CONCURRENT, TRANSLATION_MAX_CONCURRENT } from '@/lib/constants';
 import { ActivateDataResponseSchema } from '../schemas';
 import type { SegmentOutput, ContentOutput, ContentSection, ActivateData } from '../types';
 
 const log = createLogger('Pipeline:Content');
+const PDF_TRANSLATION_CHUNK_CHARS = 5_000;
+const PDF_TRANSLATION_FAST_TIMEOUT_MS = 25_000;
+const PDF_TRANSLATION_CHUNK_TIMEOUT_MS = 20_000;
+const DEEPL_TRANSLATE_TIMEOUT_MS = 30_000;
+const DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate';
 
 interface GenerateSectionsOptions {
   sourceType?: 'youtube' | 'pdf';
@@ -265,15 +270,172 @@ function normalizePdfMarkdown(markdown: string): string {
     .trim();
 }
 
+function stripEditorialPdfPrefixes(markdown: string): string {
+  const lines = markdown.split('\n');
+  const cleaned: string[] = [];
+  let skipped = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (skipped < 3) {
+      if (/^(section|seccion|sección)\s*:/i.test(trimmed)) {
+        skipped += 1;
+        continue;
+      }
+      if (/^p[aá]gina\s+\d+\s*:/i.test(trimmed)) {
+        skipped += 1;
+        continue;
+      }
+      if (/^page\s+\d+\s*:/i.test(trimmed)) {
+        skipped += 1;
+        continue;
+      }
+    }
+    cleaned.push(line);
+  }
+
+  return cleaned.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function ensurePdfHeadingOnce(sectionTitle: string, body: string): string {
+  const normalizedBody = body.trim();
+  const normalizedTitle = sectionTitle.replace(/\s+/g, ' ').trim();
+  if (!normalizedBody) {
+    return `**${normalizedTitle}**`;
+  }
+
+  const bodyStart = normalizedBody
+    .slice(0, Math.min(220, normalizedBody.length))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  const normalizedTitleLower = normalizedTitle.toLowerCase();
+
+  if (
+    bodyStart.startsWith(`**${normalizedTitleLower}**`)
+    || bodyStart.startsWith(normalizedTitleLower)
+    || bodyStart.startsWith(`sección: "${normalizedTitleLower}`)
+    || bodyStart.startsWith(`section: "${normalizedTitleLower}`)
+  ) {
+    return normalizedBody;
+  }
+
+  return `**${normalizedTitle}**\n\n${normalizedBody}`;
+}
+
+function toDeepLLangCode(lang: string): string | null {
+  const normalized = lang.trim().toLowerCase();
+  const map: Record<string, string> = {
+    en: 'EN',
+    es: 'ES',
+    fr: 'FR',
+    pt: 'PT',
+    de: 'DE',
+  };
+  return map[normalized] ?? null;
+}
+
+function protectMarkdownSegments(markdown: string): {
+  protectedText: string;
+  restore: (input: string) => string;
+} {
+  const patterns = [
+    /```[\s\S]*?```/g,
+    /`[^`\n]+`/g,
+    /!\[[^\]]*]\([^)]+\)/g,
+    /\[[^\]]+]\([^)]+\)/g,
+  ];
+
+  const saved: string[] = [];
+  let protectedText = markdown;
+
+  for (const pattern of patterns) {
+    protectedText = protectedText.replace(pattern, (match) => {
+      const token = `__JARRE_KEEP_${saved.length}__`;
+      saved.push(match);
+      return token;
+    });
+  }
+
+  const restore = (input: string): string => {
+    let output = input;
+    for (let i = 0; i < saved.length; i++) {
+      output = output.replaceAll(`__JARRE_KEEP_${i}__`, saved[i]);
+    }
+    return output;
+  };
+
+  return { protectedText, restore };
+}
+
+interface DeepLTranslateResponse {
+  translations?: Array<{ text?: string }>;
+}
+
+async function translatePdfSectionWithDeepL(
+  markdown: string,
+  fromLang: string,
+  toLang: string,
+): Promise<string | null> {
+  const deeplKey = process.env.DEEPL_API_KEY;
+  if (!deeplKey) return null;
+
+  const fromCode = toDeepLLangCode(fromLang);
+  const toCode = toDeepLLangCode(toLang);
+  if (!fromCode || !toCode) return null;
+
+  const { protectedText, restore } = protectMarkdownSegments(markdown);
+
+  const body = new URLSearchParams();
+  body.set('text', protectedText);
+  body.set('source_lang', fromCode);
+  body.set('target_lang', toCode);
+  body.set('preserve_formatting', '1');
+  body.set('split_sentences', 'nonewlines');
+
+  try {
+    const response = await fetch(DEEPL_API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `DeepL-Auth-Key ${deeplKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+      signal: AbortSignal.timeout(DEEPL_TRANSLATE_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`DeepL API error (${response.status}): ${errorText.slice(0, 300)}`);
+    }
+
+    const json = (await response.json()) as DeepLTranslateResponse;
+    const translated = json.translations?.[0]?.text?.trim() || '';
+    if (translated.length < 40) {
+      throw new Error(`DeepL translated content too short (${translated.length} chars)`);
+    }
+
+    return stripEditorialPdfPrefixes(restore(translated));
+  } catch (error) {
+    log.warn(`DeepL translation failed: ${(error as Error).message}`);
+    return null;
+  }
+}
+
 async function translatePdfSectionFaithfully(
   contentMarkdown: string,
   sectionTitle: string,
   fromLang: string,
   toLang: string,
   apiKey?: string,
-): Promise<{ translatedMarkdown: string; tokensUsed: number }> {
+): Promise<{ translatedMarkdown: string; tokensUsed: number; timedOut: boolean }> {
   if (fromLang === toLang) {
-    return { translatedMarkdown: contentMarkdown, tokensUsed: 0 };
+    return { translatedMarkdown: contentMarkdown, tokensUsed: 0, timedOut: false };
+  }
+
+  const deeplTranslated = await translatePdfSectionWithDeepL(contentMarkdown, fromLang, toLang);
+  if (deeplTranslated) {
+    return { translatedMarkdown: deeplTranslated, tokensUsed: 0, timedOut: false };
   }
 
   const langNames: Record<string, string> = {
@@ -287,12 +449,7 @@ async function translatePdfSectionFaithfully(
   const fromName = langNames[fromLang] || fromLang;
   const toName = langNames[toLang] || toLang;
 
-  const { content, tokensUsed } = await callDeepSeek({
-    apiKey,
-    messages: [
-      {
-        role: 'system',
-        content: `You are a precise technical translator. Translate markdown from ${fromName} to ${toName} with maximum fidelity to the source.
+  const basePrompt = `You are a precise technical translator. Translate markdown from ${fromName} to ${toName} with maximum fidelity to the source.
 
 Rules:
 - Preserve every factual claim, equation, citation number, symbol, and ordering.
@@ -301,27 +458,137 @@ Rules:
 - Preserve markdown image syntax exactly: ![alt](url)
 - Keep code blocks and inline code unchanged.
 - Keep all numeric values exactly the same.
+- Do not add labels such as "Section:", "Sección:", "Page:", or editorial comments.
 
-IMPORTANT: Return ONLY translated markdown. No notes, no JSON, no explanations.`,
-      },
-      {
-        role: 'user',
-        content: `Section: "${sectionTitle}"\n\n${contentMarkdown}`,
-      },
-    ],
-    temperature: 0,
-    maxTokens: TOKEN_BUDGETS.PIPELINE_TRANSLATE,
-    responseFormat: 'text',
-    timeoutMs: 120_000,
-    retryOnTimeout: true,
-  });
+IMPORTANT: Return ONLY translated markdown. No notes, no JSON, no explanations.`;
 
-  const translatedMarkdown = content.trim();
+  // Fast path: one request per section.
+  try {
+    const { content, tokensUsed } = await callDeepSeek({
+      apiKey,
+      messages: [
+        { role: 'system', content: basePrompt },
+        {
+          role: 'user',
+          content: `Translate this markdown section exactly:\n\n${contentMarkdown}`,
+        },
+      ],
+      temperature: 0,
+      maxTokens: TOKEN_BUDGETS.PIPELINE_TRANSLATE,
+      responseFormat: 'text',
+      timeoutMs: PDF_TRANSLATION_FAST_TIMEOUT_MS,
+      retryOnTimeout: false,
+    });
+
+    const cleaned = stripEditorialPdfPrefixes(content.trim());
+    if (cleaned.length >= 40) {
+      return { translatedMarkdown: cleaned, tokensUsed, timedOut: false };
+    }
+  } catch (error) {
+    const message = (error as Error).message;
+    if (/timeout/i.test(message)) {
+      log.warn(
+        `PDF translation fast path timed out for "${sectionTitle}" (${Math.round(PDF_TRANSLATION_FAST_TIMEOUT_MS / 1000)}s). Falling back to original text.`,
+      );
+      return {
+        translatedMarkdown: contentMarkdown,
+        tokensUsed: 0,
+        timedOut: true,
+      };
+    }
+    log.warn(`PDF translation fast path failed for "${sectionTitle}": ${message}`);
+  }
+
+  // Fallback path: chunked translation with fail-fast calls.
+  const chunks = contentMarkdown
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce<string[]>((acc, part) => {
+      if (acc.length === 0) {
+        acc.push(part);
+        return acc;
+      }
+      const lastIndex = acc.length - 1;
+      const candidate = `${acc[lastIndex]}\n\n${part}`;
+      if (candidate.length <= PDF_TRANSLATION_CHUNK_CHARS) {
+        acc[lastIndex] = candidate;
+      } else {
+        acc.push(part);
+      }
+      return acc;
+    }, []);
+
+  const safeChunks = chunks.length > 0 ? chunks : [contentMarkdown];
+  let totalTokens = 0;
+  const translatedChunks: string[] = [];
+
+  for (let i = 0; i < safeChunks.length; i++) {
+    const chunk = safeChunks[i];
+
+    try {
+      const { content, tokensUsed } = await callDeepSeek({
+        apiKey,
+        messages: [
+          { role: 'system', content: basePrompt },
+          {
+            role: 'user',
+            content: `Translate this markdown chunk exactly (${i + 1}/${safeChunks.length}):\n\n${chunk}`,
+          },
+        ],
+        temperature: 0,
+        maxTokens: TOKEN_BUDGETS.PIPELINE_TRANSLATE,
+        responseFormat: 'text',
+        timeoutMs: PDF_TRANSLATION_CHUNK_TIMEOUT_MS,
+        retryOnTimeout: false,
+      });
+
+      const cleaned = stripEditorialPdfPrefixes(content.trim());
+      translatedChunks.push(cleaned || chunk);
+      totalTokens += tokensUsed;
+    } catch (error) {
+      const message = (error as Error).message;
+      if (/timeout/i.test(message)) {
+        log.warn(
+          `PDF translation chunk timed out for "${sectionTitle}" at ${i + 1}/${safeChunks.length} (${Math.round(PDF_TRANSLATION_CHUNK_TIMEOUT_MS / 1000)}s). Falling back to original text.`,
+        );
+      } else {
+        log.warn(`PDF translation section fallback for "${sectionTitle}" at chunk ${i + 1}/${safeChunks.length}: ${message}`);
+      }
+      return {
+        translatedMarkdown: contentMarkdown,
+        tokensUsed: totalTokens,
+        timedOut: /timeout/i.test(message),
+      };
+    }
+  }
+
+  const translatedMarkdown = stripEditorialPdfPrefixes(translatedChunks.join('\n\n').trim());
   if (translatedMarkdown.length < 40) {
     throw new Error(`Translation for "${sectionTitle}" is too short (${translatedMarkdown.length} chars)`);
   }
 
-  return { translatedMarkdown, tokensUsed };
+  return { translatedMarkdown, tokensUsed: totalTokens, timedOut: false };
+}
+
+async function isTranslationProviderHealthy(apiKey?: string): Promise<boolean> {
+  try {
+    await callDeepSeek({
+      apiKey,
+      messages: [
+        { role: 'system', content: 'Reply with exactly: ok' },
+        { role: 'user', content: 'ok' },
+      ],
+      temperature: 0,
+      maxTokens: 10,
+      responseFormat: 'text',
+      timeoutMs: 8_000,
+      retryOnTimeout: false,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function buildPdfActivateData(
@@ -371,11 +638,29 @@ async function buildPdfContent(
   apiKey?: string,
 ): Promise<{ output: ContentOutput; tokensUsed: number }> {
   let totalTokens = 0;
+  let translationEnabled = sourceLanguage !== targetLanguage;
+
+  if (translationEnabled) {
+    const healthy = await isTranslationProviderHealthy(apiKey);
+    if (!healthy) {
+      translationEnabled = false;
+      log.warn('PDF translation skipped for this run: provider is not healthy (timeout/availability). Keeping original language.');
+    }
+  }
 
   const tasks = segment.sections.map((section) => {
     return async () => {
       const original = normalizePdfMarkdown(section.transcriptText);
-      const { translatedMarkdown, tokensUsed } = await translatePdfSectionFaithfully(
+      if (!translationEnabled) {
+        return {
+          contentOriginal: original,
+          contentMarkdown: original,
+          tokensUsed: 0,
+          timedOut: false,
+        };
+      }
+
+      const { translatedMarkdown, tokensUsed, timedOut } = await translatePdfSectionFaithfully(
         original,
         section.title,
         sourceLanguage,
@@ -383,21 +668,27 @@ async function buildPdfContent(
         apiKey,
       );
 
+      if (timedOut && translationEnabled) {
+        translationEnabled = false;
+        log.warn(`PDF translation disabled after timeout at section "${section.title}". Remaining sections will keep original language in this run.`);
+      }
+
       return {
         contentOriginal: original,
         contentMarkdown: translatedMarkdown,
         tokensUsed,
+        timedOut,
       };
     };
   });
 
-  const translated = await runWithConcurrency(tasks, PIPELINE_MAX_CONCURRENT);
+  const translated = await runWithConcurrency(tasks, TRANSLATION_MAX_CONCURRENT);
 
   const sections: ContentSection[] = segment.sections.map((seg, i) => {
     const row = translated[i];
     totalTokens += row.tokensUsed;
 
-    const contentMarkdown = `**${seg.title}**\n\n${row.contentMarkdown}`.trim();
+    const contentMarkdown = ensurePdfHeadingOnce(seg.title, stripEditorialPdfPrefixes(row.contentMarkdown));
 
     return {
       title: seg.title,

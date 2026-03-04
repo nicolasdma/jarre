@@ -12,7 +12,8 @@ import { SegmentResponseSchema } from '../schemas';
 import type { ResolveOutput, SegmentOutput, SegmentSection } from '../types';
 
 const log = createLogger('Pipeline:Segment');
-const MAX_PDF_SECTIONS = 24;
+const PDF_MIN_SECTIONS = 4;
+const PDF_MAX_SECTIONS = 8;
 
 /**
  * Build a chapter context string for the LLM prompt.
@@ -43,38 +44,65 @@ function slugify(text: string): string {
     .slice(0, 60);
 }
 
-function inferPdfSectionHeading(markdown: string): string | null {
+function parseHeadingNumber(line: string): number | null {
+  const match = line.match(/^([1-9]|[1-3]\d)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function inferPdfSectionHeading(markdown: string, expectedSectionNumber?: number): string | null {
   const lines = markdown
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
     .filter((line) => !/^!\[[^\]]*]\([^)]+\)$/.test(line))
-    .filter((line) => line.length >= 12 && line.length <= 120)
+    .filter((line) => line.length >= 3 && line.length <= 140)
     .filter((line) => !/^[\d.\s-]+$/.test(line));
 
-  const headingLike = lines.find((line) => {
-    const words = line
-      .split(/\s+/)
-      .map((word) => word.replace(/[^A-Za-z0-9-]/g, ''))
-      .filter(Boolean);
-    if (words.length < 2 || words.length > 12) return false;
+  const explicitSections = lines
+    .filter((line) => /^(?:[1-9]|[1-3]\d)(?:\.(?:\d+)?)?\s+[A-Za-z].{2,}$/.test(line))
+    .filter((line) => {
+      const text = line.replace(/^(?:[1-9]|[1-3]\d)(?:\.(?:\d+)?)?\s+/, '');
+      if (text.length > 90) return false;
+      if (/[;:]/.test(text)) return false;
+      if (text.endsWith('.')) return false;
+      if ((text.match(/,/g) || []).length > 0) return false;
 
-    const titleCaseCount = words.filter((word) => /^[A-Z][A-Za-z0-9-]*$/.test(word)).length;
-    return titleCaseCount / words.length >= 0.7;
-  });
-  if (headingLike) {
-    return headingLike.replace(/\s+/g, ' ').trim();
+      const words = text.split(/\s+/).filter(Boolean);
+      if (words.length < 2 || words.length > 14) return false;
+
+      const letters = text.replace(/[^A-Za-z]/g, '');
+      if (letters.length < 3) return false;
+      const upperRatio = letters.replace(/[^A-Z]/g, '').length / letters.length;
+      if (upperRatio > 0.8 && !/^(REFERENCES|APPENDIX)/.test(text.trim())) {
+        return false;
+      }
+      return true;
+    });
+  if (explicitSections.length > 0) {
+    const scored = explicitSections.map((line, index) => {
+      const prefix = line.split(/\s+/, 1)[0];
+      const depth = (prefix.match(/\./g) || []).length;
+      const num = parseHeadingNumber(line);
+      const distance =
+        typeof expectedSectionNumber === 'number' && typeof num === 'number'
+          ? Math.abs(num - expectedSectionNumber)
+          : 0;
+      return { line, depth, index, distance };
+    });
+
+    const best = scored.sort((a, b) => {
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      if (a.depth !== b.depth) return a.depth - b.depth;
+      return a.index - b.index;
+    })[0].line;
+    return best.replace(/\s+/g, ' ').trim();
   }
 
-  for (const line of lines) {
-    const normalized = line.replace(/\s+/g, ' ').trim();
-    const lower = normalized.toLowerCase();
-    if (lower.startsWith('figure ') || lower.startsWith('table ')) continue;
-    if (lower.includes('copyright')) continue;
-    if (lower.includes('provided proper attribution')) continue;
-    if (lower.includes('all rights reserved')) continue;
-    if (lower.includes('arxiv:')) continue;
-    return normalized;
+  const namedHeading = lines.find((line) => /^(abstract|introduction|conclusion|references|appendix)\b/i.test(line));
+  if (namedHeading) {
+    return namedHeading.replace(/\s+/g, ' ').trim();
   }
 
   return null;
@@ -86,7 +114,11 @@ function buildPdfSections(resolve: ResolveOutput): SegmentSection[] {
   const sourceSnippets = withPages.length > 0 ? withPages : orderedSnippets;
   if (sourceSnippets.length === 0) return [];
 
-  const groupSize = Math.max(1, Math.ceil(sourceSnippets.length / MAX_PDF_SECTIONS));
+  const desiredSections = Math.max(
+    PDF_MIN_SECTIONS,
+    Math.min(PDF_MAX_SECTIONS, Math.round(sourceSnippets.length / 3)),
+  );
+  const groupSize = Math.max(1, Math.ceil(sourceSnippets.length / desiredSections));
   const sections: SegmentSection[] = [];
 
   for (let i = 0; i < sourceSnippets.length; i += groupSize) {
@@ -101,8 +133,13 @@ function buildPdfSections(resolve: ResolveOutput): SegmentSection[] {
         ? (startPage === endPage ? `Page ${startPage}` : `Pages ${startPage}-${endPage}`)
         : `Part ${sections.length + 1}`;
 
-    const heading = inferPdfSectionHeading(first.text);
-    const title = heading ? `${pageLabel}: ${heading}` : pageLabel;
+    const heading = inferPdfSectionHeading(
+      group.map((snippet) => snippet.text).join('\n'),
+      sections.length + 1,
+    );
+    const title = heading
+      ? `${heading} (${pageLabel})`
+      : pageLabel;
     const transcriptText = group.map((snippet) => snippet.text).join('\n\n');
 
     sections.push({

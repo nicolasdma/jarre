@@ -7,6 +7,10 @@ import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 import { detectPipelineSourceType } from '@/lib/utils/resource-url';
 import { isValidYoutubeUrl } from '@/lib/utils/youtube';
 import type { Language } from '@/lib/translations';
+import {
+  CurriculumCopilotDialog,
+  type CopilotSuggestion,
+} from './curriculum-copilot-dialog';
 
 type IntakeStatus = 'idle' | 'submitting' | 'polling' | 'completed' | 'failed';
 type ResultKind = 'pipeline' | 'external';
@@ -106,6 +110,7 @@ function stripUrl(input: string, url: string | null): string {
 
 export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakePanelProps) {
   const [prompt, setPrompt] = useState('');
+  const [showCopilot, setShowCopilot] = useState(false);
   const [status, setStatus] = useState<IntakeStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -240,10 +245,10 @@ export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakeP
     onResourceAdded?.();
   };
 
-  const handleSubmit = async () => {
+  const processInput = async (rawInput: string) => {
     if (isBusy) return;
 
-    const input = prompt.trim();
+    const input = rawInput.trim();
     if (!input) return;
 
     setStatus('submitting');
@@ -265,6 +270,17 @@ export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakeP
       setError(language === 'es' ? 'Error de conexión.' : 'Connection error.');
       setStatus('failed');
     }
+  };
+
+  const handleSubmit = async () => {
+    await processInput(prompt);
+  };
+
+  const applyCopilotSuggestion = async (suggestion: CopilotSuggestion) => {
+    const suggestionInput = `${suggestion.title}\n${suggestion.url}`;
+    setPrompt(suggestionInput);
+    setShowCopilot(false);
+    await processInput(suggestionInput);
   };
 
   useEffect(() => {
@@ -366,6 +382,13 @@ export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakeP
             ? 'Pegá un link de YouTube, artículo, paper o escribí notas. Lo procesamos y lo ubicamos en la sesión correcta de tu currícula.'
             : 'Paste a YouTube/video/article link or write notes. We process it and place it in the right curriculum session.'}
         </p>
+        <button
+          type="button"
+          onClick={() => setShowCopilot(true)}
+          className="mt-3 text-[11px] font-mono uppercase tracking-[0.14em] text-j-accent transition-colors hover:underline"
+        >
+          {language === 'es' ? 'Moldear currícula con Copilot' : 'Shape curriculum with copilot'}
+        </button>
       </div>
 
       <form
@@ -464,6 +487,15 @@ export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakeP
           </button>
         </div>
       )}
+
+      <CurriculumCopilotDialog
+        isOpen={showCopilot}
+        onClose={() => setShowCopilot(false)}
+        language={language}
+        onUseSuggestion={(suggestion) => {
+          void applyCopilotSuggestion(suggestion);
+        }}
+      />
     </section>
   );
 }

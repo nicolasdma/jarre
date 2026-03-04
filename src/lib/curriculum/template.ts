@@ -155,6 +155,15 @@ const PHASE_FALLBACKS: PhaseMetaFallback[] = [
     objectiveEn: 'Reliability, consensus, and scalability for AI systems.',
   },
   {
+    phase: '1.5',
+    sortOrder: 1.5,
+    isPrimary: true,
+    titleEs: 'Puente de Algebra Lineal',
+    titleEn: 'Linear Algebra Bridge',
+    objectiveEs: 'Conectar intuicion geometrica con operaciones matriciales y gradientes antes de deep learning.',
+    objectiveEn: 'Bridge geometric intuition with matrix operations and gradients before deep learning.',
+  },
+  {
     phase: '2',
     sortOrder: 2,
     isPrimary: true,
@@ -247,7 +256,7 @@ const PHASE_FALLBACKS: PhaseMetaFallback[] = [
 ];
 
 function phaseToNumber(phase: string): number {
-  const parsed = Number.parseInt(phase, 10);
+  const parsed = Number.parseFloat(phase);
   return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
 }
 

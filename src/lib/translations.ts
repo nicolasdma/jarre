@@ -75,6 +75,7 @@ const translations = {
 
   // Phases
   'phase.1': { es: 'Sistemas Distribuidos', en: 'Distributed Systems' },
+  'phase.1_5': { es: 'Puente de Álgebra Lineal', en: 'Linear Algebra Bridge' },
   'phase.2': { es: 'ML & Deep Learning', en: 'ML & Deep Learning Foundations' },
   'phase.3': { es: 'Secuencias, Atención & Transformers', en: 'Sequences, Attention & Transformers' },
   'phase.4': { es: 'LLMs: Entrenamiento & Alineación', en: 'LLMs: Training, Alignment & Scaling' },
@@ -303,6 +304,7 @@ export function t(key: TranslationKey, language: Language): string {
 export function getPhaseNames(language: Language): Record<string, string> {
   return {
     '1': t('phase.1', language),
+    '1.5': t('phase.1_5', language),
     '2': t('phase.2', language),
     '3': t('phase.3', language),
     '4': t('phase.4', language),

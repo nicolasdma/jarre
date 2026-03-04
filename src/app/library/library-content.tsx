@@ -89,7 +89,7 @@ type ActiveCurriculumPhase = 'all' | string;
 function parseInitialSession(value: string | null): ActiveCurriculumPhase | null {
   if (!value) return null;
   if (value === 'resources' || value === 'courses' || value === 'external') return 'all';
-  if (value === 'all' || /^\d+$/.test(value)) return value;
+  if (value === 'all' || /^\d+(?:\.\d+)?$/.test(value)) return value;
   return null;
 }
 
