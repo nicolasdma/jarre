@@ -402,8 +402,9 @@ export default async function LibraryPage() {
     };
   });
 
-  // Filter out courses, videos, and specific resources from main view
-  const hiddenTypes = ['course', 'video'];
+  // Filter out only courses and specific resources from main view.
+  // Videos should remain visible in their curriculum phase.
+  const hiddenTypes = ['course'];
   const hiddenIds = [
     'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
     'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
@@ -415,9 +416,9 @@ export default async function LibraryPage() {
     r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
 
-  // Supplementary resources (videos, etc.) - shown in collapsible section
+  // Supplementary resources are the ones intentionally excluded by type.
   const supplementaryResources = resourcesWithStatus.filter(
-    r => r.type === 'video' && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
+    r => hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
 
   const byPhase: Record<string, ResourceWithStatus[]> = {};
