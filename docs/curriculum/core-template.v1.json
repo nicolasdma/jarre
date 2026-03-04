@@ -1,6 +1,6 @@
 {
   "version": "core-template.v1",
-  "generatedAt": "2026-03-04T08:50:16.850Z",
+  "generatedAt": "2026-03-04T19:39:55.000Z",
   "phases": [
     {
       "phase": "0",
@@ -857,12 +857,14 @@
         "es": [
           "Implementar entrenamiento básico con gradientes",
           "Explicar funciones de activación, normalización y regularización",
-          "Relacionar decisiones de arquitectura con generalización"
+          "Relacionar decisiones de arquitectura con generalización",
+          "Implementar ejercicios de ML en Python con experimentos reproducibles"
         ],
         "en": [
           "Implement gradient-based training basics",
           "Explain activations, normalization, and regularization",
-          "Relate architectural choices to generalization"
+          "Relate architectural choices to generalization",
+          "Implement ML exercises in Python with reproducible experiments"
         ]
       },
       "concepts": [
@@ -1063,9 +1065,83 @@
             "p3-word2vec-paper",
             "p4-cs224n"
           ]
+        },
+        {
+          "id": "python-fundamentals",
+          "name": "Python Fundamentals",
+          "canonicalDefinition": "Core Python foundations for AI engineering: variables, control flow, functions, modules, classes, exceptions, and package environments. Focused on writing readable, debuggable scripts used in ML workflows.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p2-cs50p",
+            "p2-python-tutorial-official"
+          ]
+        },
+        {
+          "id": "python-data-science-stack",
+          "name": "Python Numerical Computing",
+          "canonicalDefinition": "Working with arrays, vectorized operations, and numerical routines used in ML preprocessing and experimentation. Covers NumPy mental models that transfer directly to tensor frameworks.",
+          "prerequisites": [
+            "python-fundamentals",
+            "linear-algebra-ml"
+          ],
+          "taughtByResourceIds": [
+            "p2-numpy-quickstart",
+            "p2-pytorch-60min-blitz"
+          ]
+        },
+        {
+          "id": "pytorch-fundamentals",
+          "name": "PyTorch Fundamentals",
+          "canonicalDefinition": "Building and training neural networks in PyTorch: tensors, autograd, nn.Module, optimizers, and training loops. Bridges conceptual ML understanding to practical implementation.",
+          "prerequisites": [
+            "python-fundamentals",
+            "python-data-science-stack"
+          ],
+          "taughtByResourceIds": [
+            "p2-pytorch-60min-blitz"
+          ]
+        },
+        {
+          "id": "python-experiment-hygiene",
+          "name": "Python Experiment Hygiene",
+          "canonicalDefinition": "Practical discipline for reliable ML iteration: dependency isolation, script structure, deterministic seeds, and basic testing. Prevents fragile experiments and speeds up debugging.",
+          "prerequisites": [
+            "python-fundamentals"
+          ],
+          "taughtByResourceIds": [
+            "p2-cs50p",
+            "p2-pytest-getting-started",
+            "p2-python-tutorial-official"
+          ]
         }
       ],
       "resources": [
+        {
+          "id": "p2-python-tutorial-official",
+          "title": "Python Tutorial (Official Docs)",
+          "type": "article",
+          "url": "https://docs.python.org/3/tutorial/",
+          "estimatedHours": 6,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "python-fundamentals",
+            "python-experiment-hygiene"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p2-cs50p",
+          "title": "CS50P: Introduction to Programming with Python",
+          "type": "course",
+          "url": "https://cs50.harvard.edu/python/",
+          "estimatedHours": 25,
+          "sortOrder": 95,
+          "teachesConceptIds": [
+            "python-fundamentals",
+            "python-experiment-hygiene"
+          ],
+          "prerequisiteConceptIds": []
+        },
         {
           "id": "kz2h-micrograd",
           "title": "Micrograd — Backprop from Scratch",
@@ -1117,6 +1193,22 @@
           ]
         },
         {
+          "id": "p2-pytorch-60min-blitz",
+          "title": "PyTorch: Deep Learning with PyTorch (60-Minute Blitz)",
+          "type": "article",
+          "url": "https://docs.pytorch.org/tutorials/beginner/deep_learning_60min_blitz.html",
+          "estimatedHours": 5,
+          "sortOrder": 125,
+          "teachesConceptIds": [
+            "pytorch-fundamentals",
+            "python-data-science-stack",
+            "backpropagation-training"
+          ],
+          "prerequisiteConceptIds": [
+            "python-fundamentals"
+          ]
+        },
+        {
           "id": "kz2h-makemore-mlp",
           "title": "Makemore (MLP) — Multi-layer Perceptron",
           "type": "lecture",
@@ -1130,6 +1222,21 @@
           "prerequisiteConceptIds": [
             "backpropagation-training",
             "character-level-lm"
+          ]
+        },
+        {
+          "id": "p2-numpy-quickstart",
+          "title": "NumPy Quickstart",
+          "type": "article",
+          "url": "https://numpy.org/doc/stable/user/quickstart.html",
+          "estimatedHours": 3,
+          "sortOrder": 135,
+          "teachesConceptIds": [
+            "python-data-science-stack"
+          ],
+          "prerequisiteConceptIds": [
+            "python-fundamentals",
+            "linear-algebra-ml"
           ]
         },
         {
@@ -1192,6 +1299,20 @@
           "prerequisiteConceptIds": [
             "activation-functions-batchnorm",
             "backpropagation-training"
+          ]
+        },
+        {
+          "id": "p2-pytest-getting-started",
+          "title": "pytest: Getting Started",
+          "type": "article",
+          "url": "https://docs.pytest.org/en/stable/getting-started.html",
+          "estimatedHours": 2,
+          "sortOrder": 175,
+          "teachesConceptIds": [
+            "python-experiment-hygiene"
+          ],
+          "prerequisiteConceptIds": [
+            "python-fundamentals"
           ]
         },
         {
