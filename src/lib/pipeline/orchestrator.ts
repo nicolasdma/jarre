@@ -380,6 +380,7 @@ async function executePipeline(
         concepts: data.concepts!,
         userId: config.userId,
         title: config.title,
+        resourceIdOverride: config.targetResourceId,
       });
       stagesCompleted++;
 

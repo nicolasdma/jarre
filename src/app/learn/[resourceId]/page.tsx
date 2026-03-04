@@ -30,6 +30,7 @@ import { LilianWengDistributed } from './lilian-weng-distributed';
 import { HoraceHeGpu } from './horace-he-gpu';
 import { READING_QUESTIONS } from './reading-questions';
 import { LearnFlow } from '@/components/learn-flow';
+import { MissingCourseContent } from '@/components/resources/MissingCourseContent';
 import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
 import type { LearnProgress } from '@/lib/learn-progress';
@@ -244,20 +245,15 @@ export default async function LearnPage({ params }: PageProps) {
     );
   }
 
-  // If no sections and no explanation component, show message
-  if (resourceId.startsWith('yt-')) {
+  // If no sections and no static explanation component, route through unified generation UX.
+  if (!renderContent) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-j-bg p-8">
-        <p className="mb-3 text-center text-j-text-secondary">
-          El curso existe pero no tiene secciones completas todavía.
-        </p>
-        <p className="mb-6 text-center text-sm text-j-text-tertiary">
-          Volvé al dashboard y reintentá generar este video para completar APRENDER.
-        </p>
-        <Link href="/dashboard" className="text-j-accent hover:underline">
-          ← Ir al dashboard
-        </Link>
-      </div>
+      <MissingCourseContent
+        resourceId={resourceId}
+        resourceTitle={resource.title}
+        sourceUrl={resource.url}
+        language={language}
+      />
     );
   }
 

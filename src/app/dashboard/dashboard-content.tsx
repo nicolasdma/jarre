@@ -52,10 +52,26 @@ const EXAMPLE_VIDEOS = [
 ];
 
 type PipelineStatus = 'idle' | 'submitting' | 'polling' | 'completed' | 'failed';
+type IntakeMode = 'course' | 'external';
+type ExternalResourceType = 'youtube' | 'article' | 'paper' | 'book' | 'podcast' | 'other';
+type ExternalStatus = 'idle' | 'submitting' | 'completed' | 'failed';
+
+const EXTERNAL_RESOURCE_TYPES: Array<{
+  value: ExternalResourceType;
+  label: { es: string; en: string };
+}> = [
+  { value: 'youtube', label: { es: 'YouTube', en: 'YouTube' } },
+  { value: 'article', label: { es: 'Artículo', en: 'Article' } },
+  { value: 'paper', label: { es: 'Paper', en: 'Paper' } },
+  { value: 'book', label: { es: 'Libro', en: 'Book' } },
+  { value: 'podcast', label: { es: 'Podcast', en: 'Podcast' } },
+  { value: 'other', label: { es: 'Otro', en: 'Other' } },
+];
 
 interface DashboardContentProps {
   courses: PipelineCourseData[];
   language: Language;
+  onExternalResourceAdded?: () => void;
 }
 
 const MAX_STAGGER_ITEMS = 9;
@@ -79,10 +95,17 @@ const immediateVariants = {
   exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };
 
-export function DashboardContent({ courses, language }: DashboardContentProps) {
+export function DashboardContent({ courses, language, onExternalResourceAdded }: DashboardContentProps) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
+  const [mode, setMode] = useState<IntakeMode>('course');
   const [url, setUrl] = useState('');
+  const [externalTitle, setExternalTitle] = useState('');
+  const [externalType, setExternalType] = useState<ExternalResourceType>('youtube');
+  const [externalNotes, setExternalNotes] = useState('');
+  const [externalStatus, setExternalStatus] = useState<ExternalStatus>('idle');
+  const [externalError, setExternalError] = useState<string | null>(null);
+  const [externalResourceId, setExternalResourceId] = useState<string | null>(null);
 
   // Pipeline state
   const [status, setStatus] = useState<PipelineStatus>('idle');
@@ -97,10 +120,11 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
   const [resourceId, setResourceId] = useState<string | null>(null);
 
   const isProcessing = status === 'submitting' || status === 'polling';
+  const isExternalProcessing = externalStatus === 'submitting';
   const labels = STAGE_LABELS[language] || STAGE_LABELS.es;
   const progressPercent = totalStages > 0 ? Math.round((stagesCompleted / totalStages) * 100) : 0;
 
-  const handleSubmit = async () => {
+  const handleCourseSubmit = async () => {
     const trimmed = url.trim();
     if (!trimmed || isProcessing) return;
 
@@ -162,6 +186,79 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
       setError(language === 'es' ? 'Error de conexión' : 'Connection error');
       setStatus('failed');
     }
+  };
+
+  const handleExternalSubmit = async () => {
+    if (isExternalProcessing) return;
+
+    const trimmedUrl = url.trim();
+    const trimmedTitle = externalTitle.trim();
+    const trimmedNotes = externalNotes.trim();
+
+    if (!trimmedTitle) {
+      setExternalError(language === 'es' ? 'El título es obligatorio.' : 'Title is required.');
+      setExternalStatus('failed');
+      return;
+    }
+
+    if (!trimmedUrl && !trimmedNotes) {
+      setExternalError(language === 'es' ? 'Ingresá una URL o notas.' : 'Provide a URL or notes.');
+      setExternalStatus('failed');
+      return;
+    }
+
+    setExternalStatus('submitting');
+    setExternalError(null);
+    setExternalResourceId(null);
+
+    try {
+      const res = await fetchWithKeys('/api/resources/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: trimmedTitle,
+          url: trimmedUrl || undefined,
+          type: externalType,
+          userNotes: trimmedNotes || undefined,
+        }),
+      });
+
+      if (res.status === 401) {
+        setExternalStatus('failed');
+        setExternalError(language === 'es' ? 'Inicia sesión para agregar recursos.' : 'Log in to add resources.');
+        return;
+      }
+
+      if (res.status === 429) {
+        setExternalStatus('failed');
+        setExternalError(language === 'es' ? 'Alcanzaste tu límite mensual de tokens.' : 'Monthly token limit exceeded.');
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        setExternalStatus('failed');
+        setExternalError(data.error || (language === 'es' ? 'No se pudo procesar el recurso.' : 'Failed to process resource.'));
+        return;
+      }
+
+      const data = await res.json() as { resourceId?: string };
+      setExternalResourceId(data.resourceId || null);
+      setExternalStatus('completed');
+      onExternalResourceAdded?.();
+    } catch {
+      setExternalStatus('failed');
+      setExternalError(language === 'es' ? 'Error de conexión' : 'Connection error');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (mode === 'course') {
+      await handleCourseSubmit();
+      return;
+    }
+
+    await handleExternalSubmit();
   };
 
   const pollErrorCountRef = useRef(0);
@@ -268,36 +365,126 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
     localStorage.removeItem(PENDING_JOB_KEY);
   };
 
+  const resetExternal = () => {
+    setExternalStatus('idle');
+    setExternalError(null);
+    setExternalResourceId(null);
+    setExternalTitle('');
+    setExternalType('youtube');
+    setExternalNotes('');
+    setUrl('');
+  };
+
   return (
     <>
       {/* Hero Input */}
       <div className="mb-12">
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={isProcessing || isExternalProcessing}
+            onClick={() => setMode('course')}
+            className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.12em] uppercase border transition-colors ${
+              mode === 'course'
+                ? 'border-j-accent text-j-accent bg-j-accent/10'
+                : 'border-j-border text-j-text-tertiary hover:text-j-text'
+            } disabled:opacity-50`}
+          >
+            {language === 'es' ? 'Curso YouTube' : 'YouTube Course'}
+          </button>
+          <button
+            type="button"
+            disabled={isProcessing || isExternalProcessing}
+            onClick={() => setMode('external')}
+            className={`px-3 py-1.5 text-[11px] font-mono tracking-[0.12em] uppercase border transition-colors ${
+              mode === 'external'
+                ? 'border-j-accent text-j-accent bg-j-accent/10'
+                : 'border-j-border text-j-text-tertiary hover:text-j-text'
+            } disabled:opacity-50`}
+          >
+            {language === 'es' ? 'Recurso Externo' : 'External Resource'}
+          </button>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit();
           }}
-          className="relative"
+          className="space-y-3"
         >
+          {mode === 'external' && (
+            <input
+              type="text"
+              value={externalTitle}
+              onChange={(e) => setExternalTitle(e.target.value)}
+              disabled={isExternalProcessing}
+              placeholder={language === 'es' ? 'Título del recurso' : 'Resource title'}
+              className="w-full px-4 py-3 bg-j-surface border border-j-border rounded-xl text-j-text text-sm placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors"
+            />
+          )}
+
           <input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            disabled={isProcessing}
-            placeholder={language === 'es' ? 'Pega un link de YouTube. Nosotros hacemos el resto.' : "Paste a YouTube link. We'll do the rest."}
-            className="w-full pl-5 pr-14 py-4 bg-j-surface border border-j-border rounded-full text-j-text text-base placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors"
+            disabled={isProcessing || isExternalProcessing}
+            placeholder={mode === 'course'
+              ? (language === 'es' ? 'Pega un link de YouTube. Nosotros hacemos el resto.' : "Paste a YouTube link. We'll do the rest.")
+              : (language === 'es' ? 'URL del recurso (opcional si agregás notas)' : 'Resource URL (optional if you add notes)')}
+            className="w-full px-4 py-3 bg-j-surface border border-j-border rounded-xl text-j-text text-sm placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors"
           />
+
+          {mode === 'external' && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {EXTERNAL_RESOURCE_TYPES.map((typeOption) => (
+                  <button
+                    key={typeOption.value}
+                    type="button"
+                    disabled={isExternalProcessing}
+                    onClick={() => setExternalType(typeOption.value)}
+                    className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] border transition-colors ${
+                      externalType === typeOption.value
+                        ? 'border-j-accent text-j-accent bg-j-accent/10'
+                        : 'border-j-border text-j-text-tertiary hover:text-j-text'
+                    } disabled:opacity-50`}
+                  >
+                    {typeOption.label[language]}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={externalNotes}
+                onChange={(e) => setExternalNotes(e.target.value)}
+                disabled={isExternalProcessing}
+                rows={4}
+                placeholder={language === 'es'
+                  ? 'Notas opcionales: ideas clave, resumen, aprendizajes...'
+                  : 'Optional notes: key ideas, summary, learnings...'}
+                className="w-full px-4 py-3 bg-j-surface border border-j-border rounded-xl text-j-text text-sm placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors resize-y"
+              />
+            </>
+          )}
+
           <button
             type="submit"
-            disabled={!url.trim() || isProcessing}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-j-text text-j-bg hover:bg-j-accent transition-colors disabled:opacity-30 disabled:hover:bg-j-text"
+            disabled={mode === 'course'
+              ? (!url.trim() || isProcessing)
+              : (isExternalProcessing || !externalTitle.trim() || (!url.trim() && !externalNotes.trim()))}
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-j-text text-j-bg hover:bg-j-accent transition-colors disabled:opacity-30 disabled:hover:bg-j-text"
           >
-            <ArrowUp size={18} />
+            <ArrowUp size={16} />
+            <span className="font-mono text-[11px] tracking-[0.15em] uppercase">
+              {mode === 'course'
+                ? (language === 'es' ? 'Generar curso' : 'Generate course')
+                : (language === 'es' ? 'Analizar recurso' : 'Analyze resource')}
+            </span>
           </button>
         </form>
 
         {/* Inline progress */}
-        {isProcessing && (
+        {mode === 'course' && isProcessing && (
           <div className="mt-4 px-2">
             <div className="flex items-center gap-3 mb-2">
               <div className="flex-1 h-1 bg-j-border rounded-full overflow-hidden">
@@ -324,7 +511,7 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
         )}
 
         {/* Auth required */}
-        {status === 'failed' && needsAuth && (
+        {mode === 'course' && status === 'failed' && needsAuth && (
           <div className="mt-4 px-2 flex items-center gap-3">
             <p className="text-sm text-j-text-secondary flex-1">
               {language === 'es'
@@ -339,7 +526,7 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
         )}
 
         {/* Budget exceeded */}
-        {status === 'failed' && needsUpgrade && (
+        {mode === 'course' && status === 'failed' && needsUpgrade && (
           <div className="mt-4 px-2 flex items-center gap-3">
             <p className="text-sm text-j-error flex-1">{error}</p>
             <Link
@@ -359,7 +546,7 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
         )}
 
         {/* Error */}
-        {status === 'failed' && !needsAuth && !needsUpgrade && error && (
+        {mode === 'course' && status === 'failed' && !needsAuth && !needsUpgrade && error && (
           <div className="mt-4 px-2 flex items-center gap-3">
             <p className="text-sm text-j-error flex-1">{error}</p>
             <button
@@ -372,11 +559,47 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
         )}
 
         {/* Completed (brief flash before redirect) */}
-        {status === 'completed' && (
+        {mode === 'course' && status === 'completed' && (
           <div className="mt-4 px-2">
             <p className="font-mono text-[11px] text-j-accent">
               {language === 'es' ? 'Curso creado — redirigiendo...' : 'Course created — redirecting...'}
             </p>
+          </div>
+        )}
+
+        {mode === 'external' && externalStatus === 'submitting' && (
+          <div className="mt-4 px-2">
+            <p className="font-mono text-[11px] text-j-text-secondary animate-pulse">
+              {language === 'es' ? 'Analizando y vinculando al currículo...' : 'Analyzing and linking to curriculum...'}
+            </p>
+          </div>
+        )}
+
+        {mode === 'external' && externalStatus === 'failed' && externalError && (
+          <div className="mt-4 px-2 flex items-center gap-3">
+            <p className="text-sm text-j-error flex-1">{externalError}</p>
+            <button
+              onClick={resetExternal}
+              className="font-mono text-[11px] tracking-[0.15em] uppercase text-j-text-tertiary hover:text-j-text transition-colors shrink-0"
+            >
+              {language === 'es' ? 'Reintentar' : 'Retry'}
+            </button>
+          </div>
+        )}
+
+        {mode === 'external' && externalStatus === 'completed' && (
+          <div className="mt-4 px-2 flex items-center gap-3">
+            <p className="text-sm text-j-accent flex-1">
+              {language === 'es' ? 'Recurso analizado y guardado.' : 'Resource analyzed and saved.'}
+            </p>
+            {externalResourceId && (
+              <Link
+                href={`/resources/${externalResourceId}`}
+                className="font-mono text-[11px] tracking-[0.15em] uppercase text-j-accent hover:underline shrink-0"
+              >
+                {language === 'es' ? 'Abrir' : 'Open'}
+              </Link>
+            )}
           </div>
         )}
 
@@ -416,7 +639,7 @@ export function DashboardContent({ courses, language }: DashboardContentProps) {
       )}
 
       {/* Empty state — only when idle and no courses */}
-      {courses.length === 0 && status === 'idle' && (
+      {mode === 'course' && courses.length === 0 && status === 'idle' && (
         <div className="py-12">
           <p className="text-sm text-j-text-tertiary text-center mb-8">
             {language === 'es'

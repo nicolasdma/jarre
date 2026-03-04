@@ -2,7 +2,7 @@
  * POST /api/pipeline
  *
  * Start a new YouTube → Course pipeline job.
- * Body: { url: string, title?: string }
+ * Body: { url?: string, title?: string, resourceId?: string }
  * Returns: { jobId, status: 'queued' }
  */
 
@@ -24,25 +24,60 @@ function buildUserVideoResourceId(videoId: string, userId: string): string {
 
 export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const body = await request.json();
-  const { url, title } = body as { url?: string; title?: string };
+  const {
+    url: requestedUrl,
+    title: requestedTitle,
+    resourceId: requestedResourceId,
+  } = body as { url?: string; title?: string; resourceId?: string };
 
-  if (!url || typeof url !== 'string') {
+  let effectiveUrl = typeof requestedUrl === 'string' ? requestedUrl.trim() : '';
+  let effectiveTitle = typeof requestedTitle === 'string' ? requestedTitle.trim() : '';
+  let targetResourceId: string | undefined;
+
+  if (requestedResourceId) {
+    const { data: targetResource, error: targetErr } = await supabase
+      .from(TABLES.resources)
+      .select('id, title, url, created_by')
+      .eq('id', requestedResourceId)
+      .maybeSingle();
+
+    if (targetErr) {
+      throw new Error(`Failed to load target resource: ${targetErr.message}`);
+    }
+    if (!targetResource) {
+      throw badRequest('Target resource not found');
+    }
+
+    // Allow backfill for public resources and the user's own generated resources.
+    if (targetResource.created_by && targetResource.created_by !== user.id) {
+      throw badRequest('You do not have access to regenerate this resource');
+    }
+
+    targetResourceId = targetResource.id;
+    effectiveTitle = targetResource.title || effectiveTitle;
+    effectiveUrl = (targetResource.url || effectiveUrl || '').trim();
+  }
+
+  if (!effectiveUrl) {
     throw badRequest('URL is required');
   }
 
   // Validate it's a YouTube URL
-  const videoId = extractYouTubeVideoId(url);
+  const videoId = extractYouTubeVideoId(effectiveUrl);
   if (!videoId) {
-    throw badRequest('Invalid YouTube URL. Supported formats: youtube.com/watch?v=... or youtu.be/...');
+    throw badRequest('Invalid YouTube URL. Supported formats: youtube.com/watch?v=..., youtu.be/..., shorts, embed, or live.');
   }
 
-  // Skip pipeline if this video was already processed
-  const resourceId = buildUserVideoResourceId(videoId, user.id);
+  // For curriculum backfill, reuse the existing resource ID.
+  // For ad-hoc generation, keep user-scoped deterministic ID.
+  const resourceId = targetResourceId || buildUserVideoResourceId(videoId, user.id);
+
+  // Skip pipeline if this resource is already fully processed.
   const { data: existing } = await supabase
     .from(TABLES.resources)
     .select('id')
     .eq('id', resourceId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     const { count: sectionCount } = await supabase
@@ -78,8 +113,9 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   await startPipeline({
     jobId,
     userId: user.id,
-    url,
-    title,
+    url: effectiveUrl,
+    title: effectiveTitle || undefined,
+    targetResourceId,
     targetLanguage: language,
     deepseekApiKey: byokKeys.deepseek,
   });

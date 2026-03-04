@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Layers, Plus, Sparkles } from 'lucide-react';
+import { Layers, Sparkles } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { UserResourceCard } from './user-resource-card';
 import { ProjectMilestone } from './project-milestone';
-import { AddResourceModal } from '@/components/resources/AddResourceModal';
 import { InsightBar } from '@/components/insights/InsightBar';
 import { VoiceModeLauncher } from '@/components/voice/VoiceModeLauncher';
 import { DashboardContent } from '../dashboard/dashboard-content';
@@ -94,7 +93,6 @@ export function LibraryContent({
   const [activeGlobalTab, setActiveGlobalTab] = useState<GlobalTab>('curriculum');
   const [activeCurriculumPhase, setActiveCurriculumPhase] = useState<ActiveCurriculumPhase>('all');
   const [hydrated, setHydrated] = useState(false);
-  const [showAddResource, setShowAddResource] = useState(false);
 
   const phases = useMemo(
     () => Object.keys(byPhase).sort((a, b) => Number(a) - Number(b)),
@@ -165,17 +163,6 @@ export function LibraryContent({
             />
           </div>
 
-          {isLoggedIn && (
-            <div className="flex-shrink-0 pb-2 pl-4">
-              <button
-                onClick={() => setShowAddResource(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-[10px] tracking-[0.15em] uppercase bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover transition-colors"
-              >
-                <Plus size={12} />
-                {language === 'es' ? 'Recurso' : 'Resource'}
-              </button>
-            </div>
-          )}
         </div>
 
         {activeGlobalTab === 'curriculum' && (
@@ -224,10 +211,14 @@ export function LibraryContent({
 
           <div className="mb-4">
             <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {language === 'es' ? 'Cursos de YouTube' : 'YouTube Courses'}
+              {language === 'es' ? 'Entrada Unificada' : 'Unified Intake'}
             </p>
           </div>
-          <DashboardContent courses={pipelineCourses} language={language} />
+          <DashboardContent
+            courses={pipelineCourses}
+            language={language}
+            onExternalResourceAdded={() => router.refresh()}
+          />
 
           {isLoggedIn ? (
             <>
@@ -363,13 +354,6 @@ export function LibraryContent({
           </div>
         </details>
       )}
-
-      <AddResourceModal
-        isOpen={showAddResource}
-        onClose={() => setShowAddResource(false)}
-        language={language}
-        onResourceAdded={() => router.refresh()}
-      />
     </>
   );
 }

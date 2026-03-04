@@ -22,14 +22,35 @@ const log = createLogger('Pipeline:Resolve');
  * Extract YouTube video ID from various URL formats.
  */
 export function extractYouTubeVideoId(url: string): string | null {
+  const trimmed = url.trim();
+
+  // Accept bare IDs for internal tools/tests.
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
   try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes('youtube.com')) {
-      return parsed.searchParams.get('v');
+    const parsed = new URL(trimmed);
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+    if (hostname === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\/+/, '').split('/')[0];
+      return id || null;
     }
-    if (parsed.hostname === 'youtu.be') {
-      return parsed.pathname.slice(1) || null;
+
+    if (hostname.endsWith('youtube.com')) {
+      const byQuery = parsed.searchParams.get('v');
+      if (byQuery) return byQuery;
+
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2) {
+        const [prefix, id] = parts;
+        if (['shorts', 'embed', 'live', 'v'].includes(prefix)) {
+          return id || null;
+        }
+      }
     }
+
     return null;
   } catch {
     return null;

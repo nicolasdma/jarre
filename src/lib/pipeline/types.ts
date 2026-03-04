@@ -14,6 +14,7 @@ export interface PipelineConfig {
   userId: string;
   url: string;
   title?: string;
+  targetResourceId?: string;
   targetLanguage: string;
   deepseekApiKey?: string;
 }

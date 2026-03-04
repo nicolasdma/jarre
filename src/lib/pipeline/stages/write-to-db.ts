@@ -122,20 +122,41 @@ export async function writeToDb(params: {
   concepts: ConceptOutput;
   userId: string;
   title?: string;
+  resourceIdOverride?: string;
 }): Promise<WriteOutput> {
-  const { resolve, content, quizzes, videoMap, concepts, userId, title } = params;
+  const {
+    resolve,
+    content,
+    quizzes,
+    videoMap,
+    concepts,
+    userId,
+    title,
+    resourceIdOverride,
+  } = params;
   const supabase = createAdminClient();
-  const resourceId = generateResourceId(resolve.videoId, userId);
-  const placement = await inferPlacement({ userId, concepts });
+  const resourceId = resourceIdOverride || generateResourceId(resolve.videoId, userId);
 
   log.info(`Writing resource ${resourceId} to database...`);
 
   // Step 1: Check if resource already exists (idempotent)
   const { data: existing } = await supabase
     .from(TABLES.resources)
-    .select('id')
+    .select('id, phase, sort_order, url, type')
     .eq('id', resourceId)
-    .single();
+    .maybeSingle();
+
+  if (resourceIdOverride && !existing) {
+    throw new Error(`Target resource "${resourceIdOverride}" not found`);
+  }
+
+  const preserveExistingPlacement = !!(resourceIdOverride && existing);
+  const placement = preserveExistingPlacement
+    ? {
+        phase: String(existing?.phase ?? '0'),
+        sortOrder: existing?.sort_order ?? 0,
+      }
+    : await inferPlacement({ userId, concepts });
 
   if (existing) {
     // Clean up existing dependent data for re-generation
@@ -176,15 +197,30 @@ export async function writeToDb(params: {
       .eq('resource_id', resourceId);
 
     // Update resource
+    const updatePayload: Record<string, unknown> = {
+      title: title || resolve.title,
+      activate_data: content.activateData as unknown as Record<string, unknown>,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!preserveExistingPlacement) {
+      updatePayload.phase = placement.phase;
+      updatePayload.sort_order = placement.sortOrder;
+    }
+
+    // Keep legacy video entries visible in curriculum cards.
+    if (existing.type === 'video') {
+      updatePayload.type = 'lecture';
+    }
+
+    // If URL is missing, persist the canonical YouTube watch URL.
+    if (!existing.url) {
+      updatePayload.url = `https://www.youtube.com/watch?v=${resolve.videoId}`;
+    }
+
     const { error } = await supabase
       .from(TABLES.resources)
-      .update({
-        title: title || resolve.title,
-        phase: placement.phase,
-        sort_order: placement.sortOrder,
-        activate_data: content.activateData as unknown as Record<string, unknown>,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', resourceId);
 
     if (error) throw new Error(`Failed to update resource: ${error.message}`);
