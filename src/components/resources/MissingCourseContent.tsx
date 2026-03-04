@@ -4,25 +4,25 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
-import { isValidYoutubeUrl } from '@/lib/utils/youtube';
+import { detectPipelineSourceType } from '@/lib/utils/resource-url';
 import type { Language } from '@/lib/translations';
 
 type GenerationStatus = 'idle' | 'submitting' | 'polling' | 'failed';
 
 const STAGE_LABELS: Record<Language, Record<string, string>> = {
   es: {
-    resolve: 'Descargando transcripción...',
+    resolve: 'Analizando recurso fuente...',
     segment: 'Segmentando contenido...',
     content: 'Generando secciones...',
-    video_map: 'Mapeando video...',
+    video_map: 'Mapeando referencias...',
     concepts: 'Enlazando conceptos...',
     write_db: 'Guardando en base de datos...',
   },
   en: {
-    resolve: 'Downloading transcript...',
+    resolve: 'Analyzing source material...',
     segment: 'Segmenting content...',
     content: 'Generating sections...',
-    video_map: 'Mapping video...',
+    video_map: 'Mapping references...',
     concepts: 'Linking concepts...',
     write_db: 'Writing to database...',
   },
@@ -65,13 +65,18 @@ export function MissingCourseContent({
     const trimmedUrl = youtubeUrl.trim();
     if (!trimmedUrl) {
       setStatus('failed');
-      setError(isEs ? 'Pegá un link de YouTube para generar este recurso.' : 'Paste a YouTube link to generate this resource.');
+      setError(isEs
+        ? 'Pegá un link del recurso (YouTube o PDF) para generar este curso.'
+        : 'Paste a source link (YouTube or PDF) to generate this course.');
       return;
     }
 
-    if (!isValidYoutubeUrl(trimmedUrl)) {
+    const sourceType = detectPipelineSourceType(trimmedUrl);
+    if (sourceType === 'unsupported') {
       setStatus('failed');
-      setError(isEs ? 'El link no parece una URL válida de YouTube.' : 'This does not look like a valid YouTube URL.');
+      setError(isEs
+        ? 'El link no parece válido. Soportamos YouTube o PDF directo.'
+        : 'This link is not supported. Use a YouTube or direct PDF URL.');
       return;
     }
 
@@ -170,8 +175,8 @@ export function MissingCourseContent({
         <h1 className="text-lg sm:text-xl text-j-text mb-2">{resourceTitle}</h1>
         <p className="text-sm text-j-text-secondary mb-6">
           {isEs
-            ? 'Este recurso aún no tiene secciones generadas. Pegá o ajustá su link de YouTube para crearlas.'
-            : 'This resource does not have generated sections yet. Paste or adjust its YouTube link to generate them.'}
+            ? 'Este recurso aún no tiene secciones generadas. Pegá o ajustá su link (YouTube o PDF) para crearlas.'
+            : 'This resource does not have generated sections yet. Paste or adjust its source link (YouTube or PDF) to generate them.'}
         </p>
 
         <div className="mb-5">
@@ -181,8 +186,8 @@ export function MissingCourseContent({
             onChange={(e) => setYoutubeUrl(e.target.value)}
             disabled={isProcessing}
             placeholder={isEs
-              ? 'https://www.youtube.com/watch?v=...'
-              : 'https://www.youtube.com/watch?v=...'}
+              ? 'https://www.youtube.com/watch?v=... o https://.../paper.pdf'
+              : 'https://www.youtube.com/watch?v=... or https://.../paper.pdf'}
             className="w-full px-4 py-3 bg-j-surface border border-j-border rounded-xl text-j-text text-sm placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors"
           />
           <p className="mt-2 text-xs text-j-text-tertiary">

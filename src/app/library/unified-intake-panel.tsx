@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUp, Loader2 } from 'lucide-react';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
+import { detectPipelineSourceType } from '@/lib/utils/resource-url';
 import { isValidYoutubeUrl } from '@/lib/utils/youtube';
 import type { Language } from '@/lib/translations';
 
@@ -25,18 +26,18 @@ const PENDING_JOB_KEY = 'jarre-unified-intake-job';
 
 const STAGE_LABELS: Record<string, Record<string, string>> = {
   es: {
-    resolve: 'Descargando transcripción...',
+    resolve: 'Analizando recurso fuente...',
     segment: 'Segmentando contenido...',
     content: 'Generando secciones...',
-    video_map: 'Mapeando video...',
+    video_map: 'Mapeando referencias...',
     concepts: 'Vinculando conceptos...',
     write_db: 'Guardando en base de datos...',
   },
   en: {
-    resolve: 'Downloading transcript...',
+    resolve: 'Analyzing source material...',
     segment: 'Segmenting content...',
     content: 'Generating sections...',
-    video_map: 'Mapping video...',
+    video_map: 'Mapping references...',
     concepts: 'Linking concepts...',
     write_db: 'Writing to database...',
   },
@@ -252,10 +253,10 @@ export function UnifiedIntakePanel({ language, onResourceAdded }: UnifiedIntakeP
     setResult(null);
 
     const url = extractFirstUrl(input);
-    const isYoutube = !!url && isValidYoutubeUrl(url);
+    const pipelineSource = url ? detectPipelineSourceType(url) : 'unsupported';
 
     try {
-      if (isYoutube && url) {
+      if (url && pipelineSource !== 'unsupported') {
         await submitYoutube(url);
         return;
       }

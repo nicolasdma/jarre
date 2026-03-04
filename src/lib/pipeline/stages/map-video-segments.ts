@@ -23,6 +23,15 @@ export function mapVideoSegments(
   contentOutput: ContentOutput,
   resolve: ResolveOutput,
 ): VideoMapOutput {
+  if ((resolve.sourceType ?? 'youtube') !== 'youtube') {
+    return {
+      segmentsBySection: contentOutput.sections.map((section) => ({
+        sectionTitle: section.title,
+        segments: [],
+      })),
+    };
+  }
+
   const segmentsBySection: VideoMapOutput['segmentsBySection'] = [];
 
   for (const section of contentOutput.sections) {

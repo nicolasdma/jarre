@@ -13,12 +13,14 @@ import { TABLES } from '@/lib/db/tables';
 import { PIPELINE_TOTAL_STAGES } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
 import { extractYouTubeVideoId, resolveYouTube } from './stages/resolve-youtube';
+import { resolvePdf } from './stages/resolve-pdf';
 import { segmentContent } from './stages/segment-content';
 import { generateSections } from './stages/generate-sections';
 import { generateQuizzes } from './stages/generate-quizzes';
 import { mapVideoSegments } from './stages/map-video-segments';
 import { linkConceptsStage } from './stages/link-concepts';
 import { writeToDb } from './stages/write-to-db';
+import { detectPipelineSourceType } from '@/lib/utils/resource-url';
 import type {
   PipelineConfig,
   PipelineData,
@@ -332,8 +334,13 @@ async function executePipeline(
   await updateJob(jobId, { status: 'processing' });
 
   try {
+    const sourceType = detectPipelineSourceType(config.url);
+    if (sourceType === 'unsupported') {
+      throw new Error('Unsupported source URL. Use a YouTube or direct PDF link.');
+    }
+
     // Warm cache for repeated generations of the same video (resolve + segment).
-    const requestedVideoId = extractYouTubeVideoId(config.url);
+    const requestedVideoId = sourceType === 'youtube' ? extractYouTubeVideoId(config.url) : null;
     if (!data.resolve && requestedVideoId) {
       const cached = await loadResolveSegmentCache({
         jobId,
@@ -368,14 +375,16 @@ async function executePipeline(
     // Stage 1: Resolve YouTube
     if (!data.resolve) {
       await updateJob(jobId, { current_stage: 'resolve' });
-      log.info(`[${jobId}] Stage 1/${PIPELINE_TOTAL_STAGES}: Resolving YouTube...`);
+      log.info(`[${jobId}] Stage 1/${PIPELINE_TOTAL_STAGES}: Resolving source...`);
 
-      data.resolve = await resolveYouTube(config.url);
+      data.resolve = sourceType === 'youtube'
+        ? await resolveYouTube(config.url)
+        : await resolvePdf(config.url, config.title);
       stagesCompleted++;
 
       await updateJob(jobId, {
         stages_completed: stagesCompleted,
-        video_id: data.resolve.videoId,
+        video_id: sourceType === 'youtube' ? data.resolve.videoId : null,
         title: config.title || data.resolve.title,
         language: data.resolve.language,
         stage_outputs: { ...savedOutputs, resolve: data.resolve },
@@ -387,7 +396,11 @@ async function executePipeline(
       await updateJob(jobId, { current_stage: 'segment' });
       log.info(`[${jobId}] Stage 2/${PIPELINE_TOTAL_STAGES}: Segmenting content...`);
 
-      const { output, tokensUsed } = await segmentContent(data.resolve, config.deepseekApiKey);
+      const { output, tokensUsed } = await segmentContent(
+        data.resolve,
+        data.resolve.sourceType ?? 'youtube',
+        config.deepseekApiKey,
+      );
       data.segment = output;
       totalTokens += tokensUsed;
       stagesCompleted++;
@@ -417,6 +430,10 @@ async function executePipeline(
         videoTitle,
         targetLang,
         config.deepseekApiKey,
+        {
+          sourceType: data.resolve.sourceType ?? 'youtube',
+          sourceLanguage: data.resolve.language,
+        },
       );
       totalTokens += contentTokens;
 

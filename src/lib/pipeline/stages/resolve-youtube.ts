@@ -327,5 +327,8 @@ export async function resolveYouTube(url: string): Promise<ResolveOutput> {
     snippets,
     chapters: metadata.chapters,
     fullTranscript,
+    sourceType: 'youtube',
+    sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    sourceId: videoId,
   };
 }

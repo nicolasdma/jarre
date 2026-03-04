@@ -26,8 +26,12 @@ import type {
 
 const log = createLogger('Pipeline:WriteDB');
 
-function generateResourceId(videoId: string, userId: string): string {
-  return `yt-${videoId}-${userId.slice(0, 8)}`;
+function generateResourceId(resolve: ResolveOutput, userId: string): string {
+  if ((resolve.sourceType ?? 'youtube') === 'pdf') {
+    const baseId = resolve.sourceId || resolve.videoId;
+    return `${baseId}-${userId.slice(0, 8)}`;
+  }
+  return `yt-${resolve.videoId}-${userId.slice(0, 8)}`;
 }
 
 function slugify(text: string): string {
@@ -135,7 +139,9 @@ export async function writeToDb(params: {
     resourceIdOverride,
   } = params;
   const supabase = createAdminClient();
-  const resourceId = resourceIdOverride || generateResourceId(resolve.videoId, userId);
+  const sourceType = resolve.sourceType ?? 'youtube';
+  const sourceUrl = resolve.sourceUrl || (sourceType === 'youtube' ? `https://www.youtube.com/watch?v=${resolve.videoId}` : null);
+  const resourceId = resourceIdOverride || generateResourceId(resolve, userId);
   const BATCH_SIZE = 200;
 
   const insertRowsInBatches = async (params: {
@@ -251,9 +257,9 @@ export async function writeToDb(params: {
       updatePayload.type = 'lecture';
     }
 
-    // If URL is missing, persist the canonical YouTube watch URL.
-    if (!existing.url) {
-      updatePayload.url = `https://www.youtube.com/watch?v=${resolve.videoId}`;
+    // Persist canonical/normalized source URL when missing or corrected by the user.
+    if (sourceUrl && (!existing.url || existing.url !== sourceUrl)) {
+      updatePayload.url = sourceUrl;
     }
 
     const { error } = await supabase
@@ -263,15 +269,17 @@ export async function writeToDb(params: {
 
     if (error) throw new Error(`Failed to update resource: ${error.message}`);
   } else {
+    const inferredType = sourceType === 'pdf' ? 'paper' : 'lecture';
+
     // Create new resource and place it in the phase inferred from linked curriculum concepts.
     const { error } = await supabase.from(TABLES.resources).insert({
       id: resourceId,
       title: title || resolve.title,
-      type: 'lecture',
+      type: inferredType,
       phase: placement.phase,
       sort_order: placement.sortOrder,
       author: null,
-      url: `https://www.youtube.com/watch?v=${resolve.videoId}`,
+      url: sourceUrl,
       is_archived: false,
       activate_data: content.activateData as unknown as Record<string, unknown>,
       created_by: userId,
@@ -409,6 +417,9 @@ export async function writeToDb(params: {
         concept_id: conceptId,
         section_title: section.title,
         content_markdown: section.contentMarkdown,
+        content_original: section.contentOriginal ?? null,
+        start_page: section.startPage ?? null,
+        end_page: section.endPage ?? null,
         sort_order: i + 1,
       })
       .select('id')

@@ -1,7 +1,8 @@
 /**
  * Jarre - Pipeline Types
  *
- * Type definitions for the YouTube → Course auto-generation pipeline.
+ * Type definitions for the source → Course auto-generation pipeline.
+ * Current supported sources: YouTube videos and direct PDF documents.
  * Each stage produces a typed output that feeds into the next stage.
  */
 
@@ -49,6 +50,7 @@ export interface TranscriptSnippet {
   text: string;
   start: number;
   duration: number;
+  pageNumber?: number;
 }
 
 export interface YouTubeChapter {
@@ -64,6 +66,9 @@ export interface ResolveOutput {
   snippets: TranscriptSnippet[];
   chapters: YouTubeChapter[];
   fullTranscript: string;
+  sourceType?: 'youtube' | 'pdf';
+  sourceUrl?: string;
+  sourceId?: string;
 }
 
 export interface SegmentSection {
@@ -73,6 +78,8 @@ export interface SegmentSection {
   startSeconds: number;
   endSeconds: number;
   transcriptText: string;
+  startPage?: number;
+  endPage?: number;
 }
 
 export interface SegmentOutput {
@@ -84,9 +91,12 @@ export interface ContentSection {
   conceptName: string;
   conceptSlug: string;
   contentMarkdown: string;
+  contentOriginal?: string;
   headings: string[];
   startSeconds: number;
   endSeconds: number;
+  startPage?: number;
+  endPage?: number;
 }
 
 export interface ActivateData {

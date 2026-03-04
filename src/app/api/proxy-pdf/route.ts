@@ -3,51 +3,12 @@ import { PDFDocument } from 'pdf-lib';
 import { PDF_CACHE_TTL_MS } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
 import { withAuth } from '@/lib/api/middleware';
+import { isAllowedPdfDomain, normalizePdfSourceUrl } from '@/lib/pdf/source-policy';
 
 const log = createLogger('ProxyPDF');
 
 // Cache fetched PDFs in memory to avoid re-downloading
 const pdfCache = new Map<string, { buffer: ArrayBuffer; timestamp: number }>();
-
-/**
- * Allowed PDF source domains.
- * Only these hosts are permitted to prevent SSRF attacks.
- */
-const ALLOWED_PDF_DOMAINS = [
-  'arxiv.org',
-  'dl.acm.org',
-  'papers.nips.cc',
-  'proceedings.neurips.cc',
-  'openreview.net',
-  'aclanthology.org',
-  'proceedings.mlr.press',
-  'jmlr.org',
-  'raw.githubusercontent.com',
-  'github.com',
-  'huggingface.co',
-];
-
-/**
- * Validate that a URL points to an allowed domain.
- */
-function isAllowedDomain(urlString: string): boolean {
-  try {
-    const parsed = new URL(urlString);
-
-    // Only allow HTTPS
-    if (parsed.protocol !== 'https:') {
-      return false;
-    }
-
-    // Check hostname against whitelist (allow subdomains)
-    const hostname = parsed.hostname.toLowerCase();
-    return ALLOWED_PDF_DOMAINS.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-    );
-  } catch {
-    return false;
-  }
-}
 
 /**
  * GET /api/proxy-pdf?url=...&start=...&end=...
@@ -65,29 +26,30 @@ export const GET = withAuth(async (request) => {
 
   try {
     const decodedUrl = decodeURIComponent(url);
+    const normalizedUrl = normalizePdfSourceUrl(decodedUrl);
 
     // Validate URL structure
-    if (!isAllowedDomain(decodedUrl)) {
-      log.error(`Blocked PDF request for disallowed domain: ${decodedUrl}`);
+    if (!isAllowedPdfDomain(normalizedUrl)) {
+      log.error(`Blocked PDF request for disallowed domain: ${normalizedUrl}`);
       return NextResponse.json(
         { error: 'Domain not allowed. Only known academic sources are permitted.' },
         { status: 403 }
       );
     }
 
-    if (!decodedUrl.toLowerCase().includes('.pdf')) {
+    if (!normalizedUrl.toLowerCase().includes('.pdf')) {
       return NextResponse.json({ error: 'Only PDF files allowed' }, { status: 400 });
     }
 
     // Check cache
-    const cached = pdfCache.get(decodedUrl);
+    const cached = pdfCache.get(normalizedUrl);
     let pdfBuffer: ArrayBuffer;
 
     if (cached && Date.now() - cached.timestamp < PDF_CACHE_TTL_MS) {
       pdfBuffer = cached.buffer;
     } else {
       // Fetch the PDF
-      const response = await fetch(decodedUrl, {
+      const response = await fetch(normalizedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; JarreApp/1.0)',
         },
@@ -104,7 +66,7 @@ export const GET = withAuth(async (request) => {
       pdfBuffer = await response.arrayBuffer();
 
       // Cache the full PDF
-      pdfCache.set(decodedUrl, { buffer: pdfBuffer, timestamp: Date.now() });
+      pdfCache.set(normalizedUrl, { buffer: pdfBuffer, timestamp: Date.now() });
     }
 
     // If page range specified, extract those pages

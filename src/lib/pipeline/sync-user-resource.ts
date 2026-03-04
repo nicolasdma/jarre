@@ -8,6 +8,7 @@ type ResourceRow = {
   id: string;
   title: string;
   url: string | null;
+  type: string;
   activate_data: { summary?: string } | null;
 };
 
@@ -26,6 +27,16 @@ function extractConceptName(
   return concepts?.name || fallback;
 }
 
+function mapResourceTypeToUserType(resourceType: string): 'youtube' | 'article' | 'paper' | 'book' | 'podcast' | 'other' {
+  const normalized = resourceType.toLowerCase();
+  if (normalized === 'paper') return 'paper';
+  if (normalized === 'article') return 'article';
+  if (normalized === 'book') return 'book';
+  if (normalized === 'podcast') return 'podcast';
+  if (['video', 'course', 'lecture'].includes(normalized)) return 'youtube';
+  return 'other';
+}
+
 export async function syncPipelineResourceToUserKnowledge(params: {
   supabase: SupabaseClient;
   userId: string;
@@ -35,7 +46,7 @@ export async function syncPipelineResourceToUserKnowledge(params: {
 
   const { data: resource, error: resourceErr } = await supabase
     .from(TABLES.resources)
-    .select('id, title, url, activate_data')
+    .select('id, title, url, type, activate_data')
     .eq('id', resourceId)
     .maybeSingle();
 
@@ -48,12 +59,13 @@ export async function syncPipelineResourceToUserKnowledge(params: {
 
   const typedResource = resource as ResourceRow;
   const summary = typedResource.activate_data?.summary ?? null;
+  const userResourceType = mapResourceTypeToUserType(typedResource.type || 'other');
 
   const existingLookup = supabase
     .from(TABLES.userResources)
     .select('id, user_notes')
     .eq('user_id', userId)
-    .eq('type', 'youtube')
+    .eq('type', userResourceType)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -77,7 +89,7 @@ export async function syncPipelineResourceToUserKnowledge(params: {
       .update({
         title: typedResource.title,
         url: typedResource.url,
-        type: 'youtube',
+        type: userResourceType,
         summary,
         status: 'completed',
         updated_at: new Date().toISOString(),
@@ -96,7 +108,7 @@ export async function syncPipelineResourceToUserKnowledge(params: {
         user_id: userId,
         title: typedResource.title,
         url: typedResource.url,
-        type: 'youtube',
+        type: userResourceType,
         summary,
         status: 'completed',
       })
@@ -138,7 +150,7 @@ export async function syncPipelineResourceToUserKnowledge(params: {
       relationship: 'relates' as const,
       relevance_score: 0.8,
       extracted_concept_name: extractConceptName(link.concepts, link.concept_id),
-      explanation: 'Linked automatically from a YouTube course generated in Jarre.',
+      explanation: 'Linked automatically from a generated course in Jarre.',
       source: 'ingestion' as const,
     }));
 
@@ -171,7 +183,7 @@ export async function syncPipelineResourceToUserKnowledge(params: {
         event_type: 'added',
         concepts_touched: conceptIds,
         metadata: {
-          source: 'youtube_pipeline',
+          source: 'pipeline',
           resourceId,
           linksCount: conceptIds.length,
         },

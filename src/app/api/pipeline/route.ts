@@ -1,25 +1,31 @@
 /**
  * POST /api/pipeline
  *
- * Start a new YouTube → Course pipeline job.
+ * Start a new source → Course pipeline job (YouTube or PDF).
  * Body: { url?: string, title?: string, resourceId?: string }
  * Returns: { jobId, status: 'queued' }
  */
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
 import { badRequest } from '@/lib/api/errors';
 import { jsonOk } from '@/lib/api/errors';
 import { startPipeline } from '@/lib/pipeline/orchestrator';
-import { extractYouTubeVideoId } from '@/lib/pipeline/stages/resolve-youtube';
+import { extractYoutubeId } from '@/lib/utils/youtube';
 import { getUserLanguage } from '@/lib/db/queries/user';
 import { TABLES } from '@/lib/db/tables';
 import { checkTokenBudget } from '@/lib/api/rate-limit';
 import { syncPipelineResourceToUserKnowledge } from '@/lib/pipeline/sync-user-resource';
+import { detectPipelineSourceType, normalizePdfLikeUrl } from '@/lib/utils/resource-url';
 
 function buildUserVideoResourceId(videoId: string, userId: string): string {
   return `yt-${videoId}-${userId.slice(0, 8)}`;
+}
+
+function buildUserPdfResourceId(pdfUrl: string, userId: string): string {
+  const hash = createHash('sha1').update(pdfUrl).digest('hex').slice(0, 12);
+  return `pdf-${hash}-${userId.slice(0, 8)}`;
 }
 
 export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
@@ -54,23 +60,32 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
     }
 
     targetResourceId = targetResource.id;
-    effectiveTitle = targetResource.title || effectiveTitle;
-    effectiveUrl = (targetResource.url || effectiveUrl || '').trim();
+    effectiveTitle = effectiveTitle || targetResource.title || '';
+    effectiveUrl = (effectiveUrl || targetResource.url || '').trim();
   }
 
   if (!effectiveUrl) {
     throw badRequest('URL is required');
   }
 
-  // Validate it's a YouTube URL
-  const videoId = extractYouTubeVideoId(effectiveUrl);
-  if (!videoId) {
-    throw badRequest('Invalid YouTube URL. Supported formats: youtube.com/watch?v=..., youtu.be/..., shorts, embed, or live.');
+  const sourceType = detectPipelineSourceType(effectiveUrl);
+  if (sourceType === 'unsupported') {
+    throw badRequest('Invalid source URL. Supported sources: YouTube links or direct PDF links.');
   }
 
   // For curriculum backfill, reuse the existing resource ID.
   // For ad-hoc generation, keep user-scoped deterministic ID.
-  const resourceId = targetResourceId || buildUserVideoResourceId(videoId, user.id);
+  const normalizedUrl = sourceType === 'pdf' ? normalizePdfLikeUrl(effectiveUrl) : effectiveUrl;
+  const videoId = sourceType === 'youtube' ? extractYoutubeId(normalizedUrl) : null;
+
+  if (sourceType === 'youtube' && !videoId) {
+    throw badRequest('Invalid YouTube URL. Supported formats: youtube.com/watch?v=..., youtu.be/..., shorts, embed, or live.');
+  }
+
+  const resourceId = targetResourceId
+    || (sourceType === 'youtube' && videoId
+      ? buildUserVideoResourceId(videoId, user.id)
+      : buildUserPdfResourceId(normalizedUrl, user.id));
 
   // Skip pipeline if this resource is already fully processed.
   const { data: existing } = await supabase
@@ -113,7 +128,7 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   await startPipeline({
     jobId,
     userId: user.id,
-    url: effectiveUrl,
+    url: normalizedUrl,
     title: effectiveTitle || undefined,
     targetResourceId,
     targetLanguage: language,

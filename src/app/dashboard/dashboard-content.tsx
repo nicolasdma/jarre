@@ -10,22 +10,22 @@ import { PricingModal } from '@/components/billing/pricing-modal';
 import type { Language } from '@/lib/translations';
 import { PipelineCourseCard, type PipelineCourseData } from './pipeline-course-card';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
-import { isValidYoutubeUrl } from '@/lib/utils/youtube';
+import { detectPipelineSourceType } from '@/lib/utils/resource-url';
 
 const STAGE_LABELS: Record<string, Record<string, string>> = {
   es: {
-    resolve: 'Descargando transcripción...',
+    resolve: 'Analizando recurso fuente...',
     segment: 'Segmentando contenido...',
     content: 'Generando secciones...',
-    video_map: 'Mapeando video...',
+    video_map: 'Mapeando referencias...',
     concepts: 'Enlazando conceptos...',
     write_db: 'Guardando en base de datos...',
   },
   en: {
-    resolve: 'Downloading transcript...',
+    resolve: 'Analyzing source material...',
     segment: 'Segmenting content...',
     content: 'Generating sections...',
-    video_map: 'Mapping video...',
+    video_map: 'Mapping references...',
     concepts: 'Linking concepts...',
     write_db: 'Writing to database...',
   },
@@ -128,11 +128,11 @@ export function DashboardContent({ courses, language, onExternalResourceAdded }:
     const trimmed = url.trim();
     if (!trimmed || isProcessing) return;
 
-    // Client-side YouTube URL validation
-    if (!isValidYoutubeUrl(trimmed)) {
+    const sourceType = detectPipelineSourceType(trimmed);
+    if (sourceType === 'unsupported') {
       setError(language === 'es'
-        ? 'Por favor ingresa una URL válida de YouTube.'
-        : 'Please enter a valid YouTube URL.');
+        ? 'Ingresá un link válido de YouTube o PDF directo.'
+        : 'Please provide a valid YouTube or direct PDF URL.');
       setStatus('failed');
       return;
     }
@@ -390,7 +390,7 @@ export function DashboardContent({ courses, language, onExternalResourceAdded }:
                 : 'border-j-border text-j-text-tertiary hover:text-j-text'
             } disabled:opacity-50`}
           >
-            {language === 'es' ? 'Curso YouTube' : 'YouTube Course'}
+            {language === 'es' ? 'Curso (Video/PDF)' : 'Course (Video/PDF)'}
           </button>
           <button
             type="button"
@@ -430,7 +430,7 @@ export function DashboardContent({ courses, language, onExternalResourceAdded }:
             onChange={(e) => setUrl(e.target.value)}
             disabled={isProcessing || isExternalProcessing}
             placeholder={mode === 'course'
-              ? (language === 'es' ? 'Pega un link de YouTube. Nosotros hacemos el resto.' : "Paste a YouTube link. We'll do the rest.")
+              ? (language === 'es' ? 'Pegá un link de YouTube o PDF. Nosotros hacemos el resto.' : "Paste a YouTube or PDF link. We'll do the rest.")
               : (language === 'es' ? 'URL del recurso (opcional si agregás notas)' : 'Resource URL (optional if you add notes)')}
             className="w-full px-4 py-3 bg-j-surface border border-j-border rounded-xl text-j-text text-sm placeholder:text-j-text-tertiary focus:border-j-accent focus:outline-none disabled:opacity-60 transition-colors"
           />
@@ -643,8 +643,8 @@ export function DashboardContent({ courses, language, onExternalResourceAdded }:
         <div className="py-12">
           <p className="text-sm text-j-text-tertiary text-center mb-8">
             {language === 'es'
-              ? 'Pega un link de YouTube arriba para generar tu primer curso, o prueba con uno de estos:'
-              : 'Paste a YouTube link above to generate your first course, or try one of these:'}
+              ? 'Pegá un link de YouTube o PDF arriba para generar tu primer curso, o probá con uno de estos videos:'
+              : 'Paste a YouTube or PDF link above to generate your first course, or try one of these videos:'}
           </p>
           <div className="grid gap-4 sm:grid-cols-3">
             {EXAMPLE_VIDEOS.map((video) => (
