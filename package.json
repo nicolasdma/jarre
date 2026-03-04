@@ -20,7 +20,9 @@
     "check": "npm run lint && npm run test && npm run typecheck && npm run build",
     "engine": "tsx engine/src/server.ts",
     "engine:dev": "tsx watch engine/src/server.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "curriculum:audit": "tsx scripts/audit-curriculum.ts",
+    "curriculum:export-template": "tsx scripts/export-curriculum-template.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

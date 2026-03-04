@@ -87,24 +87,35 @@ export default async function LibraryPage() {
 
   const phaseNames = getPhaseNames(lang);
 
-  let resourcesQuery = supabase
-    .from(TABLES.resources)
-    .select(`
+  const resourcesSelect = `
       *,
       resource_concepts!inner (
         concept_id,
         is_prerequisite
       )
-    `)
-    .eq('is_archived', false);
+    `;
 
-  resourcesQuery = user
-    ? resourcesQuery.or(`created_by.is.null,created_by.eq.${user.id}`)
-    : resourcesQuery.is('created_by', null);
+  const buildCoreResourcesQuery = () =>
+    supabase
+      .from(TABLES.resources)
+      .select(resourcesSelect)
+      .eq('is_archived', false)
+      .is('created_by', null)
+      .order('phase')
+      .order('sort_order');
 
-  const { data: resources, error } = await resourcesQuery
-    .order('phase')
-    .order('sort_order');
+  let resourcesResult = await buildCoreResourcesQuery().eq('curriculum_source', 'core');
+
+  // Backward compatibility: environments without the new column should still work.
+  if (
+    resourcesResult.error &&
+    (resourcesResult.error.code === '42703' ||
+      resourcesResult.error.message.includes('curriculum_source'))
+  ) {
+    resourcesResult = await buildCoreResourcesQuery();
+  }
+
+  const { data: resources, error } = resourcesResult;
 
   if (error) {
     console.error('Error fetching resources:', error);

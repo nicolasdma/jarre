@@ -17,6 +17,10 @@ export const TABLES = {
   videoSegments: 'video_segments',
   projects: 'projects',
   projectConcepts: 'project_concepts',
+  curriculumPhaseMetadata: 'curriculum_phase_metadata',
+  curricula: 'curricula',
+  curriculumPhases: 'curriculum_phases',
+  curriculumResources: 'curriculum_resources',
 
   // User data (RLS: auth.uid() = user_id)
   userProfiles: 'user_profiles',

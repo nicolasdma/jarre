@@ -1,0 +1,4707 @@
+{
+  "version": "core-template.v1",
+  "generatedAt": "2026-03-04T08:42:43.845Z",
+  "phases": [
+    {
+      "phase": "0",
+      "sortOrder": 0,
+      "isPrimary": false,
+      "title": {
+        "es": "Fundamentos Matematicos",
+        "en": "Mathematical Foundations"
+      },
+      "objective": {
+        "es": "Base matematica para ML y deep learning.",
+        "en": "Mathematical base for ML and deep learning."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Fundamentos Matematicos."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Mathematical Foundations."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "auto-agent-building-credentials",
+          "name": "Agent Building and Credentials",
+          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Building and Credentialing: The DMV and Keys for Agents",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-agent-governance-policies",
+          "name": "Agent Governance Policies",
+          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Governance Policies: Rules and Trust for AI Agents",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-and-ip",
+          "name": "AI and IP",
+          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Intellectual Property and Creative Rights",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-concerns-overview",
+          "name": "AI Concerns Overview",
+          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Introduction: The Complexity of AI Concerns",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-investment-mistake",
+          "name": "AI Investment Mistake",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Introduction: The AI Investment Mistake and Lack of Productivity Growth",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-psychology",
+          "name": "AI Psychology",
+          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Psychological and Social Impacts",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-safety-risks",
+          "name": "AI Safety Risks",
+          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Safety, Jailbreaking, and Unintended Consequences",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-ai-trust-issues",
+          "name": "AI Trust Issues",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Trust Issues and Hallucinations in AI Models",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-alternative-solutions",
+          "name": "Alternative Solutions",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Alternative Solutions and Running Jupyter Lab",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-bigram-statistics",
+          "name": "Bigram Statistics",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Bigram Counting and Statistical Modeling",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-car-analogy-intro",
+          "name": "Car Analogy Intro",
+          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Introduction: The Car Analogy for AI Agent Security",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-complex-values",
+          "name": "Complex Values",
+          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Complex Values and the Square Root Runtime",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-costumbres-culturales",
+          "name": "Costumbres culturales",
+          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Costumbres y normas culturales marroquíes",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-current-ai-problems",
+          "name": "Current AI Problems",
+          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Current AI Issues: Internet Quality and Algorithmic Bias",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-disney-adult-introduction",
+          "name": "Disney Adult Introduction",
+          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Introduction to the Disney Adult Phenomenon",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-disney-empire",
+          "name": "Disney Empire",
+          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": The Disney Empire and Its Cultural Dominance",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-engineering-evolution",
+          "name": "Engineering Evolution",
+          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": From Prompt Engineering to Intent Engineering",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-experiencias-desafiantes",
+          "name": "Experiencias desafiantes",
+          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Experiencias y desafíos en los callejones",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-exploracion-callejones",
+          "name": "Exploración callejones",
+          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Explorando los callejones de Marrakech",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-financial-impact",
+          "name": "Financial Impact",
+          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Financial Impact and Lifestyle Restructuring",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-forced-adoption",
+          "name": "Forced Adoption",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Forced Adoption and Business Pressure",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-grovers-algorithm",
+          "name": "Grover's Algorithm",
+          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Grover's Algorithm: Geometric Intuition",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-historical-comparison",
+          "name": "Historical Comparison",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Historical Comparison: AI vs. Computer Revolution",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-identity-community",
+          "name": "Identity and Community",
+          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Identity, Community, and Extreme Disney Integration",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-impresiones-iniciales",
+          "name": "Impresiones iniciales",
+          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Primeras impresiones y adaptación cultural",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-inflated-metrics",
+          "name": "Inflated Metrics",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Inflated Usage Metrics and Deceptive Practices",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-installing-python",
+          "name": "Installing Python",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Python Installation and Version Considerations",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-intent-gap-layers",
+          "name": "Intent Gap Layers",
+          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Three-Layer Intent Gap Framework",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-intro-data-setup",
+          "name": "Intro and Data Setup",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Introduction to Language Modeling and Dataset Exploration",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-introduccion-y-llegada",
+          "name": "Introducción y llegada",
+          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Introducción y llegada a Marruecos",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-introduction",
+          "name": "Introduction",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Introduction and Overview",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-investment-vs-results",
+          "name": "Investment vs Results",
+          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Investment Paradox and Microsoft Copilot Example",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-j-curve-argument",
+          "name": "J-Curve Argument",
+          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": The J-Curve Argument and Long-Term Viability",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-klarna-ai-failure",
+          "name": "Klarna AI Failure",
+          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Klarna Case Study: AI Succeeds at the Wrong Thing",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-misconceptions",
+          "name": "Misconceptions",
+          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Misconceptions and the Quantum Search Problem",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-neural-net-basics",
+          "name": "Neural Net Basics",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Neural Network Approach and One-Hot Encoding",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-package-installation",
+          "name": "Package Installation",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Installing Packages and Fallback Options",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-policy-enforcement",
+          "name": "Policy Enforcement",
+          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Enforcement and Checkpoints: Ensuring Policy Compliance",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-psychological-drivers",
+          "name": "Psychological Drivers",
+          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Psychological and Sociological Drivers of Disney Adults",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-quantum-gates",
+          "name": "Quantum Gates",
+          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Quantum Gates and Algorithm Vibe",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-security-integration",
+          "name": "Security Integration",
+          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Conclusion: Integrated Security and Tooling for AI Agents",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-solution-architecture",
+          "name": "Solution Architecture",
+          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": Building Intent Engineering Solutions",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-state-vectors",
+          "name": "State Vectors",
+          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": State Vectors and Qubits",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-training-sampling",
+          "name": "Training and Sampling",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Training, Loss, and Sampling from the Neural Net",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-uv-setup",
+          "name": "UV Setup",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Setting Up UV Package Manager",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-virtual-environments",
+          "name": "Virtual Environments",
+          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Creating and Managing Virtual Environments",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        }
+      ],
+      "resources": []
+    },
+    {
+      "phase": "1",
+      "sortOrder": 1,
+      "isPrimary": true,
+      "title": {
+        "es": "Sistemas Distribuidos",
+        "en": "Distributed Systems"
+      },
+      "objective": {
+        "es": "Confiabilidad, consenso y escalabilidad para sistemas AI.",
+        "en": "Reliability, consensus, and scalability for AI systems."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Sistemas Distribuidos."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Distributed Systems."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "avro",
+          "name": "Apache Avro",
+          "canonicalDefinition": "A binary encoding format that uses a writer schema and reader schema resolved together, enabling schema evolution without field tags in the encoded data.",
+          "prerequisites": [
+            "encoding-formats"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "consensus",
+          "name": "Consensus",
+          "canonicalDefinition": "Getting multiple nodes to agree on a value. Fundamental algorithms: Paxos, Raft, Zab. Used for leader election, atomic commit, total order broadcast.",
+          "prerequisites": [
+            "consistency-models"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch9",
+            "mit-6824",
+            "stanford-cs244b"
+          ]
+        },
+        {
+          "id": "consistency-models",
+          "name": "Consistency Models",
+          "canonicalDefinition": "Guarantees about what values readers will see. Spectrum from strong (linearizability) to weak (eventual). CAP theorem: can't have consistency, availability, and partition tolerance simultaneously.",
+          "prerequisites": [
+            "distributed-failures"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch9",
+            "hussein-backend-advanced",
+            "mit-6824",
+            "tanenbaum-ch5"
+          ]
+        },
+        {
+          "id": "data-models",
+          "name": "Data Models",
+          "canonicalDefinition": "The way data is structured and related: relational, document, graph, etc. Each model makes certain operations easier and others harder.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch2",
+            "hussein-backend-beginner"
+          ]
+        },
+        {
+          "id": "databases-streams",
+          "name": "Databases and Streams",
+          "canonicalDefinition": "Change Data Capture (CDC) turns database changes into a stream of events. Event sourcing stores all changes as immutable events. Log compaction enables rebuilding state. Dual writes are problematic.",
+          "prerequisites": [
+            "stream-processing"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "distributed-failures",
+          "name": "Distributed System Failures",
+          "canonicalDefinition": "What can go wrong in distributed systems: network partitions, node failures, clock skew, Byzantine faults. Partial failures are the norm, not the exception.",
+          "prerequisites": [
+            "partitioning",
+            "replication"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch8",
+            "hussein-distributed-systems",
+            "mit-6824"
+          ]
+        },
+        {
+          "id": "embracing-risk",
+          "name": "Embracing Risk",
+          "canonicalDefinition": "100% reliability is impossible and prohibitively expensive. Instead, define acceptable failure rates (error budgets) and invest accordingly.",
+          "prerequisites": [
+            "slos-slis"
+          ],
+          "taughtByResourceIds": [
+            "sre-ch3"
+          ]
+        },
+        {
+          "id": "encoding-evolution",
+          "name": "Encoding & Schema Evolution",
+          "canonicalDefinition": "How data is encoded for storage/transmission (JSON, Avro, Protobuf, Thrift) and how schemas evolve over time. Forward and backward compatibility enable independent service deployment. Key for microservices and ML pipelines.",
+          "prerequisites": [
+            "data-models"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "encoding-formats",
+          "name": "Encoding Formats",
+          "canonicalDefinition": "Methods of translating in-memory data structures to byte sequences for storage or transmission, including JSON, XML, CSV, and binary encodings.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "fan-out-latency",
+          "name": "Fan-out Latency",
+          "canonicalDefinition": "In systems where a single user request fans out to many backend servers, the overall latency is determined by the slowest server. Tail latency amplification grows with fan-out degree.",
+          "prerequisites": [
+            "tail-latency"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch1",
+            "tail-at-scale-paper"
+          ]
+        },
+        {
+          "id": "hedged-requests",
+          "name": "Hedged Requests",
+          "canonicalDefinition": "Technique to reduce tail latency by sending the same request to multiple replicas and using whichever responds first. Variants include tied requests (cancel redundant) and probing (pick least-loaded server).",
+          "prerequisites": [
+            "tail-latency"
+          ],
+          "taughtByResourceIds": [
+            "tail-at-scale-paper"
+          ]
+        },
+        {
+          "id": "knowledge-truth",
+          "name": "Knowledge, Truth and Lies",
+          "canonicalDefinition": "In distributed systems, a node cannot trust its own judgment alone. Truth is defined by a quorum. Fencing tokens prevent split-brain. Byzantine faults require special protocols.",
+          "prerequisites": [
+            "distributed-failures"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch8"
+          ]
+        },
+        {
+          "id": "maintainability",
+          "name": "Maintainability",
+          "canonicalDefinition": "How easy it is for engineers to work on the system over time: operability, simplicity, and evolvability.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch1"
+          ]
+        },
+        {
+          "id": "dataflow-modes",
+          "name": "Modes of Dataflow",
+          "canonicalDefinition": "The three main ways data flows between processes: through databases, through service calls (REST/RPC), and through asynchronous message passing.",
+          "prerequisites": [
+            "schema-evolution"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "monitoring",
+          "name": "Monitoring Distributed Systems",
+          "canonicalDefinition": "Collecting and analyzing metrics, logs, and traces to understand system health. The four golden signals: latency, traffic, errors, saturation.",
+          "prerequisites": [
+            "slos-slis"
+          ],
+          "taughtByResourceIds": [
+            "sre-ch6"
+          ]
+        },
+        {
+          "id": "ordering",
+          "name": "Ordering Guarantees",
+          "canonicalDefinition": "Ordering of events matters for consistency. Causal ordering is weaker than total ordering. Lamport timestamps provide total ordering but are not sufficient for all problems. Total order broadcast is equivalent to consensus.",
+          "prerequisites": [
+            "consistency-models"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch9"
+          ]
+        },
+        {
+          "id": "partitioning",
+          "name": "Partitioning (Sharding)",
+          "canonicalDefinition": "Splitting a large dataset across multiple machines. Each partition is a mini-database. Strategies: by key range, by hash. Challenge: rebalancing, hot spots.",
+          "prerequisites": [
+            "replication",
+            "scalability"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch6",
+            "hussein-backend-advanced",
+            "hussein-distributed-systems",
+            "stanford-cs244b"
+          ]
+        },
+        {
+          "id": "preventing-lost-updates",
+          "name": "Preventing Lost Updates",
+          "canonicalDefinition": "Techniques to prevent the lost update anomaly in read-modify-write cycles: atomic operations, explicit locking, compare-and-set, and conflict resolution.",
+          "prerequisites": [
+            "weak-isolation"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        },
+        {
+          "id": "processing-streams",
+          "name": "Processing Streams",
+          "canonicalDefinition": "Stream processing handles unbounded datasets. Key challenges: event time vs processing time, windowing, stream joins (stream-stream, stream-table, table-table), and fault tolerance with microbatching or checkpointing.",
+          "prerequisites": [
+            "stream-processing"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "reliability",
+          "name": "Reliability",
+          "canonicalDefinition": "The system continues to work correctly even when things go wrong (faults). A reliable system is fault-tolerant, not fault-free.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch1",
+            "hussein-backend-beginner",
+            "hussein-backpressure",
+            "hussein-system-design",
+            "tanenbaum-ch1"
+          ]
+        },
+        {
+          "id": "replication",
+          "name": "Replication",
+          "canonicalDefinition": "Keeping copies of the same data on multiple machines. Purposes: high availability, fault tolerance, latency reduction. Key models: leader-based, multi-leader, leaderless.",
+          "prerequisites": [
+            "reliability"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch5",
+            "hussein-backend-advanced",
+            "hussein-distributed-systems",
+            "mit-6824",
+            "stanford-cs244b",
+            "tanenbaum-ch5"
+          ]
+        },
+        {
+          "id": "scalability",
+          "name": "Scalability",
+          "canonicalDefinition": "The ability of a system to handle increased load by adding resources. Measured in terms of load parameters (requests/sec, data volume, etc).",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch1",
+            "hussein-backend-beginner",
+            "hussein-backpressure",
+            "hussein-latency-throughput",
+            "hussein-system-design",
+            "tanenbaum-ch1"
+          ]
+        },
+        {
+          "id": "schema-evolution",
+          "name": "Schema Evolution",
+          "canonicalDefinition": "The ability to change a schema over time while maintaining forward compatibility (old code reads new data) and backward compatibility (new code reads old data).",
+          "prerequisites": [
+            "avro",
+            "thrift-protobuf"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "serializability",
+          "name": "Serializability",
+          "canonicalDefinition": "The strongest isolation level guaranteeing that concurrent transactions behave as if executed serially, achievable via actual serial execution, two-phase locking (2PL), or serializable snapshot isolation (SSI).",
+          "prerequisites": [
+            "write-skew"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        },
+        {
+          "id": "slos-slis",
+          "name": "SLOs and SLIs",
+          "canonicalDefinition": "Service Level Objectives (SLOs) are target values for service reliability. Service Level Indicators (SLIs) are the metrics that measure it. Error budgets allow controlled risk-taking.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "sre-ch3",
+            "sre-ch4"
+          ]
+        },
+        {
+          "id": "storage-engines",
+          "name": "Storage Engines",
+          "canonicalDefinition": "How databases store and retrieve data on disk. Key types: log-structured (LSM trees) vs page-oriented (B-trees). Trade-offs between write and read performance.",
+          "prerequisites": [
+            "data-models"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch3"
+          ]
+        },
+        {
+          "id": "stream-processing",
+          "name": "Stream Processing",
+          "canonicalDefinition": "Processing data continuously as it arrives, rather than in batches. Key concepts: event time vs processing time, windowing, exactly-once semantics.",
+          "prerequisites": [
+            "partitioning"
+          ],
+          "taughtByResourceIds": [
+            "hussein-distributed-systems"
+          ]
+        },
+        {
+          "id": "tail-latency",
+          "name": "Tail Latency",
+          "canonicalDefinition": "The slowest requests (p95-p99) dominate user experience and SLOs. In distributed and LLM systems, tail latency is affected by batching, stragglers, cache misses, and long generations. Techniques: hedged requests, tied requests, canary requests.",
+          "prerequisites": [
+            "monitoring",
+            "slos-slis"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch1",
+            "hussein-latency-throughput",
+            "tail-at-scale-paper"
+          ]
+        },
+        {
+          "id": "thrift-protobuf",
+          "name": "Thrift & Protocol Buffers",
+          "canonicalDefinition": "Binary encoding libraries that use schemas with field tags to achieve compact encoding and support forward/backward compatible schema evolution.",
+          "prerequisites": [
+            "encoding-formats"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch4"
+          ]
+        },
+        {
+          "id": "transaction-concepts",
+          "name": "Transaction Concepts & ACID",
+          "canonicalDefinition": "The fundamental guarantees of database transactions: Atomicity (all-or-nothing), Consistency (invariants preserved), Isolation (concurrent transactions dont interfere), and Durability (committed data persists).",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        },
+        {
+          "id": "transactions",
+          "name": "Transactions",
+          "canonicalDefinition": "A mechanism for grouping multiple reads and writes into a logical unit. ACID guarantees: Atomicity, Consistency, Isolation, Durability. Isolation levels (read committed, snapshot isolation, serializable) trade off performance for correctness. Implementation: 2PL, SSI.",
+          "prerequisites": [
+            "replication",
+            "storage-engines"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        },
+        {
+          "id": "unreliable-clocks",
+          "name": "Unreliable Clocks",
+          "canonicalDefinition": "Clocks in distributed systems cannot be fully trusted. Time-of-day clocks can jump. Monotonic clocks only measure elapsed time on one node. Clock skew between nodes can cause ordering anomalies.",
+          "prerequisites": [
+            "distributed-failures"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch8"
+          ]
+        },
+        {
+          "id": "unreliable-networks",
+          "name": "Unreliable Networks",
+          "canonicalDefinition": "In distributed systems, the network is fundamentally unreliable. Packets can be lost, delayed, duplicated, or reordered. There is no way to distinguish a crashed node from a slow network.",
+          "prerequisites": [
+            "distributed-failures"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch8"
+          ]
+        },
+        {
+          "id": "weak-isolation",
+          "name": "Weak Isolation Levels",
+          "canonicalDefinition": "Isolation levels weaker than serializability that trade correctness for performance: Read Committed prevents dirty reads/writes, Snapshot Isolation provides consistent point-in-time views using MVCC.",
+          "prerequisites": [
+            "transaction-concepts"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        },
+        {
+          "id": "write-skew",
+          "name": "Write Skew & Phantoms",
+          "canonicalDefinition": "A concurrency anomaly where two transactions read the same data, make decisions based on it, and write different records, violating an invariant that neither transaction alone would violate.",
+          "prerequisites": [
+            "weak-isolation"
+          ],
+          "taughtByResourceIds": [
+            "ddia-ch7"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "ddia-ch1",
+          "title": "DDIA Chapter 1: Reliable, Scalable, and Maintainable Applications",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 3,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "fan-out-latency",
+            "maintainability",
+            "reliability",
+            "scalability",
+            "tail-latency"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "ddia-ch2",
+          "title": "DDIA Chapter 2: Data Models and Query Languages",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 4,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "data-models"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "ddia-ch3",
+          "title": "DDIA Chapter 3: Storage and Retrieval",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 5,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "storage-engines"
+          ],
+          "prerequisiteConceptIds": [
+            "data-models"
+          ]
+        },
+        {
+          "id": "ddia-ch4",
+          "title": "DDIA Chapter 4: Encoding and Evolution",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 4,
+          "sortOrder": 35,
+          "teachesConceptIds": [
+            "avro",
+            "dataflow-modes",
+            "encoding-evolution",
+            "encoding-formats",
+            "schema-evolution",
+            "thrift-protobuf"
+          ],
+          "prerequisiteConceptIds": [
+            "data-models"
+          ]
+        },
+        {
+          "id": "ddia-ch5",
+          "title": "DDIA Chapter 5: Replication",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 5,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "replication"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability"
+          ]
+        },
+        {
+          "id": "ddia-ch6",
+          "title": "DDIA Chapter 6: Partitioning",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 4,
+          "sortOrder": 50,
+          "teachesConceptIds": [
+            "partitioning"
+          ],
+          "prerequisiteConceptIds": [
+            "replication",
+            "scalability"
+          ]
+        },
+        {
+          "id": "ddia-ch7",
+          "title": "DDIA Chapter 7: Transactions",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 5,
+          "sortOrder": 55,
+          "teachesConceptIds": [
+            "preventing-lost-updates",
+            "serializability",
+            "transaction-concepts",
+            "transactions",
+            "weak-isolation",
+            "write-skew"
+          ],
+          "prerequisiteConceptIds": [
+            "replication",
+            "storage-engines"
+          ]
+        },
+        {
+          "id": "ddia-ch8",
+          "title": "DDIA Chapter 8: The Trouble with Distributed Systems",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 4,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "distributed-failures",
+            "knowledge-truth",
+            "unreliable-clocks",
+            "unreliable-networks"
+          ],
+          "prerequisiteConceptIds": [
+            "partitioning",
+            "replication"
+          ]
+        },
+        {
+          "id": "ddia-ch9",
+          "title": "DDIA Chapter 9: Consistency and Consensus",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 6,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "consensus",
+            "consistency-models",
+            "ordering"
+          ],
+          "prerequisiteConceptIds": [
+            "distributed-failures"
+          ]
+        },
+        {
+          "id": "tanenbaum-ch1",
+          "title": "Distributed Systems Ch 1: Introduction",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "reliability",
+            "scalability"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "tanenbaum-ch5",
+          "title": "Distributed Systems Ch 5: Replication",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 4,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "consistency-models",
+            "replication"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability"
+          ]
+        },
+        {
+          "id": "sre-ch3",
+          "title": "SRE Book Ch 3: Embracing Risk",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 110,
+          "teachesConceptIds": [
+            "embracing-risk",
+            "slos-slis"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "sre-ch4",
+          "title": "SRE Book Ch 4: Service Level Objectives",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 120,
+          "teachesConceptIds": [
+            "slos-slis"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "sre-ch6",
+          "title": "SRE Book Ch 6: Monitoring Distributed Systems",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 130,
+          "teachesConceptIds": [
+            "monitoring"
+          ],
+          "prerequisiteConceptIds": [
+            "slos-slis"
+          ]
+        },
+        {
+          "id": "tail-at-scale-paper",
+          "title": "The Tail at Scale",
+          "type": "paper",
+          "url": "https://research.google/pubs/the-tail-at-scale/",
+          "estimatedHours": 2.5,
+          "sortOrder": 140,
+          "teachesConceptIds": [
+            "fan-out-latency",
+            "hedged-requests",
+            "tail-latency"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "mit-6824",
+          "title": "MIT 6.824: Distributed Systems",
+          "type": "course",
+          "url": "https://pdos.csail.mit.edu/6.824/",
+          "estimatedHours": 40,
+          "sortOrder": 150,
+          "teachesConceptIds": [
+            "consensus",
+            "consistency-models",
+            "distributed-failures",
+            "replication"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability"
+          ]
+        },
+        {
+          "id": "stanford-cs244b",
+          "title": "Stanford CS244b: Distributed Systems",
+          "type": "course",
+          "url": "https://www.scs.stanford.edu/20sp-cs244b/",
+          "estimatedHours": 30,
+          "sortOrder": 160,
+          "teachesConceptIds": [
+            "consensus",
+            "partitioning",
+            "replication"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability",
+            "scalability"
+          ]
+        },
+        {
+          "id": "hussein-backend-beginner",
+          "title": "Hussein Nasser - Backend Engineering (Beginner)",
+          "type": "course",
+          "url": "https://www.youtube.com/playlist?list=PLQnljOFTspQUNnO4p00ua_C5mKTfldiYT",
+          "estimatedHours": 13,
+          "sortOrder": 170,
+          "teachesConceptIds": [
+            "data-models",
+            "reliability",
+            "scalability"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "hussein-distributed-systems",
+          "title": "Hussein Nasser - Distributed Systems",
+          "type": "course",
+          "url": "https://www.youtube.com/c/HusseinNasser-software-engineering",
+          "estimatedHours": 5,
+          "sortOrder": 180,
+          "teachesConceptIds": [
+            "distributed-failures",
+            "partitioning",
+            "replication",
+            "stream-processing"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability",
+            "scalability"
+          ]
+        },
+        {
+          "id": "hussein-backend-advanced",
+          "title": "Hussein Nasser - Backend Engineering (Advanced)",
+          "type": "course",
+          "url": "https://www.youtube.com/playlist?list=PLQnljOFTspQUybacGRk1b_p13dgI-SmcZ",
+          "estimatedHours": 10,
+          "sortOrder": 190,
+          "teachesConceptIds": [
+            "consistency-models",
+            "partitioning",
+            "replication"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability",
+            "scalability"
+          ]
+        },
+        {
+          "id": "hussein-backpressure",
+          "title": "Hussein Nasser - Backpressure Explained",
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=8KPIPSItIHs",
+          "estimatedHours": 1,
+          "sortOrder": 200,
+          "teachesConceptIds": [
+            "reliability",
+            "scalability"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "hussein-latency-throughput",
+          "title": "Hussein Nasser - Latency vs Throughput Explained",
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=m64WBXQM4PE",
+          "estimatedHours": 2,
+          "sortOrder": 210,
+          "teachesConceptIds": [
+            "scalability",
+            "tail-latency"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "hussein-system-design",
+          "title": "Hussein Nasser - System Design Fundamentals",
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=0163cssUxLA",
+          "estimatedHours": 10,
+          "sortOrder": 220,
+          "teachesConceptIds": [
+            "reliability",
+            "scalability"
+          ],
+          "prerequisiteConceptIds": []
+        }
+      ]
+    },
+    {
+      "phase": "2",
+      "sortOrder": 2,
+      "isPrimary": true,
+      "title": {
+        "es": "ML & Deep Learning",
+        "en": "ML & Deep Learning Foundations"
+      },
+      "objective": {
+        "es": "Fundamentos de entrenamiento y arquitectura de redes.",
+        "en": "Core training and network architecture foundations."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en ML & Deep Learning."
+        ],
+        "en": [
+          "Demonstrate operational mastery in ML & Deep Learning Foundations."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "activation-functions-batchnorm",
+          "name": "Activation Functions & Batch Normalization",
+          "canonicalDefinition": "Sigmoid, tanh, ReLU saturation; BatchNorm for stable deep training",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-activations-batchnorm"
+          ]
+        },
+        {
+          "id": "attention-mechanism",
+          "name": "Attention Mechanism",
+          "canonicalDefinition": "A way for models to focus on relevant parts of the input when producing output. Self-attention allows each position to attend to all positions in the previous layer.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "attention-paper",
+            "karpathy-build-gpt",
+            "kz2h-building-gpt",
+            "p3-illustrated-transformer",
+            "p4-cs224n",
+            "stanford-cs25"
+          ]
+        },
+        {
+          "id": "backpropagation-training",
+          "name": "Backpropagation & Training",
+          "canonicalDefinition": "Chain rule, gradient computation, vanishing/exploding gradients",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-backprop-ninja",
+            "kz2h-micrograd"
+          ]
+        },
+        {
+          "id": "auto-bigram-counting",
+          "name": "Bigram Counting",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Bigram Counting and Probability Modeling with Dictionaries and Tensors",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "calculus-backprop",
+          "name": "Calculus & Backpropagation",
+          "canonicalDefinition": "Chain rule as the engine of deep learning: how gradients flow backwards through computational graphs. Backpropagation derived step by step for a simple network. Jacobian matrices for multi-output functions. Vanishing and exploding gradients: why they happen and how residual connections, LayerNorm, and gradient clipping address them.",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "character-level-lm",
+          "name": "Character-level Language Models",
+          "canonicalDefinition": "Predicting next character from sequences, bigram/n-gram foundations",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "deep-architectures",
+          "name": "Deep Network Architectures",
+          "canonicalDefinition": "Skip connections, dilated convolutions, depth vs width trade-offs",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-wavenet"
+          ]
+        },
+        {
+          "id": "dimensionality-reduction",
+          "name": "Dimensionality Reduction",
+          "canonicalDefinition": "PCA (Principal Component Analysis): project to directions of maximum variance using eigendecomposition of covariance matrix. t-SNE: non-linear reduction preserving local structure (perplexity parameter, crowding problem). UMAP: faster alternative preserving both local and global structure. The manifold hypothesis: high-dimensional data lies on lower-dimensional manifolds.",
+          "prerequisites": [
+            "linear-algebra-ml"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "information-theory",
+          "name": "Information Theory",
+          "canonicalDefinition": "Entropy as the measure of uncertainty in a distribution. Cross-entropy as the standard loss function for classification (and language modeling). KL divergence for measuring distribution distance (used in VAEs, RLHF, knowledge distillation). Mutual information for feature selection and representation learning. Bits-per-byte for language model evaluation.",
+          "prerequisites": [
+            "probability-statistics"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "auto-intro-dataset",
+          "name": "Intro and Dataset",
+          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Introduction to Character-Level Language Modeling and Dataset Exploration",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "linear-algebra-ml",
+          "name": "Linear Algebra for ML",
+          "canonicalDefinition": "Vectors, matrices, and their operations as the language of ML. SVD (Singular Value Decomposition) for dimensionality reduction and matrix approximation. Eigendecomposition for understanding PCA, covariance matrices, and spectral methods. Matrix calculus (Jacobians, Hessians) for understanding backpropagation. Every neural network operation is a matrix multiply.",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "loss-functions",
+          "name": "Loss Functions",
+          "canonicalDefinition": "Cross-entropy, MSE, connection to information theory",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-makemore-mlp"
+          ]
+        },
+        {
+          "id": "neural-network-fundamentals",
+          "name": "Neural Network Fundamentals",
+          "canonicalDefinition": "Neurons, layers, activation functions, forward pass",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-micrograd"
+          ]
+        },
+        {
+          "id": "neural-language-model",
+          "name": "Neural Probabilistic Language Models",
+          "canonicalDefinition": "Bengio 2003: learned word representations + neural network for P(w|context)",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-makemore-mlp",
+            "p2-bengio-lm-paper"
+          ]
+        },
+        {
+          "id": "optimization-ml",
+          "name": "Optimization for ML",
+          "canonicalDefinition": "Gradient descent and its variants: SGD (stochastic), mini-batch, momentum. Adam optimizer: adaptive learning rates with first and second moment estimates. Convexity and why neural network loss landscapes are non-convex. Learning rate schedules: warmup, cosine annealing, linear decay. Understanding why optimization works despite non-convexity.",
+          "prerequisites": [
+            "calculus-backprop"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "probability-statistics",
+          "name": "Probability & Statistics",
+          "canonicalDefinition": "Bayesian thinking: prior, likelihood, posterior. MLE (Maximum Likelihood Estimation) and MAP (Maximum A Posteriori) as the foundation of all training objectives. Common distributions: Gaussian, Bernoulli, Categorical, Dirichlet. Conjugate priors for tractable Bayesian inference. Statistical testing for model comparison.",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "regularization-generalization",
+          "name": "Regularization & Generalization",
+          "canonicalDefinition": "Dropout, weight decay, bias-variance tradeoff",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-activations-batchnorm"
+          ]
+        },
+        {
+          "id": "residual-connections",
+          "name": "Residual Connections",
+          "canonicalDefinition": "Skip connections, gradient flow, foundation of transformers",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-wavenet",
+            "p2-resnet-paper"
+          ]
+        },
+        {
+          "id": "auto-tokenizacin-con-tokens-especiales",
+          "name": "tokenización con tokens especiales",
+          "canonicalDefinition": "Se utilizan tokens como '.' para representar el inicio y fin de secuencias, transformando palabras en ejemplos de entrenamiento para bigramas.",
+          "prerequisites": [],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "tokenization-bpe",
+          "name": "Tokenization & BPE",
+          "canonicalDefinition": "Byte Pair Encoding, subword tokenization",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "kz2h-tokenizers",
+            "p3-bert-paper"
+          ]
+        },
+        {
+          "id": "transformer-architecture",
+          "name": "Transformer Architecture",
+          "canonicalDefinition": "Neural network architecture based entirely on attention mechanisms, no recurrence. Key components: multi-head attention, positional encoding, feed-forward layers.",
+          "prerequisites": [
+            "attention-mechanism"
+          ],
+          "taughtByResourceIds": [
+            "attention-paper",
+            "karpathy-build-gpt",
+            "kz2h-building-gpt",
+            "p3-illustrated-transformer",
+            "stanford-cs25"
+          ]
+        },
+        {
+          "id": "word-embeddings",
+          "name": "Word Embeddings",
+          "canonicalDefinition": "Word2Vec, GloVe, distributional hypothesis",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p2-bengio-lm-paper",
+            "p3-word2vec-paper",
+            "p4-cs224n"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "kz2h-micrograd",
+          "title": "Micrograd — Backprop from Scratch",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=VMj-3S1tku0",
+          "estimatedHours": 2.5,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p2-bengio-lm-paper",
+          "title": "A Neural Probabilistic Language Model (Bengio 2003)",
+          "type": "paper",
+          "url": "https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf",
+          "estimatedHours": 3,
+          "sortOrder": 120,
+          "teachesConceptIds": [
+            "neural-language-model",
+            "word-embeddings"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals"
+          ]
+        },
+        {
+          "id": "kz2h-makemore-mlp",
+          "title": "Makemore (MLP) — Multi-layer Perceptron",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=TCH_1BHY58I",
+          "estimatedHours": 2,
+          "sortOrder": 130,
+          "teachesConceptIds": [
+            "loss-functions",
+            "neural-language-model"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "character-level-lm"
+          ]
+        },
+        {
+          "id": "kz2h-activations-batchnorm",
+          "title": "Activations & BatchNorm — Internals",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=P6sfmUTpUmc",
+          "estimatedHours": 2,
+          "sortOrder": 140,
+          "teachesConceptIds": [
+            "activation-functions-batchnorm",
+            "regularization-generalization"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals"
+          ]
+        },
+        {
+          "id": "kz2h-backprop-ninja",
+          "title": "Backprop Ninja — Manual Gradient Computation",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=q8SA3rM6ckI",
+          "estimatedHours": 2,
+          "sortOrder": 150,
+          "teachesConceptIds": [
+            "backpropagation-training"
+          ],
+          "prerequisiteConceptIds": [
+            "loss-functions",
+            "neural-network-fundamentals"
+          ]
+        },
+        {
+          "id": "p2-resnet-paper",
+          "title": "Deep Residual Learning for Image Recognition",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1512.03385",
+          "estimatedHours": 2,
+          "sortOrder": 160,
+          "teachesConceptIds": [
+            "residual-connections"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals"
+          ]
+        },
+        {
+          "id": "kz2h-wavenet",
+          "title": "WaveNet — Deep Architectures",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=t3YJ5hKiMQ0",
+          "estimatedHours": 2,
+          "sortOrder": 170,
+          "teachesConceptIds": [
+            "deep-architectures",
+            "residual-connections"
+          ],
+          "prerequisiteConceptIds": [
+            "activation-functions-batchnorm",
+            "backpropagation-training"
+          ]
+        },
+        {
+          "id": "kz2h-building-gpt",
+          "title": "Building GPT — Transformers from Scratch",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=kCc8FmEb1nY",
+          "estimatedHours": 3,
+          "sortOrder": 180,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals",
+            "word-embeddings"
+          ]
+        },
+        {
+          "id": "attention-paper",
+          "title": "Attention Is All You Need",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1706.03762",
+          "estimatedHours": 6,
+          "sortOrder": 190,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "positional-encoding",
+            "query-key-value",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-bahdanau",
+            "residual-connections"
+          ]
+        },
+        {
+          "id": "kz2h-tokenizers",
+          "title": "Tokenizers — Byte Pair Encoding",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=zduSFxRajkE",
+          "estimatedHours": 1.5,
+          "sortOrder": 200,
+          "teachesConceptIds": [
+            "tokenization-bpe"
+          ],
+          "prerequisiteConceptIds": [
+            "character-level-lm"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "3",
+      "sortOrder": 3,
+      "isPrimary": true,
+      "title": {
+        "es": "Secuencias, Atencion & Transformers",
+        "en": "Sequences, Attention & Transformers"
+      },
+      "objective": {
+        "es": "Evolucion de seq2seq a transformers.",
+        "en": "Evolution from seq2seq to transformers."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Secuencias, Atencion & Transformers."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Sequences, Attention & Transformers."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "autoregressive-generation",
+          "name": "Autoregressive Generation",
+          "canonicalDefinition": "Left-to-right generation, decoder-only, GPT",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p3-gpt2-paper",
+            "p3-illustrated-gpt2"
+          ]
+        },
+        {
+          "id": "attention-bahdanau",
+          "name": "Bahdanau Attention",
+          "canonicalDefinition": "Additive attention, alignment model",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p3-bahdanau-attention",
+            "p3-luong-attention"
+          ]
+        },
+        {
+          "id": "bert-masked-lm",
+          "name": "BERT & Masked Language Modeling",
+          "canonicalDefinition": "Bidirectional pre-training, encoder-only transformer",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p3-bert-paper"
+          ]
+        },
+        {
+          "id": "encoder-decoder-architecture",
+          "name": "Encoder-Decoder Architecture",
+          "canonicalDefinition": "Two-part architecture for seq2seq tasks",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p3-seq2seq-paper"
+          ]
+        },
+        {
+          "id": "positional-encoding",
+          "name": "Positional Encoding",
+          "canonicalDefinition": "Since attention has no inherent notion of position, we add positional information to embeddings. Original: sinusoidal functions. Modern: learned or rotary (RoPE).",
+          "prerequisites": [
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "attention-paper"
+          ]
+        },
+        {
+          "id": "query-key-value",
+          "name": "Query-Key-Value (QKV)",
+          "canonicalDefinition": "The three projections in attention. Query: what am I looking for? Key: what do I contain? Value: what do I provide? Attention = softmax(QK^T/√d)V",
+          "prerequisites": [
+            "attention-mechanism"
+          ],
+          "taughtByResourceIds": [
+            "attention-paper",
+            "karpathy-build-gpt"
+          ]
+        },
+        {
+          "id": "sequence-to-sequence",
+          "name": "Sequence-to-Sequence",
+          "canonicalDefinition": "Encoder-decoder, fixed-length bottleneck",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p3-seq2seq-paper"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "yarn-paper",
+          "title": "YaRN: Efficient Context Window Extension of Large Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2309.00071",
+          "estimatedHours": 3,
+          "sortOrder": 58,
+          "teachesConceptIds": [
+            "context-extension"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-mechanism",
+            "positional-encoding"
+          ]
+        },
+        {
+          "id": "karpathy-build-gpt",
+          "title": "Andrej Karpathy - Let's Build GPT from Scratch",
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=kCc8FmEb1nY",
+          "estimatedHours": 4,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "query-key-value",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training"
+          ]
+        },
+        {
+          "id": "p3-word2vec-paper",
+          "title": "Efficient Estimation of Word Representations in Vector Space",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1301.3781",
+          "estimatedHours": 1.5,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "word-embeddings"
+          ],
+          "prerequisiteConceptIds": [
+            "neural-network-fundamentals"
+          ]
+        },
+        {
+          "id": "p3-seq2seq-paper",
+          "title": "Sequence to Sequence Learning with Neural Networks",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1409.3215",
+          "estimatedHours": 1.5,
+          "sortOrder": 110,
+          "teachesConceptIds": [
+            "encoder-decoder-architecture",
+            "sequence-to-sequence"
+          ],
+          "prerequisiteConceptIds": [
+            "neural-network-fundamentals",
+            "word-embeddings"
+          ]
+        },
+        {
+          "id": "p3-bahdanau-attention",
+          "title": "Neural Machine Translation by Jointly Learning to Align and Translate",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1409.0473",
+          "estimatedHours": 2,
+          "sortOrder": 120,
+          "teachesConceptIds": [
+            "attention-bahdanau"
+          ],
+          "prerequisiteConceptIds": [
+            "encoder-decoder-architecture",
+            "sequence-to-sequence"
+          ]
+        },
+        {
+          "id": "p3-luong-attention",
+          "title": "Effective Approaches to Attention-based NMT",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1508.04025",
+          "estimatedHours": 1.5,
+          "sortOrder": 130,
+          "teachesConceptIds": [
+            "attention-bahdanau"
+          ],
+          "prerequisiteConceptIds": [
+            "sequence-to-sequence"
+          ]
+        },
+        {
+          "id": "p3-illustrated-transformer",
+          "title": "The Illustrated Transformer (Jay Alammar)",
+          "type": "article",
+          "url": "https://jalammar.github.io/illustrated-transformer/",
+          "estimatedHours": 1.5,
+          "sortOrder": 140,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-bahdanau",
+            "residual-connections"
+          ]
+        },
+        {
+          "id": "p3-bert-paper",
+          "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1810.04805",
+          "estimatedHours": 2,
+          "sortOrder": 200,
+          "teachesConceptIds": [
+            "bert-masked-lm",
+            "tokenization-bpe"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-mechanism",
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "p3-gpt2-paper",
+          "title": "Language Models are Unsupervised Multitask Learners",
+          "type": "paper",
+          "url": "https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf",
+          "estimatedHours": 2,
+          "sortOrder": 210,
+          "teachesConceptIds": [
+            "autoregressive-generation"
+          ],
+          "prerequisiteConceptIds": [
+            "tokenization-bpe",
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "p3-illustrated-gpt2",
+          "title": "The Illustrated GPT-2 (Jay Alammar)",
+          "type": "article",
+          "url": "https://jalammar.github.io/illustrated-gpt2/",
+          "estimatedHours": 1.5,
+          "sortOrder": 220,
+          "teachesConceptIds": [
+            "autoregressive-generation"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "4",
+      "sortOrder": 4,
+      "isPrimary": true,
+      "title": {
+        "es": "LLMs: Entrenamiento & Alineacion",
+        "en": "LLMs: Training, Alignment & Scaling"
+      },
+      "objective": {
+        "es": "Entrenamiento, alineacion y escalamiento de LLMs.",
+        "en": "LLM training, alignment, and scaling."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en LLMs: Entrenamiento & Alineacion."
+        ],
+        "en": [
+          "Demonstrate operational mastery in LLMs: Training, Alignment & Scaling."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "compute-optimal-training",
+          "name": "Compute-Optimal Training",
+          "canonicalDefinition": "Chinchilla finding: models are often undertrained. Optimal: scale data and parameters equally. 70B model trained on 1.4T tokens beats 280B on 300B tokens.",
+          "prerequisites": [
+            "scaling-laws"
+          ],
+          "taughtByResourceIds": [
+            "chinchilla-paper",
+            "p4-llama-paper",
+            "stanford-cs25"
+          ]
+        },
+        {
+          "id": "context-extension",
+          "name": "Context Extension Techniques",
+          "canonicalDefinition": "Methods to extend the effective context window of transformers beyond their training length. RoPE scaling, YaRN (Yet Another RoPE extensioN), ALiBi (Attention with Linear Biases), sparse attention patterns. Trade-offs between context length, quality, and compute cost.",
+          "prerequisites": [
+            "attention-mechanism",
+            "positional-encoding"
+          ],
+          "taughtByResourceIds": [
+            "yarn-paper"
+          ]
+        },
+        {
+          "id": "dpo",
+          "name": "Direct Preference Optimization (DPO)",
+          "canonicalDefinition": "Simpler alternative to RLHF for alignment. Directly optimizes policy from preferences without training a reward model or using RL. Same objective as RLHF but with a supervised learning loss. Stable, efficient, widely adopted.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "p4-dpo-paper"
+          ]
+        },
+        {
+          "id": "foundation-models",
+          "name": "Foundation Models",
+          "canonicalDefinition": "Large models trained on broad data that can be adapted to many downstream tasks. Emergent abilities appear at scale. Risks: homogenization, bias amplification.",
+          "prerequisites": [
+            "scaling-laws"
+          ],
+          "taughtByResourceIds": [
+            "karpathy-llm-os"
+          ]
+        },
+        {
+          "id": "in-context-learning",
+          "name": "In-Context Learning",
+          "canonicalDefinition": "Zero/few-shot, emergent at scale",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p4-cot-paper",
+            "p4-gpt3-paper"
+          ]
+        },
+        {
+          "id": "instruction-tuning",
+          "name": "Instruction Tuning",
+          "canonicalDefinition": "SFT on instruction-response pairs",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p4-instructgpt-paper"
+          ]
+        },
+        {
+          "id": "language-model-pretraining",
+          "name": "Language Model Pretraining",
+          "canonicalDefinition": "Next-token prediction, foundation models",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p4-cs224n",
+            "p4-gpt1-paper"
+          ]
+        },
+        {
+          "id": "fine-tuning-efficiency",
+          "name": "Parameter-Efficient Fine-Tuning",
+          "canonicalDefinition": "Adapting pre-trained models without updating all parameters. Key techniques: LoRA (low-rank adaptation), prefix tuning, adapters. Reduces compute/memory by 10-1000x while maintaining quality.",
+          "prerequisites": [
+            "foundation-models",
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "lora-paper"
+          ]
+        },
+        {
+          "id": "rlhf-alignment",
+          "name": "RLHF & Alignment",
+          "canonicalDefinition": "SFT -> reward model -> PPO pipeline",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p4-instructgpt-paper"
+          ]
+        },
+        {
+          "id": "scaling-behavior",
+          "name": "Scaling Behavior",
+          "canonicalDefinition": "Emergent abilities, phase transitions",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p4-gpt3-paper"
+          ]
+        },
+        {
+          "id": "scaling-laws",
+          "name": "Scaling Laws",
+          "canonicalDefinition": "Empirical relationships between model size, data, compute, and performance. Loss scales as power law with each factor. Guides efficient allocation of training budget.",
+          "prerequisites": [
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "scaling-laws-paper",
+            "stanford-cs25"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "scaling-laws-paper",
+          "title": "Scaling Laws for Neural Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2001.08361",
+          "estimatedHours": 4,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "scaling-laws"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "chinchilla-paper",
+          "title": "Training Compute-Optimal Large Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2203.15556",
+          "estimatedHours": 3,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "compute-optimal-training"
+          ],
+          "prerequisiteConceptIds": [
+            "scaling-laws"
+          ]
+        },
+        {
+          "id": "lora-paper",
+          "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2106.09685",
+          "estimatedHours": 3,
+          "sortOrder": 50,
+          "teachesConceptIds": [
+            "fine-tuning-efficiency"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "karpathy-llm-os",
+          "title": "Andrej Karpathy - LLMs as Operating Systems",
+          "type": "video",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 95,
+          "teachesConceptIds": [
+            "foundation-models",
+            "tool-use"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p4-gpt1-paper",
+          "title": "Improving Language Understanding by Generative Pre-Training",
+          "type": "paper",
+          "url": "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf",
+          "estimatedHours": 1.5,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "language-model-pretraining"
+          ],
+          "prerequisiteConceptIds": [
+            "autoregressive-generation",
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "p4-gpt3-paper",
+          "title": "Language Models are Few-Shot Learners",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2005.14165",
+          "estimatedHours": 6,
+          "sortOrder": 110,
+          "teachesConceptIds": [
+            "in-context-learning",
+            "scaling-behavior"
+          ],
+          "prerequisiteConceptIds": [
+            "language-model-pretraining",
+            "scaling-laws"
+          ]
+        },
+        {
+          "id": "p4-instructgpt-paper",
+          "title": "Training language models to follow instructions with human feedback",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2203.02155",
+          "estimatedHours": 3,
+          "sortOrder": 120,
+          "teachesConceptIds": [
+            "instruction-tuning",
+            "rlhf-alignment"
+          ],
+          "prerequisiteConceptIds": [
+            "in-context-learning",
+            "language-model-pretraining"
+          ]
+        },
+        {
+          "id": "p4-dpo-paper",
+          "title": "Direct Preference Optimization",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2305.18290",
+          "estimatedHours": 2,
+          "sortOrder": 130,
+          "teachesConceptIds": [
+            "dpo"
+          ],
+          "prerequisiteConceptIds": [
+            "rlhf-alignment"
+          ]
+        },
+        {
+          "id": "p4-llama-paper",
+          "title": "LLaMA: Open and Efficient Foundation Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2302.13971",
+          "estimatedHours": 2,
+          "sortOrder": 140,
+          "teachesConceptIds": [
+            "compute-optimal-training"
+          ],
+          "prerequisiteConceptIds": [
+            "language-model-pretraining",
+            "scaling-laws"
+          ]
+        },
+        {
+          "id": "p4-cot-paper",
+          "title": "Chain-of-Thought Prompting Elicits Reasoning in LLMs",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2201.11903",
+          "estimatedHours": 2,
+          "sortOrder": 150,
+          "teachesConceptIds": [
+            "in-context-learning"
+          ],
+          "prerequisiteConceptIds": [
+            "language-model-pretraining"
+          ]
+        },
+        {
+          "id": "p4-cs224n",
+          "title": "Stanford CS224n: NLP with Deep Learning",
+          "type": "course",
+          "url": "https://web.stanford.edu/class/cs224n/",
+          "estimatedHours": 25,
+          "sortOrder": 200,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "language-model-pretraining",
+            "word-embeddings"
+          ],
+          "prerequisiteConceptIds": [
+            "backpropagation-training",
+            "neural-network-fundamentals"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "5",
+      "sortOrder": 5,
+      "isPrimary": true,
+      "title": {
+        "es": "Infraestructura ML",
+        "en": "ML Infrastructure & Distributed Training"
+      },
+      "objective": {
+        "es": "Infraestructura de entrenamiento y serving.",
+        "en": "Training and serving infrastructure."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Infraestructura ML."
+        ],
+        "en": [
+          "Demonstrate operational mastery in ML Infrastructure & Distributed Training."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "data-parallelism",
+          "name": "Data Parallelism",
+          "canonicalDefinition": "Distributing training data across multiple GPUs, each with a copy of the model. Gradient synchronization via AllReduce. Trade-offs: communication overhead vs linear speedup. Foundation for distributed training.",
+          "prerequisites": [
+            "gpu-compute-fundamentals",
+            "partitioning"
+          ],
+          "taughtByResourceIds": [
+            "deepspeed-docs",
+            "p2-lilian-weng-distributed",
+            "stanford-cs336",
+            "zero-paper"
+          ]
+        },
+        {
+          "id": "distributed-training",
+          "name": "Distributed Training",
+          "canonicalDefinition": "Training large models across multiple machines. Strategies: data parallelism, model parallelism (tensor, pipeline), expert parallelism. Tools: DeepSpeed, FSDP, Megatron-LM. Key challenge: communication overhead and fault tolerance.",
+          "prerequisites": [
+            "data-parallelism"
+          ],
+          "taughtByResourceIds": [
+            "deepspeed-docs",
+            "p2-lilian-weng-distributed",
+            "stanford-cs336",
+            "zero-paper"
+          ]
+        },
+        {
+          "id": "gpu-compute-fundamentals",
+          "name": "GPU Compute Fundamentals",
+          "canonicalDefinition": "GPU architecture for ML: CUDA cores, memory hierarchy (HBM, SRAM), parallelism model. Why GPUs are essential for matrix operations in deep learning. Understanding FLOPS, memory bandwidth, and compute-bound vs memory-bound operations.",
+          "prerequisites": [
+            "scalability"
+          ],
+          "taughtByResourceIds": [
+            "mixed-precision-paper",
+            "p2-horace-he-gpu",
+            "stanford-cs336"
+          ]
+        },
+        {
+          "id": "mixed-precision-training",
+          "name": "Mixed Precision Training",
+          "canonicalDefinition": "Training with FP16 compute and FP32 master weights. Loss scaling prevents gradient underflow in FP16. Tensor Cores provide 2-8x speedup for FP16 matmuls. Standard practice since 2018 for all large model training.",
+          "prerequisites": [
+            "gpu-compute-fundamentals"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "ml-data-pipelines",
+          "name": "ML Data Pipelines",
+          "canonicalDefinition": "Infrastructure for collecting, cleaning, transforming, and serving data for ML training and inference. ETL/ELT patterns adapted for ML: data versioning, lineage tracking, quality validation. Tools: Apache Beam, Spark, dbt.",
+          "prerequisites": [
+            "encoding-evolution",
+            "stream-processing"
+          ],
+          "taughtByResourceIds": [
+            "hidden-tech-debt-paper",
+            "made-with-ml",
+            "tfx-paper"
+          ]
+        },
+        {
+          "id": "ml-technical-debt",
+          "name": "ML Technical Debt",
+          "canonicalDefinition": "ML-specific forms of technical debt beyond traditional software: data dependency debt, model entanglement, hidden feedback loops, undeclared consumers, pipeline jungles, dead experimental codepaths. The ML code is often <5% of the total system.",
+          "prerequisites": [
+            "ml-data-pipelines"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "model-containerization",
+          "name": "Model Containerization & Serving",
+          "canonicalDefinition": "Packaging ML models with their dependencies into containers for reproducible deployment. Tools: Docker, BentoML, Triton. Covers dependency management, GPU passthrough, health checks, and scaling strategies.",
+          "prerequisites": [
+            "model-serving-infra"
+          ],
+          "taughtByResourceIds": []
+        },
+        {
+          "id": "model-serving-infra",
+          "name": "Model Serving Infrastructure",
+          "canonicalDefinition": "Systems for deploying and serving ML models in production. Considerations: latency requirements, throughput, model versioning, A/B testing, canary deployments, autoscaling. Tools: TorchServe, Triton, TFServing, BentoML.",
+          "prerequisites": [
+            "reliability",
+            "scalability",
+            "slos-slis"
+          ],
+          "taughtByResourceIds": [
+            "made-with-ml",
+            "tfx-paper"
+          ]
+        },
+        {
+          "id": "zero-optimizer",
+          "name": "ZeRO Optimizer",
+          "canonicalDefinition": "Zero Redundancy Optimizer that partitions optimizer states (stage 1), gradients (stage 2), and parameters (stage 3) across data-parallel GPUs. Each stage reduces memory per GPU while maintaining data parallelism semantics. Foundation for DeepSpeed.",
+          "prerequisites": [
+            "data-parallelism"
+          ],
+          "taughtByResourceIds": []
+        }
+      ],
+      "resources": [
+        {
+          "id": "p11-megatron-lm",
+          "title": "Efficient Large-Scale Language Model Training on GPU Clusters",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2104.04473",
+          "estimatedHours": 8,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "distributed-training-impl",
+            "model-parallelism-impl"
+          ],
+          "prerequisiteConceptIds": [
+            "distributed-training"
+          ]
+        },
+        {
+          "id": "p2-lilian-weng-distributed",
+          "title": "How to Train Really Large Models on Many GPUs?",
+          "type": "article",
+          "url": "https://lilianweng.github.io/posts/2021-09-25-train-large/",
+          "estimatedHours": 3,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "data-parallelism",
+            "distributed-training"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p2-horace-he-gpu",
+          "title": "Making Deep Learning Go Brrrr From First Principles",
+          "type": "article",
+          "url": "https://horace.io/brrr_intro.html",
+          "estimatedHours": 2,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "gpu-compute-fundamentals"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "stanford-cs336",
+          "title": "Stanford CS336: Language Modeling from Scratch",
+          "type": "course",
+          "url": "https://stanford-cs336.github.io/spring2025/",
+          "estimatedHours": 30,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "data-parallelism",
+            "distributed-training",
+            "gpu-compute-fundamentals"
+          ],
+          "prerequisiteConceptIds": [
+            "scalability"
+          ]
+        },
+        {
+          "id": "deepspeed-docs",
+          "title": "DeepSpeed Documentation & Tutorials",
+          "type": "article",
+          "url": "https://www.deepspeed.ai/",
+          "estimatedHours": 6,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "data-parallelism",
+            "distributed-training"
+          ],
+          "prerequisiteConceptIds": [
+            "gpu-compute-fundamentals"
+          ]
+        },
+        {
+          "id": "zero-paper",
+          "title": "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1910.02054",
+          "estimatedHours": 4,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "data-parallelism",
+            "distributed-training"
+          ],
+          "prerequisiteConceptIds": [
+            "gpu-compute-fundamentals"
+          ]
+        },
+        {
+          "id": "hidden-tech-debt-paper",
+          "title": "Hidden Technical Debt in Machine Learning Systems",
+          "type": "paper",
+          "url": "https://papers.nips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html",
+          "estimatedHours": 3,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "ml-data-pipelines"
+          ],
+          "prerequisiteConceptIds": [
+            "monitoring"
+          ]
+        },
+        {
+          "id": "made-with-ml",
+          "title": "Made With ML: MLOps Course",
+          "type": "course",
+          "url": "https://madewithml.com/",
+          "estimatedHours": 15,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "ml-data-pipelines",
+            "model-serving-infra"
+          ],
+          "prerequisiteConceptIds": [
+            "monitoring",
+            "scalability"
+          ]
+        },
+        {
+          "id": "feast-docs",
+          "title": "Feast: Feature Store Documentation",
+          "type": "article",
+          "url": "https://docs.feast.dev/",
+          "estimatedHours": 4,
+          "sortOrder": 40,
+          "teachesConceptIds": [],
+          "prerequisiteConceptIds": [
+            "ml-data-pipelines",
+            "storage-engines"
+          ]
+        },
+        {
+          "id": "tfx-paper",
+          "title": "TFX: A TensorFlow-Based Production-Scale Machine Learning Platform",
+          "type": "paper",
+          "url": "https://dl.acm.org/doi/10.1145/3097983.3098021",
+          "estimatedHours": 4,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "ml-data-pipelines",
+            "model-serving-infra"
+          ],
+          "prerequisiteConceptIds": [
+            "reliability",
+            "scalability",
+            "slos-slis"
+          ]
+        },
+        {
+          "id": "feast-paper",
+          "title": "Feast: Feature Store for Machine Learning",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2105.12738",
+          "estimatedHours": 3,
+          "sortOrder": 50,
+          "teachesConceptIds": [],
+          "prerequisiteConceptIds": [
+            "ml-data-pipelines",
+            "storage-engines"
+          ]
+        },
+        {
+          "id": "mixed-precision-paper",
+          "title": "Mixed Precision Training",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1710.03740",
+          "estimatedHours": 3,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "gpu-compute-fundamentals"
+          ],
+          "prerequisiteConceptIds": []
+        }
+      ]
+    },
+    {
+      "phase": "6",
+      "sortOrder": 6,
+      "isPrimary": true,
+      "title": {
+        "es": "Agentes & Razonamiento",
+        "en": "Agents & Reasoning"
+      },
+      "objective": {
+        "es": "Arquitecturas agenticas robustas.",
+        "en": "Robust agent architectures."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Agentes & Razonamiento."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Agents & Reasoning."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "agent-reliability",
+          "name": "Agent Reliability",
+          "canonicalDefinition": "Engineering reliable agent systems: retry/fallback strategies, output validation loops, human-in-the-loop (HITL) checkpoints, sandboxing for safety. Without explicit reliability engineering, agents fail silently and unpredictably.",
+          "prerequisites": [
+            "react-pattern",
+            "structured-output"
+          ],
+          "taughtByResourceIds": [
+            "anthropic-effective-agents"
+          ]
+        },
+        {
+          "id": "chain-of-thought",
+          "name": "Chain-of-Thought",
+          "canonicalDefinition": "Prompting technique where the model shows intermediate reasoning steps. Improves performance on complex tasks. Can be zero-shot (\"think step by step\") or few-shot.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "cot-prompting-videos",
+            "react-paper",
+            "react-prompting-videos"
+          ]
+        },
+        {
+          "id": "multi-agent-systems",
+          "name": "Multi-Agent Systems",
+          "canonicalDefinition": "Architectures where multiple LLM agents collaborate on tasks. Patterns: supervisor-worker (one agent delegates), debate (agents argue to consensus), ensemble (parallel execution + aggregation). Challenges: coordination overhead, error propagation, cost multiplication.",
+          "prerequisites": [
+            "plan-and-execute",
+            "tool-use"
+          ],
+          "taughtByResourceIds": [
+            "autogen-paper"
+          ]
+        },
+        {
+          "id": "plan-and-execute",
+          "name": "Plan-and-Execute Agents",
+          "canonicalDefinition": "Two-phase agent pattern: first create a plan (list of steps), then execute each step. Separates planning from execution, enables re-planning on failure.",
+          "prerequisites": [
+            "react-pattern",
+            "tool-use"
+          ],
+          "taughtByResourceIds": [
+            "agent-sandbox-patterns",
+            "lilian-weng-agents"
+          ]
+        },
+        {
+          "id": "prompt-engineering",
+          "name": "Prompt Engineering",
+          "canonicalDefinition": "The discipline of designing effective prompts for LLMs. Includes techniques like few-shot learning, role prompting, format specification, and constraint setting. Foundation for all LLM applications.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "cot-prompting-videos",
+            "react-prompting-videos"
+          ]
+        },
+        {
+          "id": "react-pattern",
+          "name": "ReAct Pattern",
+          "canonicalDefinition": "Interleaving reasoning (chain-of-thought) with acting (tool use). Model thinks step by step, takes action, observes result, repeats. Enables grounded, traceable reasoning.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "agent-sandbox-patterns",
+            "anthropic-effective-agents",
+            "lilian-weng-agents",
+            "react-paper",
+            "react-prompting-videos"
+          ]
+        },
+        {
+          "id": "reasoning-models",
+          "name": "Reasoning Models (o1, R1)",
+          "canonicalDefinition": "LLMs trained to produce extended reasoning chains before answering. Use reinforcement learning to learn when to think more vs less. Excel at math, code, and complex reasoning. Key insight: reasoning capability emerges from RL without labeled reasoning data.",
+          "prerequisites": [
+            "chain-of-thought",
+            "test-time-compute"
+          ],
+          "taughtByResourceIds": [
+            "deepseek-r1-paper",
+            "openai-o1-blog"
+          ]
+        },
+        {
+          "id": "reflexion",
+          "name": "Reflexion",
+          "canonicalDefinition": "Agent pattern where model reflects on failures and stores verbal feedback in memory. Enables learning from mistakes without weight updates.",
+          "prerequisites": [
+            "react-pattern"
+          ],
+          "taughtByResourceIds": [
+            "reflexion-paper"
+          ]
+        },
+        {
+          "id": "structured-output",
+          "name": "Structured Output",
+          "canonicalDefinition": "Constraining LLM outputs to valid formats (JSON, XML, function calls). Techniques: JSON mode, function calling schemas, grammar-constrained decoding. Essential for reliable tool use and data extraction.",
+          "prerequisites": [
+            "foundation-models",
+            "prompt-engineering"
+          ],
+          "taughtByResourceIds": [
+            "instructor-docs"
+          ]
+        },
+        {
+          "id": "test-time-compute",
+          "name": "Test-Time Compute Scaling",
+          "canonicalDefinition": "Using more compute at inference for better reasoning. Models like o1 and DeepSeek-R1 trade latency for accuracy by \"thinking longer\". Enables solving problems that stumped previous models. New scaling dimension beyond model size and training data.",
+          "prerequisites": [
+            "chain-of-thought",
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "deepseek-r1-paper",
+            "openai-o1-blog",
+            "s1-test-time-scaling"
+          ]
+        },
+        {
+          "id": "tool-use",
+          "name": "Tool Use",
+          "canonicalDefinition": "Teaching LLMs to call external APIs, calculators, search engines. Extends capabilities beyond training data. Key challenge: knowing when to use which tool.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "agent-sandbox-patterns",
+            "karpathy-llm-os",
+            "lilian-weng-agents",
+            "react-paper"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "react-paper",
+          "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2210.03629",
+          "estimatedHours": 4,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "chain-of-thought",
+            "react-pattern",
+            "tool-use"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "reflexion-paper",
+          "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2303.11366",
+          "estimatedHours": 3,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "reflexion"
+          ],
+          "prerequisiteConceptIds": [
+            "react-pattern"
+          ]
+        },
+        {
+          "id": "openai-o1-blog",
+          "title": "Learning to Reason with LLMs",
+          "type": "article",
+          "url": "https://openai.com/index/learning-to-reason-with-llms/",
+          "estimatedHours": 2,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "reasoning-models",
+            "test-time-compute"
+          ],
+          "prerequisiteConceptIds": [
+            "chain-of-thought"
+          ]
+        },
+        {
+          "id": "minimal-agent-loop",
+          "title": "Minimal Agent Loop Implementation",
+          "type": "article",
+          "url": "https://github.com/pguso/rag-from-scratch",
+          "estimatedHours": 4,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "framework-tradeoffs",
+            "minimal-implementations"
+          ],
+          "prerequisiteConceptIds": [
+            "react-pattern",
+            "tool-use"
+          ]
+        },
+        {
+          "id": "deepseek-r1-paper",
+          "title": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2501.12948",
+          "estimatedHours": 4,
+          "sortOrder": 75,
+          "teachesConceptIds": [
+            "reasoning-models",
+            "test-time-compute"
+          ],
+          "prerequisiteConceptIds": [
+            "chain-of-thought",
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "openclaw-casestudy",
+          "title": "OpenClaw: Arquitectura de un Sistema de Agentes de IA en Producción",
+          "type": "article",
+          "url": "https://github.com/openclaw/openclaw",
+          "estimatedHours": 6,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "agent-memory-persistence",
+            "agent-protocol-design",
+            "agent-skill-orchestration",
+            "agent-ui-generation"
+          ],
+          "prerequisiteConceptIds": [
+            "tool-use"
+          ]
+        },
+        {
+          "id": "s1-test-time-scaling",
+          "title": "s1: Simple Test-Time Scaling",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2501.19393",
+          "estimatedHours": 2,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "test-time-compute"
+          ],
+          "prerequisiteConceptIds": [
+            "reasoning-models"
+          ]
+        },
+        {
+          "id": "agent-sandbox-patterns",
+          "title": "The Two Patterns by Which Agents Connect Sandboxes",
+          "type": "article",
+          "url": "https://blog.langchain.com/the-two-patterns-by-which-agents-connect-sandboxes/",
+          "estimatedHours": 1,
+          "sortOrder": 85,
+          "teachesConceptIds": [
+            "plan-and-execute",
+            "react-pattern",
+            "tool-use"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "autogen-paper",
+          "title": "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2308.08155",
+          "estimatedHours": 4,
+          "sortOrder": 88,
+          "teachesConceptIds": [
+            "multi-agent-systems"
+          ],
+          "prerequisiteConceptIds": [
+            "plan-and-execute",
+            "tool-use"
+          ]
+        },
+        {
+          "id": "anthropic-effective-agents",
+          "title": "Building Effective Agents",
+          "type": "article",
+          "url": "https://www.anthropic.com/engineering/building-effective-agents",
+          "estimatedHours": 2,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "agent-reliability",
+            "react-pattern"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "stanford-cs25",
+          "title": "Stanford CS25: Transformers United",
+          "type": "course",
+          "url": "https://web.stanford.edu/class/cs25/",
+          "estimatedHours": 20,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "compute-optimal-training",
+            "scaling-laws",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "react-prompting-videos",
+          "title": "ReAct Prompting Explained (AssemblyAI/HuggingFace)",
+          "type": "video",
+          "url": "https://www.youtube.com/@AssemblyAI",
+          "estimatedHours": 2,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "chain-of-thought",
+            "prompt-engineering",
+            "react-pattern"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "cot-prompting-videos",
+          "title": "Chain of Thought Prompting Explained",
+          "type": "video",
+          "url": "https://www.youtube.com/@DeepLearningAI",
+          "estimatedHours": 2,
+          "sortOrder": 110,
+          "teachesConceptIds": [
+            "chain-of-thought",
+            "prompt-engineering"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "lilian-weng-agents",
+          "title": "Lilian Weng - LLM Agent Architectures",
+          "type": "article",
+          "url": "https://lilianweng.github.io/",
+          "estimatedHours": 6,
+          "sortOrder": 120,
+          "teachesConceptIds": [
+            "plan-and-execute",
+            "react-pattern",
+            "tool-use"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "7",
+      "sortOrder": 7,
+      "isPrimary": true,
+      "title": {
+        "es": "RAG, Memoria & Contexto",
+        "en": "RAG, Memory & Context"
+      },
+      "objective": {
+        "es": "Recuperacion, memoria y contexto verificables.",
+        "en": "Reliable retrieval, memory, and context systems."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en RAG, Memoria & Contexto."
+        ],
+        "en": [
+          "Demonstrate operational mastery in RAG, Memory & Context."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "agentic-rag",
+          "name": "Agentic RAG",
+          "canonicalDefinition": "RAG systems where an agent dynamically decides retrieval strategy: when to retrieve, which sources to query, whether to refine queries, when to stop. Goes beyond static retrieve-then-generate pipelines. Combines RAG with agent reasoning loops.",
+          "prerequisites": [
+            "rag-basics",
+            "react-pattern",
+            "tool-use"
+          ],
+          "taughtByResourceIds": [
+            "self-rag-paper"
+          ]
+        },
+        {
+          "id": "chunking-strategies",
+          "name": "Chunking Strategies",
+          "canonicalDefinition": "How to split documents for embedding. Options: fixed size, sentence-based, semantic, recursive. Trade-off: too small loses context, too large dilutes relevance.",
+          "prerequisites": [
+            "embeddings",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "llamaindex-rag-pitfalls",
+            "pinecone-rag-production"
+          ]
+        },
+        {
+          "id": "context-window-limits",
+          "name": "Context Window Limits",
+          "canonicalDefinition": "Maximum tokens a model can process. Attention is O(n²) in context length. Longer context ≠ better understanding. Cost scales with context size.",
+          "prerequisites": [
+            "attention-mechanism"
+          ],
+          "taughtByResourceIds": [
+            "long-context-paper",
+            "lost-in-middle-paper"
+          ]
+        },
+        {
+          "id": "embeddings",
+          "name": "Embeddings",
+          "canonicalDefinition": "Dense vector representations of text. Similar meanings → similar vectors. Enable semantic search. Models: sentence-transformers, OpenAI embeddings, etc.",
+          "prerequisites": [
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "rag-paper"
+          ]
+        },
+        {
+          "id": "external-memory",
+          "name": "External Memory for LLMs",
+          "canonicalDefinition": "Storing information outside the model (vector DBs, key-value stores) and retrieving as needed. Enables unbounded knowledge without context limits.",
+          "prerequisites": [
+            "rag-basics",
+            "vector-search"
+          ],
+          "taughtByResourceIds": [
+            "clawvault-agent-memory",
+            "memgpt-paper"
+          ]
+        },
+        {
+          "id": "graph-rag",
+          "name": "Graph RAG",
+          "canonicalDefinition": "Augmenting RAG with knowledge graphs. Entities and relationships provide structured context that vector search misses. Microsoft GraphRAG: community detection + summarization for global queries. Complements vector search for multi-hop reasoning.",
+          "prerequisites": [
+            "data-models",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "graphrag-paper"
+          ]
+        },
+        {
+          "id": "hybrid-search",
+          "name": "Hybrid Search",
+          "canonicalDefinition": "Combining dense (embedding) and sparse (keyword/BM25) retrieval. Often outperforms either alone. Requires score normalization and fusion strategies.",
+          "prerequisites": [
+            "vector-search"
+          ],
+          "taughtByResourceIds": [
+            "llamaindex-rag-pitfalls",
+            "pinecone-rag-production"
+          ]
+        },
+        {
+          "id": "memory-management",
+          "name": "LLM Memory Management",
+          "canonicalDefinition": "Policies for storing, retrieving, updating, and forgetting memories. Includes recency bias, importance scoring, summarization, conflict resolution, and drift control. Without explicit management, \"store everything forever\" breaks systems quietly.",
+          "prerequisites": [
+            "external-memory"
+          ],
+          "taughtByResourceIds": [
+            "clawvault-agent-memory",
+            "memgpt-paper"
+          ]
+        },
+        {
+          "id": "lost-in-middle",
+          "name": "Lost in the Middle",
+          "canonicalDefinition": "LLMs pay less attention to information in the middle of long contexts. Performance is U-shaped: best for info at start or end. Implications for RAG ordering.",
+          "prerequisites": [
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "lost-in-middle-paper"
+          ]
+        },
+        {
+          "id": "query-decomposition",
+          "name": "Query Decomposition",
+          "canonicalDefinition": "Breaking complex queries into simpler sub-queries for better retrieval. Techniques: HyDE (hypothetical document embeddings), step-back prompting (abstract before retrieve), multi-hop (chain of retrievals). Improves recall on complex questions.",
+          "prerequisites": [
+            "chain-of-thought",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "hyde-paper"
+          ]
+        },
+        {
+          "id": "rag-evaluation",
+          "name": "RAG Evaluation",
+          "canonicalDefinition": "Metrics and frameworks for evaluating RAG systems. RAGAS framework: faithfulness (grounded in context), answer relevancy, context precision/recall. Component-level evaluation (retriever vs generator) vs end-to-end. Essential for systematic RAG improvement.",
+          "prerequisites": [
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "ragas-docs"
+          ]
+        },
+        {
+          "id": "rag-vs-long-context",
+          "name": "RAG vs Long Context",
+          "canonicalDefinition": "When to use RAG vs stuffing everything into a long context window. Needle-in-haystack tests show long context degrades with more content. RAG: better for large corpora, cost-effective, updatable. Long context: simpler architecture, better for small documents. Hybrid approaches emerging.",
+          "prerequisites": [
+            "context-extension",
+            "context-window-limits",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "needle-in-haystack"
+          ]
+        },
+        {
+          "id": "reranking",
+          "name": "Reranking",
+          "canonicalDefinition": "Second-stage retrieval that reorders initial results for higher relevance. Cross-encoder rerankers are more accurate but slower than bi-encoders. ColBERT enables efficient token-level interaction. Cohere Rerank, BGE-Reranker as production options.",
+          "prerequisites": [
+            "rag-basics",
+            "vector-search"
+          ],
+          "taughtByResourceIds": [
+            "colbertv2-paper"
+          ]
+        },
+        {
+          "id": "rag-basics",
+          "name": "Retrieval-Augmented Generation",
+          "canonicalDefinition": "Augmenting LLM generation with retrieved documents. Reduces hallucination, enables knowledge updates without retraining. Components: retriever, reader, generator.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "rag-paper"
+          ]
+        },
+        {
+          "id": "vector-search",
+          "name": "Vector Search",
+          "canonicalDefinition": "Finding similar items by comparing embedding vectors. Algorithms: exact (brute force), approximate (HNSW, IVF). Trade-off: speed vs recall.",
+          "prerequisites": [
+            "embeddings"
+          ],
+          "taughtByResourceIds": [
+            "pinecone-rag-production"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "rag-paper",
+          "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2005.11401",
+          "estimatedHours": 4,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "embeddings",
+            "rag-basics"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "lost-in-middle-paper",
+          "title": "Lost in the Middle: How Language Models Use Long Contexts",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2307.03172",
+          "estimatedHours": 2,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "context-window-limits",
+            "lost-in-middle"
+          ],
+          "prerequisiteConceptIds": [
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "long-context-paper",
+          "title": "Do Long-Context Models Really Understand?",
+          "type": "paper",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "context-window-limits"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-mechanism"
+          ]
+        },
+        {
+          "id": "memgpt-paper",
+          "title": "MemGPT: Towards LLMs as Operating Systems",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2310.08560",
+          "estimatedHours": 4,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "external-memory",
+            "memory-management"
+          ],
+          "prerequisiteConceptIds": [
+            "tool-use"
+          ]
+        },
+        {
+          "id": "rag-from-scratch",
+          "title": "Build RAG From Scratch (No Frameworks)",
+          "type": "article",
+          "url": "https://huggingface.co/blog/ngxson/make-your-own-rag",
+          "estimatedHours": 4,
+          "sortOrder": 50,
+          "teachesConceptIds": [
+            "framework-tradeoffs",
+            "minimal-implementations"
+          ],
+          "prerequisiteConceptIds": [
+            "embeddings",
+            "rag-basics",
+            "vector-search"
+          ]
+        },
+        {
+          "id": "graphrag-paper",
+          "title": "From Local to Global: A Graph RAG Approach to Query-Focused Summarization",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2404.16130",
+          "estimatedHours": 4,
+          "sortOrder": 55,
+          "teachesConceptIds": [
+            "graph-rag"
+          ],
+          "prerequisiteConceptIds": [
+            "data-models",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "ragas-docs",
+          "title": "RAGAS: Evaluation Framework for RAG",
+          "type": "article",
+          "url": "https://docs.ragas.io/",
+          "estimatedHours": 3,
+          "sortOrder": 58,
+          "teachesConceptIds": [
+            "rag-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "hyde-paper",
+          "title": "Precise Zero-Shot Dense Retrieval without Relevance Labels (HyDE)",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2212.10496",
+          "estimatedHours": 2,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "query-decomposition"
+          ],
+          "prerequisiteConceptIds": [
+            "chain-of-thought",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "rag-without-frameworks",
+          "title": "RAG Applications Without LangChain or LlamaIndex",
+          "type": "article",
+          "url": "https://blog.futuresmart.ai/building-rag-applications-without-langchain-or-llamaindex",
+          "estimatedHours": 3,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "framework-tradeoffs",
+            "minimal-implementations"
+          ],
+          "prerequisiteConceptIds": [
+            "rag-basics",
+            "vector-search"
+          ]
+        },
+        {
+          "id": "colbertv2-paper",
+          "title": "ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2112.01488",
+          "estimatedHours": 3,
+          "sortOrder": 62,
+          "teachesConceptIds": [
+            "reranking"
+          ],
+          "prerequisiteConceptIds": [
+            "vector-search"
+          ]
+        },
+        {
+          "id": "self-rag-paper",
+          "title": "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2310.11511",
+          "estimatedHours": 3,
+          "sortOrder": 65,
+          "teachesConceptIds": [
+            "agentic-rag"
+          ],
+          "prerequisiteConceptIds": [
+            "rag-basics",
+            "react-pattern"
+          ]
+        },
+        {
+          "id": "needle-in-haystack",
+          "title": "Needle in a Haystack: Pressure Testing Long Context LLMs",
+          "type": "article",
+          "url": "https://github.com/gkamradt/LLMTest_NeedleInAHaystack",
+          "estimatedHours": 2,
+          "sortOrder": 68,
+          "teachesConceptIds": [
+            "rag-vs-long-context"
+          ],
+          "prerequisiteConceptIds": [
+            "context-window-limits",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "llamaindex-rag-pitfalls",
+          "title": "LlamaIndex Blog: RAG Pitfalls",
+          "type": "article",
+          "url": "https://www.llamaindex.ai/blog",
+          "estimatedHours": 2,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "chunking-strategies",
+            "hybrid-search"
+          ],
+          "prerequisiteConceptIds": [
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "pinecone-rag-production",
+          "title": "Pinecone: RAG in Production",
+          "type": "video",
+          "url": "https://www.youtube.com/c/PineconeIO",
+          "estimatedHours": 3,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "chunking-strategies",
+            "hybrid-search",
+            "vector-search"
+          ],
+          "prerequisiteConceptIds": [
+            "embeddings",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "clawvault-agent-memory",
+          "title": "Solving Memory for Openclaw & General Agents (ClawVault)",
+          "type": "article",
+          "url": "https://clawvault.dev",
+          "estimatedHours": 1,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "external-memory",
+            "memory-management"
+          ],
+          "prerequisiteConceptIds": []
+        }
+      ]
+    },
+    {
+      "phase": "8",
+      "sortOrder": 8,
+      "isPrimary": true,
+      "title": {
+        "es": "Seguridad & Guardrails",
+        "en": "Safety, Guardrails & Eval"
+      },
+      "objective": {
+        "es": "Seguridad y evaluacion de sistemas LLM.",
+        "en": "Safety and evaluation for LLM systems."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Seguridad & Guardrails."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Safety, Guardrails & Eval."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "constitutional-ai",
+          "name": "Constitutional AI",
+          "canonicalDefinition": "Training AI to follow principles (a \"constitution\") through self-critique and revision. RLHF alternative that's more scalable and transparent.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "anthropic-alignment-paper",
+            "anthropic-safety-talks",
+            "constitutional-ai-paper",
+            "harvard-ai-ethics",
+            "stanford-hai-talks"
+          ]
+        },
+        {
+          "id": "eval-harnesses",
+          "name": "Evaluation Harnesses",
+          "canonicalDefinition": "Tools and frameworks for systematic LLM evaluation. promptfoo: prompt testing and regression. lm-eval-harness: standardized benchmarks. LLM-as-judge (MT-Bench): using strong LLMs to evaluate weaker ones. Enables CI/CD for prompt engineering.",
+          "prerequisites": [
+            "offline-evaluation",
+            "online-evaluation"
+          ],
+          "taughtByResourceIds": [
+            "llm-as-judge-paper",
+            "p7-nist-ai-rmf",
+            "promptfoo-docs"
+          ]
+        },
+        {
+          "id": "guardrails-libraries",
+          "name": "Guardrails Libraries",
+          "canonicalDefinition": "Frameworks for adding input/output guardrails to LLM applications. NeMo Guardrails: dialog rails with Colang. Instructor: structured output with Pydantic validation. Guardrails AI: RAIL specs for output validation. Comparison of approaches and when to use each.",
+          "prerequisites": [
+            "output-validation",
+            "structured-output"
+          ],
+          "taughtByResourceIds": [
+            "instructor-docs",
+            "nemo-guardrails-docs"
+          ]
+        },
+        {
+          "id": "llm-security-owasp",
+          "name": "LLM Security (OWASP Top 10)",
+          "canonicalDefinition": "Systematic framework for LLM vulnerabilities: prompt injection, insecure output handling, training data poisoning, model DoS, supply chain risks, sensitive information disclosure, excessive agency. Essential checklist before deploying any LLM application.",
+          "prerequisites": [
+            "output-validation",
+            "prompt-injection"
+          ],
+          "taughtByResourceIds": [
+            "owasp-llm-top10"
+          ]
+        },
+        {
+          "id": "offline-evaluation",
+          "name": "Offline LLM Evaluation",
+          "canonicalDefinition": "Benchmark-based and regression evaluation using fixed datasets (MMLU, HumanEval, custom test suites). Useful for iteration and comparison, but limited for predicting real-world behavior. Includes LLM-as-judge patterns.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "anthropic-alignment-paper",
+            "anthropic-safety-talks",
+            "deeplearning-ai-llm-evals",
+            "harvard-ai-ethics",
+            "helm-paper",
+            "llm-as-judge-paper",
+            "ml-testing-practices",
+            "red-teaming-paper",
+            "stanford-hai-talks"
+          ]
+        },
+        {
+          "id": "online-evaluation",
+          "name": "Online LLM Evaluation",
+          "canonicalDefinition": "Evaluating LLMs in production using A/B tests, shadow traffic, canary deployments, and human feedback. Captures real user behavior that offline metrics miss. Requires careful metric selection and statistical rigor.",
+          "prerequisites": [
+            "foundation-models",
+            "slos-slis"
+          ],
+          "taughtByResourceIds": [
+            "deeplearning-ai-llm-evals",
+            "langfuse-observability",
+            "ml-testing-practices"
+          ]
+        },
+        {
+          "id": "output-validation",
+          "name": "Output Validation",
+          "canonicalDefinition": "Checking LLM outputs before using them: schema validation (JSON), fact-checking, safety filtering. Defense in depth against unreliable generations.",
+          "prerequisites": [
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "anthropic-safety-talks"
+          ]
+        },
+        {
+          "id": "prompt-injection",
+          "name": "Prompt Injection",
+          "canonicalDefinition": "Attack where malicious input overrides system instructions. Direct injection: user prompt contains attack. Indirect injection: external data (retrieved docs, tool outputs) contains attack. Defenses: input sanitization, output filtering, privilege separation, instruction hierarchy.",
+          "prerequisites": [
+            "foundation-models",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "owasp-llm-top10",
+            "prompt-injection-guide"
+          ]
+        },
+        {
+          "id": "red-teaming",
+          "name": "Red Teaming LLMs",
+          "canonicalDefinition": "Adversarial testing to find failure modes: jailbreaks, harmful outputs, bias. Manual and automated approaches. Essential before deployment.",
+          "prerequisites": [
+            "offline-evaluation"
+          ],
+          "taughtByResourceIds": [
+            "p7-nist-ai-rmf",
+            "red-teaming-paper"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "p7-nist-ai-rmf",
+          "title": "NIST AI Risk Management Framework",
+          "type": "article",
+          "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "eval-harnesses",
+            "red-teaming"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "constitutional-ai-paper",
+          "title": "Constitutional AI: Harmlessness from AI Feedback",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2212.08073",
+          "estimatedHours": 4,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "constitutional-ai"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "red-teaming-paper",
+          "title": "Red Teaming Language Models",
+          "type": "paper",
+          "url": null,
+          "estimatedHours": 3,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "offline-evaluation",
+            "red-teaming"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "helm-paper",
+          "title": "Holistic Evaluation of Language Models (HELM)",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2211.09110",
+          "estimatedHours": 5,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "offline-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "ml-testing-practices",
+          "title": "Machine Learning Testing: Survey, Landscapes and Horizons",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1906.10742",
+          "estimatedHours": 6,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "offline-evaluation",
+            "online-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "owasp-llm-top10",
+          "title": "OWASP Top 10 for LLM Applications",
+          "type": "article",
+          "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+          "estimatedHours": 3,
+          "sortOrder": 65,
+          "teachesConceptIds": [
+            "llm-security-owasp",
+            "prompt-injection"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "prompt-injection-guide",
+          "title": "Prompt Injection: What's the worst that can happen?",
+          "type": "article",
+          "url": "https://simonwillison.net/2023/Apr/14/worst-that-can-happen/",
+          "estimatedHours": 2,
+          "sortOrder": 68,
+          "teachesConceptIds": [
+            "prompt-injection"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "nemo-guardrails-docs",
+          "title": "NeMo Guardrails Documentation",
+          "type": "article",
+          "url": "https://docs.nvidia.com/nemo/guardrails/",
+          "estimatedHours": 4,
+          "sortOrder": 72,
+          "teachesConceptIds": [
+            "guardrails-libraries"
+          ],
+          "prerequisiteConceptIds": [
+            "output-validation"
+          ]
+        },
+        {
+          "id": "instructor-docs",
+          "title": "Instructor: Structured Outputs with Pydantic",
+          "type": "article",
+          "url": "https://python.useinstructor.com/",
+          "estimatedHours": 3,
+          "sortOrder": 74,
+          "teachesConceptIds": [
+            "guardrails-libraries",
+            "structured-output"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "promptfoo-docs",
+          "title": "promptfoo: LLM Evaluation & Testing",
+          "type": "article",
+          "url": "https://www.promptfoo.dev/docs/intro/",
+          "estimatedHours": 3,
+          "sortOrder": 76,
+          "teachesConceptIds": [
+            "eval-harnesses"
+          ],
+          "prerequisiteConceptIds": [
+            "offline-evaluation"
+          ]
+        },
+        {
+          "id": "llm-as-judge-paper",
+          "title": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2306.05685",
+          "estimatedHours": 3,
+          "sortOrder": 78,
+          "teachesConceptIds": [
+            "eval-harnesses",
+            "offline-evaluation"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "anthropic-safety-talks",
+          "title": "Anthropic Safety Research Talks",
+          "type": "video",
+          "url": "https://www.youtube.com/@anthropic-ai",
+          "estimatedHours": 4,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "constitutional-ai",
+            "offline-evaluation",
+            "output-validation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "deeplearning-ai-llm-evals",
+          "title": "DeepLearning.AI - LLM Evaluation",
+          "type": "video",
+          "url": "https://www.youtube.com/@DeepLearningAI",
+          "estimatedHours": 3,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "offline-evaluation",
+            "online-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "harvard-ai-ethics",
+          "title": "Harvard CS - AI Ethics (Applied)",
+          "type": "course",
+          "url": "https://www.youtube.com/@Harvard",
+          "estimatedHours": 6,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "constitutional-ai",
+            "offline-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "anthropic-alignment-paper",
+          "title": "Sleeper Agents: Training Deceptive LLMs That Persist Through Safety Training",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2401.05566",
+          "estimatedHours": 4,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "constitutional-ai",
+            "offline-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "stanford-hai-talks",
+          "title": "Stanford HAI Technical Talks",
+          "type": "video",
+          "url": "https://www.youtube.com/@StanfordHAI",
+          "estimatedHours": 4,
+          "sortOrder": 110,
+          "teachesConceptIds": [
+            "constitutional-ai",
+            "offline-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "9",
+      "sortOrder": 9,
+      "isPrimary": true,
+      "title": {
+        "es": "Inferencia & Economia",
+        "en": "Inference & Economics"
+      },
+      "objective": {
+        "es": "Costo, latencia y capacidad en produccion.",
+        "en": "Production cost, latency, and capacity."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Inferencia & Economia."
+        ],
+        "en": [
+          "Demonstrate operational mastery in Inference & Economics."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "batching-inference",
+          "name": "Batching for Inference",
+          "canonicalDefinition": "Processing multiple requests together to utilize GPU parallelism. Challenge: different sequence lengths. Solutions: continuous batching, iteration-level scheduling.",
+          "prerequisites": [
+            "kv-cache"
+          ],
+          "taughtByResourceIds": [
+            "modal-vercel-infrastructure",
+            "vllm-paper"
+          ]
+        },
+        {
+          "id": "compound-ai-systems",
+          "name": "Compound AI Systems",
+          "canonicalDefinition": "AI systems composed of multiple interacting components: models, retrievers, tools, guardrails, routers. State-of-the-art results come from system design, not just better models. 60% of LLM apps use RAG, 30% use multi-step chains. Requires thinking beyond model deployment to system-level orchestration.",
+          "prerequisites": [
+            "model-routing",
+            "output-validation",
+            "rag-basics"
+          ],
+          "taughtByResourceIds": [
+            "compound-ai-survey",
+            "compound-ai-systems-blog",
+            "p8-eugene-yan-applied-llms"
+          ]
+        },
+        {
+          "id": "knowledge-distillation",
+          "name": "Knowledge Distillation",
+          "canonicalDefinition": "Training a smaller \"student\" model to mimic a larger \"teacher\" model. Types: output distillation (match logits), feature distillation (match intermediate representations), data distillation (teacher generates training data). Enables deployment of capable models on constrained hardware.",
+          "prerequisites": [
+            "fine-tuning-efficiency",
+            "foundation-models"
+          ],
+          "taughtByResourceIds": [
+            "distillation-survey"
+          ]
+        },
+        {
+          "id": "kv-cache",
+          "name": "KV Cache",
+          "canonicalDefinition": "Caching key-value pairs from previous tokens during generation. Avoids recomputation. Memory scales with batch size × sequence length × layers.",
+          "prerequisites": [
+            "query-key-value",
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "vllm-paper"
+          ]
+        },
+        {
+          "id": "llm-observability",
+          "name": "LLM Observability",
+          "canonicalDefinition": "Monitoring, tracing, and debugging LLM systems in production. Goes beyond traditional observability: tracking prompts, completions, token usage, latency per component, cost attribution, and detecting silent failures like hallucinations.",
+          "prerequisites": [
+            "monitoring",
+            "token-economics"
+          ],
+          "taughtByResourceIds": [
+            "langfuse-observability",
+            "llm-observability-guide",
+            "p8-eugene-yan-applied-llms"
+          ]
+        },
+        {
+          "id": "mixture-of-experts",
+          "name": "Mixture of Experts (MoE)",
+          "canonicalDefinition": "Architecture where only a subset of model parameters are active per token. A router network selects which \"expert\" sub-networks to activate. Examples: GPT-4 (rumored), Mixtral 8x7B, DeepSeek-V3. Enables larger total capacity with constant inference cost. Trade-off: memory for all experts must be loaded.",
+          "prerequisites": [
+            "foundation-models",
+            "model-routing"
+          ],
+          "taughtByResourceIds": [
+            "switch-transformers-paper"
+          ]
+        },
+        {
+          "id": "model-routing",
+          "name": "Model Routing",
+          "canonicalDefinition": "Directing requests to different models based on complexity, cost, latency requirements. Simple queries → small/local models. Complex → large models.",
+          "prerequisites": [
+            "token-economics"
+          ],
+          "taughtByResourceIds": [
+            "p8-a16z-inference-economics"
+          ]
+        },
+        {
+          "id": "multimodal-embeddings",
+          "name": "Multimodal Embeddings (CLIP)",
+          "canonicalDefinition": "Joint embedding space for images and text via contrastive learning. CLIP learns to align image and text representations. Enables zero-shot image classification, image-text retrieval, and serves as vision backbone for VLMs.",
+          "prerequisites": [
+            "embeddings",
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "clip-paper"
+          ]
+        },
+        {
+          "id": "paged-attention",
+          "name": "PagedAttention",
+          "canonicalDefinition": "Memory management technique from vLLM. Stores KV cache in non-contiguous blocks like virtual memory. Enables efficient memory sharing and larger batches.",
+          "prerequisites": [
+            "batching-inference",
+            "kv-cache"
+          ],
+          "taughtByResourceIds": [
+            "modal-vercel-infrastructure",
+            "vllm-paper"
+          ]
+        },
+        {
+          "id": "prompt-caching",
+          "name": "Prompt Caching (Prefix Caching)",
+          "canonicalDefinition": "API-level optimization that caches KV states for prompt prefixes. Reusing cached prefixes is 75-90% cheaper. Requires structuring prompts with static content first. Different from semantic caching: exact prefix match, not semantic similarity.",
+          "prerequisites": [
+            "kv-cache",
+            "token-economics"
+          ],
+          "taughtByResourceIds": [
+            "prompt-caching-docs"
+          ]
+        },
+        {
+          "id": "quantization",
+          "name": "Quantization",
+          "canonicalDefinition": "Reducing precision of model weights (FP16 → INT8 → INT4). Reduces memory and speeds up inference. Trade-off: potential quality degradation.",
+          "prerequisites": [
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "vllm-paper"
+          ]
+        },
+        {
+          "id": "semantic-caching",
+          "name": "Semantic Caching",
+          "canonicalDefinition": "Caching LLM responses based on semantic similarity of queries, not exact match. Uses embeddings to find similar past queries. Can reduce API costs 60-70% but requires tuning similarity thresholds to avoid returning wrong answers.",
+          "prerequisites": [
+            "embeddings",
+            "token-economics"
+          ],
+          "taughtByResourceIds": [
+            "gptcache-paper"
+          ]
+        },
+        {
+          "id": "speculative-decoding",
+          "name": "Speculative Decoding",
+          "canonicalDefinition": "Using a small draft model to generate candidate tokens, then verifying with the large model in parallel. Speeds up inference without quality loss.",
+          "prerequisites": [
+            "kv-cache"
+          ],
+          "taughtByResourceIds": [
+            "speculative-decoding-paper"
+          ]
+        },
+        {
+          "id": "speech-models",
+          "name": "Speech Models",
+          "canonicalDefinition": "Models for speech recognition (ASR) and synthesis (TTS). Whisper: robust ASR trained on 680K hours of multilingual data. Modern TTS: neural vocoders, voice cloning. Enables voice interfaces for LLM applications.",
+          "prerequisites": [
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "whisper-paper"
+          ]
+        },
+        {
+          "id": "state-space-models",
+          "name": "State Space Models",
+          "canonicalDefinition": "Alternative to Transformers with linear scaling in sequence length. Mamba: selective state spaces with input-dependent selection. RWKV: RNN-Transformer hybrid. Advantages: O(n) inference, constant memory. Trade-off: may underperform Transformers on tasks requiring global attention.",
+          "prerequisites": [
+            "context-window-limits",
+            "transformer-architecture"
+          ],
+          "taughtByResourceIds": [
+            "mamba-paper"
+          ]
+        },
+        {
+          "id": "token-economics",
+          "name": "Token Economics",
+          "canonicalDefinition": "Understanding LLM costs: input tokens vs output tokens, price per million, context length impact. Output tokens are 3-5x more expensive than input.",
+          "prerequisites": [
+            "kv-cache"
+          ],
+          "taughtByResourceIds": [
+            "anthropic-pricing-docs",
+            "modal-vercel-infrastructure",
+            "openai-pricing-docs",
+            "p8-a16z-inference-economics"
+          ]
+        },
+        {
+          "id": "vision-language-models",
+          "name": "Vision-Language Models (VLMs)",
+          "canonicalDefinition": "LLMs extended with visual understanding. Architecture: vision encoder + projection layer + LLM. Can describe images, answer visual questions, reason about diagrams. Examples: GPT-4V, Claude Vision, LLaVA. Training: visual instruction tuning.",
+          "prerequisites": [
+            "foundation-models",
+            "multimodal-embeddings"
+          ],
+          "taughtByResourceIds": [
+            "llava-paper"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "p10-chip-huyen-ai-eng",
+          "title": "AI Engineering: Building Applications with Foundation Models",
+          "type": "book",
+          "url": "https://www.oreilly.com/library/view/ai-engineering/9781098166298/",
+          "estimatedHours": 20,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "build-vs-buy-ai",
+            "inference-economics",
+            "llm-application-patterns",
+            "mlops-production"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p8-eugene-yan-applied-llms",
+          "title": "Applied LLMs: What We've Learned From a Year of Building",
+          "type": "article",
+          "url": "https://applied-llms.org/",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "compound-ai-systems",
+            "llm-observability"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p8-a16z-inference-economics",
+          "title": "The Economics of AI Inference",
+          "type": "article",
+          "url": "https://a16z.com/llmflation-llm-inference-cost/",
+          "estimatedHours": 4,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "model-routing",
+            "token-economics"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "clip-paper",
+          "title": "CLIP: Learning Transferable Visual Models From Natural Language Supervision",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2103.00020",
+          "estimatedHours": 4,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "multimodal-embeddings"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "vllm-paper",
+          "title": "vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2309.06180",
+          "estimatedHours": 3,
+          "sortOrder": 10,
+          "teachesConceptIds": [
+            "batching-inference",
+            "kv-cache",
+            "paged-attention",
+            "quantization"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "llava-paper",
+          "title": "LLaVA: Visual Instruction Tuning",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2304.08485",
+          "estimatedHours": 4,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "vision-language-models"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models",
+            "multimodal-embeddings"
+          ]
+        },
+        {
+          "id": "speculative-decoding-paper",
+          "title": "Speculative Decoding",
+          "type": "paper",
+          "url": null,
+          "estimatedHours": 2,
+          "sortOrder": 20,
+          "teachesConceptIds": [
+            "speculative-decoding"
+          ],
+          "prerequisiteConceptIds": [
+            "kv-cache"
+          ]
+        },
+        {
+          "id": "mamba-paper",
+          "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2312.00752",
+          "estimatedHours": 4,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "state-space-models"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "openai-pricing-docs",
+          "title": "OpenAI API Pricing Documentation",
+          "type": "article",
+          "url": "https://openai.com/pricing",
+          "estimatedHours": 1,
+          "sortOrder": 30,
+          "teachesConceptIds": [
+            "token-economics"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "anthropic-pricing-docs",
+          "title": "Anthropic API Pricing Documentation",
+          "type": "article",
+          "url": "https://www.anthropic.com/pricing",
+          "estimatedHours": 1,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "token-economics"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "whisper-paper",
+          "title": "Robust Speech Recognition via Large-Scale Weak Supervision",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2212.04356",
+          "estimatedHours": 3,
+          "sortOrder": 40,
+          "teachesConceptIds": [
+            "speech-models"
+          ],
+          "prerequisiteConceptIds": [
+            "transformer-architecture"
+          ]
+        },
+        {
+          "id": "distillation-survey",
+          "title": "A Survey on Knowledge Distillation of Large Language Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2402.13116",
+          "estimatedHours": 4,
+          "sortOrder": 50,
+          "teachesConceptIds": [
+            "knowledge-distillation"
+          ],
+          "prerequisiteConceptIds": [
+            "fine-tuning-efficiency",
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "gptcache-paper",
+          "title": "GPTCache: Semantic Cache for LLM Applications",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2411.05276",
+          "estimatedHours": 2,
+          "sortOrder": 50,
+          "teachesConceptIds": [
+            "semantic-caching"
+          ],
+          "prerequisiteConceptIds": [
+            "embeddings",
+            "token-economics"
+          ]
+        },
+        {
+          "id": "prompt-caching-docs",
+          "title": "Prompt Caching - Claude & OpenAI Documentation",
+          "type": "article",
+          "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching",
+          "estimatedHours": 1,
+          "sortOrder": 60,
+          "teachesConceptIds": [
+            "prompt-caching"
+          ],
+          "prerequisiteConceptIds": [
+            "kv-cache",
+            "token-economics"
+          ]
+        },
+        {
+          "id": "llm-observability-guide",
+          "title": "LLM Observability with OpenTelemetry",
+          "type": "article",
+          "url": "https://opentelemetry.io/blog/2024/llm-observability/",
+          "estimatedHours": 2,
+          "sortOrder": 70,
+          "teachesConceptIds": [
+            "llm-observability"
+          ],
+          "prerequisiteConceptIds": [
+            "monitoring"
+          ]
+        },
+        {
+          "id": "langfuse-observability",
+          "title": "Langfuse: Open Source LLM Observability",
+          "type": "article",
+          "url": "https://langfuse.com/docs",
+          "estimatedHours": 3,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "llm-observability",
+            "online-evaluation"
+          ],
+          "prerequisiteConceptIds": [
+            "monitoring",
+            "token-economics"
+          ]
+        },
+        {
+          "id": "compound-ai-systems-blog",
+          "title": "The Shift from Models to Compound AI Systems",
+          "type": "article",
+          "url": "https://bair.berkeley.edu/blog/2024/02/18/compound-ai-systems/",
+          "estimatedHours": 2,
+          "sortOrder": 85,
+          "teachesConceptIds": [
+            "compound-ai-systems"
+          ],
+          "prerequisiteConceptIds": [
+            "model-routing",
+            "rag-basics"
+          ]
+        },
+        {
+          "id": "compound-ai-survey",
+          "title": "From Standalone LLMs to Integrated Intelligence: A Survey of Compound AI Systems",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2406.00584",
+          "estimatedHours": 4,
+          "sortOrder": 88,
+          "teachesConceptIds": [
+            "compound-ai-systems"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "switch-transformers-paper",
+          "title": "Switch Transformers: Scaling to Trillion Parameter Models",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2101.03961",
+          "estimatedHours": 4,
+          "sortOrder": 90,
+          "teachesConceptIds": [
+            "mixture-of-experts"
+          ],
+          "prerequisiteConceptIds": [
+            "foundation-models"
+          ]
+        },
+        {
+          "id": "modal-vercel-infrastructure",
+          "title": "Modal/Vercel/Replicate - LLM Infrastructure Talks",
+          "type": "video",
+          "url": "https://www.youtube.com/@modal_labs",
+          "estimatedHours": 4,
+          "sortOrder": 95,
+          "teachesConceptIds": [
+            "batching-inference",
+            "paged-attention",
+            "token-economics"
+          ],
+          "prerequisiteConceptIds": [
+            "kv-cache"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "10",
+      "sortOrder": 10,
+      "isPrimary": true,
+      "title": {
+        "es": "Diseno de Sistemas",
+        "en": "System Design & Integration"
+      },
+      "objective": {
+        "es": "Integracion de extremo a extremo de sistemas AI.",
+        "en": "End-to-end AI systems integration."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en Diseno de Sistemas."
+        ],
+        "en": [
+          "Demonstrate operational mastery in System Design & Integration."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "agent-memory-persistence",
+          "name": "Agent Memory Persistence",
+          "canonicalDefinition": "Practical implementations of persistent memory for stateful agents: file-backed short-term memory, vector search with LanceDB for long-term recall, autoCapture/autoRecall hooks. Trade-offs between retrieval accuracy, latency, and storage cost.",
+          "prerequisites": [
+            "external-memory",
+            "vector-search"
+          ],
+          "taughtByResourceIds": [
+            "openclaw-casestudy"
+          ]
+        },
+        {
+          "id": "agent-protocol-design",
+          "name": "Agent Protocol Design",
+          "canonicalDefinition": "Designing communication protocols for AI agents: session management, command translation, streaming, and lifecycle control. Patterns: request-response, NDJSON streams, gateway abstraction. Trade-offs between simplicity and expressiveness.",
+          "prerequisites": [
+            "react-pattern",
+            "system-design-patterns"
+          ],
+          "taughtByResourceIds": [
+            "openclaw-casestudy"
+          ]
+        },
+        {
+          "id": "agent-skill-orchestration",
+          "name": "Agent Skill Orchestration",
+          "canonicalDefinition": "How agents discover, authenticate, and invoke external tools at scale. Skill metadata, CLI tool integration, permission models, and execution sandboxing. The boundary between agent autonomy and safety controls.",
+          "prerequisites": [
+            "agent-reliability",
+            "tool-use"
+          ],
+          "taughtByResourceIds": [
+            "openclaw-casestudy"
+          ]
+        },
+        {
+          "id": "agent-ui-generation",
+          "name": "Agent UI Generation (A2UI)",
+          "canonicalDefinition": "Declarative frameworks for agents to generate rich, updateable UIs. JSON-based component catalogs, security-first rendering (no executable code from agents), framework-agnostic portability. The separation of UI intent from implementation.",
+          "prerequisites": [
+            "production-architectures",
+            "structured-output"
+          ],
+          "taughtByResourceIds": [
+            "openclaw-casestudy"
+          ]
+        },
+        {
+          "id": "cost-quality-latency",
+          "name": "Cost-Quality-Latency Triangle",
+          "canonicalDefinition": "The fundamental trade-off triangle in LLM systems. You can optimize for any two but not all three. Higher quality requires more compute (cost + latency). Lower latency limits reasoning depth (quality). Lower cost means smaller models or caching (quality risk). Architects must explicitly choose their priority.",
+          "prerequisites": [
+            "compound-ai-systems",
+            "model-routing",
+            "token-economics"
+          ],
+          "taughtByResourceIds": [
+            "applied-llms-blog"
+          ]
+        },
+        {
+          "id": "dspy-programming",
+          "name": "DSPy: Programming LLMs",
+          "canonicalDefinition": "Framework for programming (not prompting) LLMs. Declarative modules that self-improve through optimization. Compiles high-level signatures into effective prompts. Alternative to manual prompt engineering. Outperforms hand-crafted prompts by 25-65%.",
+          "prerequisites": [
+            "compound-ai-systems",
+            "prompt-engineering"
+          ],
+          "taughtByResourceIds": [
+            "dspy-docs",
+            "dspy-paper"
+          ]
+        },
+        {
+          "id": "framework-tradeoffs",
+          "name": "Framework Trade-offs",
+          "canonicalDefinition": "When to use frameworks vs build from scratch. Frameworks: fast prototyping, community support. Custom: control, performance, debuggability. Production systems often need custom implementations. The best engineers understand both.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "minimal-agent-loop",
+            "rag-from-scratch",
+            "rag-without-frameworks"
+          ]
+        },
+        {
+          "id": "minimal-implementations",
+          "name": "Minimal Implementations",
+          "canonicalDefinition": "Building RAG, agents, and memory from scratch in ~200 lines. Proves you understand the core mechanics. Reveals what frameworks hide. Essential before using any framework in production.",
+          "prerequisites": [
+            "external-memory",
+            "rag-basics",
+            "react-pattern"
+          ],
+          "taughtByResourceIds": [
+            "minimal-agent-loop",
+            "rag-from-scratch",
+            "rag-without-frameworks"
+          ]
+        },
+        {
+          "id": "production-architectures",
+          "name": "Production Architectures",
+          "canonicalDefinition": "Case studies of real-world LLM system architectures. Cursor: code completion with speculative edits. Perplexity: search with RAG + citations. ChatGPT: conversation with tools + memory. Analysis of their architectural decisions and trade-offs.",
+          "prerequisites": [
+            "llm-observability",
+            "system-design-patterns"
+          ],
+          "taughtByResourceIds": [
+            "applied-llms-blog"
+          ]
+        },
+        {
+          "id": "system-design-patterns",
+          "name": "System Design Patterns",
+          "canonicalDefinition": "Architectural patterns for production LLM systems. Gateway pattern: centralized API management. Orchestrator pattern: workflow coordination. RAG-agent hybrid: combining retrieval with reasoning. Each pattern has specific trade-offs in complexity, latency, and reliability.",
+          "prerequisites": [
+            "agent-reliability",
+            "compound-ai-systems"
+          ],
+          "taughtByResourceIds": [
+            "applied-llms-blog"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "dspy-paper",
+          "title": "DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2310.03714",
+          "estimatedHours": 4,
+          "sortOrder": 45,
+          "teachesConceptIds": [
+            "dspy-programming"
+          ],
+          "prerequisiteConceptIds": [
+            "compound-ai-systems",
+            "prompt-engineering"
+          ]
+        },
+        {
+          "id": "dspy-docs",
+          "title": "DSPy Documentation & Examples",
+          "type": "article",
+          "url": "https://dspy.ai/",
+          "estimatedHours": 4,
+          "sortOrder": 48,
+          "teachesConceptIds": [
+            "dspy-programming"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "applied-llms-blog",
+          "title": "Applied LLMs: What We've Learned From a Year of Building",
+          "type": "article",
+          "url": "https://applied-llms.org/",
+          "estimatedHours": 3,
+          "sortOrder": 75,
+          "teachesConceptIds": [
+            "cost-quality-latency",
+            "production-architectures",
+            "system-design-patterns"
+          ],
+          "prerequisiteConceptIds": [
+            "compound-ai-systems"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "11",
+      "sortOrder": 11,
+      "isPrimary": false,
+      "title": {
+        "es": "AI para Empresa (Track alternativo)",
+        "en": "AI for Enterprise (Alternate track)"
+      },
+      "objective": {
+        "es": "Estrategia y adopcion empresarial de AI.",
+        "en": "Enterprise AI strategy and adoption."
+      },
+      "outcomes": {
+        "es": [
+          "Demostrar dominio operativo en AI para Empresa (Track alternativo)."
+        ],
+        "en": [
+          "Demonstrate operational mastery in AI for Enterprise (Alternate track)."
+        ]
+      },
+      "concepts": [
+        {
+          "id": "ai-change-management",
+          "name": "AI Change Management",
+          "canonicalDefinition": "Strategies for driving organizational adoption of AI tools. 70% of AI challenges are people/process, not technology. Covers Kotter's framework applied to AI, behavioral science for adoption, job redesign for human-AI teams, and managing resistance. Key insight from McKinsey: treat AI adoption as workflow reconfiguration, not technology deployment.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-change-management"
+          ]
+        },
+        {
+          "id": "ai-consulting-practice",
+          "name": "AI Consulting Practice",
+          "canonicalDefinition": "How to position and operate as an AI consultant. Covers: discovery workshops ($1.5-3K), implementation projects ($5-15K), retainers ($1-3K/month), value-based pricing, vertical specialization (25-40% premium), client acquisition, and proposal structure. Rates range from $150-500/hour depending on specialization and experience.",
+          "prerequisites": [
+            "ai-strategy-roi",
+            "ai-use-case-discovery"
+          ],
+          "taughtByResourceIds": [
+            "p10-ai-consulting"
+          ]
+        },
+        {
+          "id": "ai-governance-frameworks",
+          "name": "AI Governance Frameworks",
+          "canonicalDefinition": "Regulatory and voluntary frameworks for responsible AI deployment. Key frameworks: NIST AI Risk Management Framework (Govern, Map, Measure, Manage), EU AI Act (risk tiers: unacceptable, high, limited, minimal), and Microsoft Responsible AI Principles. Essential for enterprise adoption and compliance.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-governance"
+          ]
+        },
+        {
+          "id": "ai-maturity-models",
+          "name": "AI Maturity Models",
+          "canonicalDefinition": "Frameworks that classify organizations by their AI adoption stage: from ad-hoc experimentation to systematic integration. Common models include Gartner's AI Maturity Model and McKinsey's AI adoption archetypes (Bold Innovators, Disciplined Integrators, etc.). Used to assess where a company is and what it needs to advance.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-strategy"
+          ]
+        },
+        {
+          "id": "ai-pricing-models",
+          "name": "AI Product Pricing Models",
+          "canonicalDefinition": "How to price AI-powered products and services. Shift from per-seat/per-token to outcome-based pricing. Covers: cost-plus pricing, value-based pricing, usage-based tiers, and the economics of AI SaaS margins (typically 50-60% vs 80% for traditional SaaS due to inference costs).",
+          "prerequisites": [
+            "inference-economics"
+          ],
+          "taughtByResourceIds": [
+            "p10-ai-economics"
+          ]
+        },
+        {
+          "id": "ai-security-enterprise",
+          "name": "AI Security in Enterprise",
+          "canonicalDefinition": "Security practices specific to AI systems: prompt injection defense, data poisoning prevention, model access controls, PII handling in training data, audit trails for model decisions, and data residency compliance. Goes beyond traditional AppSec to cover AI-specific attack surfaces.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-governance"
+          ]
+        },
+        {
+          "id": "ai-strategy-roi",
+          "name": "AI Strategy & ROI Analysis",
+          "canonicalDefinition": "Framework for evaluating whether an AI initiative creates real business value. Includes identifying high-impact use cases, estimating costs (compute, data, talent), projecting revenue impact, and defining success metrics. Key insight: 70% of AI projects fail not from technical issues but from misaligned business objectives.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-strategy"
+          ]
+        },
+        {
+          "id": "ai-use-case-discovery",
+          "name": "AI Use Case Discovery",
+          "canonicalDefinition": "Structured process for identifying which business problems are good candidates for AI solutions. Uses frameworks like Impact/Effort matrices, AI Use Case Canvas, and OpenAI's 6 primitives. Key principle: not every problem needs AI — the best discovery process also identifies what NOT to build.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-discovery"
+          ]
+        },
+        {
+          "id": "aws-ai-services",
+          "name": "AWS AI/ML Services Ecosystem",
+          "canonicalDefinition": "Overview of AWS AI/ML service portfolio: SageMaker (training, hosting, pipelines), Bedrock (foundation model APIs, RAG, agents), Comprehend, Rekognition, Textract, Polly, Lex, and Personalize. Understanding when to use managed services vs custom solutions. Foundation for AWS AI certifications.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-aws-ai-cert"
+          ]
+        },
+        {
+          "id": "build-vs-buy-ai",
+          "name": "Build vs Buy for AI",
+          "canonicalDefinition": "Decision framework for choosing between API-based solutions (OpenAI, Gemini), fine-tuning existing models, or training from scratch. Factors: cost, latency, data privacy, competitive advantage, and maintenance burden. Industry trend (2025): 72% of enterprises use APIs, fine-tuning is declining, prompt engineering dominates.",
+          "prerequisites": [
+            "llm-application-patterns"
+          ],
+          "taughtByResourceIds": [
+            "p10-build-vs-buy",
+            "p10-chip-huyen-ai-eng"
+          ]
+        },
+        {
+          "id": "cuda-gpu-programming",
+          "name": "CUDA & GPU Programming",
+          "canonicalDefinition": "CUDA programming model fundamentals: kernels, thread blocks, warps, grid dimensions. Understanding GPU execution model vs CPU: SIMT architecture, warp scheduling, occupancy. Writing basic CUDA kernels for vector operations, matrix multiply, and reductions. Essential foundation for understanding why transformers are fast on GPUs.",
+          "prerequisites": [
+            "gpu-compute-fundamentals"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868"
+          ]
+        },
+        {
+          "id": "data-readiness-assessment",
+          "name": "Data Readiness Assessment",
+          "canonicalDefinition": "Evaluation of whether an organization's data is sufficient for an AI initiative. Covers data availability, quality, volume, labeling, privacy constraints, and pipeline maturity. A common failure mode: companies invest in AI before verifying their data can support it.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-ai-discovery"
+          ]
+        },
+        {
+          "id": "distributed-training-impl",
+          "name": "Distributed Training Implementation",
+          "canonicalDefinition": "Implementation details of distributed training beyond the conceptual level: ring-allreduce communication patterns, FSDP (Fully Sharded Data Parallelism) sharding strategies, ZeRO stages (1: optimizer, 2: gradients, 3: parameters), gradient accumulation for effective batch size scaling. NCCL communication primitives.",
+          "prerequisites": [
+            "distributed-training"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-megatron-lm"
+          ]
+        },
+        {
+          "id": "enterprise-ai-integration",
+          "name": "Enterprise AI Integration",
+          "canonicalDefinition": "Patterns for integrating AI into existing enterprise systems (CRMs, ERPs, data warehouses). Covers API design, event-driven architectures, data mesh principles, and the \"AI mesh\" concept for managing multiple models. Key challenge: AI is not a standalone system — it must fit into existing workflows.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-enterprise-arch"
+          ]
+        },
+        {
+          "id": "flash-attention",
+          "name": "FlashAttention",
+          "canonicalDefinition": "IO-aware attention algorithm that reduces memory reads/writes from O(N^2) to O(N) by tiling the computation to fit in SRAM. FlashAttention-2 improvements: better work partitioning across warps, reduced non-matmul FLOPs. Understanding why attention is memory-bound (not compute-bound) and how tiling exploits the memory hierarchy. Dao et al.",
+          "prerequisites": [
+            "attention-mechanism",
+            "gpu-memory-hierarchy"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-flash-attention-paper"
+          ]
+        },
+        {
+          "id": "gpu-memory-hierarchy",
+          "name": "GPU Memory Hierarchy",
+          "canonicalDefinition": "GPU memory system: global memory (HBM, high bandwidth but high latency), shared memory (on-chip, low latency, bank conflicts), registers, L1/L2 cache. Memory coalescing patterns for optimal throughput. Understanding HBM bandwidth as the bottleneck for large model inference. Memory-bound vs compute-bound operations.",
+          "prerequisites": [
+            "cuda-gpu-programming"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-flash-attention-paper"
+          ]
+        },
+        {
+          "id": "inference-economics",
+          "name": "Inference Economics",
+          "canonicalDefinition": "Understanding and optimizing the cost of running AI in production. Covers: cost per token across providers, quantization (60-70% cost reduction), speculative decoding, caching strategies, model routing (cheap model first, expensive fallback), and the trend of costs falling 10x/year. Essential for sustainable AI deployment.",
+          "prerequisites": [
+            "llm-application-patterns"
+          ],
+          "taughtByResourceIds": [
+            "p10-ai-economics",
+            "p10-chip-huyen-ai-eng"
+          ]
+        },
+        {
+          "id": "kernel-optimization",
+          "name": "Kernel Optimization",
+          "canonicalDefinition": "Advanced GPU kernel optimization: kernel fusion (combining multiple operations to reduce memory traffic), Triton compiler (Python-like DSL for writing GPU kernels), custom CUDA kernels for transformer operations (fused attention, fused LayerNorm+GELU). Profiling with NSight and torch.profiler. Roofline model analysis.",
+          "prerequisites": [
+            "cuda-gpu-programming",
+            "flash-attention"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868"
+          ]
+        },
+        {
+          "id": "llm-application-patterns",
+          "name": "LLM Application Architecture Patterns",
+          "canonicalDefinition": "Recurring architectural patterns for LLM-powered applications: RAG pipelines, agent loops, multi-model routing, guardrail chains, caching layers, and human-in-the-loop workflows. Defined by a16z's Emerging Architectures and Chip Huyen's AI Engineering frameworks.",
+          "prerequisites": [],
+          "taughtByResourceIds": [
+            "p10-build-vs-buy",
+            "p10-chip-huyen-ai-eng"
+          ]
+        },
+        {
+          "id": "serving-systems",
+          "name": "LLM Serving Systems",
+          "canonicalDefinition": "Architecture of high-performance LLM serving: vLLM (PagedAttention for memory management), TGI (Hugging Face), TensorRT-LLM (NVIDIA). Continuous batching vs static batching. Scheduling algorithms: first-come-first-served vs priority queues. Prefill vs decode phase optimization. Speculative decoding for latency reduction.",
+          "prerequisites": [
+            "batching-inference",
+            "kv-cache"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-vllm-paper"
+          ]
+        },
+        {
+          "id": "mlops-production",
+          "name": "MLOps & Production ML",
+          "canonicalDefinition": "Practices for operationalizing ML models: CI/CD for models, experiment tracking, model versioning, A/B testing, monitoring for drift, and automated retraining pipelines. Key tools: SageMaker, Vertex AI, MLflow, Weights & Biases. Martin Fowler's CD4ML defines the canonical approach.",
+          "prerequisites": [
+            "enterprise-ai-integration"
+          ],
+          "taughtByResourceIds": [
+            "p10-chip-huyen-ai-eng",
+            "p10-enterprise-arch"
+          ]
+        },
+        {
+          "id": "model-parallelism-impl",
+          "name": "Model Parallelism Implementation",
+          "canonicalDefinition": "Implementation of parallelism strategies for models that don't fit on a single GPU: tensor parallelism (splitting layers across GPUs), pipeline parallelism (splitting layers sequentially with micro-batching), expert parallelism (MoE routing). Megatron-LM patterns. Communication overhead analysis and optimal configurations.",
+          "prerequisites": [
+            "distributed-training-impl"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-megatron-lm"
+          ]
+        },
+        {
+          "id": "quantization-impl",
+          "name": "Quantization Implementation",
+          "canonicalDefinition": "Internals of post-training quantization methods: GPTQ (layer-wise quantization with Hessian-based error compensation), AWQ (activation-aware weight quantization preserving salient channels), GGUF format for CPU inference. Calibration dataset selection, quality degradation measurement (perplexity delta, task-specific benchmarks). INT4 vs INT8 vs FP8 trade-offs.",
+          "prerequisites": [
+            "quantization"
+          ],
+          "taughtByResourceIds": [
+            "p11-cmu-11868",
+            "p11-gptq-paper"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "id": "p10-ai-consulting",
+          "title": "AI Consulting & Professional Positioning",
+          "type": "article",
+          "url": "https://stack.expert/blog/ai-consulting-proposals-that-close",
+          "estimatedHours": 4,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-consulting-practice"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-ai-discovery",
+          "title": "AI Discovery & Scoping",
+          "type": "article",
+          "url": "https://pair.withgoogle.com/guidebook/",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-use-case-discovery",
+            "data-readiness-assessment"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-ai-economics",
+          "title": "AI Economics & Inference Costs",
+          "type": "article",
+          "url": "https://a16z.com/llmflation-llm-inference-cost/",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-pricing-models",
+            "inference-economics"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-ai-governance",
+          "title": "AI Governance & Responsible AI",
+          "type": "article",
+          "url": "https://www.nist.gov/artificial-intelligence/executive-order-safe-secure-and-trustworthy-artificial-intelligence",
+          "estimatedHours": 8,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-governance-frameworks",
+            "ai-security-enterprise"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-ai-strategy",
+          "title": "AI Strategy & Business Value",
+          "type": "course",
+          "url": "https://www.coursera.org/learn/ai-for-everyone",
+          "estimatedHours": 8,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-maturity-models",
+            "ai-strategy-roi"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-aws-ai-cert",
+          "title": "AWS AI Practitioner Certification Prep",
+          "type": "course",
+          "url": "https://skillbuilder.aws/exam-prep/ai-practitioner",
+          "estimatedHours": 12,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "aws-ai-services"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-build-vs-buy",
+          "title": "Build vs Buy: APIs, Fine-tuning & Custom Models",
+          "type": "article",
+          "url": "https://a16z.com/generative-ai-enterprise-2024/",
+          "estimatedHours": 10,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "build-vs-buy-ai",
+            "llm-application-patterns"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p10-change-management",
+          "title": "Change Management & AI Adoption",
+          "type": "article",
+          "url": "https://hbr.org/2025/11/overcoming-the-organizational-barriers-to-ai-adoption",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "ai-change-management"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p11-cmu-11868",
+          "title": "CMU 11-868: Large Language Model Systems",
+          "type": "course",
+          "url": "https://llmsystem.github.io/llmsystem2025spring/",
+          "estimatedHours": 40,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "cuda-gpu-programming",
+            "distributed-training-impl",
+            "flash-attention",
+            "gpu-memory-hierarchy",
+            "kernel-optimization",
+            "model-parallelism-impl",
+            "quantization-impl",
+            "serving-systems"
+          ],
+          "prerequisiteConceptIds": [
+            "gpu-compute-fundamentals"
+          ]
+        },
+        {
+          "id": "p11-vllm-paper",
+          "title": "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2309.06180",
+          "estimatedHours": 4,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "serving-systems"
+          ],
+          "prerequisiteConceptIds": [
+            "kv-cache"
+          ]
+        },
+        {
+          "id": "p10-enterprise-arch",
+          "title": "Enterprise Architecture for AI",
+          "type": "article",
+          "url": "https://martinfowler.com/articles/engineering-practices-llm.html",
+          "estimatedHours": 10,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "enterprise-ai-integration",
+            "mlops-production"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p11-flash-attention-paper",
+          "title": "FlashAttention: Fast and Memory-Efficient Exact Attention",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2205.14135",
+          "estimatedHours": 6,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "flash-attention",
+            "gpu-memory-hierarchy"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "p11-gptq-paper",
+          "title": "GPTQ: Accurate Post-Training Quantization for Generative Pre-Trained Transformers",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/2210.17323",
+          "estimatedHours": 4,
+          "sortOrder": 0,
+          "teachesConceptIds": [
+            "quantization-impl"
+          ],
+          "prerequisiteConceptIds": [
+            "quantization"
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "phaseCount": 12,
+    "conceptCount": 215,
+    "resourceCount": 147
+  }
+}

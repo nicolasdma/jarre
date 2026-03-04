@@ -75,6 +75,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - `npm run typecheck` -> TypeScript checks (`tsc --noEmit`)
 - `npm run check` -> lint + test + typecheck + build
 - `npm run engine` -> start local storage engine server
+- `npm run curriculum:audit` -> validate curriculum integrity (duplicates, prerequisite DAG, coverage)
+- `npm run curriculum:export-template` -> export reusable curriculum template JSON + audit report
 
 ## Repository Layout
 
@@ -96,6 +98,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Support channels: [SUPPORT.md](./SUPPORT.md)
 - Changelog format: [CHANGELOG.md](./CHANGELOG.md)
 - Architecture reference: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- Curriculum system reference: [docs/CURRICULUM_SYSTEM.md](./docs/CURRICULUM_SYSTEM.md)
 - OSS readiness checklist: [docs/OPEN_SOURCE_CHECKLIST.md](./docs/OPEN_SOURCE_CHECKLIST.md)
 - Content policy: [docs/CONTENT_POLICY.md](./docs/CONTENT_POLICY.md)
 
