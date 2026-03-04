@@ -31,7 +31,7 @@ function parseArgs(argv: string[]): Args {
 
   return {
     sourceId: args['source-id'] || 'kz2h-makemore-bigram',
-    targetId: args['target-id'] || 'kz2h-makemore-bigram-2',
+    targetId: args['target-id'] || 'kz2h-makemore-bigram',
     url: args.url,
     title: args.title,
     userId: args['user-id'],
