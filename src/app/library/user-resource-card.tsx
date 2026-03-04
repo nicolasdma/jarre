@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { CornerBrackets } from '@/components/ui/corner-brackets';
 import type { Language } from '@/lib/translations';
+import { ResourceVideoPreview } from './resource-video-preview';
 
 interface UserResource {
   id: string;
@@ -60,6 +61,12 @@ export function UserResourceCard({ resource, language }: UserResourceCardProps) 
           {isEs ? 'externo' : 'external'}
         </span>
       </div>
+
+      <ResourceVideoPreview
+        url={resource.url}
+        title={resource.title}
+        className="mb-4"
+      />
 
       {/* Icon + Title */}
       <div className="flex items-start gap-2 mb-3">

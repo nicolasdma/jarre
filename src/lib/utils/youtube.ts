@@ -14,3 +14,12 @@ export function extractYoutubeId(url: string | null): string | null {
 export function isValidYoutubeUrl(url: string): boolean {
   return YOUTUBE_REGEX.test(url);
 }
+
+export function getYoutubeThumbnailUrl(
+  url: string | null | undefined,
+  quality: 'default' | 'mqdefault' | 'hqdefault' | 'sddefault' | 'maxresdefault' = 'mqdefault'
+): string | null {
+  const videoId = extractYoutubeId(url ?? null);
+  if (!videoId) return null;
+  return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+}

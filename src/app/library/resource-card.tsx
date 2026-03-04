@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { t, type Language } from '@/lib/translations';
 import { QuickQuiz } from '@/components/quick-quiz';
 import { CornerBrackets } from '@/components/ui/corner-brackets';
+import { ResourceVideoPreview } from './resource-video-preview';
 
 const RESOURCE_TYPE_ICONS: Record<string, string> = {
   youtube: '▶',
@@ -150,6 +151,13 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           {resource.type}
         </span>
       </div>
+
+      <ResourceVideoPreview
+        url={resource.url}
+        title={resource.title}
+        animateOnHover={!isLocked}
+        className="mb-4"
+      />
 
       {/* Title */}
       <h3 className={`text-lg font-medium leading-tight mb-1 ${

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Play, BookOpen } from 'lucide-react';
 import type { Language } from '@/lib/translations';
-import { extractYoutubeId } from '@/lib/utils/youtube';
+import { getYoutubeThumbnailUrl } from '@/lib/utils/youtube';
 
 export interface PipelineCourseData {
   id: string;
@@ -46,10 +46,7 @@ export function PipelineCourseCard({
   course: PipelineCourseData;
   language: Language;
 }) {
-  const videoId = extractYoutubeId(course.url);
-  const thumbnailUrl = videoId
-    ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
-    : null;
+  const thumbnailUrl = getYoutubeThumbnailUrl(course.url);
 
   const completedCount = course.progress?.completedSections?.length ?? 0;
   const progressPercent = course.sectionCount > 0 ? (completedCount / course.sectionCount) * 100 : 0;
