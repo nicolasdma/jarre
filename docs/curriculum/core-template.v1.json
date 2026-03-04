@@ -1,352 +1,47 @@
 {
   "version": "core-template.v1",
-  "generatedAt": "2026-03-04T08:42:43.845Z",
+  "generatedAt": "2026-03-04T08:50:16.850Z",
   "phases": [
     {
       "phase": "0",
       "sortOrder": 0,
       "isPrimary": false,
       "title": {
-        "es": "Fundamentos Matematicos",
+        "es": "Fundamentos Matemáticos",
         "en": "Mathematical Foundations"
       },
       "objective": {
-        "es": "Base matematica para ML y deep learning.",
-        "en": "Mathematical base for ML and deep learning."
+        "es": "Construir el lenguaje matemático mínimo para entender optimización, probabilidad y aprendizaje profundo.",
+        "en": "Build the minimum mathematical language needed to reason about optimization, probability, and deep learning."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Fundamentos Matematicos."
+          "Aplicar álgebra lineal en representaciones de modelos",
+          "Explicar backpropagation desde cálculo multivariable",
+          "Usar probabilidad e información para interpretar pérdidas"
         ],
         "en": [
-          "Demonstrate operational mastery in Mathematical Foundations."
+          "Apply linear algebra to model representations",
+          "Explain backpropagation from multivariable calculus",
+          "Use probability and information theory to interpret losses"
         ]
       },
-      "concepts": [
+      "concepts": [],
+      "resources": [
         {
-          "id": "auto-agent-building-credentials",
-          "name": "Agent Building and Credentials",
-          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Building and Credentialing: The DMV and Keys for Agents",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-agent-governance-policies",
-          "name": "Agent Governance Policies",
-          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Governance Policies: Rules and Trust for AI Agents",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-and-ip",
-          "name": "AI and IP",
-          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Intellectual Property and Creative Rights",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-concerns-overview",
-          "name": "AI Concerns Overview",
-          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Introduction: The Complexity of AI Concerns",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-investment-mistake",
-          "name": "AI Investment Mistake",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Introduction: The AI Investment Mistake and Lack of Productivity Growth",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-psychology",
-          "name": "AI Psychology",
-          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Psychological and Social Impacts",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-safety-risks",
-          "name": "AI Safety Risks",
-          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Safety, Jailbreaking, and Unintended Consequences",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-ai-trust-issues",
-          "name": "AI Trust Issues",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Trust Issues and Hallucinations in AI Models",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-alternative-solutions",
-          "name": "Alternative Solutions",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Alternative Solutions and Running Jupyter Lab",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-bigram-statistics",
-          "name": "Bigram Statistics",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Bigram Counting and Statistical Modeling",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-car-analogy-intro",
-          "name": "Car Analogy Intro",
-          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Introduction: The Car Analogy for AI Agent Security",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-complex-values",
-          "name": "Complex Values",
-          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Complex Values and the Square Root Runtime",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-costumbres-culturales",
-          "name": "Costumbres culturales",
-          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Costumbres y normas culturales marroquíes",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-current-ai-problems",
-          "name": "Current AI Problems",
-          "canonicalDefinition": "Key topic from \"My Biggest AI Fear\": Current AI Issues: Internet Quality and Algorithmic Bias",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-disney-adult-introduction",
-          "name": "Disney Adult Introduction",
-          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Introduction to the Disney Adult Phenomenon",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-disney-empire",
-          "name": "Disney Empire",
-          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": The Disney Empire and Its Cultural Dominance",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-engineering-evolution",
-          "name": "Engineering Evolution",
-          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": From Prompt Engineering to Intent Engineering",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-experiencias-desafiantes",
-          "name": "Experiencias desafiantes",
-          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Experiencias y desafíos en los callejones",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-exploracion-callejones",
-          "name": "Exploración callejones",
-          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Explorando los callejones de Marrakech",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-financial-impact",
-          "name": "Financial Impact",
-          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Financial Impact and Lifestyle Restructuring",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-forced-adoption",
-          "name": "Forced Adoption",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Forced Adoption and Business Pressure",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-grovers-algorithm",
-          "name": "Grover's Algorithm",
-          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Grover's Algorithm: Geometric Intuition",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-historical-comparison",
-          "name": "Historical Comparison",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Historical Comparison: AI vs. Computer Revolution",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-identity-community",
-          "name": "Identity and Community",
-          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Identity, Community, and Extreme Disney Integration",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-impresiones-iniciales",
-          "name": "Impresiones iniciales",
-          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Primeras impresiones y adaptación cultural",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-inflated-metrics",
-          "name": "Inflated Metrics",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": Inflated Usage Metrics and Deceptive Practices",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-installing-python",
-          "name": "Installing Python",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Python Installation and Version Considerations",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-intent-gap-layers",
-          "name": "Intent Gap Layers",
-          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Three-Layer Intent Gap Framework",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-intro-data-setup",
-          "name": "Intro and Data Setup",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Introduction to Language Modeling and Dataset Exploration",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-introduccion-y-llegada",
-          "name": "Introducción y llegada",
-          "canonicalDefinition": "Key topic from \"Explorando los legendarios callejones de MARRUECOS!\": Introducción y llegada a Marruecos",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-introduction",
-          "name": "Introduction",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Introduction and Overview",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-investment-vs-results",
-          "name": "Investment vs Results",
-          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Investment Paradox and Microsoft Copilot Example",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-j-curve-argument",
-          "name": "J-Curve Argument",
-          "canonicalDefinition": "Key topic from \"AI Bubble: ‘This is dumber than WeWork’ | Ed Zitron\": The J-Curve Argument and Long-Term Viability",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-klarna-ai-failure",
-          "name": "Klarna AI Failure",
-          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": The Klarna Case Study: AI Succeeds at the Wrong Thing",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-misconceptions",
-          "name": "Misconceptions",
-          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Misconceptions and the Quantum Search Problem",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-neural-net-basics",
-          "name": "Neural Net Basics",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Neural Network Approach and One-Hot Encoding",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-package-installation",
-          "name": "Package Installation",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Installing Packages and Fallback Options",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-policy-enforcement",
-          "name": "Policy Enforcement",
-          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Enforcement and Checkpoints: Ensuring Policy Compliance",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-psychological-drivers",
-          "name": "Psychological Drivers",
-          "canonicalDefinition": "Key topic from \"How the f*ck can you be like this?\": Psychological and Sociological Drivers of Disney Adults",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-quantum-gates",
-          "name": "Quantum Gates",
-          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": Quantum Gates and Algorithm Vibe",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-security-integration",
-          "name": "Security Integration",
-          "canonicalDefinition": "Key topic from \"Understanding AI Agent Security: Safeguard LLM Systems Effectively\": Conclusion: Integrated Security and Tooling for AI Agents",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-solution-architecture",
-          "name": "Solution Architecture",
-          "canonicalDefinition": "Key topic from \"Prompt Engineering Is Dead. Context Engineering Is Dying. What Comes Next Changes Everything.\": Building Intent Engineering Solutions",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-state-vectors",
-          "name": "State Vectors",
-          "canonicalDefinition": "Key topic from \"But what is quantum computing?  (Grover's Algorithm)\": State Vectors and Qubits",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-training-sampling",
-          "name": "Training and Sampling",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Training, Loss, and Sampling from the Neural Net",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-uv-setup",
-          "name": "UV Setup",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Setting Up UV Package Manager",
-          "prerequisites": [],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-virtual-environments",
-          "name": "Virtual Environments",
-          "canonicalDefinition": "Key topic from \"Build an LLM from Scratch 1: Set up your code environment\": Creating and Managing Virtual Environments",
-          "prerequisites": [],
-          "taughtByResourceIds": []
+          "id": "p0-3b1b-linear-algebra",
+          "title": "3Blue1Brown: Essence of Linear Algebra",
+          "type": "video",
+          "url": "https://www.3blue1brown.com/topics/linear-algebra",
+          "estimatedHours": 6,
+          "sortOrder": 100,
+          "teachesConceptIds": [
+            "dimensionality-reduction",
+            "linear-algebra-ml"
+          ],
+          "prerequisiteConceptIds": []
         }
-      ],
-      "resources": []
+      ]
     },
     {
       "phase": "1",
@@ -357,15 +52,19 @@
         "en": "Distributed Systems"
       },
       "objective": {
-        "es": "Confiabilidad, consenso y escalabilidad para sistemas AI.",
-        "en": "Reliability, consensus, and scalability for AI systems."
+        "es": "Dominar los principios de confiabilidad, consistencia y coordinación que sostienen sistemas de AI en producción.",
+        "en": "Master reliability, consistency, and coordination principles behind production AI systems."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Sistemas Distribuidos."
+          "Razonar sobre fallos parciales y trade-offs CAP",
+          "Diseñar replicación, consenso y recuperación",
+          "Analizar latencia de cola y comportamiento bajo carga"
         ],
         "en": [
-          "Demonstrate operational mastery in Distributed Systems."
+          "Reason about partial failures and CAP trade-offs",
+          "Design replication, consensus, and recovery",
+          "Analyze tail latency and behavior under load"
         ]
       },
       "concepts": [
@@ -424,7 +123,9 @@
           "prerequisites": [
             "stream-processing"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "ddia-ch11"
+          ]
         },
         {
           "id": "distributed-failures",
@@ -580,7 +281,9 @@
           "prerequisites": [
             "stream-processing"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "ddia-ch11"
+          ]
         },
         {
           "id": "reliability",
@@ -677,6 +380,7 @@
             "partitioning"
           ],
           "taughtByResourceIds": [
+            "ddia-ch11",
             "hussein-distributed-systems"
           ]
         },
@@ -917,6 +621,22 @@
           ]
         },
         {
+          "id": "ddia-ch11",
+          "title": "DDIA Chapter 11: Stream Processing",
+          "type": "book",
+          "url": null,
+          "estimatedHours": 5,
+          "sortOrder": 80,
+          "teachesConceptIds": [
+            "databases-streams",
+            "processing-streams",
+            "stream-processing"
+          ],
+          "prerequisiteConceptIds": [
+            "partitioning"
+          ]
+        },
+        {
           "id": "tanenbaum-ch1",
           "title": "Distributed Systems Ch 1: Introduction",
           "type": "book",
@@ -1130,15 +850,19 @@
         "en": "ML & Deep Learning Foundations"
       },
       "objective": {
-        "es": "Fundamentos de entrenamiento y arquitectura de redes.",
-        "en": "Core training and network architecture foundations."
+        "es": "Pasar de intuición a implementación: entrenar redes pequeñas y entender por qué aprenden.",
+        "en": "Move from intuition to implementation: train small networks and understand why they learn."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en ML & Deep Learning."
+          "Implementar entrenamiento básico con gradientes",
+          "Explicar funciones de activación, normalización y regularización",
+          "Relacionar decisiones de arquitectura con generalización"
         ],
         "en": [
-          "Demonstrate operational mastery in ML & Deep Learning Foundations."
+          "Implement gradient-based training basics",
+          "Explain activations, normalization, and regularization",
+          "Relate architectural choices to generalization"
         ]
       },
       "concepts": [
@@ -1148,7 +872,8 @@
           "canonicalDefinition": "Sigmoid, tanh, ReLU saturation; BatchNorm for stable deep training",
           "prerequisites": [],
           "taughtByResourceIds": [
-            "kz2h-activations-batchnorm"
+            "kz2h-activations-batchnorm",
+            "kz2h-makemore-bigram"
           ]
         },
         {
@@ -1172,29 +897,27 @@
           "prerequisites": [],
           "taughtByResourceIds": [
             "kz2h-backprop-ninja",
+            "kz2h-makemore-bigram",
             "kz2h-micrograd"
           ]
-        },
-        {
-          "id": "auto-bigram-counting",
-          "name": "Bigram Counting",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Bigram Counting and Probability Modeling with Dictionaries and Tensors",
-          "prerequisites": [],
-          "taughtByResourceIds": []
         },
         {
           "id": "calculus-backprop",
           "name": "Calculus & Backpropagation",
           "canonicalDefinition": "Chain rule as the engine of deep learning: how gradients flow backwards through computational graphs. Backpropagation derived step by step for a simple network. Jacobian matrices for multi-output functions. Vanishing and exploding gradients: why they happen and how residual connections, LayerNorm, and gradient clipping address them.",
           "prerequisites": [],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "kz2h-micrograd"
+          ]
         },
         {
           "id": "character-level-lm",
           "name": "Character-level Language Models",
           "canonicalDefinition": "Predicting next character from sequences, bigram/n-gram foundations",
           "prerequisites": [],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "kz2h-makemore-bigram"
+          ]
         },
         {
           "id": "deep-architectures",
@@ -1212,7 +935,9 @@
           "prerequisites": [
             "linear-algebra-ml"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "p0-3b1b-linear-algebra"
+          ]
         },
         {
           "id": "information-theory",
@@ -1221,21 +946,18 @@
           "prerequisites": [
             "probability-statistics"
           ],
-          "taughtByResourceIds": []
-        },
-        {
-          "id": "auto-intro-dataset",
-          "name": "Intro and Dataset",
-          "canonicalDefinition": "Key topic from \"The spelled-out intro to language modeling: building makemore\": Introduction to Character-Level Language Modeling and Dataset Exploration",
-          "prerequisites": [],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "kz2h-makemore-bigram"
+          ]
         },
         {
           "id": "linear-algebra-ml",
           "name": "Linear Algebra for ML",
           "canonicalDefinition": "Vectors, matrices, and their operations as the language of ML. SVD (Singular Value Decomposition) for dimensionality reduction and matrix approximation. Eigendecomposition for understanding PCA, covariance matrices, and spectral methods. Matrix calculus (Jacobians, Hessians) for understanding backpropagation. Every neural network operation is a matrix multiply.",
           "prerequisites": [],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "p0-3b1b-linear-algebra"
+          ]
         },
         {
           "id": "loss-functions",
@@ -1243,6 +965,7 @@
           "canonicalDefinition": "Cross-entropy, MSE, connection to information theory",
           "prerequisites": [],
           "taughtByResourceIds": [
+            "kz2h-makemore-bigram",
             "kz2h-makemore-mlp"
           ]
         },
@@ -1252,6 +975,7 @@
           "canonicalDefinition": "Neurons, layers, activation functions, forward pass",
           "prerequisites": [],
           "taughtByResourceIds": [
+            "kz2h-makemore-bigram",
             "kz2h-micrograd"
           ]
         },
@@ -1272,14 +996,18 @@
           "prerequisites": [
             "calculus-backprop"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "kz2h-makemore-bigram"
+          ]
         },
         {
           "id": "probability-statistics",
           "name": "Probability & Statistics",
           "canonicalDefinition": "Bayesian thinking: prior, likelihood, posterior. MLE (Maximum Likelihood Estimation) and MAP (Maximum A Posteriori) as the foundation of all training objectives. Common distributions: Gaussian, Bernoulli, Categorical, Dirichlet. Conjugate priors for tractable Bayesian inference. Statistical testing for model comparison.",
           "prerequisites": [],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "kz2h-makemore-bigram"
+          ]
         },
         {
           "id": "regularization-generalization",
@@ -1299,13 +1027,6 @@
             "kz2h-wavenet",
             "p2-resnet-paper"
           ]
-        },
-        {
-          "id": "auto-tokenizacin-con-tokens-especiales",
-          "name": "tokenización con tokens especiales",
-          "canonicalDefinition": "Se utilizan tokens como '.' para representar el inicio y fin de secuencias, transformando palabras en ejemplos de entrenamiento para bigramas.",
-          "prerequisites": [],
-          "taughtByResourceIds": []
         },
         {
           "id": "tokenization-bpe",
@@ -1354,7 +1075,28 @@
           "sortOrder": 100,
           "teachesConceptIds": [
             "backpropagation-training",
+            "calculus-backprop",
             "neural-network-fundamentals"
+          ],
+          "prerequisiteConceptIds": []
+        },
+        {
+          "id": "kz2h-makemore-bigram",
+          "title": "Makemore (Bigram) — Character-level LM (University/Technical)",
+          "type": "lecture",
+          "url": "https://www.youtube.com/watch?v=PaCmpygFfXo",
+          "estimatedHours": 2,
+          "sortOrder": 111,
+          "teachesConceptIds": [
+            "activation-functions-batchnorm",
+            "autoregressive-generation",
+            "backpropagation-training",
+            "character-level-lm",
+            "information-theory",
+            "loss-functions",
+            "neural-network-fundamentals",
+            "optimization-ml",
+            "probability-statistics"
           ],
           "prerequisiteConceptIds": []
         },
@@ -1470,24 +1212,6 @@
           ]
         },
         {
-          "id": "attention-paper",
-          "title": "Attention Is All You Need",
-          "type": "paper",
-          "url": "https://arxiv.org/abs/1706.03762",
-          "estimatedHours": 6,
-          "sortOrder": 190,
-          "teachesConceptIds": [
-            "attention-mechanism",
-            "positional-encoding",
-            "query-key-value",
-            "transformer-architecture"
-          ],
-          "prerequisiteConceptIds": [
-            "attention-bahdanau",
-            "residual-connections"
-          ]
-        },
-        {
           "id": "kz2h-tokenizers",
           "title": "Tokenizers — Byte Pair Encoding",
           "type": "lecture",
@@ -1508,19 +1232,23 @@
       "sortOrder": 3,
       "isPrimary": true,
       "title": {
-        "es": "Secuencias, Atencion & Transformers",
+        "es": "Secuencias, Atención & Transformers",
         "en": "Sequences, Attention & Transformers"
       },
       "objective": {
-        "es": "Evolucion de seq2seq a transformers.",
-        "en": "Evolution from seq2seq to transformers."
+        "es": "Entender la evolución desde seq2seq hasta transformers y los patrones que explican modelos modernos.",
+        "en": "Understand the evolution from seq2seq to transformers and the patterns behind modern models."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Secuencias, Atencion & Transformers."
+          "Comparar límites de RNN/seq2seq con atención",
+          "Explicar QKV, positional encoding y arquitectura transformer",
+          "Diferenciar modelos encoder-only y decoder-only"
         ],
         "en": [
-          "Demonstrate operational mastery in Sequences, Attention & Transformers."
+          "Compare RNN/seq2seq limits against attention",
+          "Explain QKV, positional encoding, and transformer architecture",
+          "Differentiate encoder-only and decoder-only models"
         ]
       },
       "concepts": [
@@ -1530,6 +1258,7 @@
           "canonicalDefinition": "Left-to-right generation, decoder-only, GPT",
           "prerequisites": [],
           "taughtByResourceIds": [
+            "kz2h-makemore-bigram",
             "p3-gpt2-paper",
             "p3-illustrated-gpt2"
           ]
@@ -1703,6 +1432,24 @@
           ]
         },
         {
+          "id": "attention-paper",
+          "title": "Attention Is All You Need",
+          "type": "paper",
+          "url": "https://arxiv.org/abs/1706.03762",
+          "estimatedHours": 6,
+          "sortOrder": 190,
+          "teachesConceptIds": [
+            "attention-mechanism",
+            "positional-encoding",
+            "query-key-value",
+            "transformer-architecture"
+          ],
+          "prerequisiteConceptIds": [
+            "attention-bahdanau",
+            "residual-connections"
+          ]
+        },
+        {
           "id": "p3-bert-paper",
           "title": "BERT: Pre-training of Deep Bidirectional Transformers",
           "type": "paper",
@@ -1754,19 +1501,23 @@
       "sortOrder": 4,
       "isPrimary": true,
       "title": {
-        "es": "LLMs: Entrenamiento & Alineacion",
+        "es": "LLMs: Entrenamiento & Alineación",
         "en": "LLMs: Training, Alignment & Scaling"
       },
       "objective": {
-        "es": "Entrenamiento, alineacion y escalamiento de LLMs.",
-        "en": "LLM training, alignment, and scaling."
+        "es": "Comprender cómo se entrenan y alinean LLMs y qué decisiones impactan costo, seguridad y capacidad.",
+        "en": "Understand how LLMs are trained and aligned and which choices impact cost, safety, and capability."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en LLMs: Entrenamiento & Alineacion."
+          "Describir pretraining, instruction tuning y alignment",
+          "Evaluar impactos de scaling y data mix",
+          "Conectar entrenamiento con comportamiento en inferencia"
         ],
         "en": [
-          "Demonstrate operational mastery in LLMs: Training, Alignment & Scaling."
+          "Describe pretraining, instruction tuning, and alignment",
+          "Evaluate scaling and data-mix impacts",
+          "Connect training choices with inference behavior"
         ]
       },
       "concepts": [
@@ -2063,15 +1814,19 @@
         "en": "ML Infrastructure & Distributed Training"
       },
       "objective": {
-        "es": "Infraestructura de entrenamiento y serving.",
-        "en": "Training and serving infrastructure."
+        "es": "Diseñar infraestructura de entrenamiento y serving con foco en confiabilidad operacional.",
+        "en": "Design training and serving infrastructure with operational reliability in mind."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Infraestructura ML."
+          "Diseñar estrategias de paralelismo y eficiencia",
+          "Razonar sobre deuda técnica en sistemas ML",
+          "Preparar despliegues reproducibles y observables"
         ],
         "en": [
-          "Demonstrate operational mastery in ML Infrastructure & Distributed Training."
+          "Design parallelism and efficiency strategies",
+          "Reason about technical debt in ML systems",
+          "Prepare reproducible and observable deployments"
         ]
       },
       "concepts": [
@@ -2124,7 +1879,9 @@
           "prerequisites": [
             "gpu-compute-fundamentals"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "p2-horace-he-gpu"
+          ]
         },
         {
           "id": "ml-data-pipelines",
@@ -2147,7 +1904,9 @@
           "prerequisites": [
             "ml-data-pipelines"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "hidden-tech-debt-paper"
+          ]
         },
         {
           "id": "model-containerization",
@@ -2156,7 +1915,9 @@
           "prerequisites": [
             "model-serving-infra"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "made-with-ml"
+          ]
         },
         {
           "id": "model-serving-infra",
@@ -2179,7 +1940,9 @@
           "prerequisites": [
             "data-parallelism"
           ],
-          "taughtByResourceIds": []
+          "taughtByResourceIds": [
+            "p2-lilian-weng-distributed"
+          ]
         }
       ],
       "resources": [
@@ -2207,7 +1970,8 @@
           "sortOrder": 0,
           "teachesConceptIds": [
             "data-parallelism",
-            "distributed-training"
+            "distributed-training",
+            "zero-optimizer"
           ],
           "prerequisiteConceptIds": []
         },
@@ -2219,7 +1983,8 @@
           "estimatedHours": 2,
           "sortOrder": 0,
           "teachesConceptIds": [
-            "gpu-compute-fundamentals"
+            "gpu-compute-fundamentals",
+            "mixed-precision-training"
           ],
           "prerequisiteConceptIds": []
         },
@@ -2277,7 +2042,8 @@
           "estimatedHours": 3,
           "sortOrder": 30,
           "teachesConceptIds": [
-            "ml-data-pipelines"
+            "ml-data-pipelines",
+            "ml-technical-debt"
           ],
           "prerequisiteConceptIds": [
             "monitoring"
@@ -2292,6 +2058,7 @@
           "sortOrder": 30,
           "teachesConceptIds": [
             "ml-data-pipelines",
+            "model-containerization",
             "model-serving-infra"
           ],
           "prerequisiteConceptIds": [
@@ -2365,15 +2132,19 @@
         "en": "Agents & Reasoning"
       },
       "objective": {
-        "es": "Arquitecturas agenticas robustas.",
-        "en": "Robust agent architectures."
+        "es": "Construir agentes robustos con herramientas, memoria y control de errores.",
+        "en": "Build robust agents with tools, memory, and error control."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Agentes & Razonamiento."
+          "Diseñar loops de razonamiento con herramientas",
+          "Gestionar memoria y contexto multi-turno",
+          "Evaluar confiabilidad y fallback de agentes"
         ],
         "en": [
-          "Demonstrate operational mastery in Agents & Reasoning."
+          "Design reasoning loops with tools",
+          "Manage multi-turn memory and context",
+          "Evaluate agent reliability and fallback strategies"
         ]
       },
       "concepts": [
@@ -2743,15 +2514,19 @@
         "en": "RAG, Memory & Context"
       },
       "objective": {
-        "es": "Recuperacion, memoria y contexto verificables.",
-        "en": "Reliable retrieval, memory, and context systems."
+        "es": "Implementar sistemas de recuperación y contexto con calidad verificable.",
+        "en": "Implement retrieval and context systems with measurable quality."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en RAG, Memoria & Contexto."
+          "Diseñar chunking, retrieval y re-ranking",
+          "Medir calidad factual y cobertura contextual",
+          "Integrar memoria externa sin degradar precisión"
         ],
         "en": [
-          "Demonstrate operational mastery in RAG, Memory & Context."
+          "Design chunking, retrieval, and reranking",
+          "Measure factual quality and contextual coverage",
+          "Integrate external memory without harming precision"
         ]
       },
       "concepts": [
@@ -3172,15 +2947,19 @@
         "en": "Safety, Guardrails & Eval"
       },
       "objective": {
-        "es": "Seguridad y evaluacion de sistemas LLM.",
-        "en": "Safety and evaluation for LLM systems."
+        "es": "Asegurar sistemas LLM contra errores, abuso y salidas no controladas.",
+        "en": "Harden LLM systems against errors, abuse, and uncontrolled outputs."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Seguridad & Guardrails."
+          "Aplicar evaluaciones offline/online con criterios claros",
+          "Implementar guardrails y validación estructurada",
+          "Mitigar prompt injection y riesgos operacionales"
         ],
         "en": [
-          "Demonstrate operational mastery in Safety, Guardrails & Eval."
+          "Run offline/online evaluations with clear criteria",
+          "Implement guardrails and structured validation",
+          "Mitigate prompt injection and operational risks"
         ]
       },
       "concepts": [
@@ -3547,19 +3326,23 @@
       "sortOrder": 9,
       "isPrimary": true,
       "title": {
-        "es": "Inferencia & Economia",
+        "es": "Inferencia & Economía",
         "en": "Inference & Economics"
       },
       "objective": {
-        "es": "Costo, latencia y capacidad en produccion.",
-        "en": "Production cost, latency, and capacity."
+        "es": "Optimizar latencia, costo y throughput de sistemas AI en producción.",
+        "en": "Optimize latency, cost, and throughput of production AI systems."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Inferencia & Economia."
+          "Aplicar cachés, batching y routing de modelos",
+          "Cuantificar costo por token y por workflow",
+          "Diseñar estrategias de observabilidad y capacidad"
         ],
         "en": [
-          "Demonstrate operational mastery in Inference & Economics."
+          "Apply caching, batching, and model routing",
+          "Quantify cost per token and per workflow",
+          "Design observability and capacity strategies"
         ]
       },
       "concepts": [
@@ -4063,19 +3846,23 @@
       "sortOrder": 10,
       "isPrimary": true,
       "title": {
-        "es": "Diseno de Sistemas",
+        "es": "Diseño de Sistemas",
         "en": "System Design & Integration"
       },
       "objective": {
-        "es": "Integracion de extremo a extremo de sistemas AI.",
-        "en": "End-to-end AI systems integration."
+        "es": "Integrar componentes AI en arquitecturas mantenibles y escalables de extremo a extremo.",
+        "en": "Integrate AI components into maintainable, scalable end-to-end architectures."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en Diseno de Sistemas."
+          "Definir arquitectura objetivo con trade-offs explícitos",
+          "Orquestar componentes, contratos y límites del sistema",
+          "Diseñar operación y evolución del sistema en producción"
         ],
         "en": [
-          "Demonstrate operational mastery in System Design & Integration."
+          "Define target architecture with explicit trade-offs",
+          "Orchestrate components, contracts, and system boundaries",
+          "Design production operation and system evolution"
         ]
       },
       "concepts": [
@@ -4259,15 +4046,19 @@
         "en": "AI for Enterprise (Alternate track)"
       },
       "objective": {
-        "es": "Estrategia y adopcion empresarial de AI.",
-        "en": "Enterprise AI strategy and adoption."
+        "es": "Aplicar AI Engineering a contexto organizacional: estrategia, gobierno y adopción.",
+        "en": "Apply AI Engineering in organizational context: strategy, governance, and adoption."
       },
       "outcomes": {
         "es": [
-          "Demostrar dominio operativo en AI para Empresa (Track alternativo)."
+          "Evaluar oportunidades y ROI por dominio",
+          "Definir gobierno y riesgo para despliegues enterprise",
+          "Construir plan de adopción transversal"
         ],
         "en": [
-          "Demonstrate operational mastery in AI for Enterprise (Alternate track)."
+          "Evaluate opportunities and ROI by domain",
+          "Define governance and risk for enterprise rollouts",
+          "Build a cross-functional adoption plan"
         ]
       },
       "concepts": [
@@ -4701,7 +4492,7 @@
   ],
   "stats": {
     "phaseCount": 12,
-    "conceptCount": 215,
-    "resourceCount": 147
+    "conceptCount": 166,
+    "resourceCount": 150
   }
 }
