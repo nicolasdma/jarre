@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Layers, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { FolderTree, Layers } from 'lucide-react';
 import { t, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { UserResourceCard } from './user-resource-card';
 import { ProjectMilestone } from './project-milestone';
 import { InsightBar } from '@/components/insights/InsightBar';
-import { VoiceModeLauncher } from '@/components/voice/VoiceModeLauncher';
-import { DashboardContent } from '../dashboard/dashboard-content';
-import type { PipelineCourseData } from '../dashboard/pipeline-course-card';
+import { UnifiedIntakePanel } from './unified-intake-panel';
+import { PlanBanner } from '@/components/billing/plan-banner';
 
 interface EvalStats {
   resourceId: string;
@@ -68,368 +68,348 @@ interface LibraryContentProps {
   byPhase: Record<string, ResourceWithStatus[]>;
   projectsByPhase: Record<string, ProjectWithDetails>;
   supplementaryResources: ResourceWithStatus[];
-  userResources: UserResource[];
-  pipelineCourses?: PipelineCourseData[];
+  userResourcesByPhase: Record<string, UserResource[]>;
   isLoggedIn: boolean;
   language: Language;
   phaseNames: Record<string, string>;
+  showPlanBanner: boolean;
+  subscriptionStatus: string;
+  monthlyUsed: number;
+  monthlyLimit: number;
+  voiceMinutesUsed: number;
+  voiceMinutesLimit: number;
+  totalResources: number;
+  totalUnlocked: number;
+  totalEvaluated: number;
+  avgScore: number;
 }
 
-type GlobalTab = 'curriculum' | 'resources';
 type ActiveCurriculumPhase = 'all' | string;
+
+function parseInitialSession(value: string | null): ActiveCurriculumPhase | null {
+  if (!value) return null;
+  if (value === 'resources' || value === 'courses' || value === 'external') return 'all';
+  if (value === 'all' || /^\d+$/.test(value)) return value;
+  return null;
+}
 
 export function LibraryContent({
   byPhase,
   projectsByPhase,
   supplementaryResources,
-  userResources,
-  pipelineCourses = [],
+  userResourcesByPhase,
   isLoggedIn,
   language,
   phaseNames,
+  showPlanBanner,
+  subscriptionStatus,
+  monthlyUsed,
+  monthlyLimit,
+  voiceMinutesUsed,
+  voiceMinutesLimit,
+  totalResources,
+  totalUnlocked,
+  totalEvaluated,
+  avgScore,
 }: LibraryContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeGlobalTab, setActiveGlobalTab] = useState<GlobalTab>('curriculum');
   const [activeCurriculumPhase, setActiveCurriculumPhase] = useState<ActiveCurriculumPhase>('all');
   const [hydrated, setHydrated] = useState(false);
 
-  const phases = useMemo(
-    () => Object.keys(byPhase).sort((a, b) => Number(a) - Number(b)),
-    [byPhase],
-  );
+  const phases = useMemo(() => {
+    const keys = new Set([...Object.keys(byPhase), ...Object.keys(userResourcesByPhase)]);
+    return [...keys].sort((a, b) => Number(a) - Number(b));
+  }, [byPhase, userResourcesByPhase]);
 
   useEffect(() => {
-    const normalizeTab = (
-      value: string | null,
-    ): { globalTab: GlobalTab; curriculumPhase: ActiveCurriculumPhase } | null => {
-      if (!value) return null;
-      if (value === 'resources' || value === 'courses' || value === 'external') {
-        return { globalTab: 'resources', curriculumPhase: 'all' };
-      }
-      if (value === 'all' || /^\d+$/.test(value)) {
-        return { globalTab: 'curriculum', curriculumPhase: value as ActiveCurriculumPhase };
-      }
-      return null;
-    };
-
     const tab = searchParams.get('tab');
-    const tabFromUrl = tab && /^(all|resources|courses|external|\d+)$/.test(tab) ? tab : null;
-    const saved = localStorage.getItem('jarre-library-phase');
-    const initial = normalizeTab(tabFromUrl) || normalizeTab(saved) || {
-      globalTab: 'curriculum' as const,
-      curriculumPhase: 'all' as const,
-    };
+    const fromUrl = parseInitialSession(tab);
+    const fromStorage = parseInitialSession(localStorage.getItem('jarre-library-session'));
+    const initial = fromUrl || fromStorage || 'all';
 
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setActiveGlobalTab(initial.globalTab);
-    setActiveCurriculumPhase(initial.curriculumPhase);
+    // Initial hydration from URL/localStorage.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveCurriculumPhase(initial);
     setHydrated(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [searchParams]);
 
   useEffect(() => {
     if (!hydrated) return;
-    const valueToPersist = activeGlobalTab === 'resources' ? 'resources' : activeCurriculumPhase;
-    localStorage.setItem('jarre-library-phase', valueToPersist);
-  }, [activeGlobalTab, activeCurriculumPhase, hydrated]);
+    localStorage.setItem('jarre-library-session', activeCurriculumPhase);
+  }, [activeCurriculumPhase, hydrated]);
 
-  const activeCurriculumView: ActiveCurriculumPhase =
+  const resolvedActivePhase: ActiveCurriculumPhase =
     activeCurriculumPhase === 'all' || phases.includes(activeCurriculumPhase)
       ? activeCurriculumPhase
       : 'all';
 
-  const visiblePhases = activeCurriculumView === 'all' ? phases : [activeCurriculumView];
-  const totalPhaseResources = phases.reduce((sum, phase) => sum + byPhase[phase].length, 0);
+  const visiblePhases = resolvedActivePhase === 'all' ? phases : [resolvedActivePhase];
+
+  const countByPhase = (phase: string): number => {
+    const coreCount = byPhase[phase]?.length ?? 0;
+    const externalCount = userResourcesByPhase[phase]?.length ?? 0;
+    return coreCount + externalCount;
+  };
+
+  const totalSessionResources = phases.reduce((sum, phase) => sum + countByPhase(phase), 0);
 
   return (
-    <>
-      <div className="sticky top-0 z-20 bg-j-bg/95 backdrop-blur-md border-b border-j-border -mx-4 px-4 sm:-mx-8 sm:px-8 mb-0">
-        <div className="flex items-end justify-between">
-          <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
-            <TabButton
-              active={activeGlobalTab === 'curriculum'}
-              onClick={() => setActiveGlobalTab('curriculum')}
-              label={language === 'es' ? 'Currícula' : 'Curriculum'}
-              icon={<Layers size={13} />}
-              badge={totalPhaseResources}
-            />
-            <TabButton
-              active={activeGlobalTab === 'resources'}
-              onClick={() => setActiveGlobalTab('resources')}
-              label={language === 'es' ? 'Recursos' : 'Resources'}
-              icon={<Sparkles size={13} />}
-              badge={pipelineCourses.length + userResources.length}
-            />
+    <div className="grid gap-0 lg:grid-cols-4">
+      <aside className="border-b border-j-border lg:col-span-1 lg:border-r lg:border-b-0">
+        <div className="p-4 sm:p-5 lg:sticky lg:top-[74px] lg:h-[calc(100vh-74px)] lg:overflow-y-auto">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+            {language === 'es' ? 'Currículas' : 'Curricula'}
+          </p>
+
+          <div className="mt-4 border border-j-border bg-j-bg">
+            <div className="flex items-center gap-2 border-b border-j-border px-3 py-2">
+              <FolderTree size={14} className="text-j-accent" />
+              <span className="font-mono text-[11px] tracking-[0.12em] text-j-text uppercase">
+                AI Engineering
+              </span>
+            </div>
+
+            <nav className="space-y-1 p-2">
+              <SessionButton
+                active={resolvedActivePhase === 'all'}
+                onClick={() => setActiveCurriculumPhase('all')}
+                label={language === 'es' ? 'TODAS' : 'ALL'}
+                count={totalSessionResources}
+              />
+
+              {phases.map((phase) => {
+                const phaseLabel = `${phase.toString().padStart(2, '0')} ${phaseNames[phase] || `${t('resource.phase', language)} ${phase}`}`;
+                return (
+                  <SessionButton
+                    key={phase}
+                    active={resolvedActivePhase === phase}
+                    onClick={() => setActiveCurriculumPhase(phase)}
+                    label={phaseLabel}
+                    count={countByPhase(phase)}
+                  />
+                );
+              })}
+            </nav>
           </div>
 
+          <div className="mt-4 flex items-center gap-2 text-xs text-j-text-tertiary">
+            <Layers size={14} />
+            <span>
+              {totalSessionResources} {totalSessionResources === 1 ? t('library.resource', language) : t('library.resources', language)}
+            </span>
+          </div>
         </div>
+      </aside>
 
-        {activeGlobalTab === 'curriculum' && (
-          <div className="flex gap-0 overflow-x-auto scrollbar-hide border-t border-j-border/40 mt-0">
-            <PhaseTabButton
-              active={activeCurriculumView === 'all'}
-              onClick={() => setActiveCurriculumPhase('all')}
-              label={language === 'es' ? 'Todas' : 'All'}
+      <div className="px-4 pb-8 pt-6 sm:px-8 lg:col-span-3 lg:px-10">
+        {showPlanBanner && (
+          <div className="mb-4">
+            <PlanBanner
+              status={subscriptionStatus}
+              used={monthlyUsed}
+              limit={monthlyLimit}
+              voiceMinutesUsed={voiceMinutesUsed}
+              voiceMinutesLimit={voiceMinutesLimit}
+              language={language}
             />
-            {phases.map((phase) => {
-              const phaseResources = byPhase[phase];
-              const evaluated = phaseResources.filter((r) => r.evalStats !== null).length;
-              const isComplete = phaseResources.length > 0 && evaluated === phaseResources.length;
-              const hasProgress = evaluated > 0;
-
-              return (
-                <PhaseTabButton
-                  key={phase}
-                  active={activeCurriculumView === phase}
-                  onClick={() => setActiveCurriculumPhase(phase)}
-                  label={phase.toString().padStart(2, '0')}
-                  dot={isLoggedIn && hasProgress ? (isComplete ? 'complete' : 'partial') : undefined}
-                />
-              );
-            })}
           </div>
         )}
-      </div>
 
-      <div className="mb-8" />
+        {!isLoggedIn && (
+          <p className="mb-4 text-sm text-j-warm-dark">
+            <Link href="/login" className="underline hover:text-j-accent transition-colors">
+              {t('common.signin', language)}
+            </Link>{' '}
+            {t('library.signInPrompt', language)}
+          </p>
+        )}
 
-      {isLoggedIn && <InsightBar language={language} />}
-
-      {activeGlobalTab === 'resources' && (
-        <section className="mb-16">
-          <div className="mb-6 border border-j-border bg-j-surface/50 p-4 sm:p-5">
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {language === 'es' ? 'Recursos' : 'Resources'}
-            </p>
-            <p className="mt-2 text-sm text-j-text-secondary">
-              {language === 'es'
-                ? 'Todo en un solo lugar: cursos de YouTube y recursos externos, ordenados por tipo para que encuentres rápido lo que necesitás.'
-                : 'Everything in one place: YouTube courses and external resources, organized by type so you can find what you need quickly.'}
-            </p>
+        {isLoggedIn && (
+          <div className="mb-2 flex items-center gap-6 border-y border-j-border/50 py-3">
+            <StatChip value={totalResources} label={t('library.resources', language)} />
+            <span className="text-j-border">·</span>
+            <StatChip value={totalUnlocked} label={language === 'es' ? 'desbloqueados' : 'unlocked'} accent />
+            <span className="text-j-border">·</span>
+            <StatChip value={totalEvaluated} label={language === 'es' ? 'evaluados' : 'evaluated'} accent />
+            {avgScore > 0 && (
+              <>
+                <span className="text-j-border">·</span>
+                <StatChip value={`${avgScore}%`} label={language === 'es' ? 'promedio' : 'avg'} warm />
+              </>
+            )}
           </div>
+        )}
 
-          <div className="mb-4">
-            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-              {language === 'es' ? 'Entrada Unificada' : 'Unified Intake'}
-            </p>
-          </div>
-          <DashboardContent
-            courses={pipelineCourses}
-            language={language}
-            onExternalResourceAdded={() => router.refresh()}
-          />
+        {isLoggedIn && <InsightBar language={language} />}
 
-          {isLoggedIn ? (
-            <>
-              <div className="mt-12 pt-8 border-t border-j-border flex items-center gap-3 mb-6">
-                <Sparkles size={16} className="text-j-accent" />
-                <h2 className="text-xl font-medium text-j-text">
-                  {language === 'es' ? 'Mis Recursos Externos' : 'My External Resources'}
-                </h2>
-                <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-                  ({userResources.length})
+        <UnifiedIntakePanel
+          language={language}
+          onResourceAdded={() => router.refresh()}
+        />
+
+        {visiblePhases.map((phase) => {
+          const phaseResources = byPhase[phase] || [];
+          const phaseExternalResources = userResourcesByPhase[phase] || [];
+          const phaseCount = phaseResources.length + phaseExternalResources.length;
+
+          return (
+            <section key={phase} className="mb-16">
+              <div className="mb-6 flex items-center gap-3">
+                <span className="font-mono text-2xl font-light text-j-border sm:text-3xl">
+                  {phase.toString().padStart(2, '0')}
                 </span>
-              </div>
-
-              {userResources.length === 0 ? (
-                <div className="border border-dashed border-j-border p-10 text-center">
-                  <p className="text-sm text-j-text-secondary">
-                    {language === 'es'
-                      ? 'Todavía no agregaste recursos externos.'
-                      : 'You have not added external resources yet.'}
+                <div>
+                  <h2 className="text-xl font-medium text-j-text">
+                    {phaseNames[phase] || `${t('resource.phase', language)} ${phase}`}
+                  </h2>
+                  <p className="mt-1 font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+                    {phaseCount} {phaseCount === 1 ? t('library.resource', language) : t('library.resources', language)}
                   </p>
                 </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {userResources.map((ur) => (
-                    <UserResourceCard key={ur.id} resource={ur} language={language} />
-                  ))}
+              </div>
+
+              {phaseResources.length > 0 && (
+                <div className="mb-8">
+                  <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+                    {language === 'es' ? 'Ruta Base' : 'Core Curriculum'}
+                  </p>
+                  <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {phaseResources.map((resource) => (
+                      <ResourceCard
+                        key={resource.id}
+                        resource={resource}
+                        isLoggedIn={isLoggedIn}
+                        language={language}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="mt-10">
-                <VoiceModeLauncher
-                  language={language}
-                  showFreeform
-                  showDebate={false}
-                  freeformLabel={language === 'es' ? 'Sesión libre' : 'Freeform session'}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="mt-10 border border-dashed border-j-border p-10 text-center">
-              <p className="text-sm text-j-text-secondary">
-                {language === 'es'
-                  ? 'Inicia sesión para guardar recursos externos y usar sesión libre.'
-                  : 'Sign in to save external resources and use freeform sessions.'}
-              </p>
-            </div>
-          )}
-        </section>
-      )}
+              {phaseExternalResources.length > 0 && (
+                <div className="mb-8">
+                  <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+                    {language === 'es' ? 'Recursos Añadidos' : 'Added Resources'}
+                  </p>
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {phaseExternalResources.map((resource) => (
+                      <UserResourceCard key={resource.id} resource={resource} language={language} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-      {activeGlobalTab === 'curriculum' && visiblePhases.map((phase) => {
-        const phaseResources = byPhase[phase];
-        if (!phaseResources) return null;
+              {phaseCount === 0 && (
+                <div className="border border-dashed border-j-border p-10 text-center">
+                  <p className="text-sm text-j-text-secondary">
+                    {language === 'es'
+                      ? 'Todavía no hay recursos en esta sesión.'
+                      : 'No resources yet in this session.'}
+                  </p>
+                </div>
+              )}
 
-        return (
-          <section key={phase} className="mb-16">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="font-mono text-2xl sm:text-3xl font-light text-j-border">
-                {phase.toString().padStart(2, '0')}
-              </span>
-              <div>
-                <h2 className="text-xl font-medium text-j-text">
-                  {phaseNames[phase] || `${t('resource.phase', language)} ${phase}`}
-                </h2>
-                <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
-                  {phaseResources.length} {phaseResources.length === 1 ? t('library.resource', language) : t('library.resources', language)}
-                  {isLoggedIn && (
-                    <span className="ml-3">
-                      {phaseResources.filter((r) => r.evalStats !== null).length} {t('library.evaluated', language)}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {phaseResources.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
+              {isLoggedIn && projectsByPhase[phase] && (
+                <ProjectMilestone
+                  project={projectsByPhase[phase]}
                   isLoggedIn={isLoggedIn}
                   language={language}
                 />
-              ))}
+              )}
+            </section>
+          );
+        })}
+
+        {resolvedActivePhase === 'all' && supplementaryResources.length > 0 && (
+          <details className="group mb-16 border border-j-border">
+            <summary className="cursor-pointer list-none">
+              <div className="flex items-center gap-3 p-4 transition-colors hover:bg-j-bg-hover">
+                <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
+                  {language === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
+                </span>
+                <span className="text-xs text-j-text-tertiary">({supplementaryResources.length})</span>
+                <span className="ml-auto text-j-text-tertiary transition-transform group-open:rotate-180">▼</span>
+              </div>
+            </summary>
+            <div className="border-t border-j-border p-4 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {supplementaryResources.map((resource) => (
+                  <a
+                    key={resource.id}
+                    href={resource.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/item flex items-start gap-3 border border-j-border p-4 transition-colors hover:border-j-accent"
+                  >
+                    <span className="text-lg">▶</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm text-j-text transition-colors group-hover/item:text-j-accent">
+                        {resource.title}
+                      </p>
+                      {resource.author && (
+                        <p className="mt-1 text-xs text-j-text-tertiary">{resource.author}</p>
+                      )}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
-
-            {isLoggedIn && projectsByPhase[phase] && (
-              <ProjectMilestone
-                project={projectsByPhase[phase]}
-                isLoggedIn={isLoggedIn}
-                language={language}
-              />
-            )}
-          </section>
-        );
-      })}
-
-      {activeGlobalTab === 'curriculum' && activeCurriculumView === 'all' && supplementaryResources.length > 0 && (
-        <details className="mb-16 group border border-j-border">
-          <summary className="cursor-pointer list-none">
-            <div className="flex items-center gap-3 p-4 hover:bg-j-bg-hover transition-colors">
-              <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                {language === 'es' ? 'Recursos Complementarios' : 'Supplementary Resources'}
-              </span>
-              <span className="text-xs text-j-text-tertiary">
-                ({supplementaryResources.length})
-              </span>
-              <span className="ml-auto text-j-text-tertiary group-open:rotate-180 transition-transform">▼</span>
-            </div>
-          </summary>
-          <div className="p-4 sm:p-6 border-t border-j-border">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {supplementaryResources.map((resource) => (
-                <a
-                  key={resource.id}
-                  href={resource.url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group/item flex items-start gap-3 p-4 border border-j-border hover:border-j-accent transition-colors"
-                >
-                  <span className="text-lg">▶</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-j-text group-hover/item:text-j-accent transition-colors line-clamp-2">
-                      {resource.title}
-                    </p>
-                    {resource.author && (
-                      <p className="text-xs text-j-text-tertiary mt-1">{resource.author}</p>
-                    )}
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        </details>
-      )}
-    </>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  label,
-  icon,
-  badge,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon: ReactNode;
-  badge?: number;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        flex-shrink-0 px-4 py-3 font-mono text-[11px] tracking-[0.14em] uppercase
-        border-b-2 transition-colors flex items-center gap-2
-        ${active
-          ? 'border-j-accent text-j-text'
-          : 'border-transparent text-j-text-tertiary hover:text-j-text-secondary hover:border-j-border'
-        }
-      `}
-    >
-      {icon}
-      {label}
-      {badge !== undefined && (
-        <span className={`
-          inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[9px] font-mono rounded-sm
-          ${active ? 'bg-j-accent/20 text-j-accent' : 'bg-j-surface text-j-text-tertiary'}
-        `}>
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function PhaseTabButton({
-  active,
-  onClick,
-  label,
-  dot,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  dot?: 'complete' | 'partial';
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        flex-shrink-0 px-3 py-2 font-mono text-[10px] tracking-[0.15em] uppercase
-        border-b-2 transition-colors
-        ${active
-          ? 'border-j-accent text-j-text'
-          : 'border-transparent text-j-text-muted hover:text-j-text-secondary'
-        }
-      `}
-    >
-      <span className="flex items-center gap-1.5">
-        {label}
-        {dot && (
-          <span
-            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              dot === 'complete' ? 'bg-j-accent' : 'bg-j-warm-dark'
-            }`}
-          />
+          </details>
         )}
-      </span>
+      </div>
+    </div>
+  );
+}
+
+function SessionButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left font-mono text-[10px] tracking-[0.13em] uppercase transition-colors ${
+        active
+          ? 'bg-j-accent/10 text-j-accent'
+          : 'text-j-text-tertiary hover:bg-j-bg-hover hover:text-j-text'
+      }`}
+    >
+      <span className="line-clamp-1">{label}</span>
+      <span className="text-[9px]">{count}</span>
     </button>
+  );
+}
+
+function StatChip({
+  value,
+  label,
+  accent,
+  warm,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+  warm?: boolean;
+}) {
+  const valueColor = warm
+    ? 'text-j-warm-dark'
+    : accent
+      ? 'text-j-accent'
+      : 'text-j-text';
+
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className={`font-mono text-sm font-medium ${valueColor}`}>{value}</span>
+      <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-tertiary">{label}</span>
+    </div>
   );
 }

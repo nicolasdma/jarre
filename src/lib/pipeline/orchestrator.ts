@@ -12,10 +12,9 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { TABLES } from '@/lib/db/tables';
 import { PIPELINE_TOTAL_STAGES } from '@/lib/constants';
 import { logTokenUsage } from '@/lib/db/token-usage';
-import { resolveYouTube } from './stages/resolve-youtube';
+import { extractYouTubeVideoId, resolveYouTube } from './stages/resolve-youtube';
 import { segmentContent } from './stages/segment-content';
 import { generateSections } from './stages/generate-sections';
-import { translateContent } from './stages/translate-content';
 import { generateQuizzes } from './stages/generate-quizzes';
 import { mapVideoSegments } from './stages/map-video-segments';
 import { linkConceptsStage } from './stages/link-concepts';
@@ -29,6 +28,20 @@ import type {
 } from './types';
 
 const log = createLogger('Pipeline');
+const QUIZ_INSERT_BATCH_SIZE = 200;
+const CACHE_LOOKBACK_JOBS = 8;
+
+type QuizInsertRow = {
+  section_id: string;
+  position_after_heading: string;
+  sort_order: number;
+  format: 'mc' | 'tf' | 'mc2';
+  question_text: string;
+  options: { label: string; text: string }[] | null;
+  correct_answer: string;
+  explanation: string;
+  justification_hint: string | null;
+};
 
 const STAGE_ORDER: PipelineStage[] = [
   'resolve',
@@ -55,6 +68,87 @@ async function updateJob(
   if (error) {
     log.error(`Failed to update job ${jobId}: ${error.message}`);
   }
+}
+
+/**
+ * Insert quiz rows in batches to reduce DB round-trips.
+ * Falls back to row-by-row insertion only for failing batches.
+ */
+async function insertQuizRowsInBatches(params: {
+  rows: QuizInsertRow[];
+}): Promise<{ inserted: number }> {
+  const { rows } = params;
+  if (rows.length === 0) return { inserted: 0 };
+
+  const supabase = createAdminClient();
+  let inserted = 0;
+
+  for (let i = 0; i < rows.length; i += QUIZ_INSERT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + QUIZ_INSERT_BATCH_SIZE);
+    const { error } = await supabase.from(TABLES.inlineQuizzes).insert(batch);
+
+    if (!error) {
+      inserted += batch.length;
+      continue;
+    }
+
+    log.warn(`Batch insert failed for inline_quizzes (${batch.length} rows): ${error.message}`);
+
+    for (const row of batch) {
+      const { error: rowError } = await supabase.from(TABLES.inlineQuizzes).insert(row);
+      if (rowError) {
+        log.warn(`Failed to insert quiz row: ${rowError.message}`);
+      } else {
+        inserted++;
+      }
+    }
+  }
+
+  return { inserted };
+}
+
+/**
+ * Reuse resolve/segment outputs from recent completed jobs of the same video.
+ */
+async function loadResolveSegmentCache(params: {
+  jobId: string;
+  videoId: string;
+}): Promise<{
+  resolve?: PipelineData['resolve'];
+  segment?: PipelineData['segment'];
+} | null> {
+  const { jobId, videoId } = params;
+  const supabase = createAdminClient();
+
+  const { data: candidates, error } = await supabase
+    .from(TABLES.pipelineJobs)
+    .select('id, stage_outputs')
+    .eq('status', 'completed')
+    .eq('video_id', videoId)
+    .neq('id', jobId)
+    .order('created_at', { ascending: false })
+    .limit(CACHE_LOOKBACK_JOBS);
+
+  if (error) {
+    log.warn(`Resolve/segment cache lookup failed for ${videoId}: ${error.message}`);
+    return null;
+  }
+
+  for (const candidate of candidates || []) {
+    const stageOutputs = (candidate.stage_outputs || {}) as Record<string, unknown>;
+    const cachedResolve = stageOutputs.resolve as PipelineData['resolve'] | undefined;
+    const cachedSegment = stageOutputs.segment as PipelineData['segment'] | undefined;
+
+    if (!cachedResolve?.videoId || cachedResolve.videoId !== videoId) continue;
+    if (!cachedSegment?.sections?.length) continue;
+
+    log.info(
+      `Cache hit for video ${videoId}: reusing resolve/segment from job ${candidate.id}`,
+    );
+    return { resolve: cachedResolve, segment: cachedSegment };
+  }
+
+  return null;
 }
 
 /**
@@ -152,8 +246,8 @@ async function generateAndWriteQuizzes(
 
     const sectionIdMap = new Map(sections.map((s) => [s.section_title, s.id]));
 
-    // Insert quizzes
-    let quizzesCreated = 0;
+    // Prepare rows for batched insert
+    const quizRows: QuizInsertRow[] = [];
     for (const sectionQuizzes of quizzes.quizzesBySection) {
       const sectionId = sectionIdMap.get(sectionQuizzes.sectionTitle);
       if (!sectionId) {
@@ -162,7 +256,7 @@ async function generateAndWriteQuizzes(
       }
 
       for (const quiz of sectionQuizzes.quizzes) {
-        const { error } = await supabase.from(TABLES.inlineQuizzes).insert({
+        quizRows.push({
           section_id: sectionId,
           position_after_heading: quiz.positionAfterHeading,
           sort_order: quiz.sortOrder,
@@ -173,26 +267,23 @@ async function generateAndWriteQuizzes(
           explanation: quiz.explanation,
           justification_hint: quiz.justificationHint || null,
         });
-
-        if (error) {
-          log.warn(`[${jobId}] Background: Failed to insert quiz: ${error.message}`);
-        } else {
-          quizzesCreated++;
-        }
       }
     }
+
+    const { inserted: quizzesCreated } = await insertQuizRowsInBatches({ rows: quizRows });
 
     // Update stage_outputs with quizzes (for resume idempotency)
     const { data: jobData } = await supabase
       .from(TABLES.pipelineJobs)
-      .select('stage_outputs')
+      .select('stage_outputs, tokens_used')
       .eq('id', jobId)
       .single();
 
     const outputs = (jobData?.stage_outputs || {}) as Record<string, unknown>;
+    const currentTokensUsed = typeof jobData?.tokens_used === 'number' ? jobData.tokens_used : 0;
     await updateJob(jobId, {
       stage_outputs: { ...outputs, quizzes },
-      tokens_used: (outputs as Record<string, number>).tokens_used ?? 0,
+      tokens_used: currentTokensUsed + tokensUsed,
     });
 
     // Log token usage (fire-and-forget)
@@ -241,6 +332,39 @@ async function executePipeline(
   await updateJob(jobId, { status: 'processing' });
 
   try {
+    // Warm cache for repeated generations of the same video (resolve + segment).
+    const requestedVideoId = extractYouTubeVideoId(config.url);
+    if (!data.resolve && requestedVideoId) {
+      const cached = await loadResolveSegmentCache({
+        jobId,
+        videoId: requestedVideoId,
+      });
+
+      if (cached?.resolve) {
+        data.resolve = cached.resolve;
+        stagesCompleted = Math.max(stagesCompleted, 1);
+      }
+      if (cached?.segment) {
+        data.segment = cached.segment;
+        stagesCompleted = Math.max(stagesCompleted, 2);
+      }
+
+      if (cached?.resolve) {
+        const cachedResolve = cached.resolve;
+        await updateJob(jobId, {
+          video_id: cachedResolve.videoId,
+          title: config.title || cachedResolve.title,
+          language: cachedResolve.language,
+          stages_completed: stagesCompleted,
+          stage_outputs: {
+            ...savedOutputs,
+            resolve: cachedResolve,
+            ...(data.segment ? { segment: data.segment } : {}),
+          },
+        });
+      }
+    }
+
     // Stage 1: Resolve YouTube
     if (!data.resolve) {
       await updateJob(jobId, { current_stage: 'resolve' });
@@ -254,7 +378,7 @@ async function executePipeline(
         video_id: data.resolve.videoId,
         title: config.title || data.resolve.title,
         language: data.resolve.language,
-        stage_outputs: { resolve: data.resolve },
+        stage_outputs: { ...savedOutputs, resolve: data.resolve },
       });
     }
 
@@ -275,31 +399,26 @@ async function executePipeline(
       });
     }
 
-    // Stage 3: Generate Content + Translation
+    // Stage 3: Generate Content (Fast Mode: direct target language, no translation stage)
     if (!data.content) {
       await updateJob(jobId, { current_stage: 'content' });
       log.info(`[${jobId}] Stage 3/${PIPELINE_TOTAL_STAGES}: Generating section content...`);
 
       const videoTitle = config.title || data.resolve.title;
       const targetLang = config.targetLanguage;
+      if (data.resolve.language !== targetLang) {
+        log.info(
+          `[${jobId}] Fast mode: generating content directly in ${targetLang} from ${data.resolve.language} transcript`,
+        );
+      }
 
-      // Generate content in the video's language first
-      const { output: rawContent, tokensUsed: contentTokens } = await generateSections(
+      const { output: finalContent, tokensUsed: contentTokens } = await generateSections(
         data.segment,
         videoTitle,
-        data.resolve.language,
-        config.deepseekApiKey,
-      );
-      totalTokens += contentTokens;
-
-      // Translate if needed
-      const { output: finalContent, tokensUsed: translateTokens } = await translateContent(
-        rawContent,
-        data.resolve.language,
         targetLang,
         config.deepseekApiKey,
       );
-      totalTokens += translateTokens;
+      totalTokens += contentTokens;
 
       data.content = finalContent;
       stagesCompleted++;

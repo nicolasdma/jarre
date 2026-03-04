@@ -136,6 +136,44 @@ export async function writeToDb(params: {
   } = params;
   const supabase = createAdminClient();
   const resourceId = resourceIdOverride || generateResourceId(resolve.videoId, userId);
+  const BATCH_SIZE = 200;
+
+  const insertRowsInBatches = async (params: {
+    table: string;
+    rows: Array<Record<string, unknown>>;
+    rowLabel: string;
+  }): Promise<number> => {
+    const { table, rows, rowLabel } = params;
+    if (rows.length === 0) return 0;
+
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase
+        .from(table as never)
+        .insert(batch as never);
+
+      if (!error) {
+        inserted += batch.length;
+        continue;
+      }
+
+      log.warn(`Batch insert failed for ${table} (${batch.length} rows): ${error.message}`);
+
+      for (const row of batch) {
+        const { error: rowError } = await supabase
+          .from(table as never)
+          .insert(row as never);
+        if (rowError) {
+          log.warn(`Failed to insert ${rowLabel}: ${rowError.message}`);
+        } else {
+          inserted++;
+        }
+      }
+    }
+
+    return inserted;
+  };
 
   log.info(`Writing resource ${resourceId} to database...`);
 
@@ -386,6 +424,7 @@ export async function writeToDb(params: {
   // Step 4: Create inline_quizzes (only if quizzes were provided)
   let quizzesCreated = 0;
   if (quizzes) {
+    const quizRows: Array<Record<string, unknown>> = [];
     for (const sectionQuizzes of quizzes.quizzesBySection) {
       const sectionId = sectionIdMap.get(sectionQuizzes.sectionTitle);
       if (!sectionId) {
@@ -394,7 +433,7 @@ export async function writeToDb(params: {
       }
 
       for (const quiz of sectionQuizzes.quizzes) {
-        const { error } = await supabase.from(TABLES.inlineQuizzes).insert({
+        quizRows.push({
           section_id: sectionId,
           position_after_heading: quiz.positionAfterHeading,
           sort_order: quiz.sortOrder,
@@ -405,18 +444,18 @@ export async function writeToDb(params: {
           explanation: quiz.explanation,
           justification_hint: quiz.justificationHint || null,
         });
-
-        if (error) {
-          log.warn(`Failed to insert quiz: ${error.message}`);
-        } else {
-          quizzesCreated++;
-        }
       }
     }
+    quizzesCreated = await insertRowsInBatches({
+      table: TABLES.inlineQuizzes,
+      rows: quizRows,
+      rowLabel: 'quiz',
+    });
   }
 
   // Step 5: Create video_segments
   let videoSegmentsCreated = 0;
+  const videoSegmentRows: Array<Record<string, unknown>> = [];
   for (const sectionSegments of videoMap.segmentsBySection) {
     const sectionId = sectionIdMap.get(sectionSegments.sectionTitle);
     if (!sectionId) {
@@ -425,7 +464,7 @@ export async function writeToDb(params: {
     }
 
     for (const segment of sectionSegments.segments) {
-      const { error } = await supabase.from(TABLES.videoSegments).insert({
+      videoSegmentRows.push({
         section_id: sectionId,
         position_after_heading: segment.positionAfterHeading,
         sort_order: segment.sortOrder,
@@ -434,14 +473,13 @@ export async function writeToDb(params: {
         end_seconds: segment.endSeconds,
         label: segment.label,
       });
-
-      if (error) {
-        log.warn(`Failed to insert video segment: ${error.message}`);
-      } else {
-        videoSegmentsCreated++;
-      }
     }
   }
+  videoSegmentsCreated = await insertRowsInBatches({
+    table: TABLES.videoSegments,
+    rows: videoSegmentRows,
+    rowLabel: 'video segment',
+  });
 
   log.info(
     `Written: resource=${resourceId}, sections=${content.sections.length}, quizzes=${quizzesCreated}, videoSegments=${videoSegmentsCreated}, concepts=${concepts.concepts.length}`,

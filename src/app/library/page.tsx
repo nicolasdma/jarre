@@ -1,20 +1,33 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
 import { t, getPhaseNames, type Language } from '@/lib/translations';
-import { PlanBanner } from '@/components/billing/plan-banner';
 import { IS_MANAGED } from '@/lib/config';
 import { FREE_VOICE_MINUTES } from '@/lib/constants';
 import { TABLES } from '@/lib/db/tables';
 import { LibraryContent } from './library-content';
-import type { PipelineCourseData } from '../dashboard/pipeline-course-card';
 
 export const metadata: Metadata = {
   title: 'Library — Jarre',
   description: 'Browse and manage your learning resources',
 };
+
+function chooseDominantPhase(phases: string[]): string | null {
+  if (phases.length === 0) return null;
+
+  const frequencies = new Map<string, number>();
+  for (const phase of phases) {
+    const key = String(phase);
+    frequencies.set(key, (frequencies.get(key) ?? 0) + 1);
+  }
+
+  return [...frequencies.entries()]
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return Number(a[0]) - Number(b[0]);
+    })[0][0] ?? null;
+}
 
 export default async function LibraryPage() {
   const supabase = await createClient();
@@ -24,26 +37,23 @@ export default async function LibraryPage() {
   } = await supabase.auth.getUser();
 
   let lang: Language = 'es';
+  let userCurrentPhase = '1';
+  let subscriptionStatus = 'free';
   if (user) {
     const { data: profile } = await supabase
       .from(TABLES.userProfiles)
-      .select('language')
+      .select('language, current_phase, subscription_status')
       .eq('id', user.id)
       .single();
     lang = (profile?.language || 'es') as Language;
+    userCurrentPhase = profile?.current_phase ? String(profile.current_phase) : '1';
+    subscriptionStatus = profile?.subscription_status || 'free';
   }
 
-  let subscriptionStatus = 'free';
   let monthlyUsed = 0;
   let voiceMinutesUsed = 0;
   let voiceMinutesLimit = FREE_VOICE_MINUTES;
   if (user && IS_MANAGED) {
-    const { data: billingProfile } = await supabase
-      .from(TABLES.userProfiles)
-      .select('subscription_status')
-      .eq('id', user.id)
-      .single();
-    subscriptionStatus = billingProfile?.subscription_status || 'free';
     voiceMinutesLimit = subscriptionStatus === 'active' ? Infinity : FREE_VOICE_MINUTES;
 
     const now = new Date();
@@ -109,18 +119,6 @@ export default async function LibraryPage() {
   }
 
   const allResourceIds = (resources || []).map((resource) => resource.id);
-  const sectionCounts: Record<string, number> = {};
-
-  if (allResourceIds.length > 0) {
-    const { data: sections } = await supabase
-      .from(TABLES.resourceSections)
-      .select('resource_id')
-      .in('resource_id', allResourceIds);
-
-    for (const section of sections || []) {
-      sectionCounts[section.resource_id] = (sectionCounts[section.resource_id] || 0) + 1;
-    }
-  }
 
   let userProgress: Record<string, number> = {};
   if (user) {
@@ -276,6 +274,47 @@ export default async function LibraryPage() {
     userResources = ur || [];
   }
 
+  const userResourcesByPhase: Record<string, UserResourceRow[]> = {};
+
+  if (user && userResources.length > 0) {
+    const userResourceIds = userResources.map((resource) => resource.id);
+    const { data: phaseLinks } = await supabase
+      .from(TABLES.userResourceConcepts)
+      .select('user_resource_id, concept_id')
+      .in('user_resource_id', userResourceIds);
+
+    const conceptIds = [...new Set((phaseLinks || []).map((link) => link.concept_id))];
+    const { data: conceptRows } = conceptIds.length > 0
+      ? await supabase
+          .from(TABLES.concepts)
+          .select('id, phase')
+          .in('id', conceptIds)
+      : { data: [] };
+
+    const conceptPhaseMap = (conceptRows || []).reduce((acc, concept) => {
+      acc[concept.id] = String(concept.phase);
+      return acc;
+    }, {} as Record<string, string>);
+
+    const phasesByUserResourceId = new Map<string, string[]>();
+    for (const link of phaseLinks || []) {
+      const phase = conceptPhaseMap[link.concept_id];
+      if (!phase) continue;
+
+      const existing = phasesByUserResourceId.get(link.user_resource_id) || [];
+      existing.push(phase);
+      phasesByUserResourceId.set(link.user_resource_id, existing);
+    }
+
+    const fallbackPhase = userCurrentPhase || '1';
+    for (const resource of userResources) {
+      const linkedPhases = phasesByUserResourceId.get(resource.id) || [];
+      const dominantPhase = chooseDominantPhase(linkedPhases) || fallbackPhase;
+      if (!userResourcesByPhase[dominantPhase]) userResourcesByPhase[dominantPhase] = [];
+      userResourcesByPhase[dominantPhase].push(resource);
+    }
+  }
+
   // Fetch user resource → concept links for cross-referencing in ResourceCards
   type RelatedUserResource = {
     id: string;
@@ -287,7 +326,7 @@ export default async function LibraryPage() {
 
   if (user) {
     const { data: urcLinks } = await supabase
-      .from('user_resource_concepts')
+      .from(TABLES.userResourceConcepts)
       .select('concept_id, user_resource_id, user_resources!inner(id, title, type, url, status)')
       .eq('user_resources.user_id', user.id)
       .eq('user_resources.status', 'completed');
@@ -352,45 +391,6 @@ export default async function LibraryPage() {
     };
   });
 
-  // Pipeline-generated courses use ids prefixed by yt- and can be placed in inferred phases.
-  const pipelineCourses: PipelineCourseData[] = resourcesWithStatus
-    .filter((resource) => {
-      const isPipelineResource = resource.id.startsWith('yt-')
-        || (resource.phase === '0' && (resource.type === 'video' || resource.type === 'lecture'));
-      return isPipelineResource && (sectionCounts[resource.id] || 0) > 0;
-    })
-    .map((resource) => ({
-      id: resource.id,
-      title: resource.title,
-      type: resource.type,
-      url: resource.url || null,
-      summary: (resource.activate_data as { summary?: string } | null)?.summary ?? null,
-      sectionCount: sectionCounts[resource.id] || 0,
-      createdAt: resource.created_at,
-      isOwner: !!user && resource.created_by === user.id,
-      evalStats: resource.evalStats
-        ? { bestScore: resource.evalStats.bestScore, evalCount: resource.evalStats.evalCount }
-        : null,
-      progress: resource.progress,
-    }));
-
-  pipelineCourses.sort((a, b) => {
-    const priority = (course: PipelineCourseData) => {
-      if (
-        course.progress
-        && course.progress.completedSections.length > 0
-        && course.progress.completedSections.length < course.sectionCount
-      ) return 0;
-      if (!course.evalStats) return 1;
-      return 2;
-    };
-
-    const pa = priority(a);
-    const pb = priority(b);
-    if (pa !== pb) return pa - pb;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
   // Filter out courses, videos, and specific resources from main view
   const hiddenTypes = ['course', 'video'];
   const hiddenIds = [
@@ -416,7 +416,7 @@ export default async function LibraryPage() {
     byPhase[phase].push(resource);
   }
 
-  const totalResources = visibleResources.length;
+  const totalResources = visibleResources.length + userResources.length;
   const totalEvaluated = visibleResources.filter(r => r.evalStats !== null).length;
   const totalUnlocked = visibleResources.filter(r => r.isUnlocked).length;
   const avgScore = totalEvaluated > 0
@@ -427,104 +427,53 @@ export default async function LibraryPage() {
     <div className="min-h-screen bg-j-bg j-bg-texture">
       <Header currentPage="library" />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-8 pb-12 sm:pb-16">
-        {/* Plan banner + sign-in — functional only, no marketing copy */}
-        {user && IS_MANAGED && (
-          <div className="mb-4">
-            <PlanBanner
-              status={subscriptionStatus}
-              used={monthlyUsed}
-              limit={monthlyLimit}
-              voiceMinutesUsed={voiceMinutesUsed}
-              voiceMinutesLimit={voiceMinutesLimit}
-              language={lang}
-            />
-          </div>
-        )}
-
-        {!user && (
-          <p className="mb-4 text-sm text-j-warm-dark">
-            <Link href="/login" className="underline hover:text-j-accent transition-colors">
-              {t('common.signin', lang)}
-            </Link>{' '}
-            {t('library.signInPrompt', lang)}
-          </p>
-        )}
-
-        {/* Compact stats strip */}
-        {user && (
-          <div className="flex items-center gap-6 mb-6 py-3 border-y border-j-border/50">
-            <StatChip value={totalResources} label={t('library.resources', lang)} />
-            <span className="text-j-border">·</span>
-            <StatChip value={totalUnlocked} label={lang === 'es' ? 'desbloqueados' : 'unlocked'} accent />
-            <span className="text-j-border">·</span>
-            <StatChip value={totalEvaluated} label={lang === 'es' ? 'evaluados' : 'evaluated'} accent />
-            {avgScore > 0 && (
-              <>
-                <span className="text-j-border">·</span>
-                <StatChip value={`${avgScore}%`} label={lang === 'es' ? 'promedio' : 'avg'} warm />
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Phase Tabs + Resources + Supplementary */}
+      <main className="w-full pb-12 sm:pb-16">
         <LibraryContent
           byPhase={byPhase}
           projectsByPhase={projectsByPhase}
           supplementaryResources={supplementaryResources}
-          userResources={userResources}
-          pipelineCourses={pipelineCourses}
+          userResourcesByPhase={userResourcesByPhase}
           isLoggedIn={!!user}
           language={lang}
           phaseNames={phaseNames}
+          showPlanBanner={!!user && IS_MANAGED}
+          subscriptionStatus={subscriptionStatus}
+          monthlyUsed={monthlyUsed}
+          monthlyLimit={monthlyLimit}
+          voiceMinutesUsed={voiceMinutesUsed}
+          voiceMinutesLimit={voiceMinutesLimit}
+          totalResources={totalResources}
+          totalUnlocked={totalUnlocked}
+          totalEvaluated={totalEvaluated}
+          avgScore={avgScore}
         />
       </main>
 
       {/* Settings */}
       {user && (
-        <div className="mx-auto max-w-6xl px-4 sm:px-8 border-t border-j-border pt-8 mt-8">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
-            {t('dashboard.settings', lang)}
-          </p>
-          <LanguageSelector currentLanguage={lang} />
+        <div className="grid gap-0 lg:grid-cols-4">
+          <div className="hidden border-r border-j-border lg:block" />
+          <div className="mt-8 border-t border-j-border px-4 pt-8 sm:px-8 lg:col-span-3 lg:px-10">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
+              {t('dashboard.settings', lang)}
+            </p>
+            <LanguageSelector currentLanguage={lang} />
+          </div>
         </div>
       )}
 
       {/* Footer */}
-      <footer className="border-t border-j-border py-8 mt-8">
-        <div className="mx-auto max-w-6xl px-4 sm:px-8">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
-            Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
-          </p>
+      <footer className="mt-8 border-t border-j-border py-8">
+        <div className="grid gap-0 lg:grid-cols-4">
+          <div className="hidden border-r border-j-border lg:block" />
+          <div className="px-4 sm:px-8 lg:col-span-3 lg:px-10">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase text-center">
+              Jarre · {lang === 'es' ? 'Conocimiento Profundo' : 'Deep Knowledge'} · {new Date().getFullYear()}
+            </p>
+          </div>
         </div>
       </footer>
 
-    </div>
-  );
-}
-
-function StatChip({
-  value,
-  label,
-  accent,
-  warm,
-}: {
-  value: number | string;
-  label: string;
-  accent?: boolean;
-  warm?: boolean;
-}) {
-  const valueColor = warm
-    ? 'text-j-warm-dark'
-    : accent
-      ? 'text-j-accent'
-      : 'text-j-text';
-
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className={`font-mono text-sm font-medium ${valueColor}`}>{value}</span>
-      <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-text-tertiary">{label}</span>
     </div>
   );
 }

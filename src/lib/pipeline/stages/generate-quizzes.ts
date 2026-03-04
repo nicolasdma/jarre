@@ -6,13 +6,72 @@
  * Validates that positionAfterHeading matches actual headings.
  */
 
-import { callDeepSeek, parseJsonResponse } from '@/lib/llm/deepseek';
+import { callDeepSeek } from '@/lib/llm/deepseek';
 import { createLogger } from '@/lib/logger';
 import { TOKEN_BUDGETS, PIPELINE_MAX_CONCURRENT } from '@/lib/constants';
 import { QuizGenerationResponseSchema } from '../schemas';
 import type { ContentOutput, QuizOutput, InlineQuizDef } from '../types';
 
 const log = createLogger('Pipeline:Quizzes');
+
+type ParsedQuizPayload = {
+  quizzes: Array<{
+    positionAfterHeading: string;
+    format: 'mc' | 'tf' | 'mc2';
+    questionText: string;
+    options: Array<{ label: string; text: string }> | null;
+    correctAnswer: string;
+    explanation: string;
+    justificationHint?: string;
+  }>;
+};
+
+function extractJsonString(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('```')) return trimmed;
+
+  const lines = trimmed.split('\n');
+  if (lines.length >= 3 && lines[lines.length - 1].trim() === '```') {
+    return lines.slice(1, -1).join('\n').trim();
+  }
+
+  return trimmed;
+}
+
+function normalizeQuizPayload(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object') return payload;
+  const maybeObj = payload as Record<string, unknown>;
+  const quizzes = maybeObj.quizzes;
+  if (!Array.isArray(quizzes)) return payload;
+
+  const normalized = quizzes.map((q) => {
+    if (!q || typeof q !== 'object') return q;
+    const item = { ...(q as Record<string, unknown>) };
+
+    if (item.justificationHint === null) {
+      delete item.justificationHint;
+    }
+
+    if (item.format === 'tf') {
+      if (Array.isArray(item.options) && item.options.length === 0) {
+        item.options = null;
+      }
+      if (typeof item.correctAnswer === 'boolean') {
+        item.correctAnswer = item.correctAnswer ? 'true' : 'false';
+      }
+    }
+
+    return item;
+  });
+
+  return { ...maybeObj, quizzes: normalized };
+}
+
+function parseQuizResponse(raw: string): ParsedQuizPayload {
+  const parsed = JSON.parse(extractJsonString(raw));
+  const normalized = normalizeQuizPayload(parsed);
+  return QuizGenerationResponseSchema.parse(normalized);
+}
 
 /**
  * Run a batch of async functions with concurrency limit.
@@ -56,8 +115,8 @@ async function generateSectionQuizzes(
 
   const langInstruction =
     language === 'es'
-      ? 'Write ALL quiz content in Spanish.'
-      : 'Write ALL quiz content in English.';
+      ? 'Write ALL quiz content in Spanish. Keep a technical-academic tone.'
+      : 'Write ALL quiz content in English. Keep a technical-academic tone.';
 
   const headingsList = headings.map((h, i) => `  ${i + 1}. "${h}"`).join('\n');
 
@@ -75,12 +134,15 @@ ${langInstruction}
 Rules:
 - Generate 3-5 quizzes per section
 - Position each quiz after one of the available headings
-- Mix formats: ~35% "mc" (4 options, 1 correct), ~30% "tf" (true/false), ~35% "mc2" (4 options, must justify)
-- Questions should test understanding, not memorization
+- Mix formats with a technical bias: ~45% "mc2", ~45% "mc", at most 10% "tf" (max 1 tf if needed)
+- Questions must test reasoning, mechanism understanding, and error detection; avoid trivial recall
+- Include at least 1 question with a concrete scenario, numeric detail, or code/pseudocode interpretation when applicable
+- Distractors should be plausible misconceptions, not obviously wrong answers
 - For "tf": options must be null, correctAnswer must be "true" or "false" (lowercase string)
 - For "mc": 4 options with labels A, B, C, D. correctAnswer is the label letter (A, B, C, or D)
 - For "mc2": same as mc, but add justificationHint. correctAnswer is the label letter
-- Explanation should teach why the answer is correct
+- Explanation must state why the correct option is right and why the main distractor is wrong, in at most 2 sentences
+- Do NOT output LaTeX, escaped math, or self-corrections inside fields
 
 Available headings for positioning:
 ${headingsList}
@@ -117,7 +179,57 @@ ${contentMarkdown.slice(0, 8_000)}`,
     retryOnTimeout: true,
   });
 
-  const parsed = parseJsonResponse(content, QuizGenerationResponseSchema);
+  let finalTokensUsed = tokensUsed;
+  let parsed: ParsedQuizPayload;
+  try {
+    parsed = parseQuizResponse(content);
+  } catch (firstErr) {
+    log.warn(`Quiz JSON parse failed for "${sectionTitle}", attempting repair...`);
+
+    const { content: repairedContent, tokensUsed: repairTokens } = await callDeepSeek({
+      apiKey,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a strict JSON repair tool.
+
+Input may contain malformed JSON. Return valid JSON that matches exactly:
+{
+  "quizzes": [
+    {
+      "positionAfterHeading": "string",
+      "format": "mc" | "tf" | "mc2",
+      "questionText": "string",
+      "options": null OR [{"label":"A","text":"..."},{"label":"B","text":"..."},{"label":"C","text":"..."},{"label":"D","text":"..."}],
+      "correctAnswer": "string",
+      "explanation": "string",
+      "justificationHint": "string (optional)"
+    }
+  ]
+}
+
+Rules:
+- Return ONLY valid JSON.
+- Preserve the original quiz intent.
+- Remove malformed fragments and self-corrections.
+- Ensure positionAfterHeading values are plain strings.`,
+        },
+        {
+          role: 'user',
+          content: `Repair this into valid JSON:\n\n${content.slice(0, 12_000)}`,
+        },
+      ],
+      temperature: 0,
+      maxTokens: TOKEN_BUDGETS.PIPELINE_QUIZZES,
+      responseFormat: 'json',
+      timeoutMs: 120_000,
+      retryOnTimeout: true,
+    });
+
+    parsed = parseQuizResponse(repairedContent);
+    finalTokensUsed += repairTokens;
+    log.warn(`Quiz JSON repaired for "${sectionTitle}" after parse error: ${(firstErr as Error).message}`);
+  }
 
   // Validate and fix positionAfterHeading
   const headingSet = new Set(headings);
@@ -167,7 +279,7 @@ ${contentMarkdown.slice(0, 8_000)}`,
     }
   }
 
-  return { quizzes: validQuizzes, tokensUsed };
+  return { quizzes: validQuizzes, tokensUsed: finalTokensUsed };
 }
 
 /**

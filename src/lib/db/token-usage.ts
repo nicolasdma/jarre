@@ -5,7 +5,7 @@
  * Never throws — failures are logged but don't break the caller.
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { TABLES } from './tables';
 
@@ -19,7 +19,7 @@ export async function logTokenUsage(params: {
   if (params.tokens <= 0) return;
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { error } = await supabase.from(TABLES.tokenUsage).insert({
       user_id: params.userId,
       category: params.category,
