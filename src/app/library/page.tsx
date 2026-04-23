@@ -314,38 +314,33 @@ export default async function LibraryPage({
 
   if (user && userResources.length > 0) {
     const userResourceIds = userResources.map((resource) => resource.id);
+    // Inner-join against concepts.track so user resources linked only to the
+    // opposite track disappear from this view — otherwise a video about
+    // neural networks (concepts track='ai') would surface under a travel phase.
     const { data: phaseLinks } = await supabase
       .from(TABLES.userResourceConcepts)
-      .select('user_resource_id, concept_id')
-      .in('user_resource_id', userResourceIds);
-
-    const conceptIds = [...new Set((phaseLinks || []).map((link) => link.concept_id))];
-    const { data: conceptRows } = conceptIds.length > 0
-      ? await supabase
-          .from(TABLES.concepts)
-          .select('id, phase')
-          .in('id', conceptIds)
-      : { data: [] };
-
-    const conceptPhaseMap = (conceptRows || []).reduce((acc, concept) => {
-      acc[concept.id] = String(concept.phase);
-      return acc;
-    }, {} as Record<string, string>);
+      .select('user_resource_id, concept_id, concepts!inner(phase, track)')
+      .in('user_resource_id', userResourceIds)
+      .eq('concepts.track', track);
 
     const phasesByUserResourceId = new Map<string, string[]>();
     for (const link of phaseLinks || []) {
-      const phase = conceptPhaseMap[link.concept_id];
+      const concept = (link as unknown as { concepts: { phase: string | number; track: string } | null }).concepts;
+      const phase = concept?.phase;
       if (!phase) continue;
 
       const existing = phasesByUserResourceId.get(link.user_resource_id) || [];
-      existing.push(phase);
+      existing.push(String(phase));
       phasesByUserResourceId.set(link.user_resource_id, existing);
     }
 
-    const fallbackPhase = userCurrentPhase || '1';
     for (const resource of userResources) {
       const linkedPhases = phasesByUserResourceId.get(resource.id) || [];
-      const dominantPhase = chooseDominantPhase(linkedPhases) || fallbackPhase;
+      // A user resource with zero concept links in this track does not belong
+      // here. Excluding it prevents leakage into fallback phases on track switch.
+      if (linkedPhases.length === 0) continue;
+      const dominantPhase = chooseDominantPhase(linkedPhases);
+      if (!dominantPhase) continue;
       if (!userResourcesByPhase[dominantPhase]) userResourcesByPhase[dominantPhase] = [];
       userResourcesByPhase[dominantPhase].push(resource);
     }
