@@ -73,7 +73,7 @@ const translations = {
   'eval.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
   'eval.tryAgain': { es: 'Intentar de Nuevo', en: 'Try Again' },
 
-  // Phases
+  // Phases (AI track)
   'phase.1': { es: 'Sistemas Distribuidos', en: 'Distributed Systems' },
   'phase.1_5': { es: 'Puente de Álgebra Lineal', en: 'Linear Algebra Bridge' },
   'phase.2': { es: 'ML & Deep Learning', en: 'ML & Deep Learning Foundations' },
@@ -86,6 +86,23 @@ const translations = {
   'phase.9': { es: 'Inferencia & Economía', en: 'Inference & Economics' },
   'phase.10': { es: 'Diseño de Sistemas', en: 'System Design & Integration' },
   'phase.11': { es: 'AI para Empresa (Track alternativo)', en: 'AI for Enterprise (Alternate track)' },
+
+  // Phases (Travel track — South America motorcycle trip)
+  'phase.travel.1': { es: 'Panorámica Continental', en: 'Continental Overview' },
+  'phase.travel.2': { es: 'Colombia Caribe y Darién', en: 'Colombian Caribbean and Darién' },
+  'phase.travel.3': { es: 'Colombia Andina Norte', en: 'Northern Andean Colombia' },
+  'phase.travel.4': { es: 'Colombia Andina Sur', en: 'Southern Andean Colombia' },
+  'phase.travel.5': { es: 'Amazonía Ecuatoriana', en: 'Ecuadorian Amazon' },
+  'phase.travel.6': { es: 'Ecuador Andino y Costa', en: 'Andean and Coastal Ecuador' },
+  'phase.travel.7': { es: 'Costa Peruana', en: 'Peruvian Coast' },
+  'phase.travel.8': { es: 'Cordillera Blanca (Ancash)', en: 'Cordillera Blanca (Ancash)' },
+  'phase.travel.9': { es: 'Andes Peruanos Sur (Cusco y Amazonía sur)', en: 'Southern Peruvian Andes (Cusco and Southern Amazon)' },
+  'phase.travel.10': { es: 'Chile (sur a norte)', en: 'Chile (South to North)' },
+  'phase.travel.11': { es: 'Argentina: Cuyo y Patagonia', en: 'Argentina: Cuyo and Patagonia' },
+
+  // Track names (segmented selector)
+  'track.ai': { es: 'IA', en: 'AI' },
+  'track.travel': { es: 'Viajes', en: 'Travel' },
 
   // Common
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
@@ -301,7 +318,28 @@ export function t(key: TranslationKey, language: Language): string {
   return translations[key]?.[language] || translations[key]?.en || key;
 }
 
-export function getPhaseNames(language: Language): Record<string, string> {
+export type CurriculumTrack = 'ai' | 'travel';
+
+export function getPhaseNames(
+  language: Language,
+  track: CurriculumTrack = 'ai',
+): Record<string, string> {
+  if (track === 'travel') {
+    return {
+      '1': t('phase.travel.1', language),
+      '2': t('phase.travel.2', language),
+      '3': t('phase.travel.3', language),
+      '4': t('phase.travel.4', language),
+      '5': t('phase.travel.5', language),
+      '6': t('phase.travel.6', language),
+      '7': t('phase.travel.7', language),
+      '8': t('phase.travel.8', language),
+      '9': t('phase.travel.9', language),
+      '10': t('phase.travel.10', language),
+      '11': t('phase.travel.11', language),
+    };
+  }
+
   return {
     '1': t('phase.1', language),
     '1.5': t('phase.1_5', language),

@@ -1,0 +1,1805 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8872377,
+          -2.1932924
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-04-19T21:49:14Z",
+        "google_maps_url": "http://maps.google.com/?cid=8203068742590585097",
+        "location": {
+          "address": "Lorenzo de Garaycoa 1243, 090312 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Hotel Sol de Oro"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -76.6069875,
+          2.4382779
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-04-16T23:15:40Z",
+        "google_maps_url": "http://maps.google.com/?cid=14272794863452358671",
+        "location": {
+          "address": "Cra. 6 #8- 57, Centro, Popayán, Cauca, Colombia",
+          "country_code": "CO",
+          "name": "Hotel summer"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5767466,
+          6.2141932
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-04-10T12:12:07Z",
+        "google_maps_url": "http://maps.google.com/?cid=14075264650582242716",
+        "location": {
+          "address": "Cra. 48 #10-45, El Poblado, Medellín, El Poblado, Medellín, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "Centro Comercial Monterrey"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5815510,
+          6.2142593
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-04-09T20:53:06Z",
+        "google_maps_url": "http://maps.google.com/?cid=6648913303510641823",
+        "location": {
+          "address": "Cl 10 #50-347, Guayabal, Medellín, Guayabal, Medellín, Antioquia, Colombia",
+          "name": "Autos SURA Medellín - Mall Río 10"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.6016179,
+          6.2246616
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-03-27T15:44:32Z",
+        "google_maps_url": "http://maps.google.com/?cid=2801488366971955110",
+        "location": {
+          "address": "Cl 19 #80A-40, Medellín, Belén, Medellín, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "Migración Colombia"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-01-06T20:09:14Z",
+        "google_maps_url": "http://maps.google.com/?q=8.637377259770602,-77.34664008021355",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.3516170,
+          8.6353990
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-01-06T19:28:20Z",
+        "google_maps_url": "http://maps.google.com/?cid=11279893699368852917",
+        "location": {
+          "address": "JJPX+2F, Capurgana, Acandí, Chocó, Colombia",
+          "name": "Santa elena"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2026-01-06T00:21:23Z",
+        "google_maps_url": "http://maps.google.com/?q=Riosucio,+Choc%C3%B3&ftid=0x8e4fd216300f9ce3:0xd8190bb07f6e5594",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.8240279,
+          6.5540659
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-09-27T22:08:35Z",
+        "google_maps_url": "http://maps.google.com/?cid=12972788649437607372",
+        "location": {
+          "address": "Cl. 10 #4-57, Santa Fé de Antioquia, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "hotel san juan santa fe"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5744413,
+          6.2394993
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-09-03T16:20:37Z",
+        "google_maps_url": "http://maps.google.com/?cid=8387082223370368042",
+        "location": {
+          "address": "Cl. 38 #52-97, La Candelaria, Medellín, La Candelaria, Medellín, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "Atmopel Bayadera"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5727171,
+          6.2439879
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-09-02T16:44:14Z",
+        "google_maps_url": "http://maps.google.com/?cid=1042503657454246254",
+        "location": {
+          "address": "Cl 44 #52165, La Candelaria, Medellín, La Candelaria, Medellín, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "DIAN"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-09-02T15:52:20Z",
+        "google_maps_url": "http://maps.google.com/?q=6.2287778,-75.5691667",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-07-04T17:05:14Z",
+        "google_maps_url": "http://maps.google.com/?q=6.157001805934831,-75.64527735114098",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-25T21:14:32Z",
+        "google_maps_url": "http://maps.google.com/?q=Playa+Del+Cabo,+Cabo+San+Juan+del+Guia,+Santa+Marta,+Magdalena,+Colombia&ftid=0x8ef493bf5c023a9d:0xc545f9f9db19baef",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -73.8392084,
+          11.2696307
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-24T21:38:39Z",
+        "google_maps_url": "http://maps.google.com/?cid=10032680787270044378",
+        "location": {
+          "address": "Playa de, KM38, Troncal del Caribe, Guachaca, Santa Marta, Magdalena, Colombia",
+          "country_code": "CO",
+          "name": "Bohemia Beach Tayrona"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -74.1892429,
+          11.2677649
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-23T22:15:37Z",
+        "google_maps_url": "http://maps.google.com/?cid=12348217601749274636",
+        "location": {
+          "address": "Cra. 3 #15-9, Taganga, Santa Marta, Magdalena, Colombia",
+          "country_code": "CO",
+          "name": "Hostel Villa Mary Taganga"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-21T15:18:31Z",
+        "google_maps_url": "http://maps.google.com/?q=Maicao,+La+Guajira,+Colombia&ftid=0x8e8bf3d4d84f0267:0x31a1450de089a7c6",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-21T00:07:07Z",
+        "google_maps_url": "http://maps.google.com/?q=El+Valle+de+Ant%C3%B3n,+Provincia+de+Cocl%C3%A9,+Panam%C3%A1&ftid=0x8fac58c0e8bc6925:0xaa27efb834833e4c",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -74.1925776,
+          11.2706101
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-18T15:28:53Z",
+        "google_maps_url": "http://maps.google.com/?cid=6263856218151567624",
+        "location": {
+          "address": "Cl. 6 #1B-25, Taganga, Santa Marta, Magdalena, Colombia",
+          "country_code": "CO",
+          "name": "Taganga Macabi Hostel"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-17T22:13:06Z",
+        "google_maps_url": "http://maps.google.com/?q=La+Estrella,+Antioquia,+Colombia&ftid=0x8e468172a90e5eb1:0xdb6c062e722f7400",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -74.7883270,
+          11.0143790
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-17T22:11:08Z",
+        "google_maps_url": "http://maps.google.com/?cid=6709462906499716912",
+        "location": {
+          "address": "Cl. 73 #82-2 a 82-474, Nte. Centro Historico, Barranquilla, Sitionuevo, Atlántico, Colombia",
+          "country_code": "CO",
+          "name": "Malecón del Río"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -74.7938953,
+          10.9999569
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-17T18:31:51Z",
+        "google_maps_url": "http://maps.google.com/?cid=14903489559276876603",
+        "location": {
+          "address": "Cra. 61 #66 - 130, Nte. Centro Historico, Barranquilla, Atlántico, Colombia",
+          "country_code": "CO",
+          "name": "Hostal Mamy Dorme"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.4207378,
+          8.6667980
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-16T12:17:18Z",
+        "google_maps_url": "http://maps.google.com/?cid=16194015574043423327",
+        "location": {
+          "address": "MH8H+5R5, Puerto Obaldía, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "Hotel Doña Primitiva"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.4196374,
+          8.6656247
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-16T12:17:00Z",
+        "google_maps_url": "http://maps.google.com/?cid=3129582275974033967",
+        "location": {
+          "address": "Puerto Obaldía, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "HOSTAL LA NEGRA"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.4199757,
+          8.6663204
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-16T12:16:50Z",
+        "google_maps_url": "http://maps.google.com/?cid=8551367661271609040",
+        "location": {
+          "address": "MH8J+G2C, Puerto Obaldía, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "Hotel Don Chelo"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5502229,
+          10.4232692
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-11T18:31:51Z",
+        "google_maps_url": "http://maps.google.com/?cid=7509613752530458998",
+        "location": {
+          "address": "Cl. 34 #580 5- a, El Centro, Cartagena de Indias, Cartagena, Cartagena de Indias, Bolívar, Colombia",
+          "country_code": "CO",
+          "name": "472 Mailbox"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.4881496,
+          10.3942805
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-11T18:31:07Z",
+        "google_maps_url": "http://maps.google.com/?cid=13905496128898224305",
+        "location": {
+          "address": "Cl. 31 #63c 24 loc 3, Villa Sandra, Cartagena de Indias, Bolívar, Colombia",
+          "name": "4-72 CARTAGENA"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5222119,
+          10.3958776
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-11T18:30:56Z",
+        "google_maps_url": "http://maps.google.com/?cid=13393334952728489433",
+        "location": {
+          "address": "Dg. 21 #48-58, El Bosque, Cartagena de Indias, Bolívar, Colombia",
+          "name": "4-72 P.V EL BOSQUE, CARTAGENA-BOLIVAR"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5408542,
+          10.4248251
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-04T16:58:45Z",
+        "google_maps_url": "http://maps.google.com/?cid=14229154882281549027",
+        "location": {
+          "address": "avenue pedro de heredia, calle 13 #31-45 Local 166/167, Playon Del Blanco, Cartagena de Indias, Bolívar, Colombia",
+          "name": "Mac Center C.C Mallplaza Castillo - Apple Premium Partner"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5594420,
+          10.3994813
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-04T16:58:37Z",
+        "google_maps_url": "http://maps.google.com/?cid=5182644347927353587",
+        "location": {
+          "address": "L13 CC El Pueblito, Cra. 2 #4 - 115, Cartagena de Indias, Bolívar, Colombia",
+          "name": "TiendaMac"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5513784,
+          10.4115633
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-04T16:58:30Z",
+        "google_maps_url": "http://maps.google.com/?cid=15186976343172724399",
+        "location": {
+          "address": "Cra. 1 #12-118 Local 1-108, Cartagena de Indias, Bolívar, Colombia",
+          "name": "Mac Center C.C Plaza Bocagrande - Apple Authorized Reseller"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5590609,
+          10.4002478
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-02T19:26:23Z",
+        "google_maps_url": "http://maps.google.com/?cid=12090906177046963769",
+        "location": {
+          "address": "Cra. 1 #5-01, Cartagena de Indias, Bolívar, Colombia",
+          "country_code": "CO",
+          "name": "InterContinental Cartagena de Indias by IHG"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-01T07:54:25Z",
+        "google_maps_url": "http://maps.google.com/?q=10.42249871852447,-75.54486852139235",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5451966,
+          10.4199275
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-01T01:38:55Z",
+        "google_maps_url": "http://maps.google.com/?cid=13888257618427038470",
+        "location": {
+          "address": "Cl. 28 #68, Getsemaní, Cartagena de Indias, Bolívar, Colombia",
+          "country_code": "CO",
+          "name": "Coctelería Donde La Niña"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.5443749,
+          10.4195051
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-06-01T00:27:08Z",
+        "google_maps_url": "http://maps.google.com/?cid=17016200783817434510",
+        "location": {
+          "address": "Cra. 11 #2655, Getsemaní, Cartagena de Indias, Bolívar, Colombia",
+          "country_code": "CO",
+          "name": "Droguería Getse/mani"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-30T13:35:44Z",
+        "google_maps_url": "http://maps.google.com/?q=Hamburgo,+Alemania&ftid=0x47b161837e1813b9:0x4263df27bd63aa0",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-30T13:35:26Z",
+        "google_maps_url": "http://maps.google.com/?q=Baltimore,+Maryland,+EE.+UU.&ftid=0x89c803aed6f483b7:0x44896a84223e758",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.3603556,
+          8.6453014
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-29T04:06:46Z",
+        "google_maps_url": "http://maps.google.com/?cid=4801610979973669339",
+        "location": {
+          "address": "Acandí, Chocó, Colombia",
+          "country_code": "CO",
+          "name": "Mirador Capurgana- Zapsurro"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-29T04:06:25Z",
+        "google_maps_url": "http://maps.google.com/?q=Sapzurro,+Choc%C3%B3,+Panam%C3%A1&ftid=0x8e5122c5595b519d:0xf29fde11e3d61eed",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.8756680,
+          8.7660863
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T22:21:21Z",
+        "google_maps_url": "http://maps.google.com/?cid=8984923061814165004",
+        "location": {
+          "address": "Cra. 3 #46-40, Montería, Córdoba, Colombia",
+          "country_code": "CO",
+          "name": "Laurel Plaza Hotel"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.8831404,
+          8.7595552
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T22:21:09Z",
+        "google_maps_url": "http://maps.google.com/?cid=7220761347694166598",
+        "location": {
+          "address": "Cra. 3 #34 58 2 PISO, Montería, Córdoba, Colombia",
+          "country_code": "CO",
+          "name": "Riviera Central Hotel"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.8820049,
+          8.7642337
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T22:20:26Z",
+        "google_maps_url": "http://maps.google.com/?cid=7396998441430811891",
+        "location": {
+          "address": "Carrera 1b #N 39 -13, Montería, Córdoba, Colombia",
+          "country_code": "CO",
+          "name": "Hotel Ibiza Central"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9518084,
+          9.2652893
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:34:26Z",
+        "google_maps_url": "http://maps.google.com/?cid=11217400971155760915",
+        "location": {
+          "address": "Kilómetro 5, vía Llano Cartí. El Llano., 1 Calle, Panamá",
+          "country_code": "PA",
+          "name": "SABEPARK"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9864806,
+          9.3033043
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:33:57Z",
+        "google_maps_url": "http://maps.google.com/?cid=2615320799528195032",
+        "location": {
+          "address": "Carr. Hacia San Blas, Provincia de Panamá, Panamá",
+          "country_code": "PA",
+          "name": "Llano Carti"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9851972,
+          9.3099670
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:33:45Z",
+        "google_maps_url": "http://maps.google.com/?cid=5257715581836829685",
+        "location": {
+          "address": "8257+XWM, Carr. Panamericana, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "Garduk Lodge"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9938879,
+          9.3399523
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:33:33Z",
+        "google_maps_url": "http://maps.google.com/?cid=7742342477772594032",
+        "location": {
+          "address": "82Q4+XCQ, Warsobtugua, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "Puesto de control Comarca Kuna Yala Nusagandy"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9790487,
+          9.3511201
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:33:19Z",
+        "google_maps_url": "http://maps.google.com/?cid=1539088324152740604",
+        "location": {
+          "address": "Nusagandi Road Carretera San Blas Panama Panama, Panamá",
+          "name": "Jaguares Cabins"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9814297,
+          9.3605221
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:33:06Z",
+        "google_maps_url": "http://maps.google.com/?cid=5276735379249277111",
+        "location": {
+          "address": "Carr. Hacia San Blas, Guna Yala, Panamá",
+          "country_code": "PA",
+          "name": "Mirador de Llano Carti"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.9653043,
+          9.4253767
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-28T07:32:43Z",
+        "google_maps_url": "http://maps.google.com/?cid=11966154890716388414",
+        "location": {
+          "address": "Guna Yala, Panamá",
+          "name": "Nan Burba"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -76.7241550,
+          8.0815400
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-24T23:32:58Z",
+        "google_maps_url": "http://maps.google.com/?cid=13373994754828677219",
+        "location": {
+          "address": "Turbo, Antioquia, Colombia",
+          "name": "Nuevo Muelle de Turbo"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -76.7280902,
+          8.0913161
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-24T17:18:12Z",
+        "google_maps_url": "http://maps.google.com/?cid=8027839185934645099",
+        "location": {
+          "address": "Cra. 13 #99a108, Turbo, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "Residencias FLORIDA"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -76.7285464,
+          8.0923033
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-05-24T17:18:09Z",
+        "google_maps_url": "http://maps.google.com/?cid=8977739694250070059",
+        "location": {
+          "address": "Carrera 13 Nª 100-75, Turbo, Antioquia, Colombia",
+          "country_code": "CO",
+          "name": "HOTELPLATANERAS CANEY"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -76.5416215,
+          3.4387478
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-24T14:17:09Z",
+        "google_maps_url": "http://maps.google.com/?cid=13680291308812318823",
+        "location": {
+          "address": "Cl. 2a #24A -200, Miraflores, Cali, Valle del Cauca, Colombia",
+          "country_code": "CO",
+          "name": "La Palmera Hostel and Coffee Shop"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T14:02:58Z",
+        "google_maps_url": "http://maps.google.com/?q=Armenia,+Quind%C3%ADo,+Colombia&ftid=0x8e38f5ade6653bc1:0xc2c6ca4ab95d8808",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.7706481,
+          4.5402799
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T14:02:44Z",
+        "google_maps_url": "http://maps.google.com/?cid=15227574173789102358",
+        "location": {
+          "address": "km 6, La Tebaida-Montenegro, Pueblo Tapao, Montenegro, Quindío, Colombia",
+          "country_code": "CO",
+          "name": "Parque del Café"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -75.3763646,
+          4.7896956
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T14:02:28Z",
+        "google_maps_url": "http://maps.google.com/?cid=5763870799083156821",
+        "location": {
+          "address": "Carretera Manizales - Bogotá Km. 45, Murillo, Tolima, Colombia",
+          "country_code": "CO",
+          "name": "Parque Nacional Natural Los Nevados"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T14:01:56Z",
+        "google_maps_url": "http://maps.google.com/?q=Manizales,+Caldas,+Colombia&ftid=0x8e476ffa6a42ce3b:0xa863cf6423ea141c",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T14:01:45Z",
+        "google_maps_url": "http://maps.google.com/?q=Pereira,+Risaralda,+Colombia&ftid=0x8e388748eb56c1fd:0x95b39410f9f1dfbc",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-23T00:23:33Z",
+        "google_maps_url": "http://maps.google.com/?q=Xalapa-Enr%C3%ADquez,+Ver.,+M%C3%A9xico&ftid=0x85db321ca1f225d9:0x584837bc4340a47c",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-07T17:06:37Z",
+        "google_maps_url": "http://maps.google.com/?q=Oljato-Monument+Valley,+Arizona+84536,+EE.+UU.&ftid=0x87372e841bdd86a5:0x3eaaa99ad33bd890",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-05T14:05:10Z",
+        "google_maps_url": "http://maps.google.com/?q=Nanegalito,+Ecuador&ftid=0x8e2a80c63dc144b5:0x2b136185adf44bc3",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-05T12:50:20Z",
+        "google_maps_url": "http://maps.google.com/?q=Parroquia+Nono,+Ecuador&ftid=0x91d581509b2c125b:0x417b0de430d3aa4b",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.5128853,
+          -0.2242373
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T19:32:06Z",
+        "google_maps_url": "http://maps.google.com/?cid=5587484319190648744",
+        "location": {
+          "address": "Rocafuerte y Av. Pedro Vicente Maldonado oe1-09, 170405 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "i.FRA Camping & Pesca - Seguridad"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.5139659,
+          -0.2223180
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T19:31:51Z",
+        "google_maps_url": "http://maps.google.com/?cid=6127100686444073015",
+        "location": {
+          "address": "QFHP+2CJ, Simon Bolivar 441, 170401 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "CUMBRE SUR - Tienda de Montaña"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4959509,
+          -0.2066598
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:33:18Z",
+        "google_maps_url": "http://maps.google.com/?cid=16765449070166175112",
+        "location": {
+          "address": "Jorge Washington N20-80, 170143 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Centro Comercial Espiral"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4854618,
+          -0.1994289
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:32:52Z",
+        "google_maps_url": "http://maps.google.com/?cid=13096681547590648253",
+        "location": {
+          "address": "La Niña y Av. 6 de Diciembre 26-169 y, 170522 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Multicentro Shopping Center"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4974321,
+          -0.1620169
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:10:48Z",
+        "google_maps_url": "http://maps.google.com/?cid=18118634062939609190",
+        "location": {
+          "address": "RGQ3+52W, Av. Edmundo Carvajal, 170132 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Antisana Outdoor Sport"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4796610,
+          -0.1761130
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:10:39Z",
+        "google_maps_url": "http://maps.google.com/?cid=14832806691449728998",
+        "location": {
+          "address": "Avenida Naciones Unidas y 6 de diciembre Piso 1. Local 71, 170514 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "The North Face - Quicentro Shopping"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4942794,
+          -0.1989898
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:09:45Z",
+        "google_maps_url": "http://maps.google.com/?cid=14128323607005775253",
+        "location": {
+          "address": "Av. Colon, y y 9 de Octubre, 170524 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Pradera Expedition Quito"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4942306,
+          -0.2073407
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:09:13Z",
+        "google_maps_url": "http://maps.google.com/?cid=6857657505740038475",
+        "location": {
+          "address": "Av. 6 de Diciembre &, 170143 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Equipos Cotopaxi (Almacén No.1)"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.4892362,
+          -0.2007174
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-04-01T16:08:33Z",
+        "google_maps_url": "http://maps.google.com/?cid=15580929167844293024",
+        "location": {
+          "address": "Av. Cristóbal Colón E6-39, 170102 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Camping Sports"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -78.5178766,
+          -0.2192707
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-03-19T21:28:23Z",
+        "google_maps_url": "http://maps.google.com/?cid=12006321526159029544",
+        "location": {
+          "address": "QFJJ+6VC, 170401 Quito, Ecuador",
+          "country_code": "EC",
+          "name": "Parqueadero Colonial"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -77.9038707,
+          -5.9200957
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-23T20:49:53Z",
+        "google_maps_url": "http://maps.google.com/?cid=3821462800795971214",
+        "location": {
+          "address": "33HW+XF6, Cuispes 01140, Perú",
+          "country_code": "PE",
+          "name": "Catarata Yumbilla"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-22T19:50:57Z",
+        "google_maps_url": "http://maps.google.com/?q=Parque+Lineal,+Guayaquil,+Ecuador&ftid=0x902d6de6c18a4835:0x2f7e7284b69c8fe3",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8557926,
+          -2.4311734
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T16:00:56Z",
+        "google_maps_url": "http://maps.google.com/?cid=17476484388107172662",
+        "location": {
+          "address": "H49V+GMP, Río Guayas, Punta de Piedras, Ecuador",
+          "country_code": "EC",
+          "name": "Faro Rio Guayas"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8938475,
+          -2.1554976
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:54:50Z",
+        "google_maps_url": "http://maps.google.com/?cid=12892877042797422305",
+        "location": {
+          "address": "Centro Comercial Mall Del Sol. Planta alta. Zona 2 Sukasa, 4º Pasaje 1 NE, Guayaquil 090513, 090202 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Librería Mr.Books (Mall del Sol)"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:53:26Z",
+        "google_maps_url": "http://maps.google.com/?q=Las+Pe%C3%B1as,+Guayaquil,+Ecuador&ftid=0x902d6dd2dba40223:0xc092635b29184cc9",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8755468,
+          -2.1848248
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:53:16Z",
+        "google_maps_url": "http://maps.google.com/?cid=7785068272272512297",
+        "location": {
+          "address": "Simon Bolivar Palacios 206, 090313 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Museo Antropológico y de Arte Contemporáneo - MAAC"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:52:23Z",
+        "google_maps_url": "http://maps.google.com/?q=Cerro+Santa+Ana,+090313+Guayaquil,+Ecuador&ftid=0x902d6dd1e178b263:0x7a34033f0ef1a7a",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8681704,
+          -2.1430351
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:52:04Z",
+        "google_maps_url": "http://maps.google.com/?cid=7748222586438626961",
+        "location": {
+          "address": "Av. Rio Esmeraldas, 092301 Samborondón, Ecuador",
+          "country_code": "EC",
+          "name": "Parque Histórico de Guayaquil"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8830951,
+          -2.1946854
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-16T15:50:41Z",
+        "google_maps_url": "http://maps.google.com/?cid=5323408664259392969",
+        "location": {
+          "address": "Rocafuerte Chimborazo, 090313 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Parque Seminario"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8956389,
+          -2.1874245
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-14T18:59:37Z",
+        "google_maps_url": "http://maps.google.com/?cid=14791200368260457604",
+        "location": {
+          "address": "av 9 de octubre, y y Av. 9 NO, 090303 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Mastermoto 9 de octubre"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8928581,
+          -2.1553244
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-02-14T16:42:23Z",
+        "google_maps_url": "http://maps.google.com/?cid=14581340696686714790",
+        "location": {
+          "address": "Mall del Sol. Joaquín José Orrantia González, Guayaquil, Ecuador Torre B de oficinas. Piso 4. Oficina 441 (Regus, 090513 Guayaquil, Ecuador",
+          "country_code": "EC",
+          "name": "Think tienda Apple"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -79.8995606,
+          -6.7051183
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2025-01-25T23:39:18Z",
+        "google_maps_url": "http://maps.google.com/?cid=9616472883377348104",
+        "location": {
+          "address": "Juan Pablo Vizcardo y Guzmán 895, Lambayeque 14013, Perú",
+          "country_code": "PE",
+          "name": "Museo Tumbas Reales de Sipán"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -68.8353875,
+          -32.9040859
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-08-21T15:45:08Z",
+        "google_maps_url": "http://maps.google.com/?cid=18402232069560361945",
+        "location": {
+          "address": "Falucho 791, M5519DJH Mendoza, Argentina",
+          "name": "Tapicería JORGE"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-08-13T01:53:17Z",
+        "google_maps_url": "http://maps.google.com/?q=Uspallata,+Mendoza&ftid=0x9687662fb8cbd967:0x555e65c53d64d859",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -67.4972165,
+          -26.6227508
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-08-13T01:53:00Z",
+        "google_maps_url": "http://maps.google.com/?cid=11958943485099924962",
+        "location": {
+          "address": "Antofagasta de la Sierra, Catamarca, Argentina",
+          "country_code": "AR",
+          "name": "Campo De Piedra Pomez"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -70.8926124,
+          -53.1385927
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-03-01T22:41:47Z",
+        "google_maps_url": "http://maps.google.com/?cid=2465561684238967004",
+        "location": {
+          "address": "Av. España 01375, 6201020 Punta Arenas, Magallanes y la Antártica Chilena, Chile",
+          "country_code": "CL",
+          "name": "Unimarc Avda. España"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -70.8975180,
+          -53.1465445
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-03-01T21:57:17Z",
+        "google_maps_url": "http://maps.google.com/?cid=11731829079755469485",
+        "location": {
+          "address": "Ona 0471, 6200000 Punta Arenas, Magallanes y la Antártica Chilena, Chile",
+          "country_code": "CL",
+          "name": "Oficina/Taller Moto Alejandro Lago"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -72.2650070,
+          -50.3416709
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2024-02-24T21:51:22Z",
+        "google_maps_url": "http://maps.google.com/?cid=2252130930263611742",
+        "location": {
+          "address": "399, C. 31 299, El Calafate, Santa Cruz, Argentina",
+          "country_code": "AR",
+          "name": "Hostel Los Nietos"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -64.2992485,
+          -31.2813612
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2023-09-14T20:46:22Z",
+        "google_maps_url": "http://maps.google.com/?cid=8508632084612308582",
+        "location": {
+          "address": "Santiago Derqui 703, X5105 Villa Allende, Córdoba, Argentina",
+          "country_code": "AR",
+          "name": "Bolgheri"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -64.3027766,
+          -31.2680038
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2023-09-14T20:31:18Z",
+        "google_maps_url": "http://maps.google.com/?cid=7225396819830005295",
+        "location": {
+          "address": "Av. Malvinas Argentinas 865, X5105 Mendiolaza, Córdoba, Argentina",
+          "name": "Maldonado Schweizer"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -64.3030702,
+          -31.2628903
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2023-09-13T20:55:01Z",
+        "google_maps_url": "http://maps.google.com/?cid=14146696994022958618",
+        "location": {
+          "address": "San José de Calasanz 1696, X5107 Mendiolaza, Córdoba, Argentina",
+          "name": "Casona municipal Mendiolaza"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -58.3859820,
+          -34.6041209
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2019-03-27T02:43:50Z",
+        "google_maps_url": "http://maps.google.com/?cid=13448541608268272525",
+        "location": {
+          "address": "Av. Corrientes 1368, C1043 Cdad. Autónoma de Buenos Aires, Argentina",
+          "country_code": "AR",
+          "name": "Pizzería Güerrín"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -58.3867648,
+          -34.6063263
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2019-03-27T02:43:39Z",
+        "google_maps_url": "http://maps.google.com/?cid=13699234426053796661",
+        "location": {
+          "address": "Tte. Gral. Juan Domingo Perón 1417, C1037 Cdad. Autónoma de Buenos Aires, Argentina",
+          "country_code": "AR",
+          "name": "Bar Amigos"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -58.3757006,
+          -34.6046515
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2019-03-27T02:43:23Z",
+        "google_maps_url": "http://maps.google.com/?cid=10402189618909189914",
+        "location": {
+          "address": "Sarmiento 640, C1041AAN Cdad. Autónoma de Buenos Aires, Argentina",
+          "name": "San Bernardo Scafi"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2018-10-11T12:04:39Z",
+        "google_maps_url": "http://maps.google.com/?q=Rondeau+326,+X5000AVH+C%C3%B3rdoba&ftid=0x9432a2901181ef35:0x4f52c1125b30c04e",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -64.1918343,
+          -31.3937608
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2017-11-03T16:36:58Z",
+        "google_maps_url": "http://maps.google.com/?cid=1403003089125070440",
+        "location": {
+          "address": "Puvr Jose Ramirez de Arellano 1164, X5001ACF Córdoba, Argentina",
+          "name": "Hierros Arellano S.R.L."
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -64.1979798,
+          -31.4408905
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2017-09-27T20:33:52Z",
+        "google_maps_url": "http://maps.google.com/?cid=3932613786949128862",
+        "location": {
+          "address": "Finochietto 244 esquina, Friuli, 240 esquina, X5000 Córdoba, Argentina",
+          "country_code": "AR",
+          "name": "Sede Córdoba de la Universidad Nacional de Villa María"
+        }
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2017-08-08T04:34:42Z",
+        "google_maps_url": "http://maps.google.com/?q=-31.39697497391854,-64.23700623214245",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          0,
+          0
+        ],
+        "type": "Point"
+      },
+      "properties": {
+        "date": "2017-04-10T23:56:59Z",
+        "google_maps_url": "http://maps.google.com/?q=-31.407977000000002,-64.23810499999999",
+        "Comment": "No hay información de ubicación disponible para este lugar guardado"
+      },
+      "type": "Feature"
+    }
+  ]
+}

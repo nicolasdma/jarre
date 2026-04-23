@@ -267,17 +267,27 @@ function defaultPhaseOutcomes(titleEs: string, titleEn: string): { es: string[];
   };
 }
 
-async function fetchPhaseMetadata(supabase: SupabaseClient): Promise<PhaseMetaRow[]> {
-  const { data, error } = await supabase
-    .from(TABLES.curriculumPhaseMetadata)
-    .select('phase, sort_order, is_primary, title_es, title_en, objective_es, objective_en, outcomes_es, outcomes_en')
-    .order('sort_order', { ascending: true });
+async function fetchPhaseMetadata(
+  supabase: SupabaseClient,
+  track: string,
+): Promise<PhaseMetaRow[]> {
+  const buildQuery = () =>
+    supabase
+      .from(TABLES.curriculumPhaseMetadata)
+      .select('phase, sort_order, is_primary, title_es, title_en, objective_es, objective_en, outcomes_es, outcomes_en')
+      .order('sort_order', { ascending: true });
 
-  if (!error) {
-    return (data as PhaseMetaRow[]) || [];
+  // Prefer track-aware filter; fall back gracefully on environments without the column.
+  let result = await buildQuery().eq('track', track);
+  if (result.error && (result.error.code === '42703' || result.error.message.includes('track'))) {
+    result = await buildQuery();
   }
 
-  if (error.message.includes('curriculum_phase_metadata')) {
+  if (!result.error) {
+    return (result.data as PhaseMetaRow[]) || [];
+  }
+
+  if (result.error.message.includes('curriculum_phase_metadata')) {
     return PHASE_FALLBACKS.map((phase) => ({
       phase: phase.phase,
       sort_order: phase.sortOrder,
@@ -291,40 +301,84 @@ async function fetchPhaseMetadata(supabase: SupabaseClient): Promise<PhaseMetaRo
     }));
   }
 
-  throw new Error(`Failed to fetch curriculum phase metadata: ${error.message}`);
+  throw new Error(`Failed to fetch curriculum phase metadata: ${result.error.message}`);
 }
 
-async function fetchCoreResources(supabase: SupabaseClient): Promise<ResourceRow[]> {
-  const buildBaseQuery = () =>
-    supabase
+async function fetchCoreResources(
+  supabase: SupabaseClient,
+  track: string,
+): Promise<ResourceRow[]> {
+  const buildBaseQuery = () => {
+    const base = supabase
       .from(TABLES.resources)
       .select('id, title, phase, type, url, estimated_hours, sort_order')
       .eq('is_archived', false)
       .is('created_by', null)
       .order('phase', { ascending: true })
       .order('sort_order', { ascending: true });
+    return base;
+  };
 
-  const withSource = await buildBaseQuery().eq('curriculum_source', 'core');
-
-  if (!withSource.error) {
-    return (withSource.data as ResourceRow[]) || [];
+  // Try full filter (curriculum_source + track), then peel back on schema drift.
+  const full = await buildBaseQuery().eq('curriculum_source', 'core').eq('track', track);
+  if (!full.error) {
+    return (full.data as ResourceRow[]) || [];
   }
 
-  if (
-    withSource.error.code === '42703' ||
-    withSource.error.message.includes('curriculum_source')
-  ) {
-    const fallback = await buildBaseQuery();
-    if (fallback.error) {
-      throw new Error(`Failed to fetch core resources: ${fallback.error.message}`);
+  if (full.error.code === '42703' || full.error.message.includes('track')) {
+    const withSource = await buildBaseQuery().eq('curriculum_source', 'core');
+    if (!withSource.error) {
+      return (withSource.data as ResourceRow[]) || [];
     }
-    return (fallback.data as ResourceRow[]) || [];
+
+    if (
+      withSource.error.code === '42703' ||
+      withSource.error.message.includes('curriculum_source')
+    ) {
+      const fallback = await buildBaseQuery();
+      if (fallback.error) {
+        throw new Error(`Failed to fetch core resources: ${fallback.error.message}`);
+      }
+      return (fallback.data as ResourceRow[]) || [];
+    }
+
+    throw new Error(`Failed to fetch core resources: ${withSource.error.message}`);
   }
 
-  throw new Error(`Failed to fetch core resources: ${withSource.error.message}`);
+  throw new Error(`Failed to fetch core resources: ${full.error.message}`);
 }
 
-export async function buildCoreCurriculumTemplate(supabase: SupabaseClient): Promise<CurriculumTemplate> {
+async function fetchConcepts(
+  supabase: SupabaseClient,
+  track: string,
+): Promise<{ data: ConceptRow[] | null; error: { message: string } | null }> {
+  const buildQuery = () =>
+    supabase
+      .from(TABLES.concepts)
+      .select('id, name, phase, canonical_definition')
+      .order('phase', { ascending: true })
+      .order('name', { ascending: true });
+
+  const filtered = await buildQuery().eq('track', track);
+  if (!filtered.error) {
+    return { data: filtered.data as ConceptRow[] | null, error: null };
+  }
+
+  if (filtered.error.code === '42703' || filtered.error.message.includes('track')) {
+    const fallback = await buildQuery();
+    return {
+      data: (fallback.data as ConceptRow[] | null) ?? null,
+      error: fallback.error ? { message: fallback.error.message } : null,
+    };
+  }
+
+  return { data: null, error: { message: filtered.error.message } };
+}
+
+export async function buildCoreCurriculumTemplate(
+  supabase: SupabaseClient,
+  track: string = 'ai',
+): Promise<CurriculumTemplate> {
   const [
     phaseMetadata,
     conceptsResult,
@@ -332,16 +386,12 @@ export async function buildCoreCurriculumTemplate(supabase: SupabaseClient): Pro
     resources,
     resourceConceptsResult,
   ] = await Promise.all([
-    fetchPhaseMetadata(supabase),
-    supabase
-      .from(TABLES.concepts)
-      .select('id, name, phase, canonical_definition')
-      .order('phase', { ascending: true })
-      .order('name', { ascending: true }),
+    fetchPhaseMetadata(supabase, track),
+    fetchConcepts(supabase, track),
     supabase
       .from('concept_prerequisites')
       .select('concept_id, prerequisite_id'),
-    fetchCoreResources(supabase),
+    fetchCoreResources(supabase, track),
     supabase
       .from(TABLES.resourceConcepts)
       .select('resource_id, concept_id, is_prerequisite'),

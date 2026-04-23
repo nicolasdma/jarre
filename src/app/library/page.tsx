@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
-import { t, getPhaseNames, type Language } from '@/lib/translations';
+import { t, getPhaseNames, type CurriculumTrack, type Language } from '@/lib/translations';
 import { IS_MANAGED } from '@/lib/config';
 import { FREE_VOICE_MINUTES } from '@/lib/constants';
 import { TABLES } from '@/lib/db/tables';
@@ -12,6 +12,19 @@ export const metadata: Metadata = {
   title: 'Library — Jarre',
   description: 'Browse and manage your learning resources',
 };
+
+const VALID_TRACKS: readonly CurriculumTrack[] = ['ai', 'travel'] as const;
+
+function parseTrack(value: unknown): CurriculumTrack {
+  return VALID_TRACKS.includes(value as CurriculumTrack) ? (value as CurriculumTrack) : 'ai';
+}
+
+// Phases intentionally hidden from the library view per track.
+// AI: phase '0' (math foundations, supplementary) and '11' (enterprise alt track).
+// Travel: none — all 11 regions are primary learning path.
+function hiddenPhasesForTrack(track: CurriculumTrack): string[] {
+  return track === 'ai' ? ['0', '11'] : [];
+}
 
 function chooseDominantPhase(phases: string[]): string | null {
   if (phases.length === 0) return null;
@@ -29,7 +42,17 @@ function chooseDominantPhase(phases: string[]): string | null {
     })[0][0] ?? null;
 }
 
-export default async function LibraryPage() {
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ track?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const trackParam = Array.isArray(resolvedSearchParams.track)
+    ? resolvedSearchParams.track[0]
+    : resolvedSearchParams.track;
+  const track = parseTrack(trackParam);
+
   const supabase = await createClient();
 
   const {
@@ -85,7 +108,7 @@ export default async function LibraryPage() {
   }
   const monthlyLimit = subscriptionStatus === 'active' ? 2_000_000 : 50_000;
 
-  const phaseNames = getPhaseNames(lang);
+  const phaseNames = getPhaseNames(lang, track);
 
   const resourcesSelect = `
       *,
@@ -101,6 +124,7 @@ export default async function LibraryPage() {
       .select(resourcesSelect)
       .eq('is_archived', false)
       .is('created_by', null)
+      .eq('track', track)
       .order('phase')
       .order('sort_order');
 
@@ -134,9 +158,10 @@ export default async function LibraryPage() {
   let userProgress: Record<string, number> = {};
   if (user) {
     const { data: progress } = await supabase
-      .from('concept_progress')
-      .select('concept_id, level')
-      .eq('user_id', user.id);
+      .from(TABLES.conceptProgress)
+      .select('concept_id, level, concepts!inner(track)')
+      .eq('user_id', user.id)
+      .eq('concepts.track', track);
 
     if (progress) {
       userProgress = progress.reduce(
@@ -219,9 +244,9 @@ export default async function LibraryPage() {
       { data: projectConcepts },
       { data: projectProgress },
     ] = await Promise.all([
-      supabase.from('projects').select('*'),
-      supabase.from('project_concepts').select('project_id, concept_id'),
-      supabase.from('project_progress').select('project_id, status').eq('user_id', user.id),
+      supabase.from(TABLES.projects).select('*').eq('track', track),
+      supabase.from(TABLES.projectConcepts).select('project_id, concept_id'),
+      supabase.from(TABLES.projectProgress).select('project_id, status').eq('user_id', user.id),
     ]);
 
     // Fetch concept names for display
@@ -405,13 +430,15 @@ export default async function LibraryPage() {
   // Filter out only courses and specific resources from main view.
   // Videos should remain visible in their curriculum phase.
   const hiddenTypes = ['course'];
-  const hiddenIds = [
-    'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
-    'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
-    'hussein-backpressure', 'hussein-latency-throughput', // Unavailable videos
-  ];
-  // Phases that should not appear in the library: Math (supplementary) and Enterprise (alternate track)
-  const hiddenPhases = ['0', '11'];
+  // Legacy AI-track hidden IDs. Travel track has no analogous carve-outs.
+  const hiddenIds = track === 'ai'
+    ? [
+        'tanenbaum-ch1', 'tanenbaum-ch5', // Distributed Systems book
+        'sre-ch3', 'sre-ch4', 'sre-ch6',  // SRE book
+        'hussein-backpressure', 'hussein-latency-throughput', // Unavailable videos
+      ]
+    : [];
+  const hiddenPhases = hiddenPhasesForTrack(track);
   const visibleResources = resourcesWithStatus.filter(
     r => !hiddenTypes.includes(r.type) && !hiddenIds.includes(r.id) && !hiddenPhases.includes(r.phase)
   );
@@ -447,6 +474,7 @@ export default async function LibraryPage() {
           userResourcesByPhase={userResourcesByPhase}
           isLoggedIn={!!user}
           language={lang}
+          track={track}
           phaseNames={phaseNames}
           showPlanBanner={!!user && IS_MANAGED}
           subscriptionStatus={subscriptionStatus}

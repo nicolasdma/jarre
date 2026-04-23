@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FolderTree, Layers } from 'lucide-react';
-import { t, type Language } from '@/lib/translations';
+import { t, type CurriculumTrack, type Language } from '@/lib/translations';
 import { ResourceCard } from './resource-card';
 import { UserResourceCard } from './user-resource-card';
 import { ProjectMilestone } from './project-milestone';
@@ -71,6 +71,7 @@ interface LibraryContentProps {
   userResourcesByPhase: Record<string, UserResource[]>;
   isLoggedIn: boolean;
   language: Language;
+  track: CurriculumTrack;
   phaseNames: Record<string, string>;
   showPlanBanner: boolean;
   subscriptionStatus: string;
@@ -100,6 +101,7 @@ export function LibraryContent({
   userResourcesByPhase,
   isLoggedIn,
   language,
+  track,
   phaseNames,
   showPlanBanner,
   subscriptionStatus,
@@ -114,6 +116,24 @@ export function LibraryContent({
 }: LibraryContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const handleTrackChange = (next: CurriculumTrack) => {
+    if (next === track) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'ai') {
+      params.delete('track');
+    } else {
+      params.set('track', next);
+    }
+    // Track change resets phase selector to 'all' — they live in separate curricula.
+    params.delete('tab');
+    const query = params.toString();
+    router.push(query ? `/library?${query}` : '/library');
+  };
+
+  const trackLabel = track === 'travel'
+    ? (language === 'es' ? 'Sudamérica' : 'South America')
+    : 'AI Engineering';
   const [activeCurriculumPhase, setActiveCurriculumPhase] = useState<ActiveCurriculumPhase>('all');
   const [hydrated, setHydrated] = useState(false);
 
@@ -162,11 +182,28 @@ export function LibraryContent({
             {language === 'es' ? 'Currículas' : 'Curricula'}
           </p>
 
+          <div
+            role="tablist"
+            aria-label={language === 'es' ? 'Selector de currícula' : 'Curriculum selector'}
+            className="mt-3 flex border border-j-border bg-j-bg"
+          >
+            <TrackTab
+              active={track === 'ai'}
+              label={t('track.ai', language)}
+              onClick={() => handleTrackChange('ai')}
+            />
+            <TrackTab
+              active={track === 'travel'}
+              label={t('track.travel', language)}
+              onClick={() => handleTrackChange('travel')}
+            />
+          </div>
+
           <div className="mt-4 border border-j-border bg-j-bg">
             <div className="flex items-center gap-2 border-b border-j-border px-3 py-2">
               <FolderTree size={14} className="text-j-accent" />
               <span className="font-mono text-[11px] tracking-[0.12em] text-j-text uppercase">
-                AI Engineering
+                {trackLabel}
               </span>
             </div>
 
@@ -359,6 +396,32 @@ export function LibraryContent({
         )}
       </div>
     </div>
+  );
+}
+
+function TrackTab({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`flex-1 px-3 py-2 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors ${
+        active
+          ? 'bg-j-accent/10 text-j-accent'
+          : 'text-j-text-tertiary hover:bg-j-bg-hover hover:text-j-text'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
