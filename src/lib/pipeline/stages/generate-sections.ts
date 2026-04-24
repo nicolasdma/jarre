@@ -368,12 +368,28 @@ function protectMarkdownSegments(markdown: string): {
   return { protectedText, restore };
 }
 
+/**
+ * Split markdown into paragraphs on double-newline boundaries.
+ * Paired with joinByParagraphs to reconstruct the original spacing.
+ */
+function splitByParagraphs(markdown: string): string[] {
+  return markdown
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function joinByParagraphs(paragraphs: string[]): string {
+  return paragraphs.join('\n\n');
+}
+
 interface DeepLTranslateResponse {
   translations?: Array<{ text?: string }>;
 }
 
 async function translatePdfSectionWithDeepL(
   markdown: string,
+  sectionTitle: string,
   fromLang: string,
   toLang: string,
 ): Promise<string | null> {
@@ -385,9 +401,17 @@ async function translatePdfSectionWithDeepL(
   if (!fromCode || !toCode) return null;
 
   const { protectedText, restore } = protectMarkdownSegments(markdown);
+  const paragraphs = splitByParagraphs(protectedText);
+  if (paragraphs.length === 0) return null;
 
+  // DeepL preserves paragraph breaks only when each paragraph is submitted as
+  // a separate text= entry; a single multi-paragraph string collapses breaks
+  // at the engine's discretion. One request with N text= entries yields N
+  // aligned translations (no extra cost, no extra latency vs the old path).
   const body = new URLSearchParams();
-  body.set('text', protectedText);
+  for (const paragraph of paragraphs) {
+    body.append('text', paragraph);
+  }
   body.set('source_lang', fromCode);
   body.set('target_lang', toCode);
   body.set('preserve_formatting', '1');
@@ -410,14 +434,38 @@ async function translatePdfSectionWithDeepL(
     }
 
     const json = (await response.json()) as DeepLTranslateResponse;
-    const translated = json.translations?.[0]?.text?.trim() || '';
+    const translations = json.translations ?? [];
+
+    if (translations.length !== paragraphs.length) {
+      log.warn(
+        `DeepL returned ${translations.length} translations for ${paragraphs.length} paragraphs in "${sectionTitle}"; falling back to DeepSeek`,
+      );
+      return null;
+    }
+
+    const translatedParagraphs = translations.map((t) => (t.text ?? '').trim());
+    const translated = joinByParagraphs(translatedParagraphs);
     if (translated.length < 40) {
       throw new Error(`DeepL translated content too short (${translated.length} chars)`);
     }
 
     return stripEditorialPdfPrefixes(restore(translated));
   } catch (error) {
-    log.warn(`DeepL translation failed: ${(error as Error).message}`);
+    log.warn(`DeepL translation failed for "${sectionTitle}": ${(error as Error).message}`);
+    return null;
+  }
+}
+
+function parseTranslationArray(raw: string, expectedLength: number): string[] | null {
+  const trimmed = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (!Array.isArray(parsed)) return null;
+    if (parsed.length !== expectedLength) return null;
+    const strings = parsed.map((item) => (typeof item === 'string' ? item.trim() : ''));
+    if (strings.some((s) => s.length === 0)) return null;
+    return strings;
+  } catch {
     return null;
   }
 }
@@ -433,7 +481,12 @@ async function translatePdfSectionFaithfully(
     return { translatedMarkdown: contentMarkdown, tokensUsed: 0, timedOut: false };
   }
 
-  const deeplTranslated = await translatePdfSectionWithDeepL(contentMarkdown, fromLang, toLang);
+  const deeplTranslated = await translatePdfSectionWithDeepL(
+    contentMarkdown,
+    sectionTitle,
+    fromLang,
+    toLang,
+  );
   if (deeplTranslated) {
     return { translatedMarkdown: deeplTranslated, tokensUsed: 0, timedOut: false };
   }
@@ -449,29 +502,41 @@ async function translatePdfSectionFaithfully(
   const fromName = langNames[fromLang] || fromLang;
   const toName = langNames[toLang] || toLang;
 
-  const basePrompt = `You are a precise technical translator. Translate markdown from ${fromName} to ${toName} with maximum fidelity to the source.
+  const { protectedText, restore } = protectMarkdownSegments(contentMarkdown);
+  const paragraphs = splitByParagraphs(protectedText);
+
+  if (paragraphs.length === 0) {
+    return { translatedMarkdown: contentMarkdown, tokensUsed: 0, timedOut: false };
+  }
+
+  // Paragraph-aligned JSON array protocol. The LLM receives a JSON array and
+  // must return one of equal length; joining the result by \n\n reconstructs
+  // paragraph breaks by construction instead of relying on soft prompt rules.
+  const systemPrompt = `You are a precise technical translator. You receive a JSON array of markdown paragraphs in ${fromName} and must return a JSON array of the SAME length with each paragraph translated to ${toName}.
 
 Rules:
-- Preserve every factual claim, equation, citation number, symbol, and ordering.
+- Output MUST be a JSON array of strings with exactly the same length as the input. Never merge, split, drop, or add items.
+- Each output element is the translation of the corresponding input element at the same index.
+- Preserve every factual claim, equation, citation number, symbol, ordering, and markdown formatting inside each paragraph.
 - Do NOT summarize, simplify, expand, or add examples.
-- Keep markdown structure and spacing stable whenever possible.
-- Preserve markdown image syntax exactly: ![alt](url)
-- Keep code blocks and inline code unchanged.
+- Preserve markdown image syntax exactly: ![alt](url). Keep code blocks, inline code, and link syntax unchanged.
 - Keep all numeric values exactly the same.
 - Do not add labels such as "Section:", "Sección:", "Page:", or editorial comments.
 
-IMPORTANT: Return ONLY translated markdown. No notes, no JSON, no explanations.`;
+Return ONLY the JSON array. No prose, no markdown fences, no explanation.`;
 
-  // Fast path: one request per section.
+  const buildUserMessage = (batch: string[], label?: string): string => {
+    const prefix = label ? `${label}. ` : '';
+    return `${prefix}Translate this JSON array of markdown paragraphs from ${fromName} to ${toName}. Return a JSON array of the same length:\n\n${JSON.stringify(batch)}`;
+  };
+
+  // Fast path: one batched request with all paragraphs as a single JSON array.
   try {
     const { content, tokensUsed } = await callDeepSeek({
       apiKey,
       messages: [
-        { role: 'system', content: basePrompt },
-        {
-          role: 'user',
-          content: `Translate this markdown section exactly:\n\n${contentMarkdown}`,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: buildUserMessage(paragraphs) },
       ],
       temperature: 0,
       maxTokens: TOKEN_BUDGETS.PIPELINE_TRANSLATE,
@@ -480,60 +545,62 @@ IMPORTANT: Return ONLY translated markdown. No notes, no JSON, no explanations.`
       retryOnTimeout: false,
     });
 
-    const cleaned = stripEditorialPdfPrefixes(content.trim());
-    if (cleaned.length >= 40) {
-      return { translatedMarkdown: cleaned, tokensUsed, timedOut: false };
+    const translated = parseTranslationArray(content, paragraphs.length);
+    if (translated) {
+      const joined = stripEditorialPdfPrefixes(restore(joinByParagraphs(translated)));
+      if (joined.length >= 40) {
+        return { translatedMarkdown: joined, tokensUsed, timedOut: false };
+      }
+    } else {
+      log.warn(
+        `PDF translation fast path for "${sectionTitle}" did not return a JSON array of ${paragraphs.length} items; falling back to chunked path`,
+      );
     }
   } catch (error) {
     const message = (error as Error).message;
     if (/timeout/i.test(message)) {
       log.warn(
-        `PDF translation fast path timed out for "${sectionTitle}" (${Math.round(PDF_TRANSLATION_FAST_TIMEOUT_MS / 1000)}s). Falling back to original text.`,
+        `PDF translation fast path timed out for "${sectionTitle}" (${Math.round(PDF_TRANSLATION_FAST_TIMEOUT_MS / 1000)}s). Falling back to chunked path.`,
       );
-      return {
-        translatedMarkdown: contentMarkdown,
-        tokensUsed: 0,
-        timedOut: true,
-      };
+    } else {
+      log.warn(`PDF translation fast path failed for "${sectionTitle}": ${message}`);
     }
-    log.warn(`PDF translation fast path failed for "${sectionTitle}": ${message}`);
   }
 
-  // Fallback path: chunked translation with fail-fast calls.
-  const chunks = contentMarkdown
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .reduce<string[]>((acc, part) => {
-      if (acc.length === 0) {
-        acc.push(part);
-        return acc;
-      }
-      const lastIndex = acc.length - 1;
-      const candidate = `${acc[lastIndex]}\n\n${part}`;
-      if (candidate.length <= PDF_TRANSLATION_CHUNK_CHARS) {
-        acc[lastIndex] = candidate;
-      } else {
-        acc.push(part);
-      }
-      return acc;
-    }, []);
+  // Chunked path: group paragraphs into batches bounded by total characters,
+  // keep the same JSON-array protocol per batch, then concatenate with \n\n.
+  const batches: string[][] = [];
+  let currentBatch: string[] = [];
+  let currentChars = 0;
 
-  const safeChunks = chunks.length > 0 ? chunks : [contentMarkdown];
+  for (const paragraph of paragraphs) {
+    const length = paragraph.length;
+    if (currentBatch.length > 0 && currentChars + length > PDF_TRANSLATION_CHUNK_CHARS) {
+      batches.push(currentBatch);
+      currentBatch = [paragraph];
+      currentChars = length;
+      continue;
+    }
+    currentBatch.push(paragraph);
+    currentChars += length;
+  }
+  if (currentBatch.length > 0) batches.push(currentBatch);
+
+  const safeBatches = batches.length > 0 ? batches : [paragraphs];
   let totalTokens = 0;
-  const translatedChunks: string[] = [];
+  const translatedParagraphs: string[] = [];
 
-  for (let i = 0; i < safeChunks.length; i++) {
-    const chunk = safeChunks[i];
+  for (let i = 0; i < safeBatches.length; i++) {
+    const batch = safeBatches[i];
 
     try {
       const { content, tokensUsed } = await callDeepSeek({
         apiKey,
         messages: [
-          { role: 'system', content: basePrompt },
+          { role: 'system', content: systemPrompt },
           {
             role: 'user',
-            content: `Translate this markdown chunk exactly (${i + 1}/${safeChunks.length}):\n\n${chunk}`,
+            content: buildUserMessage(batch, `Batch ${i + 1}/${safeBatches.length}`),
           },
         ],
         temperature: 0,
@@ -543,27 +610,39 @@ IMPORTANT: Return ONLY translated markdown. No notes, no JSON, no explanations.`
         retryOnTimeout: false,
       });
 
-      const cleaned = stripEditorialPdfPrefixes(content.trim());
-      translatedChunks.push(cleaned || chunk);
       totalTokens += tokensUsed;
+      const parsed = parseTranslationArray(content, batch.length);
+      if (parsed) {
+        translatedParagraphs.push(...parsed);
+      } else {
+        log.warn(
+          `PDF translation chunk ${i + 1}/${safeBatches.length} for "${sectionTitle}" did not return a JSON array of ${batch.length} items; keeping original paragraphs for this chunk`,
+        );
+        translatedParagraphs.push(...batch);
+      }
     } catch (error) {
       const message = (error as Error).message;
-      if (/timeout/i.test(message)) {
+      const timedOut = /timeout/i.test(message);
+      if (timedOut) {
         log.warn(
-          `PDF translation chunk timed out for "${sectionTitle}" at ${i + 1}/${safeChunks.length} (${Math.round(PDF_TRANSLATION_CHUNK_TIMEOUT_MS / 1000)}s). Falling back to original text.`,
+          `PDF translation chunk ${i + 1}/${safeBatches.length} timed out for "${sectionTitle}" (${Math.round(PDF_TRANSLATION_CHUNK_TIMEOUT_MS / 1000)}s). Falling back to original text.`,
         );
       } else {
-        log.warn(`PDF translation section fallback for "${sectionTitle}" at chunk ${i + 1}/${safeChunks.length}: ${message}`);
+        log.warn(
+          `PDF translation chunk ${i + 1}/${safeBatches.length} failed for "${sectionTitle}": ${message}`,
+        );
       }
       return {
         translatedMarkdown: contentMarkdown,
         tokensUsed: totalTokens,
-        timedOut: /timeout/i.test(message),
+        timedOut,
       };
     }
   }
 
-  const translatedMarkdown = stripEditorialPdfPrefixes(translatedChunks.join('\n\n').trim());
+  const translatedMarkdown = stripEditorialPdfPrefixes(
+    restore(joinByParagraphs(translatedParagraphs)),
+  );
   if (translatedMarkdown.length < 40) {
     throw new Error(`Translation for "${sectionTitle}" is too short (${translatedMarkdown.length} chars)`);
   }
