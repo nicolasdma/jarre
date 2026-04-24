@@ -89,6 +89,34 @@ function stripMarkdownForLanguageHeuristic(markdown: string): string {
     .trim();
 }
 
+const COVER_SHEET_PATTERNS: readonly RegExp[] = [
+  /Downloaded from\b/i,
+  /Academic Repository\b/i,
+  /author accepted manuscript/i,
+  /If you have any enquiries/i,
+  /URL of record/i,
+  /cite (as|the published)/i,
+  /Kent Academic Repository\b/i,
+  /ScholarsArchive\b/i,
+  /hdl\.handle\.net/i,
+];
+
+/**
+ * Detect repository cover sheets (KAR, ScholarsArchive, OSF, DSpace, etc.)
+ * that academic repositories prepend to AAM PDFs. These contain metadata
+ * about the deposit rather than paper content and should be skipped.
+ */
+function isRepositoryCoverSheet(pageText: string): boolean {
+  if (pageText.length > 2500) return false;
+  const sample = pageText.slice(0, 3000);
+  let matches = 0;
+  for (const pattern of COVER_SHEET_PATTERNS) {
+    if (pattern.test(sample)) matches++;
+    if (matches >= 2) return true;
+  }
+  return false;
+}
+
 function detectLanguageHeuristic(text: string): string {
   const sample = text.slice(0, 3000).toLowerCase();
   const spanishIndicators = /\b(de|que|en|el|la|los|las|por|con|una|del|para|como|pero|más)\b/g;
@@ -388,12 +416,19 @@ export async function resolvePdf(url: string, titleOverride?: string): Promise<R
   let metadataTitle: string | null = null;
 
   if (pythonExtract && pythonExtract.pages.length > 0) {
-    const pageResult = buildSnippetsFromPages(pythonExtract.pages);
+    const filteredPages = pythonExtract.pages.filter((page, index) => {
+      if (index === 0 && isRepositoryCoverSheet(page.text)) {
+        log.info(`Skipping page 1 — detected as repository cover sheet`);
+        return false;
+      }
+      return true;
+    });
+    const pageResult = buildSnippetsFromPages(filteredPages);
     snippets = pageResult.snippets;
     fullText = pageResult.fullText;
     firstPageText = pageResult.firstPageText;
     virtualDurationSeconds = pageResult.virtualDurationSeconds;
-    pageCount = pythonExtract.pageCount;
+    pageCount = filteredPages.length;
     totalImages = pythonExtract.totalImages;
     metadataTitle = pythonExtract.metadataTitle;
   } else {
