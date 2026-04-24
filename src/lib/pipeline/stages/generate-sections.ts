@@ -297,32 +297,6 @@ function stripEditorialPdfPrefixes(markdown: string): string {
   return cleaned.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function ensurePdfHeadingOnce(sectionTitle: string, body: string): string {
-  const normalizedBody = body.trim();
-  const normalizedTitle = sectionTitle.replace(/\s+/g, ' ').trim();
-  if (!normalizedBody) {
-    return `**${normalizedTitle}**`;
-  }
-
-  const bodyStart = normalizedBody
-    .slice(0, Math.min(220, normalizedBody.length))
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-  const normalizedTitleLower = normalizedTitle.toLowerCase();
-
-  if (
-    bodyStart.startsWith(`**${normalizedTitleLower}**`)
-    || bodyStart.startsWith(normalizedTitleLower)
-    || bodyStart.startsWith(`sección: "${normalizedTitleLower}`)
-    || bodyStart.startsWith(`section: "${normalizedTitleLower}`)
-  ) {
-    return normalizedBody;
-  }
-
-  return `**${normalizedTitle}**\n\n${normalizedBody}`;
-}
-
 function toDeepLLangCode(lang: string): string | null {
   const normalized = lang.trim().toLowerCase();
   const map: Record<string, string> = {
@@ -767,7 +741,7 @@ async function buildPdfContent(
     const row = translated[i];
     totalTokens += row.tokensUsed;
 
-    const contentMarkdown = ensurePdfHeadingOnce(seg.title, stripEditorialPdfPrefixes(row.contentMarkdown));
+    const contentMarkdown = stripEditorialPdfPrefixes(row.contentMarkdown).trim();
 
     return {
       title: seg.title,
