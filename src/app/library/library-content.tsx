@@ -37,6 +37,7 @@ interface ResourceWithStatus {
   estimated_hours?: number;
   sort_order?: number;
   isUnlocked: boolean;
+  isGenerated: boolean;
   missingPrerequisites: string[];
   conceptsTaught: string[];
   evalStats: EvalStats | null;

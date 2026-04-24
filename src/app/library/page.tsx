@@ -175,6 +175,17 @@ export default async function LibraryPage({
     }
   }
 
+  const generatedResourceIds = new Set<string>();
+  if (allResourceIds.length > 0) {
+    const { data: sectionRows } = await supabase
+      .from(TABLES.resourceSections)
+      .select('resource_id')
+      .in('resource_id', allResourceIds);
+    for (const row of sectionRows || []) {
+      generatedResourceIds.add(row.resource_id);
+    }
+  }
+
   const learnProgressMap: Record<string, { activeSection: number; completedSections: number[] }> = {};
   if (user && allResourceIds.length > 0) {
     const { data: learnProgressRows } = await supabase
@@ -377,6 +388,7 @@ export default async function LibraryPage({
 
   type ResourceWithStatus = NonNullable<typeof resources>[number] & {
     isUnlocked: boolean;
+    isGenerated: boolean;
     missingPrerequisites: string[];
     conceptsTaught: string[];
     evalStats: EvalStats | null;
@@ -415,6 +427,7 @@ export default async function LibraryPage({
     return {
       ...resource,
       isUnlocked,
+      isGenerated: generatedResourceIds.has(resource.id),
       missingPrerequisites,
       conceptsTaught,
       evalStats: evaluationStats[resource.id] || null,

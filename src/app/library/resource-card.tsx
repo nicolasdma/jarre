@@ -49,6 +49,7 @@ interface ResourceCardProps {
     url?: string;
     estimated_hours?: number;
     isUnlocked: boolean;
+    isGenerated: boolean;
     missingPrerequisites: string[];
     conceptsTaught: string[];
     evalStats: EvalStats | null;
@@ -80,6 +81,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
   const [showQuiz, setShowQuiz] = useState(false);
   const isLocked = isLoggedIn && !resource.isUnlocked;
   const hasEvaluation = resource.evalStats !== null;
+  const showGeneratedTint = resource.isGenerated && !hasEvaluation && !isLocked;
 
   const handleCardClick = () => {
     if (!isLocked) {
@@ -115,7 +117,9 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
       className={`group relative p-4 sm:p-6 transition-all duration-300 j-card-glow ${
         isLocked
           ? 'cursor-not-allowed opacity-50'
-          : 'cursor-pointer hover:bg-j-bg-hover'
+          : showGeneratedTint
+            ? 'cursor-pointer bg-j-warm/[0.06] hover:bg-j-warm/10'
+            : 'cursor-pointer hover:bg-j-bg-hover'
       }`}
     >
       {/* Left accent line for evaluated resources with corner caps */}
@@ -256,9 +260,17 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 ? 'text-j-warm-muted'
                 : hasEvaluation
                   ? 'text-j-accent'
-                  : 'text-j-accent-muted'
+                  : showGeneratedTint
+                    ? 'text-j-warm-dark'
+                    : 'text-j-accent-muted'
             }`}>
-              {isLocked ? t('library.locked', language) : hasEvaluation ? t('library.evaluated', language) : t('library.unlocked', language)}
+              {isLocked
+                ? t('library.locked', language)
+                : hasEvaluation
+                  ? t('library.evaluated', language)
+                  : showGeneratedTint
+                    ? t('library.generated', language)
+                    : t('library.unlocked', language)}
             </span>
           )}
         </div>

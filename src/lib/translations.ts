@@ -41,6 +41,7 @@ const translations = {
   'library.resource': { es: 'recurso', en: 'resource' },
   'library.locked': { es: 'Bloqueado', en: 'Locked' },
   'library.unlocked': { es: 'Desbloqueado', en: 'Unlocked' },
+  'library.generated': { es: 'Generado', en: 'Generated' },
   'library.completed': { es: 'Completado', en: 'Completed' },
   'library.concepts': { es: 'conceptos', en: 'concepts' },
   'library.requires': { es: 'Requiere', en: 'Requires' },
