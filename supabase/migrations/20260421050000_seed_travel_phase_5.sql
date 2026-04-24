@@ -174,9 +174,9 @@ INSERT INTO resources (
   (
     'travel-r-levantamiento-1990-macas',
     'Primer Gran Levantamiento Indígena de 1990 (testimonio Luis Macas)',
-    'video',
-    'https://conaie.org/2020/06/05/1990-30-anos-del-primer-gran-levantamiento-indigena/',
-    'CONAIE',
+    'article',
+    'https://www.goldmanprize.org/recipient/luis-macas/',
+    'Goldman Environmental Prize Foundation — biografía Luis Macas (Premio 1994)',
     '5',
     'Archivo institucional de CONAIE sobre los 30 años del levantamiento Inti Raymi de 1990, con testimonios de Luis Macas (primer presidente Kichwa de CONAIE). URL primaria del brief; coordinator puede refinar en follow-up si encuentra video más riguroso.',
     0.5,

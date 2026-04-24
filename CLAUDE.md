@@ -30,7 +30,19 @@ See `README.md` for full architecture and setup.
 - Token budgets are centralized in `src/lib/constants.ts` — always use `TOKEN_BUDGETS`.
 - All LLM calls go through `src/lib/llm/deepseek.ts` or `src/lib/llm/gemini.ts`.
 
-## Key Files
+## Curriculum Resource Sourcing
+
+When adding, replacing, or auditing curriculum resources (seed SQL, `resources` table rows, migrations that insert URLs), the following rules are non-negotiable. Full protocol in `QUALITY.md` at the repo root — read it before touching any `seed_*` migration or proposing a resource URL.
+
+- **Verify with HTTP, always.** Every URL must return 200 via `curl -L -H "User-Agent: Mozilla/5.0 ..."` (or `WebFetch`) before being written to any file or DB. WebSearch saying a page "exists" is not evidence.
+- **YouTube needs captions.** The pipeline requires them. If `yt-dlp --list-subs` returns nothing, the video is not a valid resource — pick another, or flag it for ASR fallback if and only if that path is explicitly wired up.
+- **Never invent URLs by pattern.** If `site.com/articles/X` exists, that says nothing about `site.com/articles/Y`. Each URL is verified individually.
+- **Triangulate.** Every resource should be supported by at least one independent corroborating source (cited in the `description` or an adjacent recurso). Single-source claims are suspect.
+- **Author and institution must be justifiable.** A recurso whose `author` field you could not defend to a domain expert does not belong in the curriculum.
+- **Primary sources beat secondary.** If a UNESCO listing, an ICANH publication, a peer-reviewed paper, or the author's own institutional repository is available and stable, use that over a news article or blog summary.
+- **Pipeline only ingests PDF and YouTube.** Any other URL (HTML articles, landing pages, CONTENTdm viewers, journal HTML pages) resolves to `pipeline_support = 'unsupported'` and the learner sees *"El link no parece válido"*. Propose **only** direct PDF (`application/pdf`) or YouTube URLs unless the user explicitly opts into an HTML resource as reference-only. When a source has both HTML landing and a PDF download, link the PDF. See `docs/pipeline-sources.md` for the full diagnosis and planned solutions.
+
+If in doubt: stop, read `QUALITY.md`, ask the user. Do not ship unverified recursos.
 
 - `src/lib/constants.ts` — token budgets, tier limits, feature flags
 - `src/lib/db/tables.ts` — all Supabase table names
