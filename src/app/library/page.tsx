@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'Browse and manage your learning resources',
 };
 
-const VALID_TRACKS: readonly CurriculumTrack[] = ['ai', 'travel'] as const;
+const VALID_TRACKS: readonly CurriculumTrack[] = ['ai', 'travel', 'aventura'] as const;
 
 function parseTrack(value: unknown): CurriculumTrack {
   return VALID_TRACKS.includes(value as CurriculumTrack) ? (value as CurriculumTrack) : 'ai';
@@ -22,6 +22,7 @@ function parseTrack(value: unknown): CurriculumTrack {
 // Phases intentionally hidden from the library view per track.
 // AI: phase '0' (math foundations, supplementary) and '11' (enterprise alt track).
 // Travel: none — all 11 regions are primary learning path.
+// Aventura: none — only seeded phases surface (V1 has just phase '1').
 function hiddenPhasesForTrack(track: CurriculumTrack): string[] {
   return track === 'ai' ? ['0', '11'] : [];
 }

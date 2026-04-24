@@ -131,9 +131,12 @@ export function LibraryContent({
     router.push(query ? `/library?${query}` : '/library');
   };
 
-  const trackLabel = track === 'travel'
-    ? (language === 'es' ? 'Sudamérica' : 'South America')
-    : 'AI Engineering';
+  const trackLabel =
+    track === 'travel'
+      ? (language === 'es' ? 'Sudamérica' : 'South America')
+      : track === 'aventura'
+        ? (language === 'es' ? 'Expediciones' : 'Expeditions')
+        : 'AI Engineering';
   const [activeCurriculumPhase, setActiveCurriculumPhase] = useState<ActiveCurriculumPhase>('all');
   const [hydrated, setHydrated] = useState(false);
 
@@ -196,6 +199,11 @@ export function LibraryContent({
               active={track === 'travel'}
               label={t('track.travel', language)}
               onClick={() => handleTrackChange('travel')}
+            />
+            <TrackTab
+              active={track === 'aventura'}
+              label={t('track.aventura', language)}
+              onClick={() => handleTrackChange('aventura')}
             />
           </div>
 

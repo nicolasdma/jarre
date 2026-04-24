@@ -100,9 +100,13 @@ const translations = {
   'phase.travel.10': { es: 'Chile (sur a norte)', en: 'Chile (South to North)' },
   'phase.travel.11': { es: 'Argentina: Cuyo y Patagonia', en: 'Argentina: Cuyo and Patagonia' },
 
+  // Phases (Aventura track — expedition preparation)
+  'phase.aventura.1': { es: 'Cruzar el Darién en kayak', en: 'Crossing the Darién by kayak' },
+
   // Track names (segmented selector)
   'track.ai': { es: 'IA', en: 'AI' },
   'track.travel': { es: 'Viajes', en: 'Travel' },
+  'track.aventura': { es: 'Aventura', en: 'Adventure' },
 
   // Common
   'common.loading': { es: 'Cargando...', en: 'Loading...' },
@@ -318,7 +322,7 @@ export function t(key: TranslationKey, language: Language): string {
   return translations[key]?.[language] || translations[key]?.en || key;
 }
 
-export type CurriculumTrack = 'ai' | 'travel';
+export type CurriculumTrack = 'ai' | 'travel' | 'aventura';
 
 export function getPhaseNames(
   language: Language,
@@ -337,6 +341,12 @@ export function getPhaseNames(
       '9': t('phase.travel.9', language),
       '10': t('phase.travel.10', language),
       '11': t('phase.travel.11', language),
+    };
+  }
+
+  if (track === 'aventura') {
+    return {
+      '1': t('phase.aventura.1', language),
     };
   }
 
