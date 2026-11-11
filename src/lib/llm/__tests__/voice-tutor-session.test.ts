@@ -9,7 +9,10 @@ const lesson = {
     { title: 'Signed URLs', content: 'Links expire after 120 seconds.' },
     { title: 'Payments', content: 'The postback is the source of truth.' },
   ],
-  drills: [{ title: '¿Usaste Centrobill?', text_en: 'Not Centrobill specifically.' }],
+  drills: [
+    { slug: '07-centrobill', title: '¿Usaste Centrobill?', text_en: 'Not Centrobill specifically.' },
+    { slug: '00-plan', title: 'Los 6 hitos', text_en: 'Week one is the schema. Week two is the signed links.' },
+  ],
 };
 
 describe('learning session', () => {
@@ -49,5 +52,52 @@ describe('interview session', () => {
     expect(instruction).toContain('Not Centrobill specifically.');
     expect(instruction).toContain('interview complete');
     expect(instruction).toContain('Feedback:');
+  });
+
+  const bank = {
+    key_terms: ['Valley of Guardians', 'row-level security'],
+    personas: [
+      { id: 'tough', name: 'Nat', label: 'Nat', blurb: 'b', role: 'the founder', tone: 'brisk', focus: 'f', pushback: 'p', technical: 'medium', toughness: 'tough' },
+    ],
+    questions: [
+      {
+        id: 'links', kind: 'core', ask: 'How long does a link live?', tests: 'signed-urls',
+        key_points: ['each link expires 120 seconds after it is signed'],
+        misconceptions: ['links expire every two minutes as a global timer'],
+      },
+      { id: 'plan', kind: 'must_know', ask: 'The six weeks?', tests: 'playbook', key_points: ['week 1 schema', 'week 2 links'], drill: '00-plan' },
+      { id: 'cb-refund', kind: 'curveball', ask: 'Refunds and chargebacks?', tests: 'ledger', key_points: ['reversing ledger entries'] },
+    ],
+  };
+
+  it('judges against the answer key: key points, misconceptions, the canonical must-know answer and the key terms', () => {
+    const setup = resolveInterviewSetup(bank, { personaId: 'tough', depth: 2 });
+    const { instruction } = buildInterviewSession({ lesson, setup, random: () => 0 });
+    expect(instruction).toContain('each link expires 120 seconds after it is signed');
+    expect(instruction).toContain('Catch these misconceptions: links expire every two minutes as a global timer');
+    expect(instruction).toContain('MUST KNOW BY HEART');
+    expect(instruction).toContain('The canonical answer, item by item: Week one is the schema.');
+    expect(instruction).toContain('Valley of Guardians, row-level security');
+  });
+
+  it('orders feedback content first, calibrates praise and follows up on the candidate own words', () => {
+    const setup = resolveInterviewSetup(bank, { personaId: 'tough', depth: 2 });
+    const { instruction } = buildInterviewSession({ lesson, setup, random: () => 0 });
+    const order = ['a. A misconception first', 'b. Then the most important key point', 'c. Then the name check', 'd. Then one or two English corrections'];
+    const at = order.map((x) => instruction.indexOf(x));
+    expect(at.every((i) => i > 0)).toBe(true);
+    expect([...at].sort((x, y) => x - y)).toEqual(at);
+    expect(instruction).toContain('never "spot on"');
+    expect(instruction).toContain("built on the candidate's OWN words");
+    expect(instruction).toContain('Sorry, be specific');
+  });
+
+  it('throws the drawn curveballs, more for a tough persona at depth 3', () => {
+    const tough = buildInterviewSession({ lesson, setup: resolveInterviewSetup(bank, { personaId: 'tough', depth: 3 }), random: () => 0.5 });
+    expect(tough.instruction).toContain('Throw these 5');
+    expect(tough.instruction).toContain('Refunds and chargebacks?');
+    const calm = buildInterviewSession({ lesson, setup: resolveInterviewSetup(null, { personaId: 'recruiter', depth: 1 }), random: () => 0.5 });
+    expect(calm.instruction).toContain('Throw these 1,');
+    expect(calm.instruction).not.toContain('Sorry, be specific');
   });
 });

@@ -51,7 +51,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, lessonSections
     () => ({
       title: resourceTitle,
       sections: lessonSections,
-      drills: drills.map((d) => ({ title: d.title, text_en: d.textEn })),
+      drills: drills.map((d) => ({ slug: d.slug, title: d.title, text_en: d.textEn })),
     }),
     [resourceTitle, lessonSections, drills],
   );

@@ -70,7 +70,7 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 
 ## Interview
 
-The practice page's **Entrevista** tab runs a voice mock interview in English on the lesson: an interviewer asks one question at a time, and after each answer a short feedback (what worked, what is technically off against the lesson, the 1–3 English corrections that matter). The learner picks the interviewer and a depth (1: direct questions; 2: a follow-up when an answer is vague; 3: edge cases and the why). Every lesson gets five default interviewers (`src/lib/interview/personas.ts`: curious recruiter, tech lead, demanding expert, worried client, relaxed founder); a lesson adds its own, or replaces a default by `id`:
+The practice page's **Entrevista** tab runs a voice mock interview in English on the lesson: an interviewer asks one question at a time, and after each answer a short feedback (what worked, what is technically off against the lesson, the 1–3 English corrections that matter). The learner picks the interviewer and a depth (1: direct questions and one curveball; 2: at least one follow-up on the learner's own words per topic and two curveballs; 3: up to two follow-ups, cuts in on vague answers, four curveballs). Feedback goes in a fixed order: the technical misconception against the answer key, the key point left out, a key name or term that came out unrecognizable, then one or two English corrections; praise only for complete answers. Every lesson gets six default interviewers (`src/lib/interview/personas.ts`: curious recruiter, tech lead, demanding expert, worried client, skeptical client (tough), relaxed founder) and a default bank of curveballs (price, showing code, AI use, going off the platform, getting sick, agencies, NDA and IP, daily calls); a lesson adds its own, or replaces a default by `id`:
 
 ```json
 "interview": {
@@ -80,14 +80,26 @@ The practice page's **Entrevista** tab runs a voice mock interview in English on
     { "id": "nathalie", "name": "Nathalie", "label": "Nathalie (founder de Brivel)", "blurb": "…",
       "role": "the founder of Brivel, hiring the developer for her platform",
       "tone": "relaxed and friendly, … but she listens for details",
-      "focus": "…", "pushback": "…", "technical": "medium" }
+      "focus": "…", "pushback": "…", "technical": "medium", "toughness": "standard" }
+  ],
+  "key_terms": ["Valley of Guardians", "row-level security", "postMessage"],
+  "questions": [
+    { "id": "signed-links", "kind": "core", "tests": "interview-signed-urls", "drill": "03-links-120-segundos",
+      "ask": "How do you make sure a panel link does not stay valid forever?",
+      "key_points": ["each link expires 120 seconds after it is signed: no global timer", "…"],
+      "misconceptions": ["\"the links expire every two minutes\", as if a timer rotated all links: …"] },
+    { "id": "milestones", "kind": "must_know", "drill": "00-los-6-hitos-de-memoria", "…": "…" },
+    { "id": "cb-refund", "kind": "curveball", "tests": "interview-ledger-split", "…": "…" }
   ]
 }
 ```
 
 - `context`, `role`, `tone`, `focus`, `pushback` are written in English: they go into the model's prompt. `label` and `blurb` are what the picker shows.
 - `technical`: `low` (asks you to explain simply), `medium`, `high` (expects the mechanism and the terms).
-- The drills are the question bank and the reference answers; the sections are the reference for content.
+- `toughness`: `standard` (default) or `tough`: cuts in on vague answers ("Sorry, be specific: how many seconds?"), one more curveball, praise only for complete answers.
+- `key_terms`: names and terms the learner has to say so a native listener recognizes them; the coach flags them when they come out mangled (the transcript is speech recognition).
+- `questions`: the answer key. `kind` is `core` (a main topic), `must_know` (scored item by item; its `drill` is the canonical answer, read from the lesson's drills) or `curveball` (unexpected but realistic; a few are drawn at random per interview). `tests` is a concept id or `deal` / `process`; `key_points` and `misconceptions` are English and go into the prompt; `drill` links the question to the drill to practice. A curveball with a default's `id` replaces it.
+- The drills are the prepared answers; the sections are the reference for content.
 - Needs `supabase/migrations/20261111020000_resource_interview.sql` applied before seeding a lesson that has the block. Without the column the tab works with the defaults.
 
 ## What the loader does

@@ -20,12 +20,19 @@
  */
 
 import type { Language } from '@/lib/translations';
-import { INTERVIEW_DEPTHS, type InterviewSetup } from '@/lib/interview/personas';
+import {
+  DEFAULT_CURVEBALLS,
+  INTERVIEW_DEPTHS,
+  pickCurveballs,
+  type InterviewQuestion,
+  type InterviewSetup,
+} from '@/lib/interview/personas';
 
 export interface TutorLesson {
   title: string;
   sections: { title: string; content: string }[];
-  drills?: { title: string; text_en: string }[];
+  /** `slug` links a must-know question to its canonical drill. */
+  drills?: { slug?: string; title: string; text_en: string }[];
 }
 
 export interface TutorSession {
@@ -162,43 +169,73 @@ ${LANGUAGE_ANCHOR[lang]}`;
 export interface InterviewSessionParams {
   lesson: TutorLesson;
   setup: InterviewSetup;
+  /** Randomness for the curveball draw; injectable for tests. */
+  random?: () => number;
 }
 
 const TECHNICAL_LEVEL: Record<'low' | 'medium' | 'high', string> = {
-  low: 'You are not technical: ask about technical topics only as "how would you explain that to me", and judge whether the explanation is clear to a non-engineer. The lesson tells you what a correct answer contains.',
+  low: 'You are not technical: ask about technical topics only as "how would you explain that to me", and judge whether the explanation is clear to a non-engineer. The answer key tells you what a correct answer contains.',
   medium: 'You understand the product and the basics of the stack, not the implementation details.',
   high: 'You are an engineer: you expect the mechanism, the order of steps and the tradeoffs, with the right terms.',
 };
 
-export function buildInterviewSession({ lesson, setup }: InterviewSessionParams): TutorSession {
+const TOUGH_RULE =
+  'You are tough. When an answer is vague (filler like "basically" or "so yeah", no mechanism, no number), cut in right away and skip the feedback for that turn: "Sorry, be specific: ..." naming exactly what is missing (how many seconds, who verifies it, which week). Give the feedback for both answers after they answer that. Praise is rare and only for complete answers. Your curveballs come with a bit of pressure, like a client comparing proposals.';
+
+function questionForPrompt(q: InterviewQuestion, drillText: Map<string, string>): string {
+  const lines = [`- ${q.kind === 'must_know' ? 'MUST KNOW BY HEART · ' : ''}"${q.ask}" (tests: ${q.tests})`];
+  lines.push(`  A complete answer says: ${q.key_points.join('; ')}.`);
+  if (q.misconceptions.length) lines.push(`  Catch these misconceptions: ${q.misconceptions.join('; ')}.`);
+  const canonical = q.kind === 'must_know' && q.drill ? drillText.get(q.drill) : undefined;
+  if (canonical) lines.push(`  The canonical answer, item by item: ${canonical}`);
+  return lines.join('\n');
+}
+
+/**
+ * The interview mock. Feedback is checked against the question bank (key
+ * points, misconceptions, must-know lists) in a fixed order: misconception,
+ * missing must-say, name check, English. Follow-ups build on the candidate's
+ * own words; curveballs are drawn at random per interview. Before/after in
+ * docs/research/2026-11-11-interview-mock-audit.md.
+ */
+export function buildInterviewSession({ lesson, setup, random }: InterviewSessionParams): TutorSession {
   const { persona, depth, context } = setup;
   const depthRule = INTERVIEW_DEPTHS[depth];
+  const tough = persona.toughness === 'tough';
   const drills = (lesson.drills ?? [])
     .map((d) => `- ${d.title}\n  Prepared answer: ${d.text_en}`)
     .join('\n');
+  const drillText = new Map((lesson.drills ?? []).filter((d) => d.slug).map((d) => [d.slug as string, d.text_en]));
+  const lessonCurveballIds = new Set(setup.curveballs.filter((q) => !DEFAULT_CURVEBALLS.includes(q)).map((q) => q.id));
+  const curveballs = pickCurveballs(setup.curveballs, setup.curveballCount, lessonCurveballIds, random);
+  const bank = setup.questions.map((q) => questionForPrompt(q, drillText)).join('\n');
+  const mustKnow = setup.questions.filter((q) => q.kind === 'must_know');
+  const totalQuestions = depthRule.questions + (tough ? 1 : 0);
 
   const instruction = `# Who you are
-You run a mock job interview, out loud, in English, for a Spanish-speaking developer preparing a real call. You have two voices:
+You run a mock job interview, out loud, in English, for a Spanish-speaking developer preparing a real call. The point is to prepare them for the real thing, so you are a demanding coach: an error you let pass is an error they will make on the real call. You have two voices:
 - THE INTERVIEWER: you play ${persona.name}, ${persona.role}. Tone: ${persona.tone}. ${TECHNICAL_LEVEL[persona.technical]}
 - THE COACH: after each answer, you step out of character for a few seconds to give feedback, then step back in.
 ${context ? `\n# The situation being rehearsed\n${context}\n` : ''}
 # What ${persona.name} cares about
 Focus: ${persona.focus}.
 Pushes back on: ${persona.pushback}.
-Depth: ${depthRule.rule}
+Depth: ${depthRule.rule}${tough ? `\n${TOUGH_RULE}` : ''}
 
 # What the candidate studied (the reference for every answer)
 ${lessonForPrompt(lesson, 0)}
-${drills ? `\n# Questions this interview can bring up, with the answers the candidate prepared\nUse them to choose questions and to judge content. Ask them in your own words, as ${persona.name} would, in the order that fits your focus. Never read a prepared answer aloud.\n${drills}\n` : ''}
+${drills ? `\n# The answers the candidate prepared\nUse them to choose questions and to judge content. Ask in your own words, as ${persona.name} would, in the order that fits your focus. Never read a prepared answer aloud.\n${drills}\n` : ''}${bank ? `\n# The answer key: what a complete answer to each main question says\nJudge every answer against this, point by point.\n${bank}\n` : ''}${curveballs.length ? `\n# Curveballs for this interview\nThrow these ${curveballs.length}, in your own words, where they fit naturally: spread through the interview, never as the first question, never two in a row. The candidate has not prepared them, so judge them by these points:\n${curveballs.map((q) => questionForPrompt(q, drillText)).join('\n')}\n` : ''}
 # How every turn works (for as long as the interview lasts)
-Listen to the whole answer: the candidate is speaking a second language and may pause to think; never cut in. Then, in this order:
-1. Coach feedback, starting with "Feedback:". At most three short sentences plus the corrections, most important first:
-   - Check every technical claim in the answer against what they studied. A confident claim that contradicts it is the first thing you say: what they said, and what is right, in one sentence. Then anything important they left out.
-   - One thing that worked, named specifically (the detail, not "great explanation"). Only if something did.
-   - The one to three English corrections that matter most, each as "you said ..., say ...": grammar ("since three years", "I have did"), word choice and false friends ("actually" for "currently"), or the pronunciation of a key term if you clearly heard it wrong. Quote only words the candidate actually said; if you are not sure they said it, leave it out. Pick what a native interviewer would notice; no corrections if the English was fine.
-2. ${persona.name} asks ONE question: a follow-up on the same topic if the depth rule calls for it, otherwise a new topic. Then stop talking. The switch from coach to interviewer is silent: never say "back in character", "now as ${persona.name}", "next question" or any other stage direction; just ask, in ${persona.name}'s voice.
+Listen to the whole answer: the candidate is speaking a second language and may pause to think; never cut in while they are speaking. Then, in this order:
+1. Coach feedback, starting with "Feedback:". Short spoken sentences, in this order, skipping what does not apply:
+   a. A misconception first: if the answer states a mechanism that contradicts the answer key or the lesson, even in passing, say what they said and what is right, in one sentence ("You said the links expire every two minutes; each link expires 120 seconds after it is signed"). Renaming a term is not enough: correct the mechanism.
+   b. Then the most important key point of that question they left out, as "You didn't say ...". ${mustKnow.length ? 'For a MUST KNOW BY HEART question, compare item by item with the canonical answer and name what was missing (briefly, in order); a partial list is not a pass.' : ''}
+   c. Then the name check: the candidate's answer reaches you through speech recognition. If one of the key names or terms came out in a way a native listener would not recognize (for example "Body of Guardians" for Valley of Guardians, "role low security" for row-level security), say "Say X clearly: it came out as Y". Only for these key terms${setup.keyTerms.length ? `: ${setup.keyTerms.join(', ')}` : ''}; never for ordinary words.
+   d. Then one or two English corrections, each as "you said ..., say ...": grammar ("since three years", "I have did"), word choice and false friends ("actually" for "currently"). Quote only words the candidate actually said; if you are not sure they said it, leave it out. No corrections if the English was fine.
+   Praise is calibrated: only when the answer has every key point and no misconception, name the specific detail that made it good. Otherwise no praise for the content: never "spot on", "exactly", "excellent", "perfect" or "you clearly understand" for an answer with a misconception or a missing key point; at most "the part about X is right", after the correction.
+2. ${persona.name} asks ONE question: a follow-up if the depth rule calls for it, a curveball when one fits, otherwise a new topic. A follow-up quotes the candidate's own words and pushes on them ("You said X. What happens if Y?"). Then stop talking. The switch from coach to interviewer is silent: never say "back in character", "now as ${persona.name}", "next question" or any other stage direction; just ask, in ${persona.name}'s voice.
 
-Never repeat or paraphrase the candidate's answer back to them. Never praise generically ("great answer"). Each turn adds something new.
+Never repeat or paraphrase the candidate's answer back to them, except the few words you quote to correct or to follow up. Never praise generically ("great answer"). Each turn adds something new.
 If the candidate asks for feedback in Spanish ("en español"), give the feedback part in rioplatense Spanish from then on, but ${persona.name} keeps asking in English.
 If the candidate asks you to repeat or rephrase, ${persona.name} does it in simpler words, without feedback.
 If the candidate asks ${persona.name} a question, answer in character, briefly and plausibly from the situation, then continue.
@@ -207,7 +244,7 @@ If the candidate asks ${persona.name} a question, answer in character, briefly a
 This is audio. Short spoken sentences. Everything you produce is spoken aloud: never output notes, reasoning, lists with numbers, headings or stage directions.
 
 # Ending
-After about ${depthRule.questions} questions, or when the candidate asks to stop: as the coach, give the overall feedback in four sentences at most: their two strongest moments, the content point to review, and the three English fixes that would help most. Then say exactly "interview complete". After that, do not ask more questions.
+After about ${totalQuestions} questions in total (follow-ups and curveballs included), or when the candidate asks to stop: as the coach, give the overall feedback in five short sentences at most: the misconceptions to fix (each with the right version), what they did not know by heart, the two or three English errors they repeated, and which prepared answers to practice next, by name. Then say exactly "interview complete". After that, do not ask more questions. A written report appears on their screen after the call.
 
 # First turn
 The candidate will say they are ready. Start in character: one sentence of greeting as ${persona.name}, then your first question. No feedback on this first turn.

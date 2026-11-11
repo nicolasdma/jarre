@@ -62,8 +62,9 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-j-text">Simulacro de entrevista</h1>
         <p className="text-sm text-j-text-secondary">
-          Te entrevistan en inglés sobre esta lección. Después de cada respuesta, un feedback corto: qué estuvo bien,
-          qué no cierra técnicamente y hasta tres correcciones de inglés. Si querés el feedback en castellano, pedilo.
+          Te entrevistan en inglés sobre esta lección y te tiran preguntas que no preparaste. Después de cada respuesta,
+          el feedback va en orden: lo que no cierra técnicamente, lo que te faltó decir, un nombre que no se entendió y
+          una o dos correcciones de inglés. Si querés el feedback en castellano, pedilo.
         </p>
       </div>
 
