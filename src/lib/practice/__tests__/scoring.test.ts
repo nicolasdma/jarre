@@ -44,6 +44,11 @@ describe('copyFeedback', () => {
     expect(f.extra).toBe(3);
     expect(accuracyPercent(f)).toBe(50);
   });
+
+  it('never rounds an imperfect copy up to 100%', () => {
+    const target = 'a'.repeat(600);
+    expect(accuracyPercent(copyFeedback(target, `b${'a'.repeat(599)}`, strict))).toBe(99);
+  });
 });
 
 describe('wordsPerMinute', () => {
@@ -61,6 +66,11 @@ describe('alignWords', () => {
     expect(a.said).toBe(7);
     expect(a.total).toBe(8);
     expect(a.score).toBe(88);
+  });
+
+  it('treats contractions and their long form as the same words', () => {
+    expect(alignWords("I'm in Colombia, I've been here.", 'I am in Colombia I have been here').score).toBe(100);
+    expect(alignWords('I am here.', "I'm here").score).toBe(100);
   });
 
   it('is case and punctuation blind', () => {

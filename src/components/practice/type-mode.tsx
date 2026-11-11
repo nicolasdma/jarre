@@ -140,6 +140,8 @@ export function TypeMode({
           setTyped(e.target.value);
         }}
         onKeyDown={onKeyDown}
+        onPaste={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
         readOnly={Boolean(result)}
         rows={hidden ? 6 : 5}
         spellCheck={false}
@@ -165,15 +167,14 @@ export function TypeMode({
 
       {result && (
         <div className="space-y-4" data-testid="type-result">
-          <div className="grid grid-cols-3 gap-2">
-            <Stat label="Precisión" value={`${result.accuracy}%`} />
+          {/* Dictation is scored by words: char positions drift after the first missed word. */}
+          <div className="grid grid-cols-2 gap-2">
+            {hidden ? <Stat label="Palabras" value={`${result.wordScore}%`} /> : <Stat label="Precisión" value={`${result.accuracy}%`} />}
             <Stat label="WPM" value={String(result.wpm)} />
-            <Stat label="Palabras" value={`${result.wordScore}%`} />
           </div>
           {alignment && (
             <div className="space-y-3">
               <WordMarks marks={alignment.marks} />
-              <p className="text-base leading-relaxed text-j-text-body" lang="en">{drill.textEn}</p>
               {drill.textEs && <p className="border-l-2 border-j-warm pl-4 text-sm text-j-text-em">{drill.textEs}</p>}
             </div>
           )}

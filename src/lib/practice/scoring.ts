@@ -89,7 +89,8 @@ export function copyFeedback(target: string, typed: string, opts: CompareOptions
 /** Accuracy in [0, 100]: correct chars over the longer of target and typed. */
 export function accuracyPercent(f: Pick<CopyFeedback, 'correct' | 'typedLength' | 'targetLength'>): number {
   const denom = Math.max(f.targetLength, f.typedLength);
-  return denom === 0 ? 0 : Math.round((f.correct / denom) * 100);
+  // Floor, so only a perfect copy reads 100%.
+  return denom === 0 ? 0 : Math.floor((f.correct / denom) * 100);
 }
 
 /** Words per minute, standard 5-characters-per-word. */
@@ -109,7 +110,19 @@ const NUMBER_WORDS: Record<string, string> = {
   sixty: '60', seventy: '70', eighty: '80', ninety: '90', hundred: '100', thousand: '1000',
 };
 
-/** Lowercase, accent-free, punctuation-free words; small number words become digits. */
+/** Contractions are expanded so "I'm" and "I am" (what a recognizer may write) match. */
+const CONTRACTIONS: Record<string, string> = {
+  "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are', "he's": 'he is', "she's": 'she is',
+  "it's": 'it is', "that's": 'that is', "there's": 'there is', "what's": 'what is', "let's": 'let us',
+  "i've": 'i have', "you've": 'you have', "we've": 'we have', "they've": 'they have',
+  "i'll": 'i will', "you'll": 'you will', "we'll": 'we will', "it'll": 'it will', "that'll": 'that will',
+  "i'd": 'i would', "you'd": 'you would', "we'd": 'we would', "they'd": 'they would',
+  "don't": 'do not', "doesn't": 'does not', "didn't": 'did not', "can't": 'can not', "cannot": 'can not',
+  "won't": 'will not', "isn't": 'is not', "aren't": 'are not', "wasn't": 'was not', "weren't": 'were not',
+  "haven't": 'have not', "hasn't": 'has not', "shouldn't": 'should not', "wouldn't": 'would not', "couldn't": 'could not',
+};
+
+/** Lowercase, accent-free, punctuation-free words; contractions expanded; small number words become digits. */
 export function normalizeWords(text: string): string[] {
   return fold(text)
     .toLowerCase()
@@ -119,6 +132,7 @@ export function normalizeWords(text: string): string[] {
     .split(/\s+/)
     .map((w) => w.replace(/^'+|'+$/g, ''))
     .filter(Boolean)
+    .flatMap((w) => (CONTRACTIONS[w] ?? w).split(' '))
     .map((w) => NUMBER_WORDS[w] ?? w);
 }
 
