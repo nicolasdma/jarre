@@ -1,0 +1,50 @@
+{
+  "id": "interview-sample-lesson",
+  "track": "ai",
+  "phase": "1",
+  "title": "Sample interview lesson",
+  "description": "A minimal lesson used by the tests and as a template for docs/lesson-format.md.",
+  "activate": {
+    "summary": "One concept, one quiz, one card and one drill.",
+    "sections": [{ "number": 1, "title": "Row Level Security", "description": "Security in the database" }],
+    "keyConcepts": ["RLS"],
+    "insight": "The database decides, not the browser."
+  },
+  "concepts": [
+    {
+      "id": "interview-sample-rls",
+      "name": "Row Level Security",
+      "definition": "Postgres policies that filter which rows each user can read or write.",
+      "section": {
+        "title": "RLS: security lives in the database",
+        "markdown": "## What it is\n\nA policy per table, evaluated on every query.\n\n## Say it in the call\n\nEvery table has RLS enabled."
+      },
+      "quizzes": [
+        {
+          "format": "mc",
+          "after_heading": null,
+          "question": "What bypasses RLS in Supabase?",
+          "options": ["The anon key", "The service role key", "A signed URL", "Nothing"],
+          "correct": 1,
+          "explanation": "The service role key skips RLS, so it only lives on the server."
+        }
+      ],
+      "open": [
+        { "question": "Explain RLS in two sentences.", "expected_answer": "Policies in Postgres decide which rows a user can see; a direct API call gets nothing it should not.", "difficulty": 2 }
+      ],
+      "cards": [
+        { "type": "recall", "front": "What bypasses RLS?", "back": "The service role key. Server only." }
+      ]
+    }
+  ],
+  "drills": [
+    {
+      "id": "01-sample",
+      "title": "Sample drill",
+      "priority": 1,
+      "text_en": "Every table has RLS enabled. Even a direct API call returns nothing it should not.",
+      "text_es": "Cada tabla tiene RLS activado. Incluso una llamada directa a la API no devuelve nada que no deba.",
+      "audio": null
+    }
+  ]
+}

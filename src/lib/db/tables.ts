@@ -14,6 +14,7 @@ export const TABLES = {
   questionBank: 'question_bank',
   conceptCards: 'concept_cards',
   inlineQuizzes: 'inline_quizzes',
+  lessonDrills: 'lesson_drills',
   videoSegments: 'video_segments',
   projects: 'projects',
   projectConcepts: 'project_concepts',
