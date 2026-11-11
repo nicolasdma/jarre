@@ -15,10 +15,13 @@ import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
 import { DrillTrainer, isPracticed } from './drill-trainer';
 import type { DrillMode, PracticeDrill } from './types';
+import type { KeyTerm } from '@/lib/practice/key-terms';
 
 interface LessonPracticeValue {
   resourceId: string;
   drills: PracticeDrill[];
+  /** The lesson's key terms (lesson JSON `interview.key_terms`). */
+  keyTerms: readonly KeyTerm[];
   groups: DrillGroup<PracticeDrill>[];
   scores: BestScores;
   setScores: (scores: BestScores) => void;
@@ -41,13 +44,14 @@ export function useLessonPractice(): LessonPracticeValue | null {
 interface LessonPracticeProviderProps {
   resourceId: string;
   drills: PracticeDrill[];
+  keyTerms: readonly KeyTerm[];
   sections: { conceptId: string; title: string }[];
   initialSlug?: string | null;
   initialMode?: DrillMode | null;
   children: React.ReactNode;
 }
 
-export function LessonPracticeProvider({ resourceId, drills, sections, initialSlug, initialMode, children }: LessonPracticeProviderProps) {
+export function LessonPracticeProvider({ resourceId, drills, keyTerms, sections, initialSlug, initialMode, children }: LessonPracticeProviderProps) {
   const groups = useMemo(() => groupDrills(drills, sections), [drills, sections]);
   const [scores, setScores] = useState<BestScores>({});
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
@@ -66,8 +70,8 @@ export function LessonPracticeProvider({ resourceId, drills, sections, initialSl
   }, []);
 
   const value = useMemo(
-    () => ({ resourceId, drills, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug }),
-    [resourceId, drills, groups, scores, selectedSlug, mode, select, openSlug],
+    () => ({ resourceId, drills, keyTerms, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug }),
+    [resourceId, drills, keyTerms, groups, scores, selectedSlug, mode, select, openSlug],
   );
   return <LessonPracticeContext.Provider value={value}>{children}</LessonPracticeContext.Provider>;
 }
@@ -112,6 +116,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
                   <DrillTrainer
                     resourceId={practice.resourceId}
                     drill={d}
+                    keyTerms={practice.keyTerms}
                     mode={practice.mode}
                     onModeChange={practice.setMode}
                     scores={practice.scores}
@@ -173,6 +178,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         key={drill.slug}
         resourceId={practice.resourceId}
         drill={drill}
+        keyTerms={practice.keyTerms}
         mode={practice.mode}
         onModeChange={practice.setMode}
         scores={practice.scores}

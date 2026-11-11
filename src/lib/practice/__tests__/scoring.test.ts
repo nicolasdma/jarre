@@ -61,8 +61,8 @@ describe('wordsPerMinute', () => {
 describe('alignWords', () => {
   it('marks said, missed and extra words', () => {
     const a = alignWords('I have been writing code for six years.', 'I have writing code for 6 years um');
-    expect(a.marks.filter((m) => m.state === 'missed').map((m) => m.word)).toEqual(['been']);
-    expect(a.marks.filter((m) => m.state === 'extra').map((m) => m.word)).toEqual(['um']);
+    expect(a.words.filter((w) => w.state === 'missed').map((w) => w.word)).toEqual(['been']);
+    expect(a.extras.map((e) => e.word)).toEqual(['um']);
     expect(a.said).toBe(7);
     expect(a.total).toBe(8);
     expect(a.score).toBe(88);

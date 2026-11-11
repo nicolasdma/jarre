@@ -83,7 +83,11 @@ The practice page's **Entrevista** tab runs a voice mock interview in English on
       "tone": "relaxed and friendly, … but she listens for details",
       "focus": "…", "pushback": "…", "technical": "medium", "toughness": "standard" }
   ],
-  "key_terms": ["Valley of Guardians", "row-level security", "postMessage"],
+  "key_terms": [
+    "Valley of Guardians",
+    { "term": "Supabase", "heard_as": ["super base", "super bass"], "say": "SÚ-pa-beis", "ipa": "ˈsuːpəbeɪs" },
+    { "term": "45/55", "heard_as": ["forty five fifty five"], "speak": "forty-five fifty-five" }
+  ],
   "questions": [
     { "id": "signed-links", "kind": "core", "tests": "interview-signed-urls", "drill": "03-links-120-segundos",
       "ask": "How do you make sure a panel link does not stay valid forever?",
@@ -98,7 +102,10 @@ The practice page's **Entrevista** tab runs a voice mock interview in English on
 - `context`, `role`, `tone`, `focus`, `pushback` are written in English: they go into the model's prompt. `label` and `blurb` are what the picker shows.
 - `technical`: `low` (asks you to explain simply), `medium`, `high` (expects the mechanism and the terms).
 - `toughness`: `standard` (default) or `tough`: cuts in on vague answers ("Sorry, be specific: how many seconds?"), one more curveball, praise only for complete answers.
-- `key_terms`: names and terms the learner has to say so a native listener recognizes them; the coach flags them when they come out mangled (the transcript is speech recognition).
+- `key_terms`: names and terms the learner has to say so a native listener recognizes them; the coach flags them when they come out mangled (the transcript is speech recognition). The drills' **Repetir** mode uses them too (`src/lib/practice/key-terms.ts`): an entry is the bare term, or an object with
+  - `heard_as`: what the browser's recognizer writes when the term is said **well** (Chrome cannot be given a vocabulary: "Supabase" comes back as "super bass", 45/55 as "forty five fifty five"). Those count as said, marked with a dashed underline to check by ear. Only sound-alikes of words the recognizer cannot know: a real mispronunciation of a common word ("payroll" for paywall) stays a miss. The same letters with other spacing ("post back", "4555") count as the term without listing them.
+  - `say`: Spanish-ear respelling, syllables with `-`, the stressed one in caps with its accent (`"PÉI-uol"`). Shown on tap and with "Mostrar pronunciación". Words that are not key terms take theirs from the dictionary in `src/lib/practice/pronunciation.ts`; a word in neither gets audio only.
+  - `ipa` (US, no slashes) and `speak` (what the browser voice reads, when the written form misleads it).
 - `questions`: the answer key. `kind` is `core` (a main topic), `must_know` (scored item by item; its `drill` is the canonical answer, read from the lesson's drills) or `curveball` (unexpected but realistic; a few are drawn at random per interview). `tests` is a concept id or `deal` / `process`; `key_points` and `misconceptions` are English and go into the prompt; `drill` links the question to the drill to practice. A curveball with a default's `id` replaces it.
 - The drills are the prepared answers; the sections are the reference for content.
 - Needs `supabase/migrations/20261111020000_resource_interview.sql` applied before seeding a lesson that has the block. Without the column the tab works with the defaults.

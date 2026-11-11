@@ -3,6 +3,8 @@
  * shadowing). No DOM, no React: tested in __tests__/scoring.test.ts.
  */
 
+import type { KeyTerm } from './key-terms';
+
 export interface CompareOptions {
   /** Treat "Hi" and "hi" as equal. */
   caseInsensitive: boolean;
@@ -114,6 +116,7 @@ const NUMBER_WORDS: Record<string, string> = {
 const CONTRACTIONS: Record<string, string> = {
   "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are', "he's": 'he is', "she's": 'she is',
   "it's": 'it is', "that's": 'that is', "there's": 'there is', "what's": 'what is', "let's": 'let us',
+  "who's": 'who is', "where's": 'where is', "here's": 'here is', "how's": 'how is',
   "i've": 'i have', "you've": 'you have', "we've": 'we have', "they've": 'they have',
   "i'll": 'i will', "you'll": 'you will', "we'll": 'we will', "it'll": 'it will', "that'll": 'that will',
   "i'd": 'i would', "you'd": 'you would', "we'd": 'we would', "they'd": 'they would',
@@ -122,79 +125,275 @@ const CONTRACTIONS: Record<string, string> = {
   "haven't": 'have not', "hasn't": 'has not', "shouldn't": 'should not', "wouldn't": 'would not', "couldn't": 'could not',
 };
 
-/** Lowercase, accent-free, punctuation-free words; contractions expanded; small number words become digits. */
+/**
+ * Lowercase, accent-free, punctuation-free words; contractions expanded; small
+ * number words become digits. A possessive "'s" is dropped (barely audible,
+ * and recognizers drop it too); "18+" and "55%" read as "18 plus", "55 percent".
+ */
 export function normalizeWords(text: string): string[] {
   return fold(text)
     .toLowerCase()
     .replace(/(\d),(\d{3})/g, '$1$2')
+    .replace(/(\d)\s*\+/g, '$1 plus ')
+    .replace(/(\d)\s*%/g, '$1 percent ')
     .replace(/[^\p{L}\p{N}'\s-]/gu, ' ')
     .replace(/[-]/g, ' ')
     .split(/\s+/)
     .map((w) => w.replace(/^'+|'+$/g, ''))
     .filter(Boolean)
-    .flatMap((w) => (CONTRACTIONS[w] ?? w).split(' '))
+    .flatMap((w) => (CONTRACTIONS[w] ?? w.replace(/'s$/, '')).split(' '))
     .map((w) => NUMBER_WORDS[w] ?? w);
 }
 
-export type WordState = 'said' | 'missed' | 'extra';
+/**
+ * A target word's state. `pending`: not reached yet while the learner is still
+ * speaking (only with `pendingTail`).
+ */
+export type TargetWordState = 'said' | 'missed' | 'pending';
 
-export interface WordMark {
+export interface TargetWord {
+  /** The target's own spelling, punctuation included. */
   word: string;
-  state: WordState;
+  state: TargetWordState;
+  /** Index into the given key terms when the word is part of one. */
+  term: number | null;
+  /**
+   * Said through one of the term's sound-alikes: the recognizer does not know
+   * the name, so it counts as said and is flagged for a check by ear.
+   */
+  viaAlias: boolean;
+  /** What the recognizer wrote for it, when `viaAlias`. */
+  heardAs: string | null;
+  /**
+   * Which gap between said words a missed word falls in: the extra words with
+   * the same gap are what was said instead ("payroll" for "paywall"). -1 when said.
+   */
+  gap: number;
+}
+
+export interface ExtraWord {
+  /** As the recognizer (or the learner) wrote it, normalized. */
+  word: string;
+  gap: number;
 }
 
 export interface WordAlignment {
-  /** Target words in order (said or missed) with extra spoken words interleaved where they fell. */
-  marks: WordMark[];
+  /** One entry per target word, in order: the text itself never changes. */
+  words: TargetWord[];
+  /** Words heard or typed that are not in the target, kept apart from it. */
+  extras: ExtraWord[];
   said: number;
   total: number;
   /** said / total, in [0, 100]. */
   score: number;
 }
 
+export interface AlignOptions {
+  /**
+   * The lesson's key terms. Each one present in the target is matched as a
+   * whole, and its sound-alikes count as said (`viaAlias`). Pass them only for
+   * speech: a typed dictation has to spell the name.
+   */
+  terms?: readonly KeyTerm[];
+  /** Count a term's sound-alikes as said (default true). Off for typing: the terms then only group their words. */
+  acceptSoundAlikes?: boolean;
+  /** While the learner is still speaking: target words after the last one said are `pending`, not missed. */
+  pendingTail?: boolean;
+}
+
+interface TargetUnit {
+  key: string;
+  words: number[];
+  /** Normalized tokens it stands for: the score stays per token, with or without terms. */
+  weight: number;
+  term: number | null;
+}
+
+interface HeardUnit {
+  key: string;
+  text: string;
+  viaAlias: boolean;
+}
+
+const TERM_KEY = '\u0001term:';
+
+function startsWith(tokens: readonly string[], at: number, seq: readonly string[]): boolean {
+  if (seq.length === 0 || at + seq.length > tokens.length) return false;
+  for (let k = 0; k < seq.length; k++) if (tokens[at + k] !== seq[k]) return false;
+  return true;
+}
+
+/** The target as units: a key term's tokens become one unit, every other token is its own. */
+function targetUnits(display: string[], terms: readonly KeyTerm[]): { units: TargetUnit[]; present: Set<number> } {
+  const tokens: { norm: string; word: number }[] = [];
+  display.forEach((word, w) => normalizeWords(word).forEach((norm) => tokens.push({ norm, word: w })));
+  const norms = tokens.map((tk) => tk.norm);
+  // Longest term first, so "row-level security" wins over a term "security".
+  const order = terms
+    .map((term, k) => ({ k, seq: normalizeWords(term.term) }))
+    .filter((x) => x.seq.length > 0)
+    .sort((a, b) => b.seq.length - a.seq.length);
+
+  const units: TargetUnit[] = [];
+  const present = new Set<number>();
+  for (let i = 0; i < tokens.length; ) {
+    const hit = order.find((x) => startsWith(norms, i, x.seq));
+    if (hit) {
+      const words = [...new Set(tokens.slice(i, i + hit.seq.length).map((tk) => tk.word))];
+      units.push({ key: `${TERM_KEY}${hit.k}`, words, weight: hit.seq.length, term: hit.k });
+      present.add(hit.k);
+      i += hit.seq.length;
+    } else {
+      units.push({ key: tokens[i].norm, words: [tokens[i].word], weight: 1, term: null });
+      i++;
+    }
+  }
+  return { units, present };
+}
+
+/** A spoken name split differently ("post back", "web hooks") is the same name. */
+const MAX_SPLIT = 4;
+
+/**
+ * What was heard, as units. Only the terms present in the target take part, so
+ * a sound-alike never swallows words of a text that does not have the name. A
+ * term written with other spacing ("post back" for postback) counts as the
+ * term itself; a listed sound-alike ("super bass") counts as said via alias.
+ */
+function heardUnits(spoken: string, terms: readonly KeyTerm[], present: Set<number>, soundAlikes: boolean): HeardUnit[] {
+  const heard = normalizeWords(spoken);
+  const compact = new Map<string, number>();
+  for (const k of present) compact.set(normalizeWords(terms[k].term).join(''), k);
+  const forms = [...present]
+    .flatMap((k) => {
+      const own = normalizeWords(terms[k].term).join('');
+      return [
+        { k, seq: normalizeWords(terms[k].term), viaAlias: false },
+        ...(soundAlikes ? terms[k].heardAs : []).map((alias) => {
+          const seq = normalizeWords(alias);
+          return { k, seq, viaAlias: seq.join('') !== own };
+        }),
+      ];
+    })
+    .filter((f) => f.seq.length > 0)
+    // Longest first; at equal length the term itself before a sound-alike.
+    .sort((x, y) => y.seq.length - x.seq.length || Number(x.viaAlias) - Number(y.viaAlias));
+
+  const units: HeardUnit[] = [];
+  for (let j = 0; j < heard.length; ) {
+    let hit: { k: number; len: number; viaAlias: boolean } | null = null;
+    const form = forms.find((f) => startsWith(heard, j, f.seq));
+    if (form) hit = { k: form.k, len: form.seq.length, viaAlias: form.viaAlias };
+    if (soundAlikes) {
+      for (let len = Math.min(MAX_SPLIT, heard.length - j); len > (hit?.len ?? 0); len--) {
+        const k = compact.get(heard.slice(j, j + len).join(''));
+        if (k !== undefined) {
+          hit = { k, len, viaAlias: false };
+          break;
+        }
+      }
+    }
+    if (hit) {
+      units.push({ key: `${TERM_KEY}${hit.k}`, text: heard.slice(j, j + hit.len).join(' '), viaAlias: hit.viaAlias });
+      j += hit.len;
+    } else {
+      units.push({ key: heard[j], text: heard[j], viaAlias: false });
+      j++;
+    }
+  }
+  return units;
+}
+
 /**
  * Longest-common-subsequence alignment of the target's words against what
- * the learner said (or typed). Display words keep the target's spelling.
+ * the learner said (or typed). The target words come back in their own
+ * spelling and order, one entry each; extra words come back apart, so a view
+ * can color the target without moving it.
  */
-export function alignWords(target: string, spoken: string): WordAlignment {
+export function alignWords(target: string, spoken: string, options: AlignOptions = {}): WordAlignment {
+  const terms = options.terms ?? [];
   const display = target.split(/\s+/).filter(Boolean);
-  // Map each normalized target token back to its display word.
-  const tokens: { norm: string; display: string }[] = [];
-  for (const word of display) {
-    const parts = normalizeWords(word);
-    parts.forEach((norm, i) => tokens.push({ norm, display: i === 0 ? word : '' }));
-  }
-  const heard = normalizeWords(spoken);
-  const n = tokens.length;
-  const m = heard.length;
+  const { units: t, present } = targetUnits(display, terms);
+  const h = heardUnits(spoken, terms, present, options.acceptSoundAlikes ?? true);
+  const n = t.length;
+  const m = h.length;
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
-      dp[i][j] = tokens[i].norm === heard[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      dp[i][j] = t[i].key === h[j].key ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
-  const marks: WordMark[] = [];
+
+  // Per display word: how many units it has, how many were said.
+  const unitsOf = display.map(() => 0);
+  const saidOf = display.map(() => 0);
+  const gapOf = display.map(() => -1);
+  const heardAsOf: (string | null)[] = display.map(() => null);
+  const termOf: (number | null)[] = display.map(() => null);
+  for (const u of t) {
+    for (const w of u.words) {
+      unitsOf[w]++;
+      if (u.term !== null) termOf[w] = u.term;
+    }
+  }
+
+  const extras: ExtraWord[] = [];
+  let gap = 0;
+  let said = 0;
   let i = 0;
   let j = 0;
-  let said = 0;
-  const push = (word: string, state: WordState) => {
-    if (word) marks.push({ word, state });
-  };
   while (i < n || j < m) {
-    if (i < n && j < m && tokens[i].norm === heard[j]) {
-      push(tokens[i].display, 'said');
-      said++;
+    if (i < n && j < m && t[i].key === h[j].key) {
+      for (const w of t[i].words) {
+        saidOf[w]++;
+        if (h[j].viaAlias) heardAsOf[w] = h[j].text;
+      }
+      said += t[i].weight;
+      gap++;
       i++;
       j++;
     } else if (j < m && (i >= n || dp[i][j + 1] >= dp[i + 1][j])) {
-      push(heard[j], 'extra');
+      extras.push({ word: h[j].text, gap });
       j++;
     } else {
-      push(tokens[i].display, 'missed');
+      for (const w of t[i].words) if (gapOf[w] < 0) gapOf[w] = gap;
       i++;
     }
   }
-  return { marks, said, total: n, score: n === 0 ? 0 : Math.round((said / n) * 100) };
+
+  const words: TargetWord[] = display.map((word, w) => {
+    const isSaid = unitsOf[w] > 0 && saidOf[w] === unitsOf[w];
+    return {
+      word,
+      state: isSaid ? 'said' : 'missed',
+      term: termOf[w],
+      viaAlias: isSaid && heardAsOf[w] !== null,
+      heardAs: isSaid ? heardAsOf[w] : null,
+      gap: isSaid ? -1 : Math.max(0, gapOf[w]),
+    };
+  });
+
+  if (options.pendingTail) {
+    let last = -1;
+    words.forEach((w, k) => {
+      if (w.state === 'said') last = k;
+    });
+    for (let k = last + 1; k < words.length; k++) words[k].state = 'pending';
+  }
+
+  const total = t.reduce((sum, u) => sum + u.weight, 0);
+  return { words, extras, said, total, score: total === 0 ? 0 : Math.round((said / total) * 100) };
+}
+
+/**
+ * What was said in place of a missed word: the extra words in its gap
+ * ("payroll" for "paywall"). Null when nothing was said there.
+ */
+export function heardInstead(alignment: WordAlignment, wordIndex: number): string | null {
+  const w = alignment.words[wordIndex];
+  if (!w || w.state !== 'missed') return null;
+  const text = alignment.extras.filter((e) => e.gap === w.gap).map((e) => e.word).join(' ');
+  return text || null;
 }
 
 // ---------------------------------------------------------------------------

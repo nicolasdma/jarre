@@ -17,6 +17,7 @@
  */
 
 import { z } from 'zod';
+import { KeyTermEntrySchema, keyTermName } from '../practice/key-terms';
 
 export const InterviewPersonaSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
@@ -72,8 +73,12 @@ export const InterviewConfigSchema = z.object({
   /** Persona selected by default. */
   default_persona: z.string().optional(),
   personas: z.array(InterviewPersonaSchema).default([]),
-  /** Names and terms the candidate must say so a native listener recognizes them. */
-  key_terms: z.array(z.string().min(1)).default([]),
+  /**
+   * Names and terms the candidate must say so a native listener recognizes them.
+   * A bare string, or an object with the recognizer's sound-alikes and a
+   * respelling for the drill practice (src/lib/practice/key-terms.ts).
+   */
+  key_terms: z.array(KeyTermEntrySchema).default([]),
   /** The lesson's question bank; a curveball with a default's id overrides it. */
   questions: z.array(InterviewQuestionSchema).default([]),
 });
@@ -361,7 +366,7 @@ export function resolveInterviewSetup(
     personas,
     questions: config.questions.filter((q) => q.kind !== 'curveball'),
     curveballs: [...ownCurveballs, ...DEFAULT_CURVEBALLS.filter((q) => !ownIds.has(q.id))],
-    keyTerms: config.key_terms,
+    keyTerms: config.key_terms.map(keyTermName),
     curveballCount: curveballCountFor(depth, persona),
   };
 }

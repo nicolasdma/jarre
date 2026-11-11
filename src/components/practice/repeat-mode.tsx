@@ -2,9 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Mic, Square } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { KeyTerm } from '@/lib/practice/key-terms';
+import { pronunciationFor, wordsToPractice } from '@/lib/practice/pronunciation';
 import { alignWords } from '@/lib/practice/scoring';
 import { AudioBar, Chip, PrimaryButton, Stat } from './controls';
-import { WordMarks } from './word-marks';
+import { useShowRespelling } from './show-respelling';
+import { TargetLegend, TargetText } from './target-text';
+import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
@@ -47,14 +52,22 @@ const ERRORS: Record<string, string> = {
  * Escuchar y repetir: play the model audio, then speak. SpeechRecognition
  * (en-US, interim results) marks each target word; MediaRecorder optionally
  * keeps the take so it can be played next to the model.
+ *
+ * The text never moves: words are only colored, extra words go under it. Key
+ * terms the recognizer cannot know (Supabase, Centrobill) count as said when
+ * it writes a known sound-alike, flagged to check by ear. Tap any word to
+ * hear it; after an attempt, the words to drill.
  */
 export function RepeatMode({
   drill,
   audio,
+  terms,
   onScore,
 }: {
   drill: PracticeDrill;
   audio: DrillAudio;
+  /** The lesson's key terms (sound-alikes and respellings). */
+  terms: readonly KeyTerm[];
   onScore: (score: number) => void;
 }) {
   // Browser capabilities: null/false on the server, read once on the client (no hydration mismatch).
@@ -77,7 +90,16 @@ export function RepeatMode({
   const finalRef = useRef('');
 
   const heard = `${finalText} ${interim}`.trim();
-  const alignment = useMemo(() => alignWords(drill.textEn, heard), [drill.textEn, heard]);
+  const alignment = useMemo(
+    () => alignWords(drill.textEn, heard, { terms, pendingTail: listening }),
+    [drill.textEn, heard, terms, listening],
+  );
+  const [showRespelling, setShowRespelling] = useShowRespelling();
+  const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
+  const hasRespellings = useMemo(
+    () => alignment.words.some((w) => w.term !== null && pronunciationFor(w.word, terms[w.term] ?? null)?.say),
+    [alignment.words, terms],
+  );
 
   const stopCapture = () => {
     recRef.current?.stop();
@@ -172,9 +194,9 @@ export function RepeatMode({
     if (listening) reportedRef.current = false;
     if (done && Ctor && finalText && !reportedRef.current) {
       reportedRef.current = true;
-      onScore(alignWords(drill.textEn, finalText).score);
+      onScore(alignWords(drill.textEn, finalText, { terms }).score);
     }
-  }, [done, listening, finalText, Ctor, drill.textEn, onScore]);
+  }, [done, listening, finalText, Ctor, drill.textEn, terms, onScore]);
 
   return (
     <div className="space-y-5" data-mode="repeat">
@@ -187,13 +209,14 @@ export function RepeatMode({
         </p>
       )}
 
+      {/* Everything in this row is always there (the indicator only turns invisible), so the text below never jumps. */}
       <div className="flex flex-wrap items-center gap-2">
         {!listening ? (
-          <PrimaryButton onClick={start} className="flex items-center gap-2">
+          <PrimaryButton onClick={start} className="flex min-w-[8.5rem] items-center justify-center gap-2">
             <Mic size={14} /> {Ctor ? 'Hablar' : 'Grabarme'}
           </PrimaryButton>
         ) : (
-          <PrimaryButton onClick={stop} className="flex items-center gap-2 bg-j-error hover:bg-j-error">
+          <PrimaryButton onClick={stop} className="flex min-w-[8.5rem] items-center justify-center gap-2 bg-j-error hover:bg-j-error">
             <Square size={14} /> Terminar
           </PrimaryButton>
         )}
@@ -202,22 +225,43 @@ export function RepeatMode({
             Guardar mi toma
           </Chip>
         )}
-        {listening && <span className="font-mono text-[11px] text-j-error">● escuchando…</span>}
+        {hasRespellings && (
+          <Chip active={showRespelling} onClick={() => setShowRespelling(!showRespelling)} title="Cómo suenan los nombres y términos clave">
+            Mostrar pronunciación
+          </Chip>
+        )}
+        <span className={cn('font-mono text-[11px] text-j-error', !listening && 'invisible')} aria-hidden={!listening}>● escuchando…</span>
       </div>
+
+      <TargetText
+        words={alignment.words}
+        terms={terms}
+        colored={Boolean(Ctor && (heard || done))}
+        showRespelling={showRespelling}
+        activeIndex={help?.index ?? null}
+        onWord={(index, el) => setHelp(help?.index === index ? null : { index, el })}
+      />
+      <WordHelpPopover
+        anchor={help?.el ?? null}
+        subject={help ? subjectFor(alignment, help.index, terms, Boolean(Ctor && (heard || done))) : null}
+        onClose={() => setHelp(null)}
+        speakDisabled={listening}
+        onBeforeSpeak={audio.pause}
+      />
 
       {error && <p className="text-sm text-j-error">{error}</p>}
 
-      {Ctor && (heard || done) ? (
-        <WordMarks marks={alignment.marks} />
-      ) : (
-        <p className="text-lg leading-relaxed text-j-text-body" lang="en">{drill.textEn}</p>
-      )}
-
       {Ctor && (heard || done) && (
-        <div className="grid grid-cols-2 gap-2">
-          <Stat label="Puntaje" value={`${alignment.score}%`} />
-          <Stat label="Palabras" value={`${alignment.said}/${alignment.total}`} />
-        </div>
+        <>
+          <TargetLegend words={alignment.words} extras={alignment.extras} showExtras={!listening} />
+          <div className="grid grid-cols-2 gap-2">
+            <Stat label="Puntaje" value={`${alignment.score}%`} />
+            <Stat label="Palabras" value={`${alignment.said}/${alignment.total}`} />
+          </div>
+          {done && !listening && (
+            <PracticeWords items={wordsToPractice(alignment, terms)} terms={terms} onBeforeSpeak={audio.pause} />
+          )}
+        </>
       )}
 
       {takeUrl && (

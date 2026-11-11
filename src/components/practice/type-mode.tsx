@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { KeyTerm } from '@/lib/practice/key-terms';
 import {
   accuracyPercent,
   alignWords,
@@ -11,7 +12,8 @@ import {
   type CompareOptions,
 } from '@/lib/practice/scoring';
 import { AudioBar, Chip, PrimaryButton, Stat } from './controls';
-import { WordMarks } from './word-marks';
+import { TargetLegend, TargetText } from './target-text';
+import { subjectFor, WordHelpPopover } from './word-help';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
@@ -36,12 +38,15 @@ export function TypeMode({
   drill,
   audio,
   hidden,
+  terms,
   onResult,
   onNext,
 }: {
   drill: PracticeDrill;
   audio: DrillAudio;
   hidden: boolean;
+  /** Key terms: grouped and explained on tap; a dictation still has to spell them. */
+  terms: readonly KeyTerm[];
   onResult: (result: TypeResult) => void;
   onNext: () => void;
 }) {
@@ -51,6 +56,7 @@ export function TypeMode({
   const [typed, setTyped] = useState('');
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [result, setResult] = useState<TypeResult | null>(null);
+  const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const feedback = useMemo(() => copyFeedback(drill.textEn, typed, opts), [drill.textEn, typed, opts]);
@@ -97,7 +103,7 @@ export function TypeMode({
     }
   };
 
-  const alignment = result && hidden ? alignWords(drill.textEn, typed) : null;
+  const alignment = result && hidden ? alignWords(drill.textEn, typed, { terms, acceptSoundAlikes: false }) : null;
 
   return (
     <div className="space-y-4" data-mode={hidden ? 'dictation' : 'copy'}>
@@ -174,7 +180,20 @@ export function TypeMode({
           </div>
           {alignment && (
             <div className="space-y-3">
-              <WordMarks marks={alignment.marks} />
+              <TargetText
+                words={alignment.words}
+                terms={terms}
+                colored
+                activeIndex={help?.index ?? null}
+                onWord={(index, el) => setHelp(help?.index === index ? null : { index, el })}
+              />
+              <WordHelpPopover
+                anchor={help?.el ?? null}
+                subject={help ? subjectFor(alignment, help.index, terms, true) : null}
+                onClose={() => setHelp(null)}
+                onBeforeSpeak={audio.pause}
+              />
+              <TargetLegend words={alignment.words} extras={alignment.extras} showExtras />
               {drill.textEs && <p className="border-l-2 border-j-warm pl-4 text-sm text-j-text-em">{drill.textEs}</p>}
             </div>
           )}

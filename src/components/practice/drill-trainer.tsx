@@ -16,11 +16,14 @@ import { RepeatMode } from './repeat-mode';
 import { ShadowMode } from './shadow-mode';
 import { TypeMode, type TypeResult } from './type-mode';
 import { useDrillAudio } from './use-drill-audio';
+import type { KeyTerm } from '@/lib/practice/key-terms';
 import { DRILL_MODES, type DrillMode, type PracticeDrill } from './types';
 
 interface DrillTrainerProps {
   resourceId: string;
   drill: PracticeDrill;
+  /** The lesson's key terms: sound-alikes for the recognizer, respellings. */
+  keyTerms: readonly KeyTerm[];
   mode: DrillMode;
   onModeChange: (mode: DrillMode) => void;
   onScores: (scores: BestScores) => void;
@@ -53,7 +56,7 @@ export function isPracticed(best: DrillBest | undefined): boolean {
   return !!best && !!(best.copy || best.dictation || best.repeat || best.shadowed);
 }
 
-export function DrillTrainer({ resourceId, drill, mode, onModeChange, onScores, scores, onPrev, onNext, position }: DrillTrainerProps) {
+export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position }: DrillTrainerProps) {
   const audio = useDrillAudio(drill.audioUrl, drill.textEn);
 
   useEffect(() => {
@@ -125,9 +128,9 @@ export function DrillTrainer({ resourceId, drill, mode, onModeChange, onScores, 
       </nav>
 
       {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} />}
-      {mode === 'copy' && <TypeMode key={`copy-${drill.slug}`} drill={drill} audio={audio} hidden={false} onResult={onTypeResult} onNext={next} />}
-      {mode === 'dictation' && <TypeMode key={`dict-${drill.slug}`} drill={drill} audio={audio} hidden onResult={onTypeResult} onNext={next} />}
-      {mode === 'repeat' && <RepeatMode key={drill.slug} drill={drill} audio={audio} onScore={onRepeatScore} />}
+      {mode === 'copy' && <TypeMode key={`copy-${drill.slug}`} drill={drill} audio={audio} hidden={false} terms={keyTerms} onResult={onTypeResult} onNext={next} />}
+      {mode === 'dictation' && <TypeMode key={`dict-${drill.slug}`} drill={drill} audio={audio} hidden terms={keyTerms} onResult={onTypeResult} onNext={next} />}
+      {mode === 'repeat' && <RepeatMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onScore={onRepeatScore} />}
       {mode === 'shadow' && <ShadowMode key={drill.slug} drill={drill} audio={audio} onFinished={onShadowed} />}
     </div>
   );
