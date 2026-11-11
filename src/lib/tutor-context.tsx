@@ -11,6 +11,8 @@ interface TutorContextOverride {
   sectionId?: string;
   sectionContent?: string;
   sectionTitle?: string;
+  /** Every section of the resource, so the learning tutor knows the whole lesson. */
+  lessonSections?: { title: string; content: string }[];
 }
 
 interface TutorContextValue {

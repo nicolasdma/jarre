@@ -1,5 +1,12 @@
 /**
- * Jarre - Voice Tutor System Instructions
+ * Jarre - Voice Tutor System Instructions (LEGACY)
+ *
+ * Not used by the app since 2026-11-11: the learning tutor is
+ * buildLearningSession in src/lib/llm/voice-tutor-session.ts. Kept only so
+ * `scripts/probe-voice-tutor.ts --prompt legacy` can reproduce the "before" of
+ * docs/research/2026-11-11-voice-tutor-aaa.md. Two of its instructions broke on
+ * the native-audio model: "INTERNAL REASONING" was spoken aloud, and
+ * "REVOICING" read as parroting the learner.
  *
  * Builds the system prompt for the Gemini Live voice tutor.
  * Personality: opinionated senior engineer. Method: Socratic with AutoTutor scaffolding.

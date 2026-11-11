@@ -354,6 +354,7 @@ export function LearnFlow({
       sectionId: sections[activeSection]?.id,
       sectionContent: sections[activeSection]?.contentMarkdown,
       sectionTitle: sections[activeSection]?.sectionTitle,
+      lessonSections: sections.map((s) => ({ title: s.sectionTitle, content: s.contentMarkdown })),
     });
   }, [resourceId, concepts, resourceTitle, setOverride, currentStep, sections, activeSection]);
 

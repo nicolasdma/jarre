@@ -148,6 +148,8 @@ export interface UseUnifiedVoiceSessionParams {
   sectionId?: string;
   sectionContent?: string;
   sectionTitle?: string;
+  /** Learning: every section of the resource, so the tutor knows the whole lesson. */
+  lessonSections?: { title: string; content: string }[];
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -262,6 +264,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     resourceTitle,
     sectionContent,
     sectionTitle,
+    lessonSections,
     userResourceId,
     debateTopic,
     conceptForTeach,
@@ -536,14 +539,18 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     language,
     onSessionComplete: handleSessionComplete,
     // For learning mode, don't override — let useVoiceSession build the prompt
-    // via buildVoiceSystemInstruction with sectionContent (same as VoicePanel inline)
+    // (buildLearningSession) from the whole lesson, same as VoicePanel inline.
     systemInstructionOverride: mode === 'learning' ? undefined : (systemInstruction || 'pending'),
     sessionType: sessionTypeForMode(mode),
     resourceId,
     initialMessage,
     conceptIds: fetchedConceptIds,
-    tools: TUTOR_TOOLS,
+    // Learning ends by a spoken phrase and never uses the UI tools; declaring
+    // them only invites a call before the first word.
+    tools: mode === 'learning' ? undefined : TUTOR_TOOLS,
     onToolCall: handleGeminiToolCall,
+    lessonTitle: resourceTitle,
+    lessonSections,
   });
 
   // Keep sendToolResponse ref in sync
@@ -573,7 +580,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
 
   const fetchContextAndBuildPrompt = useCallback(async (): Promise<{
     instruction: string;
-    initialMsg: string;
+    initialMsg: string | undefined;
     conceptIds: string[];
   }> => {
     let learnerMemory: LearnerConceptMemory[] = [];
@@ -689,14 +696,10 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         break;
       }
       case 'learning': {
-        // No custom prompt — useVoiceSession builds it via buildVoiceSystemInstruction
-        // using sectionContent/sectionTitle (same experience as VoicePanel inline).
+        // No custom prompt — useVoiceSession builds it (buildLearningSession)
+        // with its own opener, from the whole lesson.
         cIds = concepts?.map((c) => c.id) || [];
-        initialMsg = language === 'es'
-          ? 'Estoy estudiando el material y tengo algunas dudas.'
-          : "I'm studying the material and have some questions.";
-        // Return early — instruction is empty (not used, no override for learning)
-        return { instruction: '', initialMsg, conceptIds: cIds };
+        return { instruction: '', initialMsg: undefined, conceptIds: cIds };
       }
     }
 

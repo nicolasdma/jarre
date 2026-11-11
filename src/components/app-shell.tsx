@@ -72,6 +72,7 @@ export function AppShell({ children, language }: AppShellProps) {
     sectionId: override?.sectionId,
     sectionContent: override?.sectionContent,
     sectionTitle: override?.sectionTitle,
+    lessonSections: override?.lessonSections,
   });
 
   const startVoice = useCallback(async () => {

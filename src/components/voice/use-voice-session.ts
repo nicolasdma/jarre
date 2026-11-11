@@ -7,8 +7,8 @@ import {
   type GeminiLiveClientInstance,
   type ConnectionState,
 } from '@/lib/voice/gemini-live';
-import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
-import { resolveVoiceLiveModel, TURN_TAKING } from '@/lib/voice/live-models';
+import { buildLearningSession } from '@/lib/llm/voice-tutor-session';
+import { resolveVoiceLiveModel, TURN_TAKING, type TurnTaking } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
@@ -42,7 +42,26 @@ interface UseVoiceSessionParams {
   tools?: Tool[];
   /** Callback when Gemini invokes tool calls */
   onToolCall?: (functionCalls: FunctionCall[]) => void;
+  /**
+   * The whole lesson, for the learning tutor: it quizzes on every section,
+   * starting with the one being studied (`sectionTitle`). Without it the
+   * lesson is just this section.
+   */
+  lessonTitle?: string;
+  lessonSections?: { title: string; content: string }[];
+  /**
+   * How long a pause ends the learner's turn. 'patient' is for answers in a
+   * second language, where people stop to find the word.
+   */
+  turnTaking?: TurnTaking;
+  /**
+   * Whether a farewell ("bye", "chau") ends the session. Off for the interview
+   * mock, where the interviewer says goodbye before the final feedback.
+   */
+  softEndSignals?: boolean;
 }
+
+
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -91,7 +110,7 @@ const TRANSCRIPT_MAX_RETRY_DELAY_MS = 4000;
 // Strong signals are explicit completion phrases.
 // Soft signals are conversational farewells used as fallback in unified modes.
 const SESSION_END_STRONG_SIGNAL =
-  /\b(session complete|session completed|session ended|sesion terminada|sesión terminada|hemos terminado|con esto terminamos|terminamos aca|terminamos acá|that'?s all for today|we are done)\b/i;
+  /\b(session complete|interview complete|sesi[oó]n completa|entrevista completa|session completed|session ended|sesion terminada|sesión terminada|hemos terminado|con esto terminamos|terminamos aca|terminamos acá|that'?s all for today|we are done)\b/i;
 const SESSION_END_SOFT_SIGNAL =
   /\b(chau|chao|ciao|adios|adiós|hasta luego|hasta la proxima|hasta la próxima|nos vemos|bye|goodbye|see you|take care)\b/i;
 const SESSION_END_WINDOW_CHARS = 320;
@@ -115,6 +134,10 @@ export function useVoiceSession({
   conceptIds,
   tools,
   onToolCall,
+  lessonTitle,
+  lessonSections,
+  turnTaking = 'default',
+  softEndSignals = true,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -173,8 +196,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, softEndSignals });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, softEndSignals };
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -508,8 +531,14 @@ export function useVoiceSession({
   }, [flushTranscriptQueue]);
 
   // ---- Transcript saving (queued + batched) ----
+  //
+  // The Live API streams transcriptions in fragments of a few characters, each
+  // with its own leading space. One stored row per utterance (not per
+  // fragment) is what scoring, reconnection context and the UI read.
 
-  const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
+  const utteranceRef = useRef<{ role: 'user' | 'model'; text: string } | null>(null);
+
+  const persistUtterance = useCallback((role: 'user' | 'model', text: string) => {
     const sid = sessionIdRef.current;
     if (!sid) return;
 
@@ -518,9 +547,6 @@ export function useVoiceSession({
 
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
-
-    // Update React state for UI consumption
-    setTranscript((prev) => [...prev, { role, text }]);
 
     const seq = ++transcriptSeqRef.current;
     transcriptQueueRef.current.push({
@@ -538,17 +564,45 @@ export function useVoiceSession({
     } else {
       scheduleTranscriptFlush();
     }
+  }, [flushTranscriptQueue, scheduleTranscriptFlush]);
+
+  /** Close the utterance being transcribed and store it. */
+  const commitUtterance = useCallback(() => {
+    const utterance = utteranceRef.current;
+    utteranceRef.current = null;
+    if (!utterance) return;
+    const text = utterance.text.replace(/\s+/g, ' ').trim();
+    if (text) persistUtterance(utterance.role, text);
+  }, [persistUtterance]);
+
+  const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
+    if (!sessionIdRef.current) return;
+
+    if (utteranceRef.current && utteranceRef.current.role !== role) commitUtterance();
+    const starting = !utteranceRef.current;
+    if (!utteranceRef.current) utteranceRef.current = { role, text: '' };
+    utteranceRef.current.text += text;
+    const live = utteranceRef.current.text.replace(/\s+/g, ' ').trim();
+
+    // Update React state for UI consumption: one line per utterance, growing.
+    setTranscript((prev) =>
+      starting || prev.length === 0
+        ? [...prev, { role, text: live }]
+        : [...prev.slice(0, -1), { role, text: live }],
+    );
 
     // Detect AI-driven session completion from model transcript window.
     // Gemini often streams transcripts in chunks, so we inspect a rolling window
     // instead of only the current chunk.
     if (role === 'model' && !sessionEndDetectedRef.current) {
-      const combined = `${modelTranscriptWindowRef.current} ${text}`.trim();
+      // Raw fragments carry their own spaces: join them as they come.
+      const combined = `${modelTranscriptWindowRef.current}${text}`.replace(/\s+/g, ' ');
       modelTranscriptWindowRef.current = combined.slice(-SESSION_END_WINDOW_CHARS);
 
       const elapsedS = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const hasStrongEndSignal = SESSION_END_STRONG_SIGNAL.test(modelTranscriptWindowRef.current);
       const hasSoftEndSignal =
+        paramsRef.current.softEndSignals &&
         !hasStrongEndSignal && SESSION_END_SOFT_SIGNAL.test(modelTranscriptWindowRef.current);
 
       const minElapsed = hasStrongEndSignal
@@ -569,6 +623,7 @@ export function useVoiceSession({
           `[Session] ${signalType} end signal detected after ${elapsedS}s, auto-disconnecting in 1s`,
         );
         endKeywordTimerRef.current = setTimeout(() => {
+          commitUtterance();
           disconnectRef.current();
           onSessionCompleteRef.current?.();
         }, 1000);
@@ -578,7 +633,7 @@ export function useVoiceSession({
         );
       }
     }
-  }, [flushTranscriptQueue, scheduleTranscriptFlush]);
+  }, [commitUtterance]);
 
   // ---- Compress conversation via API ----
 
@@ -667,6 +722,7 @@ export function useVoiceSession({
       transcriptFlushTimerRef.current = null;
     }
     setTranscript([]);
+    utteranceRef.current = null;
     modelTranscriptWindowRef.current = '';
     lastLoggedStateRef.current = 'idle';
     sessionEndDetectedRef.current = false;
@@ -749,31 +805,23 @@ export function useVoiceSession({
 
       // 2. Build system instruction (use override if provided, otherwise build from section content)
       let systemInstruction: string;
+      let opener: string | undefined;
       if (sysOverride) {
         // Override already includes learner memory (injected by the caller, e.g. useUnifiedVoiceSession)
         systemInstruction = sysOverride;
       } else {
-        systemInstruction = buildVoiceSystemInstruction({
-          sectionContent: sc,
-          sectionTitle: st,
+        const { lessonTitle: lt, lessonSections: ls } = paramsRef.current;
+        const sections = ls?.length ? ls : [{ title: st, content: sc }];
+        const focus = Math.max(0, sections.findIndex((s) => s.title === st));
+        const session = buildLearningSession({
           language: lang,
-          previousSessionContext: learnerMemory.length > 0
-            ? {
-                misconceptions: learnerMemory.flatMap((m) => m.misconceptions),
-                strengths: learnerMemory.flatMap((m) => m.strengths),
-              }
-            : undefined,
+          lesson: { title: lt || st, sections },
+          focusSectionIndex: focus,
+          learnerNotes: formatMemoryForPrompt(learnerMemory, lang) || null,
+          previousSummary: summary ?? null,
         });
-
-        if (summary) {
-          systemInstruction += `\n\nPREVIOUS CONVERSATION SUMMARY:\nYou've discussed this section with the student before. Here's what happened:\n${summary}\n\nUse this context naturally. Don't say "last time we talked about..." — just pick up where you left off or build on what they already understand.`;
-        }
-
-        // Only inject learner memory when building our own prompt (not with overrides)
-        const memoryText = formatMemoryForPrompt(learnerMemory, lang);
-        if (memoryText) {
-          systemInstruction += `\n\n${memoryText}`;
-        }
+        systemInstruction = session.instruction;
+        opener = session.opener;
       }
 
       // 3. Create Gemini Live client
@@ -786,10 +834,12 @@ export function useVoiceSession({
           playAudioChunk(audioChunk);
         },
         onTurnComplete: () => {
+          commitUtterance();
           logTransition('listening', 'turn_complete');
           setTutorState('listening');
         },
         onInterrupted: () => {
+          commitUtterance();
           stopPlayback();
           logTransition('listening', 'interrupted');
           setTutorState('listening');
@@ -969,7 +1019,7 @@ export function useVoiceSession({
         model: resolveVoiceLiveModel(),
         systemInstruction,
         voiceName: VOICE_NAME,
-        realtimeInputConfig: TURN_TAKING.default,
+        realtimeInputConfig: TURN_TAKING[paramsRef.current.turnTaking],
         ...(paramsRef.current.tools ? { tools: paramsRef.current.tools } : {}),
       });
 
@@ -979,15 +1029,7 @@ export function useVoiceSession({
       setTutorState('listening');
 
       // 6. Send initial message — the model should jump straight to a question
-      const prompt = initMsg ?? (
-        summary
-          ? (lang === 'es'
-              ? 'Ya leí esta sección y la vez pasada hablamos. Preguntame algo nuevo.'
-              : 'I\'ve read this section and we talked before. Ask me something new.')
-          : (lang === 'es'
-              ? 'Ya leí esta sección.'
-              : 'I\'ve read this section.')
-      );
+      const prompt = initMsg ?? opener ?? (lang === 'es' ? 'Estoy listo.' : "I'm ready.");
       client.sendText(prompt);
 
       // 7. Start session timer (display only — no auto-disconnect)
@@ -1000,7 +1042,7 @@ export function useVoiceSession({
       setTutorState('idle');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript, buildFallbackContext, logTransition]);
+  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript, commitUtterance, buildFallbackContext, logTransition]);
 
   // ---- Disconnect ----
 
@@ -1008,6 +1050,7 @@ export function useVoiceSession({
     const sid = sessionIdRef.current;
     const writeToken = sessionWriteTokenRef.current;
     log.info(`[Disconnect] Requested sid=${sid ?? 'none'}`);
+    commitUtterance();
 
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
@@ -1080,7 +1123,7 @@ export function useVoiceSession({
 
     // NOTE: manual disconnect does NOT call onSessionComplete.
     // Only AI-driven completion (via transcript detection) unlocks the quiz.
-  }, [flushTranscriptQueue, logTransition, stopMic, stopPlayback, stopTimer]);
+  }, [commitUtterance, flushTranscriptQueue, logTransition, stopMic, stopPlayback, stopTimer]);
 
   // Keep disconnectRef in sync so saveTranscript can call it
   disconnectRef.current = disconnect;
@@ -1103,6 +1146,7 @@ export function useVoiceSession({
         transcriptFlushTimerRef.current = null;
       }
 
+      commitUtterance();
       const sid = sessionIdRef.current;
       const writeToken = sessionWriteTokenRef.current;
       if (sid) {
@@ -1135,7 +1179,7 @@ export function useVoiceSession({
         clientRef.current = null;
       }
     };
-  }, [flushTranscriptQueue, stopMic, stopPlayback, stopTimer]);
+  }, [commitUtterance, flushTranscriptQueue, stopMic, stopPlayback, stopTimer]);
 
   return {
     connectionState,
