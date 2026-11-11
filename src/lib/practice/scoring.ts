@@ -1,6 +1,6 @@
 /**
- * Pure scoring for the drill practice modes (copy, dictation, listen-and-repeat,
- * shadowing). No DOM, no React: tested in __tests__/scoring.test.ts.
+ * Pure scoring for the drill practice modes (copy, listen-and-repeat, sentence
+ * by sentence). No DOM, no React: tested in __tests__/scoring.test.ts.
  */
 
 import type { KeyTerm } from './key-terms';
@@ -191,12 +191,10 @@ export interface WordAlignment {
 export interface AlignOptions {
   /**
    * The lesson's key terms. Each one present in the target is matched as a
-   * whole, and its sound-alikes count as said (`viaAlias`). Pass them only for
-   * speech: a typed dictation has to spell the name.
+   * whole, and its sound-alikes count as said (`viaAlias`): this is for speech
+   * recognition, which cannot know the names.
    */
   terms?: readonly KeyTerm[];
-  /** Count a term's sound-alikes as said (default true). Off for typing: the terms then only group their words. */
-  acceptSoundAlikes?: boolean;
   /** While the learner is still speaking: target words after the last one said are `pending`, not missed. */
   pendingTail?: boolean;
 }
@@ -260,7 +258,7 @@ const MAX_SPLIT = 4;
  * term written with other spacing ("post back" for postback) counts as the
  * term itself; a listed sound-alike ("super bass") counts as said via alias.
  */
-function heardUnits(spoken: string, terms: readonly KeyTerm[], present: Set<number>, soundAlikes: boolean): HeardUnit[] {
+function heardUnits(spoken: string, terms: readonly KeyTerm[], present: Set<number>): HeardUnit[] {
   const heard = normalizeWords(spoken);
   const compact = new Map<string, number>();
   for (const k of present) compact.set(normalizeWords(terms[k].term).join(''), k);
@@ -269,7 +267,7 @@ function heardUnits(spoken: string, terms: readonly KeyTerm[], present: Set<numb
       const own = normalizeWords(terms[k].term).join('');
       return [
         { k, seq: normalizeWords(terms[k].term), viaAlias: false },
-        ...(soundAlikes ? terms[k].heardAs : []).map((alias) => {
+        ...terms[k].heardAs.map((alias) => {
           const seq = normalizeWords(alias);
           return { k, seq, viaAlias: seq.join('') !== own };
         }),
@@ -284,13 +282,11 @@ function heardUnits(spoken: string, terms: readonly KeyTerm[], present: Set<numb
     let hit: { k: number; len: number; viaAlias: boolean } | null = null;
     const form = forms.find((f) => startsWith(heard, j, f.seq));
     if (form) hit = { k: form.k, len: form.seq.length, viaAlias: form.viaAlias };
-    if (soundAlikes) {
-      for (let len = Math.min(MAX_SPLIT, heard.length - j); len > (hit?.len ?? 0); len--) {
-        const k = compact.get(heard.slice(j, j + len).join(''));
-        if (k !== undefined) {
-          hit = { k, len, viaAlias: false };
-          break;
-        }
+    for (let len = Math.min(MAX_SPLIT, heard.length - j); len > (hit?.len ?? 0); len--) {
+      const k = compact.get(heard.slice(j, j + len).join(''));
+      if (k !== undefined) {
+        hit = { k, len, viaAlias: false };
+        break;
       }
     }
     if (hit) {
@@ -314,7 +310,7 @@ export function alignWords(target: string, spoken: string, options: AlignOptions
   const terms = options.terms ?? [];
   const display = target.split(/\s+/).filter(Boolean);
   const { units: t, present } = targetUnits(display, terms);
-  const h = heardUnits(spoken, terms, present, options.acceptSoundAlikes ?? true);
+  const h = heardUnits(spoken, terms, present);
   const n = t.length;
   const m = h.length;
   const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
@@ -397,7 +393,7 @@ export function heardInstead(alignment: WordAlignment, wordIndex: number): strin
 }
 
 // ---------------------------------------------------------------------------
-// Sentences (shadowing)
+// Sentences
 // ---------------------------------------------------------------------------
 
 export interface TimedSentence {
@@ -410,7 +406,8 @@ export interface TimedSentence {
 /** Split on sentence ends; no audio alignment exists, so timing is proportional to length. */
 export function splitSentences(text: string): TimedSentence[] {
   const parts = text
-    .split(/(?<=[.!?])\s+(?=["'“(]?[\p{Lu}\p{N}])/u)
+    // Not after a list number ("from your side: 1. Access to…").
+    .split(/(?<=[.!?])(?<!(?:^|\s)\d{1,2}\.)\s+(?=["'“(]?[\p{Lu}\p{N}])/u)
     .map((s) => s.trim())
     .filter(Boolean);
   const total = parts.reduce((sum, s) => sum + s.length, 0) || 1;

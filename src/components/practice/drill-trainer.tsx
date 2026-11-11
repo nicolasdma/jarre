@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * One drill with every way to practice it: listen, copy, dictation, repeat
- * and shadowing. Lives inside the learn view, under the section the drill
+ * One drill with every way to practice it: listen, copy, repeat
+ * and sentence by sentence. Lives inside the learn view, under the section the drill
  * belongs to and in the lesson's Practice step; best scores are kept per
  * device (best-scores.ts).
  */
@@ -13,8 +13,8 @@ import { cn } from '@/lib/utils';
 import { recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
 import { ListenMode } from './listen-mode';
 import { RepeatMode } from './repeat-mode';
-import { ShadowMode } from './shadow-mode';
-import { TypeMode, type TypeResult } from './type-mode';
+import { SentenceMode } from './sentence-mode';
+import { CopyMode, type CopyResult } from './copy-mode';
 import { useDrillAudio } from './use-drill-audio';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 import { DRILL_MODES, type DrillMode, type PracticeDrill } from './types';
@@ -45,15 +45,15 @@ export function bestLine(best: DrillBest | undefined): string | null {
   if (!best) return null;
   const parts: string[] = [];
   if (best.copy) parts.push(`copiar ${best.copy.score}%${best.copy.wpm ? ` · ${best.copy.wpm} wpm` : ''}`);
-  if (best.dictation) parts.push(`dictado ${best.dictation.score}%`);
   if (best.repeat) parts.push(`repetir ${best.repeat.score}%`);
-  if (best.shadowed) parts.push(`shadowing ×${best.shadowed}`);
+  if (best.sentences) parts.push(`frases ${best.sentences.score}% a la primera`);
+  else if (best.shadowed) parts.push(`frase por frase ×${best.shadowed}`);
   return parts.length ? parts.join(' · ') : null;
 }
 
 /** A drill counts as practiced once any mode has a result. */
 export function isPracticed(best: DrillBest | undefined): boolean {
-  return !!best && !!(best.copy || best.dictation || best.repeat || best.shadowed);
+  return !!best && !!(best.copy || best.repeat || best.sentences || best.shadowed);
 }
 
 export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position }: DrillTrainerProps) {
@@ -62,27 +62,26 @@ export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
-      if (e.key === ' ' && document.activeElement?.closest('[data-drill-trainer]')) {
+      // Frase por frase has its own keys (Space: listen to the sentence).
+      if (e.key === ' ' && mode !== 'sentences' && document.activeElement?.closest('[data-drill-trainer]')) {
         e.preventDefault();
         audio.toggle();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [audio]);
+  }, [audio, mode]);
 
-  const onTypeResult = useCallback(
-    (r: TypeResult) => {
-      onScores(
-        mode === 'dictation'
-          ? recordScore(resourceId, drill.slug, 'dictation', r.wordScore)
-          : recordScore(resourceId, drill.slug, 'copy', r.accuracy, r.wpm),
-      );
-    },
-    [drill.slug, mode, onScores, resourceId],
+  const onCopyResult = useCallback(
+    (r: CopyResult) => onScores(recordScore(resourceId, drill.slug, 'copy', r.accuracy, r.wpm)),
+    [drill.slug, onScores, resourceId],
   );
   const onRepeatScore = useCallback((score: number) => onScores(recordScore(resourceId, drill.slug, 'repeat', score)), [drill.slug, onScores, resourceId]);
-  const onShadowed = useCallback(() => onScores(recordShadowed(resourceId, drill.slug)), [drill.slug, onScores, resourceId]);
+  const onSentences = useCallback(
+    (firstTry: number | null) =>
+      onScores(firstTry === null ? recordShadowed(resourceId, drill.slug) : recordScore(resourceId, drill.slug, 'sentences', firstTry)),
+    [drill.slug, onScores, resourceId],
+  );
   const next = onNext ?? (() => {});
   const best = bestLine(scores[drill.slug]);
 
@@ -128,10 +127,9 @@ export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, 
       </nav>
 
       {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} />}
-      {mode === 'copy' && <TypeMode key={`copy-${drill.slug}`} drill={drill} audio={audio} hidden={false} terms={keyTerms} onResult={onTypeResult} onNext={next} />}
-      {mode === 'dictation' && <TypeMode key={`dict-${drill.slug}`} drill={drill} audio={audio} hidden terms={keyTerms} onResult={onTypeResult} onNext={next} />}
+      {mode === 'copy' && <CopyMode key={`copy-${drill.slug}`} drill={drill} audio={audio} onResult={onCopyResult} onNext={next} />}
       {mode === 'repeat' && <RepeatMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onScore={onRepeatScore} />}
-      {mode === 'shadow' && <ShadowMode key={drill.slug} drill={drill} audio={audio} onFinished={onShadowed} />}
+      {mode === 'sentences' && <SentenceMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onFinished={onSentences} />}
     </div>
   );
 }

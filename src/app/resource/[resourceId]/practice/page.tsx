@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { isDrillMode } from '@/components/practice/types';
+import { drillModeFromParam } from '@/components/practice/types';
 
 /**
  * The practice page lives inside the lesson now: drills under each section, a
@@ -23,7 +23,8 @@ export default async function PracticePage({ params, searchParams }: PageProps) 
   } else {
     query.set('step', 'practice');
     if (drill) query.set('drill', drill);
-    if (isDrillMode(mode)) query.set('mode', mode);
+    const drillMode = drillModeFromParam(mode);
+    if (drillMode) query.set('mode', drillMode);
   }
   redirect(`/learn/${encodeURIComponent(resourceId)}?${query.toString()}`);
 }

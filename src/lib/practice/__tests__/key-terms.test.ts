@@ -70,11 +70,6 @@ describe('alignWords with key terms', () => {
     expect(a.words.every((w) => !w.viaAlias && w.term === null)).toBe(true);
   });
 
-  it('does not take sound-alikes when typing (dictation spells the name)', () => {
-    const a = alignWords('in Supabase', 'in super base', { terms: TERMS, acceptSoundAlikes: false });
-    expect(a.words[1].state).toBe('missed');
-  });
-
   it('matches multi-word terms as a whole and scores them by their words', () => {
     const a = alignWords('row-level security on every table', 'row level security on every table', { terms: TERMS });
     expect(a.score).toBe(100);
@@ -128,6 +123,13 @@ describe('pronunciation', () => {
       ['paywall', 'missed', 'payroll'],
       ['Supabase', 'alias', 'super bass'],
     ]);
+  });
+
+  it('says what was heard instead once per gap, not on every missed word', () => {
+    const a = alignWords('storage rules block direct reads for every user', 'storage thing user', {});
+    const items = wordsToPractice(a, []);
+    expect(items.map((i) => i.text)).toEqual(['rules', 'block', 'direct', 'reads', 'every']);
+    expect(items.filter((i) => i.heard).map((i) => i.heard)).toEqual(['thing']);
   });
 
   it('leaves function words out of the list', () => {

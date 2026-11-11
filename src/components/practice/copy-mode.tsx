@@ -2,18 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { KeyTerm } from '@/lib/practice/key-terms';
 import {
   accuracyPercent,
-  alignWords,
   copyFeedback,
   wordsPerMinute,
   type CharState,
   type CompareOptions,
 } from '@/lib/practice/scoring';
-import { AudioBar, Chip, PrimaryButton, Stat } from './controls';
-import { TargetLegend, TargetText } from './target-text';
-import { subjectFor, WordHelpPopover } from './word-help';
+import { Chip, PrimaryButton, Stat } from './controls';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
@@ -24,39 +20,32 @@ const CHAR_CLASS: Record<CharState, string> = {
   neutral: 'text-j-text-tertiary',
 };
 
-export interface TypeResult {
+export interface CopyResult {
   accuracy: number;
   wpm: number;
-  wordScore: number;
 }
 
 /**
- * Copiar (target visible) and Dictado (target hidden until the end).
+ * Copiar: type the visible text, with live char feedback, accuracy and WPM.
  * Enter checks; Enter again goes to the next drill. Esc plays/pauses the audio.
+ * (Dictado, the hidden-text variant, was removed on 2026-11-11: it scored
+ * spelling, not what the owner practices.)
  */
-export function TypeMode({
+export function CopyMode({
   drill,
   audio,
-  hidden,
-  terms,
   onResult,
   onNext,
 }: {
   drill: PracticeDrill;
   audio: DrillAudio;
-  hidden: boolean;
-  /** Key terms: grouped and explained on tap; a dictation still has to spell them. */
-  terms: readonly KeyTerm[];
-  onResult: (result: TypeResult) => void;
+  onResult: (result: CopyResult) => void;
   onNext: () => void;
 }) {
-  const [opts, setOpts] = useState<CompareOptions>(
-    hidden ? { caseInsensitive: true, ignorePunctuation: true } : { caseInsensitive: false, ignorePunctuation: false },
-  );
+  const [opts, setOpts] = useState<CompareOptions>({ caseInsensitive: false, ignorePunctuation: false });
   const [typed, setTyped] = useState('');
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [result, setResult] = useState<TypeResult | null>(null);
-  const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
+  const [result, setResult] = useState<CopyResult | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const feedback = useMemo(() => copyFeedback(drill.textEn, typed, opts), [drill.textEn, typed, opts]);
@@ -70,10 +59,9 @@ export function TypeMode({
   const finish = () => {
     if (result) return;
     const elapsed = startedAt ? Date.now() - startedAt : 0;
-    const r: TypeResult = {
+    const r: CopyResult = {
       accuracy: accuracyPercent(feedback),
       wpm: wordsPerMinute(feedback.typedLength, elapsed),
-      wordScore: alignWords(drill.textEn, typed).score,
     };
     setResult(r);
     onResult(r);
@@ -81,9 +69,9 @@ export function TypeMode({
 
   // A copy typed perfectly to the end checks itself.
   useEffect(() => {
-    if (!hidden && !result && feedback.complete && feedback.correct === feedback.targetLength && feedback.extra === 0) finish();
+    if (!result && feedback.complete && feedback.correct === feedback.targetLength && feedback.extra === 0) finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- finish reads the same feedback
-  }, [feedback, hidden, result]);
+  }, [feedback, result]);
 
   const reset = () => {
     setTyped('');
@@ -103,30 +91,19 @@ export function TypeMode({
     }
   };
 
-  const alignment = result && hidden ? alignWords(drill.textEn, typed, { terms, acceptSoundAlikes: false }) : null;
-
   return (
-    <div className="space-y-4" data-mode={hidden ? 'dictation' : 'copy'}>
-      {hidden && <AudioBar audio={audio} />}
-
-      {!hidden && (
-        <p className="text-lg leading-relaxed sm:text-xl" lang="en" data-testid="copy-target">
-          {targetChars.map((ch, i) => (
-            <span
-              key={i}
-              data-state={feedback.states[i]}
-              className={cn(CHAR_CLASS[feedback.states[i]], i === caret && !result && 'border-b-2 border-j-accent')}
-            >
-              {ch}
-            </span>
+    <div className="space-y-4" data-mode="copy">
+      <p className="text-lg leading-relaxed sm:text-xl" lang="en" data-testid="copy-target">
+        {targetChars.map((ch, i) => (
+          <span
+            key={i}
+            data-state={feedback.states[i]}
+            className={cn(CHAR_CLASS[feedback.states[i]], i === caret && !result && 'border-b-2 border-j-accent')}
+          >
+            {ch}
+          </span>
           ))}
-        </p>
-      )}
-      {hidden && !result && (
-        <p className="font-mono text-[11px] text-j-text-tertiary">
-          Escuchá y escribí lo que oís. Esc reproduce o pausa. Enter revisa.
-        </p>
-      )}
+      </p>
 
       <div className="flex flex-wrap gap-2">
         <Chip active={opts.caseInsensitive} onClick={() => setOpts((o) => ({ ...o, caseInsensitive: !o.caseInsensitive }))}>
@@ -149,54 +126,32 @@ export function TypeMode({
         onPaste={(e) => e.preventDefault()}
         onDrop={(e) => e.preventDefault()}
         readOnly={Boolean(result)}
-        rows={hidden ? 6 : 5}
+        rows={5}
         spellCheck={false}
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="off"
         lang="en"
-        aria-label={hidden ? 'Lo que escuchaste' : 'Copiá el texto'}
-        placeholder={hidden ? 'Escribí lo que escuchás…' : 'Escribí el texto de arriba…'}
+        aria-label="Copiá el texto"
+        placeholder="Escribí el texto de arriba…"
         className="w-full resize-y border border-j-border-input bg-j-bg-white p-3 text-base leading-relaxed text-j-text outline-none focus:border-j-accent"
       />
 
       {!result && (
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={finish} disabled={!typed.trim()}>Revisar · Enter</PrimaryButton>
-          {!hidden && (
-            <span className="font-mono text-[11px] tabular-nums text-j-text-tertiary">
-              {feedback.correct}/{feedback.targetLength}
-            </span>
-          )}
+          <span className="font-mono text-[11px] tabular-nums text-j-text-tertiary">
+            {feedback.correct}/{feedback.targetLength}
+          </span>
         </div>
       )}
 
       {result && (
         <div className="space-y-4" data-testid="type-result">
-          {/* Dictation is scored by words: char positions drift after the first missed word. */}
           <div className="grid grid-cols-2 gap-2">
-            {hidden ? <Stat label="Palabras" value={`${result.wordScore}%`} /> : <Stat label="Precisión" value={`${result.accuracy}%`} />}
+            <Stat label="Precisión" value={`${result.accuracy}%`} />
             <Stat label="WPM" value={String(result.wpm)} />
           </div>
-          {alignment && (
-            <div className="space-y-3">
-              <TargetText
-                words={alignment.words}
-                terms={terms}
-                colored
-                activeIndex={help?.index ?? null}
-                onWord={(index, el) => setHelp(help?.index === index ? null : { index, el })}
-              />
-              <WordHelpPopover
-                anchor={help?.el ?? null}
-                subject={help ? subjectFor(alignment, help.index, terms, true) : null}
-                onClose={() => setHelp(null)}
-                onBeforeSpeak={audio.pause}
-              />
-              <TargetLegend words={alignment.words} extras={alignment.extras} showExtras />
-              {drill.textEs && <p className="border-l-2 border-j-warm pl-4 text-sm text-j-text-em">{drill.textEs}</p>}
-            </div>
-          )}
           <div className="flex flex-wrap gap-2">
             <PrimaryButton onClick={onNext}>Siguiente · Enter</PrimaryButton>
             <button

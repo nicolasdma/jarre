@@ -12,41 +12,12 @@ import { TargetLegend, TargetText } from './target-text';
 import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
-
-// Minimal Web Speech API surface (not in every TS DOM lib; Chrome and Safari prefix it).
-interface RecognitionAlternative { transcript: string }
-interface RecognitionResult { isFinal: boolean; 0: RecognitionAlternative }
-interface RecognitionEvent { resultIndex: number; results: ArrayLike<RecognitionResult> }
-interface Recognition {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((e: RecognitionEvent) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-type RecognitionCtor = new () => Recognition;
-
-function recognitionCtor(): RecognitionCtor | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
+import { RECOGNITION_ERRORS as ERRORS, recognitionError, useRecognitionCtor, type Recognition } from './recognition';
 
 const noSubscribe = () => () => {};
 const canRecordMic = () => typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
 const isIosDevice = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-const ERRORS: Record<string, string> = {
-  'not-allowed': 'El navegador bloqueó el micrófono. Habilitalo para este sitio y probá de nuevo.',
-  'service-not-allowed': 'El reconocimiento de voz no está permitido en este navegador.',
-  'no-speech': 'No te escuché. Probá de nuevo, un poco más cerca del micrófono.',
-  'audio-capture': 'No encontré un micrófono.',
-  network: 'El reconocimiento de voz necesita conexión.',
-};
 
 /**
  * Escuchar y repetir: play the model audio, then speak. SpeechRecognition
@@ -71,7 +42,7 @@ export function RepeatMode({
   onScore: (score: number) => void;
 }) {
   // Browser capabilities: null/false on the server, read once on the client (no hydration mismatch).
-  const Ctor = useSyncExternalStore(noSubscribe, recognitionCtor, () => null);
+  const Ctor = useRecognitionCtor();
   const canRecord = useSyncExternalStore(noSubscribe, canRecordMic, () => false);
   const isIos = useSyncExternalStore(noSubscribe, isIosDevice, () => false);
   // iOS gives the mic to the last capture, which would starve the recognizer.
@@ -163,7 +134,7 @@ export function RepeatMode({
       setInterim(interimText.trim());
     };
     rec.onerror = (e) => {
-      if (e.error !== 'aborted') setError(ERRORS[e.error] ?? `Error del reconocimiento: ${e.error}`);
+      if (e.error !== 'aborted') setError(recognitionError(e.error));
     };
     rec.onend = () => {
       setListening(false);

@@ -5,7 +5,8 @@
  * Key: `jarre-practice-<resourceId>`; value: { [drillSlug]: DrillBest }.
  */
 
-export type ScoredMode = 'copy' | 'dictation' | 'repeat';
+/** `sentences`: % of sentences said well on the first try (Frase por frase). */
+export type ScoredMode = 'copy' | 'repeat' | 'sentences';
 
 export interface ModeBest {
   score: number;
@@ -13,7 +14,10 @@ export interface ModeBest {
   at: string;
 }
 
-export type DrillBest = Partial<Record<ScoredMode, ModeBest>> & { shadowed?: number };
+export type DrillBest = Partial<Record<ScoredMode, ModeBest>> & {
+  /** Runs of Frase por frase without speech recognition, and of the old shadowing. */
+  shadowed?: number;
+};
 
 export type BestScores = Record<string, DrillBest>;
 

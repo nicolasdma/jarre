@@ -177,6 +177,8 @@ export function wordsToPractice(alignment: WordAlignment, terms: readonly KeyTer
   const missed: PracticeWord[] = [];
   const alias: PracticeWord[] = [];
   const seen = new Set<string>();
+  // What was said instead belongs to the gap, not to each word in it: shown once, on its first miss.
+  const gapsTold = new Set<number>();
   alignment.words.forEach((w, i) => {
     const term = w.term !== null ? terms[w.term] ?? null : null;
     // A term is one item, from its first word.
@@ -187,7 +189,9 @@ export function wordsToPractice(alignment: WordAlignment, terms: readonly KeyTer
     if (w.state === 'missed') {
       if (!term && FUNCTION_WORDS.has(key)) return;
       seen.add(key);
-      missed.push({ text, term: w.term, wordIndex: i, kind: 'missed', heard: heardInstead(alignment, i) });
+      const heard = gapsTold.has(w.gap) ? null : heardInstead(alignment, i);
+      gapsTold.add(w.gap);
+      missed.push({ text, term: w.term, wordIndex: i, kind: 'missed', heard });
     } else if (w.state === 'said' && w.viaAlias) {
       seen.add(key);
       alias.push({ text, term: w.term, wordIndex: i, kind: 'alias', heard: w.heardAs });

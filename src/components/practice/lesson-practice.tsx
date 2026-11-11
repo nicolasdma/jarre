@@ -153,7 +153,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         </p>
         <h1 className="text-2xl font-bold text-j-text">Lo que vas a decir, en inglés</h1>
         <p className="text-sm text-j-text-secondary">
-          Cada respuesta de la llamada: escuchala, copiala, tomala como dictado, repetila y hacé shadowing. Elegí cualquiera en el índice, o seguí con las flechas.
+          Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase. Elegí cualquiera en el índice, o seguí con las flechas.
         </p>
         <select
           value={drill.slug}
