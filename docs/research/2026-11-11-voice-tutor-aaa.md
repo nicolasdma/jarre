@@ -77,7 +77,7 @@ Para repetirlo (cada corrida abre sesiones Live pagas; centavos):
 npx tsx scripts/probe-voice-tutor.ts --label <nombre> --model gemini-3.8-live --prompt current --runs 2 --turns 8
 npx tsx scripts/probe-voice-tutor.ts --label <nombre> --model gemini-2.5-flash-native-audio-preview-12-2025 --prompt legacy
 npx tsx scripts/probe-voice-tutor.ts --label <nombre> --mode interview --persona nathalie --depth 2 --runs 1 \
-  --interview-json ~/Desktop/_docs/empleo/brivel/leccion-brivel.json
+  --interview-json ~/Desktop/demaria/50-aprender/entrevistas/2026-11-brivel/leccion-brivel.json
 npx tsx scripts/probe-voice-tutor.ts --resummarize docs/research/voice-probe/<archivo>.json [--mode interview]
 npx tsx scripts/probe-voice-turn-taking.ts --pause 1.5 --reps 2
 ```

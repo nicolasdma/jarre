@@ -121,7 +121,7 @@ Pedido del dueño: todo integrado en `/learn/interview-brivel-call` (`1874d68`).
 
 ## 7. Lo que no se pudo verificar o quedó abierto
 
-- **Migración pendiente**: `supabase/migrations/20261111030000_lesson_drill_concept.sql` (una columna nullable, `lesson_drills.concept_id`) no se aplicó: el clasificador de permisos frenó `supabase db push`. Hasta aplicarla, los drills no aparecen bajo cada sección: están todos en "De memoria" dentro de Practicar. Para aplicarla: `supabase db push` y `npx tsx scripts/seed-lesson.ts ~/Desktop/_docs/empleo/brivel/leccion-brivel.json`.
+- **Migración pendiente**: `supabase/migrations/20261111030000_lesson_drill_concept.sql` (una columna nullable, `lesson_drills.concept_id`) no se aplicó: el clasificador de permisos frenó `supabase db push`. Hasta aplicarla, los drills no aparecen bajo cada sección: están todos en "De memoria" dentro de Practicar. Para aplicarla: `supabase db push` y `npx tsx scripts/seed-lesson.ts ~/Desktop/demaria/50-aprender/entrevistas/2026-11-brivel/leccion-brivel.json`.
 - Nada de esto se vio en un navegador con sesión iniciada: tipos, tests, compilación de las rutas y la redirección sí; lo visual lo verifica el dueño.
 - Las sondas son texto, no voz: no miden cómo suena ni la transcripción de su acento. El nombre mal transcripto se probó escrito.
 - Inconsistencia en la lección (no se tocó): el drill `07-usaste-centrobill` dice "we test it with sandbox purchases in week six" y `30-hito-4` dice semana cuatro.
