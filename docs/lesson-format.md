@@ -63,7 +63,7 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 ```
 
 - `id`: letters, digits, `-`, `_` (case kept, it is also the audio file name).
-- Audio is looked up in this order: `audio` (absolute, `~/`, or relative to the JSON), then `<json dir>/audios/<id>.m4a`, then, with `--tts`, generated into that same path. A drill with no audio still loads; Escuchar, Dictado and Shadowing tell the learner it has none.
+- Audio is looked up in this order: `audio` (absolute, `~/`, or relative to the JSON), then `<json dir>/audios/<id>.m4a`, then, with `--tts`, generated into that same path. A drill with no audio still loads: the practice page reads it with the browser's en-US voice (speechSynthesis), labelled "voz del navegador", until a re-seed adds the recording.
 - Audio is uploaded to the private Storage bucket `lesson-audio` at `<lesson id>/<drill id>.m4a`. The practice page signs 4-hour URLs with the learner's session (bucket read policy: authenticated).
 - TTS: `gemini-3.8-flash-tts`, voice `Charon`, calm American English at a learner's pace (`src/lib/llm/gemini-tts.ts`), PCM converted to m4a with `ffmpeg`, 20 s between calls (the key's per-minute quota answers 429 after ~20 fast calls).
 

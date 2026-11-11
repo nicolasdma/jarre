@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { splitSentences } from '@/lib/practice/scoring';
-import { Chip, PrimaryButton } from './controls';
+import { Chip, PrimaryButton, SpeechLabel } from './controls';
 import type { DrillAudio, PlaybackRate } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
@@ -54,11 +54,12 @@ export function ShadowMode({
     if (!audio.available || !audio.ready || audio.duration <= 0) return;
     const run = ++runRef.current;
     const total = audio.duration;
+
     for (let i = from; i < sentences.length; i++) {
       setCurrent(i);
       setPhase('playing');
       const s = sentences[i];
-      const ok = await audio.playSegment(s.start * total, s.end * total);
+      const ok = await audio.playSegment(s);
       if (!ok || runRef.current !== run) return;
       const wait = gapMs(gap, (s.end - s.start) * total, audio.rate);
       if (wait > 0) {
@@ -78,7 +79,7 @@ export function ShadowMode({
   if (!audio.available) {
     return (
       <p className="border border-dashed border-j-border px-3 py-3 font-mono text-[11px] text-j-text-tertiary" data-mode="shadow">
-        Shadowing necesita el audio, y este drill todavía no lo tiene.
+        Shadowing necesita audio: este drill no tiene grabación y el navegador no tiene voz.
       </p>
     );
   }
@@ -86,6 +87,7 @@ export function ShadowMode({
   return (
     <div className="space-y-5" data-mode="shadow">
       <div className="flex flex-wrap items-center gap-2">
+        {audio.kind === 'speech' && <SpeechLabel />}
         {phase === 'idle' ? (
           <PrimaryButton onClick={() => run(current ?? 0)} disabled={!audio.ready}>
             {current === null ? 'Empezar' : 'Seguir'}

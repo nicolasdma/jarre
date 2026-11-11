@@ -62,6 +62,19 @@ export function PrimaryButton({
   );
 }
 
+/** Marks a drill read by the browser's voice because it has no recording yet. */
+export function SpeechLabel() {
+  return (
+    <span
+      className="border border-j-warm px-2 py-1 font-mono text-[9px] uppercase tracking-[0.15em] text-j-warm-dark"
+      title="Este drill todavía no tiene grabación: lo lee la voz del navegador"
+      data-testid="speech-label"
+    >
+      voz del navegador
+    </span>
+  );
+}
+
 function formatTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -74,7 +87,7 @@ export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLo
   if (!audio.available) {
     return (
       <p className="border border-dashed border-j-border px-3 py-3 font-mono text-[11px] text-j-text-tertiary">
-        Este drill todavía no tiene audio.
+        Este drill todavía no tiene audio y el navegador no tiene voz.
       </p>
     );
   }
@@ -105,6 +118,7 @@ export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLo
             </Chip>
           ))}
         </div>
+        {audio.kind === 'speech' && <SpeechLabel />}
         {showLoop && (
           <Chip active={audio.loop} onClick={() => audio.setLoop(!audio.loop)} title="Repetir en loop">
             <span className="flex items-center gap-1.5"><Repeat size={12} /> Loop</span>

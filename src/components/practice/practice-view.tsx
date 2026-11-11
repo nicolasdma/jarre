@@ -42,7 +42,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
   const [mode, setMode] = useState<PracticeMode>(initialMode);
   const [scores, setScores] = useState<BestScores>({});
   const drill = drills[index];
-  const audio = useDrillAudio(drill?.audioUrl ?? null);
+  const audio = useDrillAudio(drill?.audioUrl ?? null, drill?.textEn ?? '');
 
   useEffect(() => {
     setScores(loadBestScores(resourceId));
@@ -162,7 +162,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
           >
             {drills.map((d, i) => (
               <option key={d.slug} value={d.slug}>
-                {i + 1}. {d.title}{d.audioUrl ? '' : ' (sin audio)'}
+                {i + 1}. {d.title}{d.audioUrl ? '' : ' (voz del navegador)'}
               </option>
             ))}
           </select>
