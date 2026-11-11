@@ -2,7 +2,7 @@
 
 import { t, type Language } from '@/lib/translations';
 
-type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview';
 
 interface Section {
   sectionTitle: string;
@@ -15,6 +15,8 @@ interface LearnTOCProps {
   completedSections: Set<number>;
   currentStep: Step;
   visitedSteps: Set<Step>;
+  /** The steps this lesson has, in order (the interview only when the lesson has one). */
+  steps?: Step[];
   onSectionClick: (index: number) => void;
   onStepClick: (step: Step) => void;
   mobileOpen: boolean;
@@ -29,6 +31,7 @@ const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
   apply: 'learn.step.apply',
   'practice-eval': 'learn.step.practiceEval',
   evaluate: 'learn.step.evaluate',
+  interview: 'learn.step.interview',
 };
 
 /**
@@ -42,6 +45,7 @@ export function LearnTOC({
   completedSections,
   currentStep,
   visitedSteps,
+  steps = STEP_ORDER,
   onSectionClick,
   onStepClick,
   mobileOpen,
@@ -66,7 +70,7 @@ export function LearnTOC({
           {language === 'es' ? 'Pasos' : 'Steps'}
         </p>
         <ul className="space-y-0.5">
-          {STEP_ORDER.map((step) => {
+          {steps.map((step) => {
             const isActive = step === currentStep;
             const isVisited = !isActive && visitedSteps.has(step);
 

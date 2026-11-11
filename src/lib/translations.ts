@@ -245,6 +245,7 @@ const translations = {
   'learn.step.apply': { es: 'Playground', en: 'Playground' },
   'learn.step.practiceEval': { es: 'Práctica', en: 'Practice' },
   'learn.step.evaluate': { es: 'Evaluar', en: 'Evaluate' },
+  'learn.step.interview': { es: 'Entrevista', en: 'Interview' },
   'learn.preQuestion.title': { es: 'Antes de leer', en: 'Before reading' },
   'learn.preQuestion.instruction': { es: 'Intenta responder antes de leer la sección. Está bien equivocarse — eso mejora tu aprendizaje.', en: 'Try to answer before reading the section. It\'s okay to be wrong — that improves your learning.' },
   'learn.preQuestion.submit': { es: 'Intentar', en: 'Try' },

@@ -156,6 +156,8 @@ export default async function LearnPage({ params }: PageProps) {
   const practical = PRACTICAL_ROUTES[resourceId]
     ?? (hasDrills ? { label: 'Practicar', href: `/resource/${resourceId}/practice` } : undefined);
   const guidedQuestions = READING_QUESTIONS[resourceId];
+  // Lessons with drills end with the interview mock (the practice page's Entrevista tab).
+  const interviewHref = hasDrills ? `/resource/${resourceId}/practice?mode=interview&embed=1` : undefined;
 
   // NEW FLOW: If resource has sections in DB, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
   if (sections.length > 0) {
@@ -237,6 +239,7 @@ export default async function LearnPage({ params }: PageProps) {
         activateComponent={renderContent?.()}
         playgroundHref={practical?.href}
         playgroundLabel={practical?.label}
+        interviewHref={interviewHref}
         concepts={conceptsTaught}
         userId={user.id}
         guidedQuestions={guidedQuestions}

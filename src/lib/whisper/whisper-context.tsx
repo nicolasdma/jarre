@@ -16,7 +16,7 @@ import { useSpeechEngine } from './use-speech-engine';
 // Types
 // ============================================================================
 
-type Step = 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'review' | 'practice-eval' | 'apply' | 'evaluate' | 'interview';
 
 interface WhisperContextValue {
   isEnabled: boolean;

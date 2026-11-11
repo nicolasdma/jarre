@@ -40,7 +40,7 @@ interface Section {
   sortOrder: number;
 }
 
-type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview';
 
 const STEP_TO_TUTOR_MODE: Record<Step, VoiceMode> = {
   activate: 'freeform',
@@ -48,6 +48,8 @@ const STEP_TO_TUTOR_MODE: Record<Step, VoiceMode> = {
   apply: 'learning',
   'practice-eval': 'practice',
   evaluate: 'eval',
+  // The interview runs its own voice session in the step itself.
+  interview: 'freeform',
 };
 
 interface EvalConcept {
@@ -66,6 +68,11 @@ interface LearnFlowProps {
   activateComponent: React.ReactNode;
   playgroundHref?: string;
   playgroundLabel?: string;
+  /**
+   * The interview mock, as the lesson's last step (lessons with drills). It is
+   * the practice page's Entrevista tab, embedded like the playground.
+   */
+  interviewHref?: string;
   concepts: EvalConcept[];
   userId: string;
   guidedQuestions?: ReadingQuestion[];
@@ -87,7 +94,10 @@ const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   'practice-eval': { key: 'learn.step.practiceEval' },
   apply: { key: 'learn.step.apply' },
   evaluate: { key: 'learn.step.evaluate' },
+  interview: { key: 'learn.step.interview' },
 };
+
+const STEP_ORDER_WITH_INTERVIEW: Step[] = [...STEP_ORDER, 'interview'];
 
 // Question type labels/colors (duplicated from reading-questions to avoid circular dependency)
 const Q_TYPE_LABELS: Record<string, string> = {
@@ -175,6 +185,7 @@ interface StickyHeaderProps {
   resourceTitle: string;
   activeSection: number;
   sectionsCount: number;
+  steps: Step[];
   onStepChange: (step: Step) => void;
   onTocOpen: () => void;
 }
@@ -185,6 +196,7 @@ function StickyHeader({
   resourceTitle,
   activeSection,
   sectionsCount,
+  steps,
   onStepChange,
   onTocOpen,
 }: StickyHeaderProps) {
@@ -222,10 +234,10 @@ function StickyHeader({
 
         {/* Step indicators: visible sm-lg only */}
         <div className="hidden sm:flex lg:hidden items-center gap-1">
-          {STEP_ORDER.map((step, i) => {
+          {steps.map((step, i) => {
             const isActive = step === currentStep;
             const isPast =
-              STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf(currentStep);
+              steps.indexOf(step) < steps.indexOf(currentStep);
 
             return (
               <div key={step} className="flex items-center">
@@ -295,6 +307,7 @@ export function LearnFlow({
   activateComponent,
   playgroundHref,
   playgroundLabel,
+  interviewHref,
   concepts,
   userId,
   guidedQuestions,
@@ -303,9 +316,11 @@ export function LearnFlow({
   quizzesBySectionId,
   videoSegmentsBySectionId,
 }: LearnFlowProps) {
-  const [currentStep, setCurrentStep] = useState<Step>(
-    (initialProgress?.currentStep as Step) ?? 'activate'
-  );
+  const steps = interviewHref ? STEP_ORDER_WITH_INTERVIEW : STEP_ORDER;
+  const [currentStep, setCurrentStep] = useState<Step>(() => {
+    const saved = (initialProgress?.currentStep as Step) ?? 'activate';
+    return steps.includes(saved) ? saved : 'evaluate';
+  });
   const [activeSection, setActiveSection] = useState(
     initialProgress?.activeSection ?? 0
   );
@@ -483,6 +498,7 @@ export function LearnFlow({
         resourceTitle={resourceTitle}
         activeSection={activeSection}
         sectionsCount={sections.length}
+        steps={steps}
         onStepChange={changeStep}
         onTocOpen={() => setTocOpen(true)}
       />
@@ -495,6 +511,7 @@ export function LearnFlow({
           completedSections={completedSections}
           currentStep={currentStep}
           visitedSteps={visitedSteps}
+          steps={steps}
           onSectionClick={navigateToSection}
           onStepClick={(step) => changeStep(step)}
           mobileOpen={tocOpen}
@@ -529,8 +546,21 @@ export function LearnFlow({
         </div>
       )}
 
+      {/* STEP 6: INTERVIEW — the mock call, last: everything learned, out loud, in English */}
+      {currentStep === 'interview' && interviewHref && (
+        <div className="lg:ml-[220px]">
+          <iframe
+            src={interviewHref}
+            className="w-full border-0"
+            style={{ height: 'calc(100vh - 57px)' }}
+            title={t('learn.step.interview', language)}
+            allow="microphone; autoplay"
+          />
+        </div>
+      )}
+
       {/* Step content — centered relative to full viewport (compensates for TOC + tutor sidebar) */}
-      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' ? 'hidden' : ''}`}>
+      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' || currentStep === 'interview' ? 'hidden' : ''}`}>
         {/* STEP 1: ACTIVATE — Advance organizer */}
         {currentStep === 'activate' && (
           <div>
@@ -718,6 +748,24 @@ export function LearnFlow({
                 language={language}
                 onCancel={() => changeStep('practice-eval')}
               />
+            )}
+            {interviewHref && (
+              <div className="mt-16 border-t border-j-border pt-12 text-center">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
+                  {language === 'es' ? 'Último paso' : 'Last step'}
+                </p>
+                <p className="mx-auto mb-6 max-w-md text-sm text-j-text-secondary">
+                  {language === 'es'
+                    ? 'Un simulacro de la llamada, en inglés: preguntas que no preparaste, repreguntas sobre lo que digas y un reporte con lo que tenés que practicar.'
+                    : 'A mock of the call, in English: questions you did not prepare, follow-ups on what you say, and a report of what to practice.'}
+                </p>
+                <button
+                  onClick={() => changeStep('interview')}
+                  className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent transition-colors hover:bg-j-accent-hover"
+                >
+                  {language === 'es' ? 'Simulacro de entrevista' : 'Mock interview'} →
+                </button>
+              </div>
             )}
           </div>
         )}
