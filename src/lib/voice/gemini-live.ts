@@ -13,12 +13,15 @@
 import {
   GoogleGenAI,
   Modality,
+  FunctionResponseScheduling,
   type Session,
   type Tool,
   type FunctionCall,
   type FunctionResponse,
+  type RealtimeInputConfig,
 } from '@google/genai';
 import { createLogger } from '@/lib/logger';
+import { voiceLiveModelProfile } from '@/lib/voice/live-models';
 
 const log = createLogger('GeminiLive');
 
@@ -32,6 +35,8 @@ interface GeminiLiveConfig {
   voiceName?: string;
   resumptionHandle?: string;
   tools?: Tool[];
+  /** Voice activity detection: how long a pause ends the learner's turn. */
+  realtimeInputConfig?: RealtimeInputConfig;
 }
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
@@ -101,6 +106,12 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   let retryCount = 0;
   let lastConfig: GeminiLiveConfig | null = null;
   let connectionEpoch = 0;
+  // Whether the model has sent audio in the turn it is generating now: a tool
+  // response before the first word must ask for the spoken answer (WHEN_IDLE),
+  // after it must not start a second one (SILENT). Measured on gemini-3.8-live
+  // in the owner's landing (avatar-landing CLAUDE.md, perform_action): a SILENT
+  // response before any audio left the turn mute.
+  let audioInTurn = false;
 
   function setState(next: ConnectionState) {
     state = next;
@@ -135,6 +146,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               parts: [{ text: config.systemInstruction }],
             },
             ...(config.tools ? { tools: config.tools } : {}),
+            ...(config.realtimeInputConfig ? { realtimeInputConfig: config.realtimeInputConfig } : {}),
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             ...(config.resumptionHandle ? {
@@ -156,6 +168,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               if (message.serverContent?.modelTurn?.parts) {
                 for (const part of message.serverContent.modelTurn.parts) {
                   if (part.inlineData?.data) {
+                    audioInTurn = true;
                     const audioBuffer = base64ToArrayBuffer(part.inlineData.data);
                     callbacks.onAudioResponse(audioBuffer);
                   }
@@ -177,8 +190,10 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                     'text' in (transcription as Record<string, unknown>)
                   ) {
                     const text = (transcription as Record<string, unknown>).text;
+                    // Chunks carry their own leading spaces: trimming them glued or split
+                    // words ("con sul ta") in every stored transcript.
                     if (typeof text === 'string' && text.trim() && callbacks.onTranscript) {
-                      callbacks.onTranscript('model', text.trim());
+                      callbacks.onTranscript('model', text);
                     }
                   }
                 }
@@ -193,7 +208,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                   ) {
                     const text = (transcription as Record<string, unknown>).text;
                     if (typeof text === 'string' && text.trim() && callbacks.onTranscript) {
-                      callbacks.onTranscript('user', text.trim());
+                      callbacks.onTranscript('user', text);
                     }
                   }
                   // Signal that user speech has been processed — model is now "thinking"
@@ -203,11 +218,13 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
               // Interruption: model was cut off by user speech
               if (message.serverContent?.interrupted) {
+                audioInTurn = false;
                 callbacks.onInterrupted();
               }
 
               // Turn complete: model finished speaking
               if (message.serverContent?.turnComplete) {
+                audioInTurn = false;
                 callbacks.onTurnComplete();
               }
 
@@ -362,7 +379,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
       try {
         session.sendRealtimeInput({
-          media: {
+          audio: {
             mimeType: 'audio/pcm;rate=16000',
             data: base64Audio,
           },
@@ -377,7 +394,13 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       if (!session || state !== 'connected') return;
 
       try {
-        session.sendToolResponse({ functionResponses: responses });
+        const scheduled = voiceLiveModelProfile(lastConfig?.model ?? '')?.toolScheduling
+          ? responses.map((r) => ({
+              ...r,
+              scheduling: audioInTurn ? FunctionResponseScheduling.SILENT : FunctionResponseScheduling.WHEN_IDLE,
+            }))
+          : responses;
+        session.sendToolResponse({ functionResponses: scheduled });
       } catch (err) {
         log.error('Failed to send tool response:', err);
       }

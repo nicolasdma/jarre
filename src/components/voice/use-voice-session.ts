@@ -8,6 +8,7 @@ import {
   type ConnectionState,
 } from '@/lib/voice/gemini-live';
 import { buildVoiceSystemInstruction } from '@/lib/llm/voice-prompts';
+import { resolveVoiceLiveModel, TURN_TAKING } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
@@ -81,7 +82,6 @@ interface VoiceSession {
 // Constants
 // ============================================================================
 
-const MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const VOICE_NAME = 'Kore';
 const MIC_CHUNK_INTERVAL_MS = 100;
 const TRANSCRIPT_FLUSH_INTERVAL_MS = 500;
@@ -966,9 +966,10 @@ export function useVoiceSession({
 
       // 4. Connect WebSocket
       await client.connect(token, {
-        model: MODEL,
+        model: resolveVoiceLiveModel(),
         systemInstruction,
         voiceName: VOICE_NAME,
+        realtimeInputConfig: TURN_TAKING.default,
         ...(paramsRef.current.tools ? { tools: paramsRef.current.tools } : {}),
       });
 
