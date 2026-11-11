@@ -618,14 +618,17 @@ async function runOnce(lesson: LessonData, run: number) {
       { text: 'Sí, pasemos al quiz.', agrees: true },
     ];
     const ends: { learner: string; agrees: boolean; model_said_end: boolean; app_would_end: boolean; tutor: string }[] = [];
+    // The hook keeps a rolling window of what the model said, across turns.
+    let window = (history[history.length - 1]?.text ?? '').slice(-320);
     for (const step of steps) {
       if (probe.closed) break;
       history.push({ role: 'learner', text: step.text });
       const r = await probe.ask(step.text);
       history.push({ role: 'tutor', text: r.text });
       records.push(record(records.length, 'opener', step.text, '', r));
-      const d = decideSessionEnd({ policy: 'learning', modelWindow: r.text.slice(-320), elapsedS: 120, lastLearnerText: step.text });
-      ends.push({ learner: step.text, agrees: step.agrees, model_said_end: d.signal === 'strong', app_would_end: d.end, tutor: r.text });
+      window = `${window} ${r.text}`.slice(-320);
+      const d = decideSessionEnd({ policy: 'learning', modelWindow: window, elapsedS: 120, lastLearnerText: step.text });
+      ends.push({ learner: step.text, agrees: step.agrees, model_said_end: /session complete/i.test(r.text), app_would_end: d.end, tutor: r.text });
       if (d.end) break;
     }
     // Earlier turns: did the model say the end phrase before anyone agreed?

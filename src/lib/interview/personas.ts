@@ -187,14 +187,14 @@ export const INTERVIEW_DEPTHS: Record<
   2: {
     label: 'Nivel 2',
     blurb: 'Repregunta sobre lo que dijiste y tira dos sorpresas.',
-    questions: 8,
+    questions: 10,
     curveballs: 2,
-    rule: 'Before leaving each main topic, ask at least one follow-up built on the candidate\'s OWN words: quote what they said and push on it ("You said X. What happens if Y?"). Always follow up when an answer is vague, wrong or misses a key point.',
+    rule: 'Alternate: after the answer to a new topic, your next question is a follow-up on THAT answer, built on the candidate\'s OWN words: quote what they said and push on it ("You said X. What happens if Y?"). Change topic only after that follow-up is answered. A vague answer always gets a follow-up that asks for the exact missing thing.',
   },
   3: {
     label: 'Nivel 3',
     blurb: 'Te corta si sos vago, va a los bordes y tira cuatro sorpresas.',
-    questions: 10,
+    questions: 12,
     curveballs: 4,
     rule: 'Dig: after each answer, ask up to two follow-ups built on the candidate\'s own words that push on edge cases, failure modes or the "why", before moving to a new topic. If an answer is vague (no mechanism, no number, filler), cut in right away instead of giving feedback: "Sorry, be specific: ..." with the exact thing missing (how many seconds, who verifies it, which week); give the feedback for both answers after they answer that.',
   },

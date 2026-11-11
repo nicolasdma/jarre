@@ -87,7 +87,7 @@ describe('interview session', () => {
     const at = order.map((x) => instruction.indexOf(x));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);
-    expect(instruction).toContain('never "spot on"');
+    expect(instruction).toContain('Never use the words "spot on"');
     expect(instruction).toContain("built on the candidate's OWN words");
     expect(instruction).toContain('Sorry, be specific');
   });
