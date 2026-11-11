@@ -16,7 +16,11 @@ import type { LearnerConceptMemory } from '@/lib/learner-memory';
 // Types
 // ============================================================================
 
-export type VoiceMode = 'eval' | 'practice' | 'exploration' | 'debate' | 'freeform' | 'teach' | 'learning';
+/**
+ * `learning` and `interview` build their prompts in
+ * src/lib/llm/voice-tutor-session.ts; the others compose them here.
+ */
+export type VoiceMode = 'eval' | 'practice' | 'exploration' | 'debate' | 'freeform' | 'teach' | 'learning' | 'interview';
 
 export interface ConceptForSession {
   id: string;

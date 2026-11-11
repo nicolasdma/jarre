@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,12 +10,17 @@ import { RepeatMode } from './repeat-mode';
 import { ShadowMode } from './shadow-mode';
 import { TypeMode, type TypeResult } from './type-mode';
 import { useDrillAudio } from './use-drill-audio';
+import { InterviewMode } from './interview-mode';
 import { PRACTICE_MODES, type PracticeDrill, type PracticeMode } from './types';
 
 interface PracticeViewProps {
   resourceId: string;
   resourceTitle: string;
   drills: PracticeDrill[];
+  /** The lesson's sections, for the interview mock. */
+  lessonSections: { title: string; content: string }[];
+  /** `resources.interview`: the lesson's interviewer personas, or null. */
+  interviewConfig: unknown;
   initialSlug?: string;
   initialMode: PracticeMode;
   embed: boolean;
@@ -37,11 +42,19 @@ function bestLine(best: DrillBest | undefined): string | null {
   return parts.length ? parts.join(' · ') : null;
 }
 
-export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, initialMode, embed }: PracticeViewProps) {
+export function PracticeView({ resourceId, resourceTitle, drills, lessonSections, interviewConfig, initialSlug, initialMode, embed }: PracticeViewProps) {
   const [index, setIndex] = useState(() => Math.max(0, drills.findIndex((d) => d.slug === initialSlug)));
   const [mode, setMode] = useState<PracticeMode>(initialMode);
   const [scores, setScores] = useState<BestScores>({});
   const drill = drills[index];
+  const interviewLesson = useMemo(
+    () => ({
+      title: resourceTitle,
+      sections: lessonSections,
+      drills: drills.map((d) => ({ title: d.title, text_en: d.textEn })),
+    }),
+    [resourceTitle, lessonSections, drills],
+  );
   const audio = useDrillAudio(drill?.audioUrl ?? null, drill?.textEn ?? '');
 
   useEffect(() => {
@@ -63,6 +76,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (mode === 'interview') return;
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
       if (e.key === ' ') {
         e.preventDefault();
@@ -78,7 +92,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [audio, go]);
+  }, [audio, go, mode]);
 
   const onTypeResult = useCallback((r: TypeResult) => {
     if (!drill) return;
@@ -119,7 +133,7 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-j-text-tertiary">Práctica</p>
             <p className="truncate text-sm font-medium text-j-text">{resourceTitle}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className={cn('flex shrink-0 items-center gap-1', mode === 'interview' && 'invisible')}>
             <button type="button" onClick={() => go(-1)} disabled={index === 0} aria-label="Drill anterior"
               className="flex h-10 w-10 items-center justify-center border border-j-border-input text-j-text-secondary hover:border-j-accent disabled:opacity-30">
               <ChevronLeft size={16} />
@@ -153,6 +167,15 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
       </div>
 
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
+        {mode === 'interview' ? (
+          <InterviewMode
+            resourceId={resourceId}
+            resourceTitle={resourceTitle}
+            lesson={interviewLesson}
+            interviewConfig={interviewConfig}
+          />
+        ) : (
+        <>
         <div className="space-y-2">
           <select
             value={drill.slug}
@@ -179,6 +202,8 @@ export function PracticeView({ resourceId, resourceTitle, drills, initialSlug, i
         <p className="border-t border-j-border pt-4 font-mono text-[10px] leading-relaxed text-j-text-tertiary">
           Espacio: reproducir o pausar · Enter: revisar o siguiente · ← →: drill anterior o siguiente · {withAudio}/{drills.length} con audio
         </p>
+        </>
+        )}
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildLearningSession, lessonForPrompt } from '../voice-tutor-session';
+import { buildInterviewSession, buildLearningSession, lessonForPrompt } from '../voice-tutor-session';
+import { resolveInterviewSetup } from '../../interview/personas';
 
 const lesson = {
   title: 'Brivel call',
@@ -34,5 +35,19 @@ describe('learning session', () => {
     expect(text).toContain('2'.repeat(20_000));
     expect(text.length).toBeLessThan(60_000);
     expect(text).toContain('[…]');
+  });
+});
+
+describe('interview session', () => {
+  it('plays the chosen persona at the chosen depth, with the prepared answers as reference', () => {
+    const setup = resolveInterviewSetup(null, { personaId: 'worried-client', depth: 3 });
+    const { instruction, language } = buildInterviewSession({ lesson, setup });
+    expect(language).toBe('en');
+    expect(instruction).toContain(`you play ${setup.persona.name}`);
+    expect(instruction).toContain(setup.persona.pushback);
+    expect(instruction).toContain('up to two follow-ups');
+    expect(instruction).toContain('Not Centrobill specifically.');
+    expect(instruction).toContain('interview complete');
+    expect(instruction).toContain('Feedback:');
   });
 });

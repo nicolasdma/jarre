@@ -202,6 +202,10 @@ async function main() {
     track: lesson.track,
     language: lesson.language,
     activate_data: lesson.activate ?? null,
+    // Needs supabase/migrations/20261111020000_resource_interview.sql. Only
+    // written when the lesson has the key, so lessons without an interview
+    // block seed on a database that does not have the column yet.
+    ...(lesson.interview !== undefined ? { interview: lesson.interview } : {}),
     updated_at: now,
   }, { onConflict: 'id' }));
 

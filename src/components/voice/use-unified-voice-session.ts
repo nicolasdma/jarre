@@ -23,6 +23,8 @@ import {
   type ConceptForSession,
 } from '@/lib/llm/voice-unified-prompt';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
+import { buildInterviewSession, type TutorLesson } from '@/lib/llm/voice-tutor-session';
+import type { InterviewSetup } from '@/lib/interview/personas';
 import { TUTOR_TOOLS } from '@/lib/voice/tool-declarations';
 import { handleToolCall, type ToolDispatch } from '@/lib/voice/tool-handler';
 import { createLogger } from '@/lib/logger';
@@ -115,7 +117,8 @@ export type UnifiedSessionResult =
   | { mode: 'teach'; teachResult: TeachResult }
   | { mode: 'exploration'; explorationResult: ExplorationResult }
   | { mode: 'debate' }
-  | { mode: 'freeform' };
+  | { mode: 'freeform' }
+  | { mode: 'interview' };
 
 // ---- Params ----
 
@@ -150,6 +153,9 @@ export interface UseUnifiedVoiceSessionParams {
   sectionTitle?: string;
   /** Learning: every section of the resource, so the tutor knows the whole lesson. */
   lessonSections?: { title: string; content: string }[];
+
+  // Interview mock: the lesson it rehearses and who interviews, how deep
+  interview?: { lesson: TutorLesson; setup: InterviewSetup };
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -196,6 +202,7 @@ function sessionTypeForMode(mode: VoiceMode): 'teaching' | 'evaluation' | 'pract
     case 'debate': return 'debate';
     case 'freeform': return 'freeform';
     case 'learning': return 'teaching';
+    case 'interview': return 'practice'; // Needs only resourceId; no scoring runs for it
   }
 }
 
@@ -247,6 +254,8 @@ function sectionTitleForMode(mode: VoiceMode, params: UseUnifiedVoiceSessionPara
       return 'Freeform session';
     case 'learning':
       return explicitResourceTitle || 'Learning session';
+    case 'interview':
+      return explicitResourceTitle || 'Interview mock';
   }
 }
 
@@ -265,6 +274,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     sectionContent,
     sectionTitle,
     lessonSections,
+    interview,
     userResourceId,
     debateTopic,
     conceptForTeach,
@@ -501,6 +511,10 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         setResult({ mode: 'freeform' });
         setState('done');
         break;
+      case 'interview':
+        setResult({ mode: 'interview' });
+        setState('done');
+        break;
     }
     log.info(`[PostProcess] Completed dispatch for mode=${mode}, sessionId=${sessionId}`);
   }, [mode, scoreEvalSession, scorePracticeSession, scoreTeachSession, generateExplorationSummary]);
@@ -545,12 +559,14 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     resourceId,
     initialMessage,
     conceptIds: fetchedConceptIds,
-    // Learning ends by a spoken phrase and never uses the UI tools; declaring
-    // them only invites a call before the first word.
-    tools: mode === 'learning' ? undefined : TUTOR_TOOLS,
+    // Learning and interview end by a spoken phrase and never use the UI
+    // tools; declaring them only invites a call before the first word.
+    tools: mode === 'learning' || mode === 'interview' ? undefined : TUTOR_TOOLS,
     onToolCall: handleGeminiToolCall,
     lessonTitle: resourceTitle,
     lessonSections,
+    turnTaking: mode === 'interview' ? 'patient' : 'default',
+    softEndSignals: mode !== 'interview',
   });
 
   // Keep sendToolResponse ref in sync
@@ -701,6 +717,11 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
         cIds = concepts?.map((c) => c.id) || [];
         return { instruction: '', initialMsg: undefined, conceptIds: cIds };
       }
+      case 'interview': {
+        if (!interview) throw new Error('interview setup required for interview mode');
+        const session = buildInterviewSession(interview);
+        return { instruction: session.instruction, initialMsg: session.opener, conceptIds: [] };
+      }
     }
 
     // Fetch learner memory for modes that don't fetch it themselves
@@ -736,7 +757,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     }
 
     return { instruction, initialMsg, conceptIds: cIds };
-  }, [mode, language, concepts, masteryLevel, resourceTitle, sectionContent, sectionTitle, userResourceId, debateTopic, conceptForTeach]);
+  }, [mode, language, concepts, masteryLevel, resourceTitle, sectionContent, sectionTitle, userResourceId, debateTopic, conceptForTeach, interview]);
 
   // ---- Start ----
 

@@ -26,9 +26,17 @@ export default async function PracticePage({ params, searchParams }: PageProps) 
     redirect(`/login?redirect=/resource/${resourceId}/practice`);
   }
 
-  const [{ data: resource }, drills] = await Promise.all([
-    supabase.from(TABLES.resources).select('id, title').eq('id', resourceId).single(),
+  // `*` and not a column list: `interview` only exists once
+  // supabase/migrations/20261111020000_resource_interview.sql is applied, and
+  // without it the interview mock runs on the default personas.
+  const [{ data: resource }, drills, { data: sections }] = await Promise.all([
+    supabase.from(TABLES.resources).select('*').eq('id', resourceId).single(),
     fetchPracticeDrills(supabase, resourceId),
+    supabase
+      .from(TABLES.resourceSections)
+      .select('section_title, content_markdown')
+      .eq('resource_id', resourceId)
+      .order('sort_order', { ascending: true }),
   ]);
 
   if (!resource) {
@@ -44,6 +52,11 @@ export default async function PracticePage({ params, searchParams }: PageProps) 
       resourceId={resourceId}
       resourceTitle={resource.title}
       drills={drills}
+      lessonSections={(sections ?? []).map((s: { section_title: string; content_markdown: string }) => ({
+        title: s.section_title,
+        content: s.content_markdown,
+      }))}
+      interviewConfig={(resource as Record<string, unknown>).interview ?? null}
       initialSlug={drill}
       initialMode={isPracticeMode(mode) ? mode : 'listen'}
       embed={embed === '1'}

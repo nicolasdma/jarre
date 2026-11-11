@@ -10,6 +10,7 @@
 
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { InterviewConfigSchema } from '../interview/personas';
 
 const PHASES = ['0', '1', '1.5', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'] as const;
 const TRACKS = ['ai', 'travel', 'aventura'] as const;
@@ -95,6 +96,8 @@ export const LessonSchema = z.object({
     keyConcepts: z.array(z.string()),
     insight: z.string(),
   }).optional(),
+  /** Interview mock: the situation and the lesson's own interviewer personas. `null` clears it. */
+  interview: InterviewConfigSchema.nullable().optional(),
   concepts: z.array(ConceptSchema).min(1),
   drills: z.array(DrillSchema).default([]),
 }).superRefine((l, ctx) => {

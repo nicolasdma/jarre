@@ -23,6 +23,7 @@ The schema lives in `src/lib/lessons/lesson-format.ts` (Zod); a minimal example 
 | `language` | string | Language of the sections. Default `es`. |
 | `activate` | object, optional | Stored in `resources.activate_data`: `{ summary, sections: [{number,title,description}], keyConcepts: [], insight }`. |
 | `concepts` | array, ≥ 1 | One study section each, in order. |
+| `interview` | object, optional | Interview mock: the situation and the lesson's own interviewers. See below. Stored in `resources.interview`; `null` clears it. |
 | `drills` | array | Practice items, ordered by `priority`. |
 
 ## Concept
@@ -67,6 +68,28 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 - Audio is uploaded to the private Storage bucket `lesson-audio` at `<lesson id>/<drill id>.m4a`. The practice page signs 4-hour URLs with the learner's session (bucket read policy: authenticated).
 - TTS: `gemini-3.8-flash-tts`, voice `Charon`, calm American English at a learner's pace (`src/lib/llm/gemini-tts.ts`), PCM converted to m4a with `ffmpeg`, 20 s between calls (the key's per-minute quota answers 429 after ~20 fast calls).
 
+## Interview
+
+The practice page's **Entrevista** tab runs a voice mock interview in English on the lesson: an interviewer asks one question at a time, and after each answer a short feedback (what worked, what is technically off against the lesson, the 1–3 English corrections that matter). The learner picks the interviewer and a depth (1: direct questions; 2: a follow-up when an answer is vague; 3: edge cases and the why). Every lesson gets five default interviewers (`src/lib/interview/personas.ts`: curious recruiter, tech lead, demanding expert, worried client, relaxed founder); a lesson adds its own, or replaces a default by `id`:
+
+```json
+"interview": {
+  "context": "A first video call on Zoom, booked through Upwork. …",
+  "default_persona": "nathalie",
+  "personas": [
+    { "id": "nathalie", "name": "Nathalie", "label": "Nathalie (founder de Brivel)", "blurb": "…",
+      "role": "the founder of Brivel, hiring the developer for her platform",
+      "tone": "relaxed and friendly, … but she listens for details",
+      "focus": "…", "pushback": "…", "technical": "medium" }
+  ]
+}
+```
+
+- `context`, `role`, `tone`, `focus`, `pushback` are written in English: they go into the model's prompt. `label` and `blurb` are what the picker shows.
+- `technical`: `low` (asks you to explain simply), `medium`, `high` (expects the mechanism and the terms).
+- The drills are the question bank and the reference answers; the sections are the reference for content.
+- Needs `supabase/migrations/20261111020000_resource_interview.sql` applied before seeding a lesson that has the block. Without the column the tab works with the defaults.
+
 ## What the loader does
 
 1. Validates the whole file before writing anything.
@@ -79,4 +102,4 @@ Re-running is safe: every row id is derived from the lesson (`stableUuid`), so r
 
 - Library (`/library`, which `/dashboard` redirects to): the resource card gets a **Practicar** button.
 - Learn view (`/learn/<id>`): the APPLY step embeds the practice page.
-- Practice: `/resource/<id>/practice` (`?drill=<id>&mode=listen|copy|dictation|repeat|shadow`). Best scores per drill are kept in the browser (localStorage).
+- Practice: `/resource/<id>/practice` (`?drill=<id>&mode=listen|copy|dictation|repeat|shadow|interview`). Best scores per drill are kept in the browser (localStorage).
