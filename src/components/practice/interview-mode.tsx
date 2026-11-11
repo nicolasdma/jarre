@@ -14,7 +14,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUnifiedVoiceSession } from '@/components/voice/use-unified-voice-session';
 import { INTERVIEW_DEPTHS, resolveInterviewSetup, type InterviewDepth } from '@/lib/interview/personas';
+import { hasAnswers } from '@/lib/interview/report';
 import type { TutorLesson } from '@/lib/llm/voice-tutor-session';
+import { InterviewReport } from './interview-report';
 
 interface InterviewModeProps {
   resourceId: string;
@@ -22,6 +24,8 @@ interface InterviewModeProps {
   lesson: TutorLesson;
   /** `resources.interview` as stored; null or invalid → default personas. */
   interviewConfig: unknown;
+  /** Open a drill the report suggests. */
+  onPracticeDrill: (slug: string) => void;
 }
 
 const DEPTHS: InterviewDepth[] = [1, 2, 3];
@@ -33,7 +37,7 @@ const TUTOR_STATE_LABEL: Record<string, string> = {
   speaking: 'Hablando…',
 };
 
-export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConfig }: InterviewModeProps) {
+export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConfig, onPracticeDrill }: InterviewModeProps) {
   const initial = useMemo(() => resolveInterviewSetup(interviewConfig), [interviewConfig]);
   const [personaId, setPersonaId] = useState(initial.persona.id);
   const [depth, setDepth] = useState<InterviewDepth>(initial.depth);
@@ -50,6 +54,14 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
     resourceTitle,
     interview,
   });
+
+  const drillTitles = useMemo(
+    () => new Map((lesson.drills ?? []).filter((d) => d.slug).map((d) => [d.slug as string, d.title])),
+    [lesson.drills],
+  );
+  /** Bumped on every start, so each interview gets its own report. */
+  const [round, setRound] = useState(0);
+  const showReport = session.state === 'done' && hasAnswers(session.transcript);
 
   const live = session.state === 'loading' || session.state === 'connecting' || session.state === 'active';
   const transcriptEnd = useRef<HTMLDivElement>(null);
@@ -124,7 +136,10 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
         ) : (
           <button
             type="button"
-            onClick={() => void session.start()}
+            onClick={() => {
+              setRound((n) => n + 1);
+              void session.start();
+            }}
             className="min-h-[44px] bg-j-accent px-4 font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-on-accent"
           >
             {session.state === 'done' ? 'Otra entrevista' : 'Empezar entrevista'}
@@ -140,6 +155,18 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
       </div>
 
       {session.error && <p className="text-sm text-red-600">{session.error}</p>}
+
+      {showReport && (
+        <InterviewReport
+          key={round}
+          resourceId={resourceId}
+          personaId={setup.persona.id}
+          depth={setup.depth}
+          transcript={session.transcript}
+          drillTitles={drillTitles}
+          onPracticeDrill={onPracticeDrill}
+        />
+      )}
 
       {session.transcript.length > 0 && (
         <div className="max-h-[50vh] space-y-3 overflow-y-auto border-t border-j-border pt-4" aria-label="Transcripción">

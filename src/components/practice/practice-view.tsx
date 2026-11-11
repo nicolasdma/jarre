@@ -173,6 +173,12 @@ export function PracticeView({ resourceId, resourceTitle, drills, lessonSections
             resourceTitle={resourceTitle}
             lesson={interviewLesson}
             interviewConfig={interviewConfig}
+            onPracticeDrill={(slug) => {
+              const i = drills.findIndex((d) => d.slug === slug);
+              if (i < 0) return;
+              setIndex(i);
+              setMode('repeat');
+            }}
           />
         ) : (
         <>
