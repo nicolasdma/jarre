@@ -87,7 +87,7 @@ export function VoicePanel({
     disconnect,
     stream,
     playbackAnalyser,
-  } = useVoiceSession({ sectionId, sectionContent, sectionTitle, language, onSessionComplete });
+  } = useVoiceSession({ sectionId, sectionContent, sectionTitle, language, onSessionComplete, endPolicy: 'learning' });
 
   const audioLevel = useAudioLevel(stream);
   const frequencyBands = useTutorFrequency(playbackAnalyser);

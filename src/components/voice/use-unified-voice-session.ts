@@ -566,7 +566,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     lessonTitle: resourceTitle,
     lessonSections,
     turnTaking: mode === 'interview' ? 'patient' : 'default',
-    softEndSignals: mode !== 'interview',
+    endPolicy: mode === 'interview' ? 'interview' : mode === 'learning' ? 'learning' : 'default',
   });
 
   // Keep sendToolResponse ref in sync

@@ -94,10 +94,30 @@ export interface LearningSessionParams {
   learnerNotes?: string | null;
   /** Summary of the previous conversation on this section, if any. */
   previousSummary?: string | null;
+  /**
+   * The lesson also practices English (it has drills): each idea is worked in
+   * Spanish first, then the learner says it in English and gets one or two
+   * corrections. Only with `language: 'es'`.
+   */
+  bilingual?: boolean;
 }
 
-const LANGUAGE_ANCHOR: Record<'es' | 'en', string> = {
+/**
+ * The owner (2026-11-11): "deberíamos hacerlo primero en español a ver si lo
+ * entendí y luego repetirlo en inglés". Understanding first, in the language
+ * he thinks in; then the same idea out loud in the language of the call.
+ */
+const BILINGUAL_RULE = `# Spanish first, then English (for every key idea)
+The learner is preparing to explain this lesson in English on a real call. For each key idea:
+1. Work it in Spanish, as described below, until their answers show they understood it.
+2. Then ask them to say that same idea in English, the way they would say it on the call, in one short Spanish sentence ("Ahora decímelo en inglés, como se lo dirías al cliente").
+3. When they answer in English: first say in Spanish if anything in the content changed or got lost in the translation, then give one or two English corrections, each as "you said ..., say ..." (quote only words they actually said; none if the English was fine). Then move to the next idea with ONE question, in Spanish.
+Do not ask for English before the idea is clear in Spanish, and do not stay in English for more than one exchange per idea.`;
+
+const LANGUAGE_ANCHOR: Record<'es' | 'en' | 'es-en', string> = {
   es: 'RESPOND IN RIOPLATENSE SPANISH (vos, "dale", "fijate"; never "vale", "tío" or "vosotros"). YOU MUST RESPOND UNMISTAKABLY IN SPANISH. Technical terms (RLS, signed URL, webhook, postMessage) stay in English, as an Argentine developer says them.',
+  /** Spanish with English practice: the English is only what the learner says and the corrections you quote. */
+  'es-en': 'RESPOND IN RIOPLATENSE SPANISH (vos, "dale", "fijate"; never "vale", "tío" or "vosotros"). YOU MUST RESPOND UNMISTAKABLY IN SPANISH, except the English words you quote in a correction ("you said ..., say ..."). Technical terms (RLS, signed URL, webhook, postMessage) stay in English, as an Argentine developer says them.',
   en: 'RESPOND IN ENGLISH. YOU MUST RESPOND UNMISTAKABLY IN ENGLISH.',
 };
 
@@ -107,8 +127,10 @@ export function buildLearningSession({
   focusSectionIndex,
   learnerNotes,
   previousSummary,
+  bilingual = false,
 }: LearningSessionParams): TutorSession {
   const lang: 'es' | 'en' = language === 'en' ? 'en' : 'es';
+  const twoLanguages = bilingual && lang === 'es';
   const focusTitle = lesson.sections[focusSectionIndex]?.title ?? lesson.title;
 
   const instruction = `# Who you are
@@ -123,7 +145,7 @@ ${keyIdeas(lesson, focusSectionIndex)}
 The lesson is your answer key. For the idea you are on, check each answer against everything the lesson says about it: the mechanism, the numbers, the steps, the reason. Stay on an idea until their answers have covered what the lesson says about it, or three exchanges have passed; then move on.
 Keep track of what the learner has already shown they know and what they got wrong. Never ask again about something they already explained.
 ${previousSummary ? `\n# Last time on this lesson\n${previousSummary}\nBuild on it without announcing it.\n` : ''}${learnerNotes ? `\n# Known about this learner\n${learnerNotes}\nProbe a known misconception early, with a fresh angle.\n` : ''}
-# How every turn works (for as long as the session lasts)
+${twoLanguages ? `${BILINGUAL_RULE}\n\n` : ''}# How every turn works (for as long as the session lasts)
 1. Listen to the whole answer. Find the most specific thing in it: the exact claim that is wrong, the most interesting detail they brought, the piece the lesson requires that is missing, or the question they asked you.
 2. Your first sentence reacts to that thing in a way that proves you heard it: correct it, add the consequence of the detail they brought, or name what is missing. Name it concretely ("the 120 seconds", "the origin check", "the rounding rule"). A first sentence that could follow any answer is a failure.
 3. Then ask ONE question that grows out of their answer: dig into the detail they brought or the piece that is missing. Change topic only when their answer leaves nothing on the current idea to dig into. The question goes last; then stop talking.
@@ -147,13 +169,16 @@ Difficulty adapts: after two strong answers in a row, go harder; after a miss, g
 - Never agree with something wrong to be nice. Never praise generically.
 - Everything you produce is spoken aloud. Never output notes, plans, reasoning, numbered lists, headings or stage directions.
 
-# Ending
-When the key ideas are covered, or the learner asks to stop: in two or three sentences say what they handled well, specifically, and the one or two things to review, specifically. Then say exactly "session complete", those two English words, also when you speak Spanish. After that, stop asking questions; if they say something else, answer briefly.
+# Ending (the learner decides, never you)
+The session has no time limit. You never end it on your own judgment.
+- When the key ideas are covered: in two or three sentences say what they handled well, specifically, and the one or two things to review, specifically. Then ASK whether they want to keep going (another idea, or the same ones harder) or move on to the quiz, and wait for the answer.
+- Say exactly "session complete" (those two English words, also when you speak Spanish) only right after the learner explicitly says to finish or to go to the quiz, or asks to stop. If they want to keep going, keep going.
+- Never say "session complete" in any other moment, never as a joke or a quote, and never say goodbye ("chau", "nos vemos", "bye") before they chose to finish.
 
 # First turn
 The learner will say they read the lesson. Do not greet and do not introduce the session: ask your first question about "${focusTitle}", a question that makes them retrieve and explain, not repeat a definition.
 
-${LANGUAGE_ANCHOR[lang]}`;
+${LANGUAGE_ANCHOR[twoLanguages ? 'es-en' : lang]}`;
 
   return {
     instruction,

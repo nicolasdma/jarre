@@ -101,3 +101,29 @@ describe('interview session', () => {
     expect(calm.instruction).not.toContain('Sorry, be specific');
   });
 });
+
+describe('learning session: who ends it, and Spanish then English', () => {
+  it('asks before ending and says the end phrase only after the learner agrees', () => {
+    const { instruction } = buildLearningSession({ language: 'es', lesson, focusSectionIndex: 0 });
+    expect(instruction).toContain('You never end it on your own judgment');
+    expect(instruction).toContain('ASK whether they want to keep going');
+    expect(instruction).toContain('only right after the learner explicitly says to finish');
+    expect(instruction).not.toContain('Spanish first, then English');
+  });
+
+  it('works each idea in Spanish and then in English when the lesson practices English', () => {
+    const { instruction } = buildLearningSession({ language: 'es', lesson, focusSectionIndex: 0, bilingual: true });
+    const es = instruction.indexOf('Work it in Spanish');
+    const en = instruction.indexOf('say that same idea in English');
+    expect(es).toBeGreaterThan(0);
+    expect(en).toBeGreaterThan(es);
+    expect(instruction).toContain('"you said ..., say ..."');
+    expect(instruction.trim().endsWith('as an Argentine developer says them.')).toBe(true);
+    expect(instruction).toContain('except the English words you quote in a correction');
+  });
+
+  it('ignores the bilingual flag for an English session', () => {
+    const { instruction } = buildLearningSession({ language: 'en', lesson, focusSectionIndex: 0, bilingual: true });
+    expect(instruction).not.toContain('Spanish first, then English');
+  });
+});

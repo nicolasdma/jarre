@@ -15,6 +15,7 @@ import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/con
 import type { Language } from '@/lib/translations';
 import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
+import { decideSessionEnd, type SessionEndPolicy } from '@/lib/voice/session-end';
 
 const log = createLogger('VoiceSession');
 
@@ -55,10 +56,13 @@ interface UseVoiceSessionParams {
    */
   turnTaking?: TurnTaking;
   /**
-   * Whether a farewell ("bye", "chau") ends the session. Off for the interview
-   * mock, where the interviewer says goodbye before the final feedback.
+   * Who may end the session by what the tutor says (src/lib/voice/session-end.ts).
+   * `learning`: only after the learner agrees; `interview`: only the end
+   * phrase; `default`: the end phrase or a farewell.
    */
-  softEndSignals?: boolean;
+  endPolicy?: SessionEndPolicy;
+  /** Learning: work each idea in Spanish, then have the learner say it in English. */
+  bilingual?: boolean;
 }
 
 
@@ -106,16 +110,8 @@ const MIC_CHUNK_INTERVAL_MS = 100;
 const TRANSCRIPT_FLUSH_INTERVAL_MS = 500;
 const TRANSCRIPT_BATCH_SIZE = 40;
 const TRANSCRIPT_MAX_RETRY_DELAY_MS = 4000;
-// Session end signals (strong + soft fallback).
-// Strong signals are explicit completion phrases.
-// Soft signals are conversational farewells used as fallback in unified modes.
-const SESSION_END_STRONG_SIGNAL =
-  /\b(session complete|interview complete|sesi[oó]n completa|entrevista completa|session completed|session ended|sesion terminada|sesión terminada|hemos terminado|con esto terminamos|terminamos aca|terminamos acá|that'?s all for today|we are done)\b/i;
-const SESSION_END_SOFT_SIGNAL =
-  /\b(chau|chao|ciao|adios|adiós|hasta luego|hasta la proxima|hasta la próxima|nos vemos|bye|goodbye|see you|take care)\b/i;
+// What ends a session on its own: src/lib/voice/session-end.ts.
 const SESSION_END_WINDOW_CHARS = 320;
-const MIN_ELAPSED_FOR_STRONG_END_S = 15;
-const MIN_ELAPSED_FOR_SOFT_END_S = 30;
 
 // ============================================================================
 // Hook
@@ -137,7 +133,8 @@ export function useVoiceSession({
   lessonTitle,
   lessonSections,
   turnTaking = 'default',
-  softEndSignals = true,
+  endPolicy = 'default',
+  bilingual = false,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -196,8 +193,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, softEndSignals });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, softEndSignals };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual };
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -537,6 +534,8 @@ export function useVoiceSession({
   // fragment) is what scoring, reconnection context and the UI read.
 
   const utteranceRef = useRef<{ role: 'user' | 'model'; text: string } | null>(null);
+  /** The learner's last utterance, for the learning end policy. */
+  const lastLearnerTextRef = useRef<string | null>(null);
 
   const persistUtterance = useCallback((role: 'user' | 'model', text: string) => {
     const sid = sessionIdRef.current;
@@ -583,6 +582,7 @@ export function useVoiceSession({
     if (!utteranceRef.current) utteranceRef.current = { role, text: '' };
     utteranceRef.current.text += text;
     const live = utteranceRef.current.text.replace(/\s+/g, ' ').trim();
+    if (role === 'user') lastLearnerTextRef.current = live;
 
     // Update React state for UI consumption: one line per utterance, growing.
     setTranscript((prev) =>
@@ -600,37 +600,22 @@ export function useVoiceSession({
       modelTranscriptWindowRef.current = combined.slice(-SESSION_END_WINDOW_CHARS);
 
       const elapsedS = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const hasStrongEndSignal = SESSION_END_STRONG_SIGNAL.test(modelTranscriptWindowRef.current);
-      const hasSoftEndSignal =
-        paramsRef.current.softEndSignals &&
-        !hasStrongEndSignal && SESSION_END_SOFT_SIGNAL.test(modelTranscriptWindowRef.current);
-
-      const minElapsed = hasStrongEndSignal
-        ? MIN_ELAPSED_FOR_STRONG_END_S
-        : MIN_ELAPSED_FOR_SOFT_END_S;
-
-      if (hasStrongEndSignal || hasSoftEndSignal) {
-        const signalType = hasStrongEndSignal ? 'strong' : 'soft';
-        log.info(
-          `[Session] ${signalType} end signal candidate detected at ${elapsedS}s (min=${minElapsed}s)`,
-        );
-      }
-
-      if ((hasStrongEndSignal || hasSoftEndSignal) && elapsedS >= minElapsed) {
+      const decision = decideSessionEnd({
+        policy: paramsRef.current.endPolicy,
+        modelWindow: modelTranscriptWindowRef.current,
+        elapsedS,
+        lastLearnerText: lastLearnerTextRef.current,
+      });
+      if (decision.end) {
         sessionEndDetectedRef.current = true;
-        const signalType = hasStrongEndSignal ? 'strong' : 'soft';
-        log.info(
-          `[Session] ${signalType} end signal detected after ${elapsedS}s, auto-disconnecting in 1s`,
-        );
+        log.info(`[Session] ${decision.signal} end signal: ${decision.reason}; auto-disconnecting in 1s`);
         endKeywordTimerRef.current = setTimeout(() => {
           commitUtterance();
           disconnectRef.current();
           onSessionCompleteRef.current?.();
         }, 1000);
-      } else if (hasStrongEndSignal || hasSoftEndSignal) {
-        log.info(
-          `[Session] End signal detected but too early (${elapsedS}s < ${minElapsed}s), ignoring`,
-        );
+      } else if (decision.signal) {
+        log.info(`[Session] ${decision.signal} end signal ignored: ${decision.reason}`);
       }
     }
   }, [commitUtterance]);
@@ -751,7 +736,7 @@ export function useVoiceSession({
       // Use pre-fetched context if available, otherwise fetch fresh.
       // When systemInstructionOverride is set, the caller already built the prompt
       // with its own context — skip fetching here to avoid duplicate requests.
-      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[] }> = sysOverride
+      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[]; practicesEnglish?: boolean }> = sysOverride
         ? Promise.resolve({})
         : prefetchedContextRef.current
           ? Promise.resolve(prefetchedContextRef.current)
@@ -810,7 +795,7 @@ export function useVoiceSession({
         // Override already includes learner memory (injected by the caller, e.g. useUnifiedVoiceSession)
         systemInstruction = sysOverride;
       } else {
-        const { lessonTitle: lt, lessonSections: ls } = paramsRef.current;
+        const { lessonTitle: lt, lessonSections: ls, bilingual: bi } = paramsRef.current;
         const sections = ls?.length ? ls : [{ title: st, content: sc }];
         const focus = Math.max(0, sections.findIndex((s) => s.title === st));
         const session = buildLearningSession({
@@ -819,6 +804,7 @@ export function useVoiceSession({
           focusSectionIndex: focus,
           learnerNotes: formatMemoryForPrompt(learnerMemory, lang) || null,
           previousSummary: summary ?? null,
+          bilingual: bi || context?.practicesEnglish === true,
         });
         systemInstruction = session.instruction;
         opener = session.opener;

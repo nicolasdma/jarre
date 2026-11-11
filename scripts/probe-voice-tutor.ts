@@ -9,6 +9,8 @@
  *     [--resource interview-brivel-call] [--runs 2] [--turns 8] [--interview-json <lesson.json>]
  *   npx tsx scripts/probe-voice-tutor.ts --resummarize <saved.json> [--mode interview]
  *   npx tsx scripts/probe-voice-tutor.ts --mode interview --score-transcript <transcript.txt> --label <label>
+ *   npx tsx scripts/probe-voice-tutor.ts --mode learning --bilingual --closing --label <label>
+ *     (who ends the session, and the Spanish then English alternation)
  *
  * Interview runs use `--plan hard` by default: the plants reproduce the owner's
  * real mock of 2026-11-11 (mangled name, subtle misconceptions, vague answer,
@@ -71,6 +73,13 @@ const RUNS = Number(arg('runs') ?? '2');
 const TURNS = Number(arg('turns') ?? '8');
 /** Interview plants: `hard` reproduces the owner's real mock (2026-11-11), `v1` is the first plan. */
 const PLAN = (arg('plan') ?? 'hard') as 'v1' | 'hard';
+/** Learning: the lesson practices English, so each idea goes Spanish, then English. */
+const BILINGUAL = process.argv.includes('--bilingual');
+/**
+ * Learning: after the plan, the learner hints at the end without agreeing,
+ * then agrees. Checks the session only ends after the learner agrees.
+ */
+const CLOSING = process.argv.includes('--closing');
 /** A real transcript to score with the interview rubric, no Live session. */
 const SCORE_TRANSCRIPT = arg('score-transcript');
 const TURN_TIMEOUT_MS = 40_000;
@@ -146,6 +155,7 @@ async function buildSession(lesson: LessonData): Promise<{ instruction: string; 
         drills: lesson.drills,
       },
       focusSectionIndex: 0,
+      bilingual: BILINGUAL,
     });
   }
   const { resolveInterviewSetup } = await import('../src/lib/interview/personas');
@@ -285,7 +295,7 @@ async function learnerTurn(
   history: { role: 'tutor' | 'learner'; text: string }[],
   plant: PlantKind,
   language: 'es' | 'en',
-): Promise<{ answer: string; planted_point: string }> {
+): Promise<{ answer: string; planted_point: string; lang: 'es' | 'en' }> {
   const system = `You simulate a learner in a voice tutoring session. The learner is Nicolás, an Argentine developer who studied the lesson below. ${
     language === 'es'
       ? 'Speak rioplatense Spanish, spoken register, 1 to 4 sentences, like a transcript of speech (no lists).'
@@ -293,13 +303,13 @@ async function learnerTurn(
   }
 Reply to the tutor's LAST turn. This turn has a mandatory plant:
 ${PLANT_RULES[plant]}
-Return JSON: {"answer": "...", "planted_point": "..."}.
+${language === 'es' ? 'If the tutor asks you to say it in English, answer in English instead, as a B2 speaker with one or two typical Spanish-speaker mistakes, keeping the plant. ' : ''}Return JSON: {"answer": "...", "planted_point": "...", "lang": "es" or "en" (the language you answered in)}.
 
 LESSON:
 ${lessonContext}`;
   const transcript = history.map((h) => `${h.role === 'tutor' ? 'TUTOR' : 'LEARNER'}: ${h.text}`).join('\n');
   const out = await deepseek(system, transcript || '(no turns yet)', 0.7);
-  return { answer: String(out.answer ?? ''), planted_point: String(out.planted_point ?? '') };
+  return { answer: String(out.answer ?? ''), planted_point: String(out.planted_point ?? ''), lang: out.lang === 'en' ? 'en' : 'es' };
 }
 
 // ---------------------------------------------------------------------------
@@ -548,6 +558,7 @@ interface ExchangeRecord {
   question_marks: number;
   words: number;
   judge?: Record<string, unknown>;
+  learner_lang?: 'es' | 'en';
 }
 
 async function runOnce(lesson: LessonData, run: number) {
@@ -590,6 +601,7 @@ async function runOnce(lesson: LessonData, run: number) {
     history.push({ role: 'learner', text: learner.answer });
     const r = await probe.ask(learner.answer);
     const rec = record(i + 1, plant, learner.answer, learner.planted_point, r);
+    rec.learner_lang = learner.lang as 'es' | 'en';
     rec.judge = await judge(context, history, plant, learner.planted_point, r.text);
     history.push({ role: 'tutor', text: r.text });
     records.push(rec);
@@ -597,6 +609,37 @@ async function runOnce(lesson: LessonData, run: number) {
     if (r.toolCalls.includes('end_session')) break;
   }
   let closing: Record<string, unknown> | null = null;
+  let endCheck: Record<string, unknown> | null = null;
+  if (MODE === 'learning' && CLOSING && !probe.closed) {
+    // Hint at the end without agreeing: the tutor must ask, not end.
+    const { decideSessionEnd } = await import('../src/lib/voice/session-end');
+    const steps = [
+      { text: 'Creo que ya vimos bastante, ¿no?', agrees: false },
+      { text: 'Sí, pasemos al quiz.', agrees: true },
+    ];
+    const ends: { learner: string; agrees: boolean; model_said_end: boolean; app_would_end: boolean; tutor: string }[] = [];
+    for (const step of steps) {
+      if (probe.closed) break;
+      history.push({ role: 'learner', text: step.text });
+      const r = await probe.ask(step.text);
+      history.push({ role: 'tutor', text: r.text });
+      records.push(record(records.length, 'opener', step.text, '', r));
+      const d = decideSessionEnd({ policy: 'learning', modelWindow: r.text.slice(-320), elapsedS: 120, lastLearnerText: step.text });
+      ends.push({ learner: step.text, agrees: step.agrees, model_said_end: d.signal === 'strong', app_would_end: d.end, tutor: r.text });
+      if (d.end) break;
+    }
+    // Earlier turns: did the model say the end phrase before anyone agreed?
+    const premature = records
+      .filter((x) => x.plant !== 'opener' || !steps.some((st) => st.text === x.learner))
+      .filter((x) => decideSessionEnd({ policy: 'default', modelWindow: x.tutor.slice(-320), elapsedS: 999 }).signal === 'strong').length;
+    endCheck = {
+      end_phrase_before_agreement: premature + ends.filter((e) => !e.agrees && e.model_said_end).length,
+      app_ended_before_agreement: ends.some((e) => !e.agrees && e.app_would_end) ? 1 : 0,
+      asked_instead_of_ending: ends[0] && !ends[0].model_said_end && /\?/.test(ends[0].tutor) ? 1 : 0,
+      ended_after_agreement: ends.some((e) => e.agrees && e.app_would_end) ? 1 : 0,
+      steps: ends,
+    };
+  }
   if (MODE === 'interview' && !probe.closed) {
     // Ask to wrap up unless it already ended, then judge the closing summary.
     if (!/interview complete/i.test(history[history.length - 1]?.text ?? '')) {
@@ -609,7 +652,7 @@ async function runOnce(lesson: LessonData, run: number) {
     closing = await judgeClosing(context, history);
   }
   probe.close();
-  return { run, closed: probe.closed, instruction_chars: instruction.length, records, closing };
+  return { run, closed: probe.closed, instruction_chars: instruction.length, records, closing, endCheck };
 }
 
 function mean(xs: number[]): number | null {
@@ -687,7 +730,34 @@ function summarizeV2(runs: { records: ExchangeRecord[]; closing?: Record<string,
   };
 }
 
-function summarize(runs: { records: ExchangeRecord[]; closing?: Record<string, unknown> | null }[]) {
+/** Learning: who ended it, and how often each idea went Spanish then English. */
+function summarizeLearningExtras(runs: { records: ExchangeRecord[]; endCheck?: Record<string, unknown> | null }[]) {
+  const asks = (t: string) => /\b(en ingl[eé]s|in english)\b/i.test(t);
+  const corrects = (t: string) => /you said\b[^.?!]*\bsay\b/i.test(t);
+  const turns = runs.flatMap((r) => r.records.filter((x) => x.plant !== 'opener'));
+  const englishAnswers = runs.flatMap((r) =>
+    r.records.map((x, i) => ({ x, next: r.records[i + 1] })).filter(({ x }) => x.learner_lang === 'en'),
+  );
+  const checks = runs.map((r) => r.endCheck).filter((c): c is Record<string, unknown> => !!c);
+  const c = (k: string) => mean(checks.map((x) => Number(x[k] ?? 0)));
+  return {
+    tutor_asks_for_english: mean(turns.map((x) => (asks(x.tutor) ? 1 : 0))),
+    english_answers: englishAnswers.length,
+    english_feedback_after_english_answer: mean(englishAnswers.map(({ x }) => (corrects(x.tutor) || /ingl[eé]s/i.test(x.tutor) ? 1 : 0))),
+    back_to_spanish_after_english: mean(englishAnswers.filter(({ next }) => next).map(({ x }) => (/[¿ñáéíóú]|\b(que|el|la|los|vos)\b/i.test(x.tutor) ? 1 : 0))),
+    ...(checks.length
+      ? {
+          end_phrase_before_agreement: mean(checks.map((x) => Number(x.end_phrase_before_agreement ?? 0))),
+          app_ended_before_agreement: c('app_ended_before_agreement'),
+          asked_instead_of_ending: c('asked_instead_of_ending'),
+          ended_after_agreement: c('ended_after_agreement'),
+        }
+      : {}),
+  };
+}
+
+function summarize(runs: { records: ExchangeRecord[]; closing?: Record<string, unknown> | null; endCheck?: Record<string, unknown> | null }[]) {
+  if (MODE === 'learning' && (BILINGUAL || CLOSING)) return { ...summarizeLegacy(runs), learning: summarizeLearningExtras(runs) };
   if (MODE === 'interview' && runs.some((r) => r.records.some((x) => x.judge?.answer_errors !== undefined))) {
     return { ...summarizeLegacy(runs), v2: summarizeV2(runs) };
   }
@@ -756,7 +826,7 @@ async function main() {
   writeFileSync(
     file,
     JSON.stringify(
-      { label: LABEL, date: new Date().toISOString(), model: MODEL, prompt: PROMPT, mode: MODE, persona: PERSONA ?? null, depth: DEPTH, resource: RESOURCE, summary, runs },
+      { label: LABEL, date: new Date().toISOString(), model: MODEL, prompt: PROMPT, mode: MODE, persona: PERSONA ?? null, depth: DEPTH, plan: PLAN, bilingual: BILINGUAL, closing: CLOSING, resource: RESOURCE, summary, runs },
       null,
       2,
     ),

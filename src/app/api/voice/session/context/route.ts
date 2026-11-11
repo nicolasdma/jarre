@@ -8,7 +8,9 @@
  *
  * For exploration sessions: returns user resource data + concept links instead.
  *
- * Response: { summary?: string, learnerMemory?: LearnerConceptMemory[] }
+ * Response: { summary?: string, learnerMemory?: LearnerConceptMemory[], practicesEnglish?: true }
+ * (`practicesEnglish`: the section's lesson has English drills, so the
+ * learning tutor works each idea in Spanish and then in English.)
  *        or { resource, links, learnerMemory? }
  */
 
@@ -112,9 +114,10 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     }
   }
 
-  const [summaryResult, learnerMemory] = await Promise.all([
+  const [summaryResult, learnerMemory, practicesEnglish] = await Promise.all([
     summaryPromise,
     memoryPromise,
+    sectionPracticesEnglish(supabase, sectionId),
   ]);
 
   const summary = summaryResult.data?.cached_summary || null;
@@ -132,5 +135,25 @@ export const GET = withAuth(async (request, { supabase, user }) => {
   return jsonOk({
     ...(summary ? { summary } : {}),
     ...(learnerMemory.length > 0 ? { learnerMemory } : {}),
+    ...(practicesEnglish ? { practicesEnglish: true } : {}),
   });
 });
+
+/** Whether the section belongs to a lesson with English drills (hand-written lessons). */
+async function sectionPracticesEnglish(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[1]['supabase'],
+  sectionId: string | null,
+): Promise<boolean> {
+  if (!sectionId) return false;
+  const { data: section } = await supabase
+    .from(TABLES.resourceSections)
+    .select('resource_id')
+    .eq('id', sectionId)
+    .maybeSingle();
+  if (!section?.resource_id) return false;
+  const { count } = await supabase
+    .from(TABLES.lessonDrills)
+    .select('slug', { count: 'exact', head: true })
+    .eq('resource_id', section.resource_id);
+  return (count ?? 0) > 0;
+}
