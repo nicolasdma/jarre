@@ -1,0 +1,177 @@
+{
+ "summary": "La llamada fue bien en lo técnico: dejaste claro el patrón de validar pagos en el servidor y el manejo de links firmados, pero te faltó tener los seis hitos de memoria y decir bien los términos clave (RLS, postMessage, funded). Lo primero a arreglar es el guion de los seis hitos: sin eso, Nathalie no ve que entendés el proyecto y las fechas.",
+ "questions": [
+  {
+   "question": "Tell me a bit about yourself and your experience.",
+   "score": 2,
+   "verdict": "Bien: full-stack, seis años, Valley of Guardians y validación en servidor. Faltó el proof concreto (10.000 usuarios, 600 concurrentes), que trabajás solo y la zona horaria.",
+   "missing": [
+    "more than 10,000 users and about 600 at the same time",
+    "works alone: no agency, talks to her directly, writes all the code",
+    "on Eastern time now, two hours ahead of Denver"
+   ]
+  },
+  {
+   "question": "How do we protect the panels from being copied?",
+   "score": 2,
+   "verdict": "Bien: bucket privado, única puerta por la API y RLS en la base. Mal: dijiste que la ruta de API 'tiene RLS' y no mencionaste la service role key solo en el servidor.",
+   "missing": [
+    "the API route checks the session and access to that chapter itself",
+    "the service role key stays on the server only",
+    "no storage policy allows direct reads"
+   ]
+  },
+  {
+   "question": "How do we make sure a panel link doesn't stay valid indefinitely?",
+   "score": 2,
+   "verdict": "Bien: links que vencen y pedido panel por panel al scrollear. Mal: dijiste 'cada 2 minutos los links se expiran', como si un timer rotara todos; es cada link 120 segundos después de firmarse, y faltó no-store.",
+   "missing": [
+    "each link expires 120 seconds after it is signed, not a global timer",
+    "returned with Cache-Control: no-store",
+    "keeping going needs a session with access, which leaves a trace"
+   ]
+  },
+  {
+   "question": "How do we ensure a payment confirmed in the browser is secure?",
+   "score": 1,
+   "verdict": "Bien: el postback del servidor es lo que habilita el acceso. Mal: dijiste 'listen in the iframe' (no se puede leer adentro) y 'same signature' en el front: el navegador solo chequea origin y forma.",
+   "missing": [
+    "our page receives the messages the iframe sends, we cannot read inside the iframe",
+    "the browser listener only checks event.origin and the shape of the data",
+    "the browser message never unlocks anything, it only tells the screen to check again",
+    "while waiting, show 'confirming your payment' for a second or two"
+   ]
+  },
+  {
+   "question": "What are the milestones you need to complete in those six weeks?",
+   "score": 0,
+   "verdict": "No contestaste: dijiste 'I will cover everything in the paper' y que lo ibas a pensar. Es la respuesta que más tenés que saber de memoria.",
+   "missing": [
+    "five weekly milestones plus a QA week, code on GitHub and Vercel staging every Wednesday",
+    "week 1: schema, RLS on every table, 45/55 split, private buckets",
+    "week 2: 120-second signed links, protected reader, Sunday leaderboard reset",
+    "week 3: upload portal, AI safe/adult scan, auto-cropping, price floors",
+    "week 4: Centrobill iframe and postback, paywall at chapter four, 18+ gate",
+    "week 5: Paxum payout ledger, ad slots, print-on-demand webhooks",
+    "week 6: testing and polish only, sign-off on December 24th"
+   ]
+  },
+  {
+   "question": "How do you handle being blocked and missing a Wednesday?",
+   "score": 2,
+   "verdict": "Bien: avisás el mismo día y no esperás al miércoles. Faltó el compromiso concreto: código en GitHub y staging cada miércoles con nota en Upwork, y bugs del jueves en tres días hábiles.",
+   "missing": [
+    "every Wednesday before midnight the code is on her GitHub and Vercel staging",
+    "a short note on Upwork: what is done, how to test it, what is needed",
+    "Thursday bugs fixed within three business days while the next milestone moves on"
+   ]
+  },
+  {
+   "question": "What are the immediate next steps if we move forward?",
+   "score": 2,
+   "verdict": "Bien: accesos a GitHub, Vercel y Supabase, o los creás y transferís, y arrancás con el primer hito funded. Faltó el contrato en Upwork con los hitos como están publicados y el primer push esta semana.",
+   "missing": [
+    "the contract on Upwork with the milestones as posted",
+    "first push this week, and every Wednesday the code is on staging"
+   ]
+  }
+ ],
+ "misconceptions": [
+  {
+   "said": "the API route will have row-level security",
+   "right": "RLS lives in the database (tables and storage.objects); the API route checks the session and access itself and uses the service key on the server."
+  },
+  {
+   "said": "every 2 minutes the links are expired",
+   "right": "Each link expires 120 seconds after it is signed; there is no global timer rotating all links."
+  },
+  {
+   "said": "we will listen in the iframe of the payment service",
+   "right": "A page cannot read inside Centrobill's iframe; our page receives the postMessage messages the iframe sends."
+  },
+  {
+   "said": "we will be looking for the same signature and the same data",
+   "right": "The browser listener checks only event.origin and the shape of the data; signature verification happens on the server postback."
+  }
+ ],
+ "must_know": [
+  {
+   "topic": "the six milestones",
+   "missing": [
+    "five weekly milestones plus a QA week, code on GitHub and Vercel staging every Wednesday",
+    "week 1: schema, RLS on every table, 45/55 split, private buckets",
+    "week 2: 120-second signed links, protected reader, Sunday leaderboard reset",
+    "week 3: upload portal, AI safe/adult scan, auto-cropping, price floors",
+    "week 4: Centrobill iframe and postback, paywall at chapter four, 18+ gate",
+    "week 5: Paxum payout ledger, ad slots, print-on-demand webhooks",
+    "week 6: testing and polish only, sign-off on December 24th"
+   ]
+  },
+  {
+   "topic": "the closing",
+   "missing": [
+    "the contract on Upwork with the milestones as posted",
+    "first push this week, and every Wednesday the code is on staging"
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "heard": "Body of Guardians",
+   "say": "Valley of Guardians"
+  },
+  {
+   "heard": "role low security",
+   "say": "row-level security (RLS)"
+  },
+  {
+   "heard": "send messages",
+   "say": "postMessage"
+  },
+  {
+   "heard": "the first milestone is founded",
+   "say": "the first milestone is funded"
+  }
+ ],
+ "language": [
+  {
+   "said": "I haven't think of this",
+   "say": "I haven't thought of this",
+   "times": 1
+  },
+  {
+   "said": "in the same day",
+   "say": "on the same day",
+   "times": 1
+  },
+  {
+   "said": "off the track",
+   "say": "off track",
+   "times": 1
+  },
+  {
+   "said": "This allow us",
+   "say": "This allows us",
+   "times": 1
+  },
+  {
+   "said": "as the user scroll",
+   "say": "as the user scrolls",
+   "times": 1
+  }
+ ],
+ "practice": [
+  {
+   "drill": "00-los-6-hitos-de-memoria",
+   "why": "No supiste los seis hitos y es lo que más mira Nathalie para confiar en las fechas."
+  },
+  {
+   "drill": "03-links-120-segundos",
+   "why": "Dijiste 'cada 2 minutos' como si fuera un timer global; hay que decir que cada link vence 120 segundos después de firmarse y con no-store."
+  },
+  {
+   "drill": "02-pago-iframe-centrobill",
+   "why": "Confundiste el listener del navegador con el postback del servidor y hablaste de firma en el front."
+  }
+ ]
+}
