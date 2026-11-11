@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-11T14:04:13.213Z",
+  "model": "gemini-3.8-live",
+  "pause_s": 1.5,
+  "pause_window_s": [
+    1.42175,
+    2.9217500000000003
+  ],
+  "results": [
+    {
+      "rep": 1,
+      "arm": "api-default",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.769,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": -5.45,
+      "heard": "porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Esa respuesta está incompleta. ¿Qué tendría que haberTal cual, confiar en el navegador sería un riesgo enorme porque es el cliente quien controla ese entorno. Pensá en esto: ¿qué información tiene el servidor en el postback que el navegador no podría haber manipulado?",
+      "events": [
+        {
+          "t": 3.209,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.231,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 1,
+      "arm": "low-900",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.742,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": -5.47,
+      "heard": "porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Exacto, pero ¿qué le falta recibir a tu servidorEsa verificación es la única garantía real. Ahora, si el postMessage del iframe no acredita el pago, ¿para qué sirve ese mensaje en la interfaz del usuario?",
+      "events": [
+        {
+          "t": 3.183,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.285,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 1,
+      "arm": "default",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 11.101,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": 2.89,
+      "heard": "porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Totalmente, la validación de esa firma en el servidor es lo único que nos da seguridad real. Pensá en un atacante que intenta falsificar el `postMessage` en su navegador; ¿por qué esa trampa no le serviría para quedarse con el servicio?",
+      "events": []
+    },
+    {
+      "rep": 1,
+      "arm": "patient",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 10.445,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": 2.23,
+      "heard": "porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Totalmente, porque el navegador del cliente es inseguro. ¿Qué podría pasar si alguien intenta hackear ese postMessage para saltarse el pago?",
+      "events": []
+    },
+    {
+      "rep": 2,
+      "arm": "api-default",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.706,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": -5.51,
+      "heard": "porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Exacto, pero ¿qué chequea específicamente el servidor para asegurar que el pago fue real?La firma criptográfica es la única garantía real de esa verificación. Pensá en esto: si tu frontend usa el postMessage para mostrar el cartel de éxito, ¿qué problema de seguridad tendrías si procesaras la entreg",
+      "events": [
+        {
+          "t": 3.203,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.247,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "arm": "low-900",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 11.741,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": 3.53,
+      "heard": "porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Tal cual, la firma es la garantía. Entonces, si el navegador solo muestra el mensaje de éxito pero no hay postback del servidor, ¿acreditarías el servicio?",
+      "events": [
+        {
+          "t": 3.366,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.39,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "arm": "default",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 12.216,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": 4,
+      "heard": "porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Tal cual, la verificación del postback es la única que tiene validez legal. Pensá en esto: ¿qué pasa si el cliente desconecta internet justo al cerrar el navegador?",
+      "events": []
+    },
+    {
+      "rep": 2,
+      "arm": "patient",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 10.659,
+      "speech_end_s": 8.22,
+      "response_after_speech_end_s": 2.44,
+      "heard": "porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Tal cual, la firma es la única garantía real de que el pago ocurrió. Pensando en eso, ¿para qué sirve entonces el `postMessage` del iframe si no cambia el estado del acceso?",
+      "events": []
+    }
+  ]
+}

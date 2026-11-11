@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-11T13:59:31.502Z",
+  "model": "gemini-3.8-live",
+  "pause_s": 1.2,
+  "pause_window_s": [
+    1.42175,
+    2.62175
+  ],
+  "results": [
+    {
+      "rep": 1,
+      "arm": "api-default",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.718,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": -5.2,
+      "heard": "Porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Seguí con esa idea, ¿por qué dependés de lo que el servidorTal cual, es la única forma. ¿Qué pasaría si un atacante lograra mandar un postback falso a tu servidor evadiendo la verificación de la firma?",
+      "events": [
+        {
+          "t": 3.283,
+          "kind": "interrupted"
+        },
+        {
+          "t": 5.191,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 1,
+      "arm": "low-900",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 9.198,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": 1.28,
+      "heard": "Porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no recibe nada.",
+      "said": "¿Qué pasaría entonces si un usuario malintencionado modificara el postMessage para que la pantalla muestre un éxito falso?",
+      "events": [
+        {
+          "t": 3.107,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.194,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 1,
+      "arm": "low-1300",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 9.599,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": 1.68,
+      "heard": "Porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Imaginá que el postMessage le avisa al usuario que el pago fue exitoso, pero el servidor nunca recibe el postback de Centrobill. ¿Qué pasa con el acceso en ese caso?",
+      "events": []
+    },
+    {
+      "rep": 2,
+      "arm": "api-default",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.752,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": -5.16,
+      "heard": "Porque el servidorVerifica el cashback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Dale, te escucho, ¿cómo se entera el servidor?Tal cual. Pensá esto: si un usuario malicioso mandara un pedido HTTP directo a tu servidor inventando una compra exitosa, ¿cómo se defiende tu servidor?",
+      "events": [
+        {
+          "t": 3.058,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.077,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "arm": "low-900",
+      "closed": null,
+      "cut_in_during_pause": true,
+      "first_audio_s": 2.735,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": -5.18,
+      "heard": "Porque el servidorVerifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "¿Qué diferencia hay entre lo que sabe el navegador y lo que puede verificar el servidor para confirmarExacto, la validación en el servidor es lo que manda. Si ese postback no llega, ¿cómo se asegura tu sistema de que el contenido no quede bloqueado para siempre?",
+      "events": [
+        {
+          "t": 3.165,
+          "kind": "interrupted"
+        },
+        {
+          "t": 3.195,
+          "kind": "turnComplete"
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "arm": "low-1300",
+      "closed": null,
+      "cut_in_during_pause": false,
+      "first_audio_s": 9.717,
+      "speech_end_s": 7.92,
+      "response_after_speech_end_s": 1.8,
+      "heard": "Porque el servidor verifica el postback con la firma antes de acreditar la compra. El navegador no decide nada.",
+      "said": "Tal cual, el servidor es el que manda. Pensá en el `postMessage` que llega al iframe: ¿para qué sirve si el cliente ya cerró la ventana?",
+      "events": []
+    }
+  ],
+  "arms_note": "api-default: no realtimeInputConfig; low-900 / low-1300: END_SENSITIVITY_LOW with that silenceDurationMs"
+}
