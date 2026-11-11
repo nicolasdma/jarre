@@ -54,6 +54,7 @@ interface ResourceCardProps {
     conceptsTaught: string[];
     evalStats: EvalStats | null;
     relatedUserResources: RelatedUserResource[];
+    hasPractice?: boolean;
   };
   isLoggedIn: boolean;
   language: Language;
@@ -302,6 +303,19 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 sm:py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors min-h-[44px] flex items-center"
               >
                 {t('quiz.review', language)}
+              </button>
+            )}
+            {resource.hasPractice && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/resource/${resource.id}/practice`);
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-accent text-j-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-light transition-colors min-h-[44px] flex items-center"
+              >
+                {language === 'es' ? 'Practicar' : 'Practice'}
               </button>
             )}
             <button

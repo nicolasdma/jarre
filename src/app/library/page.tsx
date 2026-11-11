@@ -6,6 +6,7 @@ import { t, getPhaseNames, type CurriculumTrack, type Language } from '@/lib/tra
 import { IS_MANAGED } from '@/lib/config';
 import { FREE_VOICE_MINUTES } from '@/lib/constants';
 import { TABLES } from '@/lib/db/tables';
+import { resourcesWithDrills } from '@/lib/lessons/drills';
 import { LibraryContent } from './library-content';
 
 export const metadata: Metadata = {
@@ -174,6 +175,8 @@ export default async function LibraryPage({
       );
     }
   }
+
+  const practiceResourceIds = await resourcesWithDrills(supabase, allResourceIds);
 
   const generatedResourceIds = new Set<string>();
   if (allResourceIds.length > 0) {
@@ -394,6 +397,7 @@ export default async function LibraryPage({
     evalStats: EvalStats | null;
     relatedUserResources: RelatedUserResource[];
     progress: { activeSection: number; completedSections: number[] } | null;
+    hasPractice: boolean;
   };
 
   const resourcesWithStatus: ResourceWithStatus[] = (resources || []).map((resource) => {
@@ -433,6 +437,7 @@ export default async function LibraryPage({
       evalStats: evaluationStats[resource.id] || null,
       relatedUserResources,
       progress: learnProgressMap[resource.id] || null,
+      hasPractice: practiceResourceIds.has(resource.id),
     };
   });
 

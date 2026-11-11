@@ -35,6 +35,7 @@ import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
 import type { LearnProgress } from '@/lib/learn-progress';
 import type { InlineQuiz, VideoSegment } from '@/types';
+import { resourcesWithDrills } from '@/lib/lessons/drills';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -151,7 +152,9 @@ export default async function LearnPage({ params }: PageProps) {
   }
 
   const renderContent = EXPLANATION_COMPONENTS[resourceId];
-  const practical = PRACTICAL_ROUTES[resourceId];
+  const hasDrills = (await resourcesWithDrills(supabase, [resourceId])).has(resourceId);
+  const practical = PRACTICAL_ROUTES[resourceId]
+    ?? (hasDrills ? { label: 'Practicar', href: `/resource/${resourceId}/practice` } : undefined);
   const guidedQuestions = READING_QUESTIONS[resourceId];
 
   // NEW FLOW: If resource has sections in DB, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence

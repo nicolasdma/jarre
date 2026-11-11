@@ -509,6 +509,7 @@ export function LearnFlow({
               className="w-full border-0"
               style={{ height: 'calc(100vh - 57px)' }}
               title={playgroundLabel || 'Playground'}
+              allow="microphone; autoplay"
             />
           ) : (
             <div className="flex items-center justify-center" style={{ height: 'calc(100vh - 57px)' }}>

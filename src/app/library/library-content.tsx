@@ -42,6 +42,7 @@ interface ResourceWithStatus {
   conceptsTaught: string[];
   evalStats: EvalStats | null;
   relatedUserResources: RelatedUserResource[];
+  hasPractice?: boolean;
 }
 
 interface ProjectWithDetails {

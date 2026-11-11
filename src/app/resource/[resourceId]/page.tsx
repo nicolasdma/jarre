@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { StudyView } from './study-view';
 import { t, type Language } from '@/lib/translations';
+import { resourcesWithDrills } from '@/lib/lessons/drills';
 
 export async function generateMetadata({ params }: { params: Promise<{ resourceId: string }> }): Promise<Metadata> {
   const { resourceId } = await params;
@@ -66,6 +67,8 @@ export default async function ResourcePage({ params }: PageProps) {
     .eq('resource_id', resourceId)
     .single();
 
+  const hasDrills = (await resourcesWithDrills(supabase, [resourceId])).has(resourceId);
+
   const canvasData = notesData?.canvas_data ?? null;
   const splitPosition = notesData?.split_position ?? 50;
 
@@ -99,6 +102,14 @@ export default async function ResourcePage({ params }: PageProps) {
 
       {/* Action buttons - top right */}
       <div className="absolute right-3 top-3 z-50 flex items-center gap-2">
+        {hasDrills && (
+          <Link
+            href={`/resource/${resourceId}/practice`}
+            className="rounded-full bg-j-accent/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-j-accent"
+          >
+            🎧 Practicar
+          </Link>
+        )}
         <Link
           href={`/learn/${resourceId}`}
           className="rounded-full bg-amber-600/80 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-amber-600"
