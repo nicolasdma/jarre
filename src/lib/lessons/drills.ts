@@ -19,12 +19,15 @@ interface DrillRow {
   text_en: string;
   text_es: string | null;
   audio_path: string | null;
+  /** Absent until supabase/migrations/20261111030000_lesson_drill_concept.sql is applied. */
+  concept_id?: string | null;
 }
 
 export async function fetchPracticeDrills(supabase: SupabaseClient, resourceId: string): Promise<PracticeDrill[]> {
   const { data, error } = await supabase
     .from(TABLES.lessonDrills)
-    .select('slug, title, priority, text_en, text_es, audio_path')
+    // `*`: concept_id exists only once its migration is applied.
+    .select('*')
     .eq('resource_id', resourceId)
     .order('priority', { ascending: true })
     .order('slug', { ascending: true });
@@ -50,6 +53,7 @@ export async function fetchPracticeDrills(supabase: SupabaseClient, resourceId: 
     textEn: r.text_en,
     textEs: r.text_es,
     audioUrl: r.audio_path ? signed.get(r.audio_path) ?? null : null,
+    conceptId: r.concept_id ?? null,
   }));
 }
 

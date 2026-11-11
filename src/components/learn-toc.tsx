@@ -17,6 +17,12 @@ interface LearnTOCProps {
   visitedSteps: Set<Step>;
   /** The steps this lesson has, in order (the interview only when the lesson has one). */
   steps?: Step[];
+  /** A label that replaces a step's default one (e.g. "Practicar" for APPLY in a lesson with drills). */
+  stepLabels?: Partial<Record<Step, string>>;
+  /** A short progress note next to a step ("12/33"). */
+  stepNotes?: Partial<Record<Step, string>>;
+  /** Shown under the steps during the practice step: the drill groups. */
+  practiceNav?: React.ReactNode;
   onSectionClick: (index: number) => void;
   onStepClick: (step: Step) => void;
   mobileOpen: boolean;
@@ -46,6 +52,9 @@ export function LearnTOC({
   currentStep,
   visitedSteps,
   steps = STEP_ORDER,
+  stepLabels,
+  stepNotes,
+  practiceNav,
   onSectionClick,
   onStepClick,
   mobileOpen,
@@ -87,13 +96,16 @@ export function LearnTOC({
                   }`}
                 >
                   {isVisited && <span className="mr-1.5">&#10003;</span>}
-                  {t(STEP_KEYS[step], language)}
+                  {stepLabels?.[step] ?? t(STEP_KEYS[step], language)}
+                  {stepNotes?.[step] && <span className="ml-2 font-normal tabular-nums text-j-text-tertiary">{stepNotes[step]}</span>}
                 </button>
               </li>
             );
           })}
         </ul>
       </div>
+
+      {currentStep === 'apply' && practiceNav}
 
       {/* Sections (only visible during LEARN step) */}
       {currentStep === 'learn' && sections.length > 0 && (

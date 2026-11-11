@@ -2,6 +2,17 @@
 
 import { useState, useMemo, useCallback, useEffect, memo, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { InterviewMode } from '@/components/practice/interview-mode';
+import {
+  LessonPracticeProvider,
+  PracticeNav,
+  PracticeStep,
+  SectionDrills,
+  useLessonPractice,
+  usePracticeProgress,
+} from '@/components/practice/lesson-practice';
+import { isDrillMode, type PracticeDrill } from '@/components/practice/types';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
 import { VoicePracticeFlow } from '@/components/voice/voice-practice-flow';
@@ -69,10 +80,11 @@ interface LearnFlowProps {
   playgroundHref?: string;
   playgroundLabel?: string;
   /**
-   * The interview mock, as the lesson's last step (lessons with drills). It is
-   * the practice page's Entrevista tab, embedded like the playground.
+   * Lessons with spoken-English drills: drills under each section, a Practice
+   * step (APPLY) with every drill and mode, and the interview mock as the last
+   * step, all in this view.
    */
-  interviewHref?: string;
+  practice?: { drills: PracticeDrill[]; interviewConfig: unknown };
   concepts: EvalConcept[];
   userId: string;
   guidedQuestions?: ReadingQuestion[];
@@ -150,6 +162,8 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
   exercises,
 }: ConceptSectionWrapperProps) {
   const handleComplete = useCallback(() => onComplete(index), [onComplete, index]);
+  // Stable per concept, so the memoized section does not re-render on practice clicks.
+  const drills = useMemo(() => <SectionDrills conceptId={section.conceptId} />, [section.conceptId]);
   const handleActivate = useCallback(() => onActivate(index), [onActivate, index]);
   const handleStateChange = useCallback(
     (state: SectionState) => onStateChange(section.id, state),
@@ -169,6 +183,7 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
       inlineQuizzes={quizzesBySectionId?.[section.id]}
       videoSegments={videoSegmentsBySectionId?.[section.id]}
       exercises={exercises}
+      afterContent={drills}
     />
   );
 });
@@ -186,6 +201,7 @@ interface StickyHeaderProps {
   activeSection: number;
   sectionsCount: number;
   steps: Step[];
+  stepLabels?: Partial<Record<Step, string>>;
   onStepChange: (step: Step) => void;
   onTocOpen: () => void;
 }
@@ -197,6 +213,7 @@ function StickyHeader({
   activeSection,
   sectionsCount,
   steps,
+  stepLabels,
   onStepChange,
   onTocOpen,
 }: StickyHeaderProps) {
@@ -254,7 +271,7 @@ function StickyHeader({
                         : 'text-j-text-tertiary hover:text-j-text-secondary'
                   }`}
                 >
-                  {t(STEP_LABELS[step].key, language)}
+                  {stepLabels?.[step] ?? t(STEP_LABELS[step].key, language)}
                 </button>
               </div>
             );
@@ -271,7 +288,7 @@ function StickyHeader({
           </span>
           <span className="text-j-border">·</span>
           <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-            {t(STEP_LABELS[currentStep].key, language)}
+            {stepLabels?.[currentStep] ?? t(STEP_LABELS[currentStep].key, language)}
           </span>
           {currentStep === 'learn' && (
             <span className="font-mono text-[10px] text-j-text-tertiary">
@@ -297,7 +314,34 @@ function StickyHeader({
 // Component
 // ============================================================================
 
-export function LearnFlow({
+/** Steps a deep link can open: `?step=interview`, `?step=practice&drill=<slug>&mode=<mode>`. */
+function stepFromParam(value: string | null): Step | null {
+  if (value === 'practice' || value === 'drills') return 'apply';
+  return value === 'activate' || value === 'learn' || value === 'apply' || value === 'practice-eval' || value === 'evaluate' || value === 'interview'
+    ? value
+    : null;
+}
+
+export function LearnFlow(props: LearnFlowProps) {
+  const params = useSearchParams();
+  const linkedStep = stepFromParam(params.get('step'));
+  const linkedMode = params.get('mode');
+  const flow = <LearnFlowInner {...props} linkedStep={linkedStep} />;
+  if (!props.practice?.drills.length) return flow;
+  return (
+    <LessonPracticeProvider
+      resourceId={props.resourceId}
+      drills={props.practice.drills}
+      sections={props.sections.map((s) => ({ conceptId: s.conceptId, title: s.sectionTitle }))}
+      initialSlug={params.get('drill')}
+      initialMode={isDrillMode(linkedMode) ? linkedMode : null}
+    >
+      {flow}
+    </LessonPracticeProvider>
+  );
+}
+
+function LearnFlowInner({
   language,
   resourceId,
   resourceTitle,
@@ -307,7 +351,8 @@ export function LearnFlow({
   activateComponent,
   playgroundHref,
   playgroundLabel,
-  interviewHref,
+  practice: practiceData,
+  linkedStep,
   concepts,
   userId,
   guidedQuestions,
@@ -315,9 +360,13 @@ export function LearnFlow({
   figureRegistry,
   quizzesBySectionId,
   videoSegmentsBySectionId,
-}: LearnFlowProps) {
-  const steps = interviewHref ? STEP_ORDER_WITH_INTERVIEW : STEP_ORDER;
+}: LearnFlowProps & { linkedStep: Step | null }) {
+  const practice = useLessonPractice();
+  const practiceProgress = usePracticeProgress();
+  const hasPractice = !!practice;
+  const steps = hasPractice ? STEP_ORDER_WITH_INTERVIEW : STEP_ORDER;
   const [currentStep, setCurrentStep] = useState<Step>(() => {
+    if (linkedStep && steps.includes(linkedStep)) return linkedStep;
     const saved = (initialProgress?.currentStep as Step) ?? 'activate';
     return steps.includes(saved) ? saved : 'evaluate';
   });
@@ -445,6 +494,38 @@ export function LearnFlow({
     [resourceId, buildProgress, currentStep]
   );
 
+  // Keep the place in the URL, so a reload or a shared link opens the same step
+  // (and, in Practice, the same drill and mode).
+  const selectedDrill = practice?.selectedSlug ?? null;
+  const drillMode = practice?.mode ?? null;
+  useEffect(() => {
+    if (!hasPractice) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('step', currentStep === 'apply' ? 'practice' : currentStep);
+    if (currentStep === 'apply' && selectedDrill && drillMode) {
+      url.searchParams.set('drill', selectedDrill);
+      url.searchParams.set('mode', drillMode);
+    } else {
+      url.searchParams.delete('drill');
+      url.searchParams.delete('mode');
+    }
+    window.history.replaceState(null, '', url);
+  }, [hasPractice, currentStep, selectedDrill, drillMode]);
+
+  const interviewLesson = useMemo(
+    () => ({
+      title: resourceTitle,
+      sections: sections.map((s) => ({ title: s.sectionTitle, content: s.contentMarkdown })),
+      drills: (practiceData?.drills ?? []).map((d) => ({ slug: d.slug, title: d.title, text_en: d.textEn })),
+    }),
+    [resourceTitle, sections, practiceData],
+  );
+  const stepLabels = useMemo(
+    () => (hasPractice ? { apply: t('learn.step.drills', language) } : undefined),
+    [hasPractice, language],
+  );
+  const stepNotes = practiceProgress ? { apply: `${practiceProgress.done}/${practiceProgress.total}` } : undefined;
+
   /** Called by ConceptSection when its state changes */
   const handleSectionStateChange = useCallback(
     (conceptId: string, state: SectionState) => {
@@ -499,6 +580,7 @@ export function LearnFlow({
         activeSection={activeSection}
         sectionsCount={sections.length}
         steps={steps}
+        stepLabels={stepLabels}
         onStepChange={changeStep}
         onTocOpen={() => setTocOpen(true)}
       />
@@ -512,14 +594,17 @@ export function LearnFlow({
           currentStep={currentStep}
           visitedSteps={visitedSteps}
           steps={steps}
+          stepLabels={stepLabels}
+          stepNotes={stepNotes}
+          practiceNav={hasPractice ? <PracticeNav onPick={(slug) => practice?.select(slug)} /> : undefined}
           onSectionClick={navigateToSection}
           onStepClick={(step) => changeStep(step)}
           mobileOpen={tocOpen}
           onMobileOpenChange={setTocOpen}
         />
 
-      {/* STEP 3: PLAYGROUND — Full-width, no padding */}
-      {currentStep === 'apply' && (
+      {/* STEP 3: PLAYGROUND — Full-width, no padding (lessons with drills practice inline below) */}
+      {currentStep === 'apply' && !hasPractice && (
         <div className="lg:ml-[220px]">
           {playgroundHref ? (
             <iframe
@@ -546,21 +631,27 @@ export function LearnFlow({
         </div>
       )}
 
-      {/* STEP 6: INTERVIEW — the mock call, last: everything learned, out loud, in English */}
-      {currentStep === 'interview' && interviewHref && (
-        <div className="lg:ml-[220px]">
-          <iframe
-            src={interviewHref}
-            className="w-full border-0"
-            style={{ height: 'calc(100vh - 57px)' }}
-            title={t('learn.step.interview', language)}
-            allow="microphone; autoplay"
-          />
-        </div>
-      )}
-
       {/* Step content — centered relative to full viewport (compensates for TOC + tutor sidebar) */}
-      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' || currentStep === 'interview' ? 'hidden' : ''}`}>
+      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
+        {/* STEP 3 with drills: PRACTICE — every answer of the call, every mode */}
+        {currentStep === 'apply' && hasPractice && <PracticeStep onInterview={() => changeStep('interview')} />}
+
+        {/* STEP 6: INTERVIEW — the mock call, last: everything learned, out loud, in English */}
+        {currentStep === 'interview' && hasPractice && (
+          <div className="py-16">
+            <InterviewMode
+              resourceId={resourceId}
+              resourceTitle={resourceTitle}
+              lesson={interviewLesson}
+              interviewConfig={practiceData?.interviewConfig ?? null}
+              onPracticeDrill={(slug) => {
+                practice?.select(slug, 'repeat');
+                changeStep('apply');
+              }}
+            />
+          </div>
+        )}
+
         {/* STEP 1: ACTIVATE — Advance organizer */}
         {currentStep === 'activate' && (
           <div>
@@ -679,7 +770,7 @@ export function LearnFlow({
                   onClick={() => changeStep('apply')}
                   className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
                 >
-                  {t('learn.continueToApply', language)} →
+                  {hasPractice ? (language === 'es' ? 'Continuar a Practicar' : 'Continue to Practice') : t('learn.continueToApply', language)} →
                 </button>
               </div>
             )}
@@ -749,7 +840,7 @@ export function LearnFlow({
                 onCancel={() => changeStep('practice-eval')}
               />
             )}
-            {interviewHref && (
+            {hasPractice && (
               <div className="mt-16 border-t border-j-border pt-12 text-center">
                 <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
                   {language === 'es' ? 'Último paso' : 'Last step'}

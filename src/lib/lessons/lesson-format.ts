@@ -81,6 +81,12 @@ const DrillSchema = z.object({
   text_en: z.string().min(1),
   text_es: z.string().nullable().optional(),
   audio: z.string().nullable().optional(),
+  /**
+   * The lesson concept this drill practices: the learn view shows it under
+   * that section. Absent for drills not tied to one concept (the plan by
+   * heart, useful phrases), which the learn view groups as "De memoria".
+   */
+  concept: z.string().optional(),
 });
 
 export const LessonSchema = z.object({
@@ -106,6 +112,12 @@ export const LessonSchema = z.object({
   if (c) ctx.addIssue({ code: 'custom', message: `duplicate concept id ${c}` });
   const d = dup(l.drills.map((x) => x.id));
   if (d) ctx.addIssue({ code: 'custom', message: `duplicate drill id ${d}` });
+  const conceptIds = new Set(l.concepts.map((c) => c.id));
+  for (const drill of l.drills) {
+    if (drill.concept && !conceptIds.has(drill.concept)) {
+      ctx.addIssue({ code: 'custom', message: `drill ${drill.id}: unknown concept ${drill.concept}` });
+    }
+  }
 });
 
 export type Lesson = z.infer<typeof LessonSchema>;

@@ -35,7 +35,7 @@ import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
 import type { LearnProgress } from '@/lib/learn-progress';
 import type { InlineQuiz, VideoSegment } from '@/types';
-import { resourcesWithDrills } from '@/lib/lessons/drills';
+import { fetchPracticeDrills, resourcesWithDrills } from '@/lib/lessons/drills';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -153,11 +153,13 @@ export default async function LearnPage({ params }: PageProps) {
 
   const renderContent = EXPLANATION_COMPONENTS[resourceId];
   const hasDrills = (await resourcesWithDrills(supabase, [resourceId])).has(resourceId);
-  const practical = PRACTICAL_ROUTES[resourceId]
-    ?? (hasDrills ? { label: 'Practicar', href: `/resource/${resourceId}/practice` } : undefined);
+  // Lessons with drills practice inline (drills under each section, a Practice
+  // step, the interview mock last); the others keep their playground.
+  const practical = PRACTICAL_ROUTES[resourceId];
+  const practice = hasDrills
+    ? { drills: await fetchPracticeDrills(supabase, resourceId), interviewConfig: (resource as Record<string, unknown>).interview ?? null }
+    : undefined;
   const guidedQuestions = READING_QUESTIONS[resourceId];
-  // Lessons with drills end with the interview mock (the practice page's Entrevista tab).
-  const interviewHref = hasDrills ? `/resource/${resourceId}/practice?mode=interview&embed=1` : undefined;
 
   // NEW FLOW: If resource has sections in DB, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
   if (sections.length > 0) {
@@ -239,7 +241,7 @@ export default async function LearnPage({ params }: PageProps) {
         activateComponent={renderContent?.()}
         playgroundHref={practical?.href}
         playgroundLabel={practical?.label}
-        interviewHref={interviewHref}
+        practice={practice}
         concepts={conceptsTaught}
         userId={user.id}
         guidedQuestions={guidedQuestions}

@@ -104,7 +104,7 @@ export default async function ResourcePage({ params }: PageProps) {
       <div className="absolute right-3 top-3 z-50 flex items-center gap-2">
         {hasDrills && (
           <Link
-            href={`/resource/${resourceId}/practice`}
+            href={`/learn/${resourceId}?step=practice`}
             className="rounded-full bg-j-accent/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-j-accent"
           >
             🎧 Practicar

@@ -292,6 +292,14 @@ async function main() {
     if (error) throw new Error(`upload ${path}: ${error.message}`);
     uploaded++;
   }
+  // concept_id needs supabase/migrations/20261111030000_lesson_drill_concept.sql;
+  // until it is applied the drills seed without it (the learn view then groups
+  // them all as "De memoria").
+  const { error: conceptColumnError } = await db.from(TABLES.lessonDrills).select('concept_id').limit(1);
+  const hasConceptColumn = !conceptColumnError;
+  if (!hasConceptColumn && lesson.drills.some((d) => d.concept)) {
+    console.log('  lesson_drills.concept_id missing: apply 20261111030000_lesson_drill_concept.sql to show drills under their sections');
+  }
   const drillRows = audio.map((a) => ({
     resource_id: resourceId,
     slug: a.drill.id,
@@ -300,6 +308,7 @@ async function main() {
     text_en: a.drill.text_en,
     text_es: a.drill.text_es ?? null,
     audio_path: a.local ? drillAudioPath(resourceId, a.drill.id) : null,
+    ...(hasConceptColumn ? { concept_id: a.drill.concept ?? null } : {}),
     updated_at: now,
   }));
   if (drillRows.length) await must('lesson_drills', db.from(TABLES.lessonDrills).upsert(drillRows, { onConflict: 'resource_id,slug' }));

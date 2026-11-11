@@ -37,6 +37,8 @@ interface ConceptSectionProps {
   inlineQuizzes?: InlineQuiz[];
   videoSegments?: VideoSegment[];
   exercises?: Exercise[];
+  /** Rendered right after the reading (e.g. the section's spoken-English drills). */
+  afterContent?: React.ReactNode;
 }
 
 type Phase = 'pre-question' | 'content' | 'exercise' | 'post-test' | 'completed';
@@ -65,6 +67,7 @@ export const ConceptSection = memo(function ConceptSection({
   inlineQuizzes,
   videoSegments,
   exercises,
+  afterContent,
 }: ConceptSectionProps) {
   const hasExercises = exercises && exercises.length > 0;
   const [phase, setPhase] = useState<Phase>(initialState?.phase ?? 'pre-question');
@@ -436,6 +439,8 @@ export const ConceptSection = memo(function ConceptSection({
             inlineQuizzes={inlineQuizzes}
             videoSegments={videoSegments}
           />
+
+          {afterContent}
 
           {phase === 'content' && (
             <div className="mt-8 pt-6 border-t border-j-border">

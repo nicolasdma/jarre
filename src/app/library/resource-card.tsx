@@ -311,7 +311,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  router.push(`/resource/${resource.id}/practice`);
+                  router.push(`/learn/${resource.id}?step=practice`);
                 }}
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-accent text-j-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-light transition-colors min-h-[44px] flex items-center"
               >

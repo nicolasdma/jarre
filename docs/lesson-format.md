@@ -60,10 +60,11 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 ## Drill
 
 ```json
-{ "id": "01-presentacion", "title": "Tu presentación", "priority": 1, "text_en": "…", "text_es": "…", "audio": "/abs/path.m4a" }
+{ "id": "01-presentacion", "title": "Tu presentación", "priority": 1, "text_en": "…", "text_es": "…", "audio": "/abs/path.m4a", "concept": "interview-call-playbook" }
 ```
 
 - `id`: letters, digits, `-`, `_` (case kept, it is also the audio file name).
+- `concept` (optional): the lesson concept the drill practices; the learn view shows it under that section. Without it the drill goes in the last group, "De memoria" (the plan by heart, useful phrases). Stored in `lesson_drills.concept_id` (migration `20261111030000_lesson_drill_concept.sql`; until it is applied the seed skips it and every drill is "De memoria").
 - Audio is looked up in this order: `audio` (absolute, `~/`, or relative to the JSON), then `<json dir>/audios/<id>.m4a`, then, with `--tts`, generated into that same path. A drill with no audio still loads: the practice page reads it with the browser's en-US voice (speechSynthesis), labelled "voz del navegador", until a re-seed adds the recording.
 - Audio is uploaded to the private Storage bucket `lesson-audio` at `<lesson id>/<drill id>.m4a`. The practice page signs 4-hour URLs with the learner's session (bucket read policy: authenticated).
 - TTS: `gemini-3.8-flash-tts`, voice `Charon`, calm American English at a learner's pace (`src/lib/llm/gemini-tts.ts`), PCM converted to m4a with `ffmpeg`, 20 s between calls (the key's per-minute quota answers 429 after ~20 fast calls).
@@ -114,4 +115,4 @@ Re-running is safe: every row id is derived from the lesson (`stableUuid`), so r
 
 - Library (`/library`, which `/dashboard` redirects to): the resource card gets a **Practicar** button.
 - Learn view (`/learn/<id>`): the APPLY step embeds the practice page.
-- Practice: `/resource/<id>/practice` (`?drill=<id>&mode=listen|copy|dictation|repeat|shadow|interview`). Best scores per drill are kept in the browser (localStorage).
+- Everything is in the learn view, `/learn/<id>`: each section ends with its drills ("Decilo en inglés", every mode inline), APPLY becomes **Practicar** (every drill by group, with the groups and what is practiced in the side navigation) and the last step is **Entrevista**. Deep links: `?step=practice&drill=<id>&mode=listen|copy|dictation|repeat|shadow`, `?step=interview`. `/resource/<id>/practice` redirects there. Best scores per drill are kept in the browser (localStorage).
