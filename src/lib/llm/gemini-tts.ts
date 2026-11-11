@@ -11,10 +11,8 @@ import { GoogleGenAI } from '@google/genai';
 
 export const DRILL_TTS_MODEL = 'gemini-3.8-flash-tts';
 export const DRILL_TTS_VOICE = 'Charon';
-export const DRILL_TTS_STYLE =
-  'Read this aloud as a calm, friendly, confident software developer on a video call. ' +
-  'Use clear American English and a slightly slow, natural pace so a learner can repeat it. ' +
-  'Pause briefly between sentences:';
+// No style prompt: gemini-3.8-flash-tts reads any instruction in the text aloud (2026-11-11, every drill
+// started with ~14 s of it), and it rejects system instructions. The text goes alone; the player slows it down.
 
 export interface SpeechPcm {
   pcm: Buffer;
@@ -38,7 +36,7 @@ export async function synthesizeDrillSpeech(text: string, apiKey: string): Promi
     try {
       const response = await ai.models.generateContent({
         model: DRILL_TTS_MODEL,
-        contents: [{ role: 'user', parts: [{ text: `${DRILL_TTS_STYLE}\n\n${text}` }] }],
+        contents: [{ role: 'user', parts: [{ text }] }],
         config: {
           responseModalities: ['AUDIO'],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: DRILL_TTS_VOICE } } },
