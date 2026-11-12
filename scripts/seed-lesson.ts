@@ -85,6 +85,11 @@ function localAudioFor(lessonDir: string, drill: Lesson['drills'][number]): stri
   return candidates.find((p): p is string => Boolean(p && existsSync(p))) ?? null;
 }
 
+/** The text as spoken: a pause mark (" / ") becomes a comma, or nothing after punctuation. */
+function speakable(text: string): string {
+  return text.replace(/([.,:;!?])?\s+\/(?=\s|$)/g, (_, p: string | undefined) => (p ?? ',')).replace(/\s+/g, ' ').trim();
+}
+
 async function generateAudio(text: string, out: string): Promise<void> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
@@ -153,7 +158,7 @@ async function main() {
     for (const [i, a] of missing.entries()) {
       if (args.dryRun) break;
       const out = join(lessonDir, 'audios', `${a.drill.id}.m4a`);
-      await generateAudio(a.drill.text_en, out);
+      await generateAudio(speakable(a.drill.text_en), out);
       a.local = out;
       console.log(`    ${a.drill.id} → ${out}`);
       if (i < missing.length - 1) await new Promise((r) => setTimeout(r, TTS_PACE_MS));

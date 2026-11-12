@@ -24,6 +24,14 @@ function fold(ch: string): string {
 
 const PUNCT = /[^\p{L}\p{N}\s]/u;
 
+/**
+ * A lesson marks where to breathe with a slash between spaces ("six years, / five of them").
+ * It is read, never typed or said: copy and repeat skip it.
+ */
+const PAUSE_MARK = '/';
+const isPauseMark = (chars: string[], i: number): boolean =>
+  chars[i] === PAUSE_MARK && (i === 0 || /\s/.test(chars[i - 1])) && (i === chars.length - 1 || /\s/.test(chars[i + 1]));
+
 function comparable(ch: string, opts: CompareOptions): string {
   const f = fold(ch);
   return opts.caseInsensitive ? f.toLowerCase() : f;
@@ -43,6 +51,7 @@ export function significantChars(text: string, opts: CompareOptions): { ch: stri
       if (out.length > 0 && pendingSpace < 0) pendingSpace = i;
       continue;
     }
+    if (isPauseMark(chars, i)) continue;
     if (opts.ignorePunctuation && PUNCT.test(fold(raw))) continue;
     if (pendingSpace >= 0) {
       out.push({ ch: ' ', index: pendingSpace });
@@ -361,7 +370,8 @@ export function alignWords(target: string, spoken: string, options: AlignOptions
     const isSaid = unitsOf[w] > 0 && saidOf[w] === unitsOf[w];
     return {
       word,
-      state: isSaid ? 'said' : 'missed',
+      // A pause mark has nothing to say: it stays plain, never "missed".
+      state: unitsOf[w] === 0 ? 'pending' : isSaid ? 'said' : 'missed',
       term: termOf[w],
       viaAlias: isSaid && heardAsOf[w] !== null,
       heardAs: isSaid ? heardAsOf[w] : null,

@@ -64,6 +64,7 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 ```
 
 - `id`: letters, digits, `-`, `_` (case kept, it is also the audio file name).
+- `text_en` may mark breaths with a slash between spaces (`six years, / five of them`): shown as written, skipped by Copiar and Repetir, and read as a comma by `--tts`.
 - `concept` (optional): the lesson concept the drill practices; the learn view shows it under that section. Without it the drill goes in the last group, "De memoria" (the plan by heart, useful phrases). Stored in `lesson_drills.concept_id` (migration `20261111030000_lesson_drill_concept.sql`; until it is applied the seed skips it and every drill is "De memoria").
 - Audio is looked up in this order: `audio` (absolute, `~/`, or relative to the JSON), then `<json dir>/audios/<id>.m4a`, then, with `--tts`, generated into that same path. A drill with no audio still loads: the practice page reads it with the browser's en-US voice (speechSynthesis), labelled "voz del navegador", until a re-seed adds the recording.
 - Audio is uploaded to the private Storage bucket `lesson-audio` at `<lesson id>/<drill id>.m4a`. The practice page signs 4-hour URLs with the learner's session (bucket read policy: authenticated).

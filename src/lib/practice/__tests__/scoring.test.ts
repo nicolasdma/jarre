@@ -34,6 +34,13 @@ describe('copyFeedback', () => {
     expect(f.states[2]).toBe('neutral');
   });
 
+  it('skips the pause marks a lesson writes between spaces', () => {
+    const f = copyFeedback('six years, / five of them', 'six years, five of them', strict);
+    expect(accuracyPercent(f)).toBe(100);
+    expect(f.states[11]).toBe('neutral');
+    expect(accuracyPercent(copyFeedback('24/7', '24 7', strict))).toBeLessThan(100);
+  });
+
   it('folds accents and collapses whitespace', () => {
     const f = copyFeedback('Córdoba,  Argentina', 'Cordoba, Argentina', strict);
     expect(accuracyPercent(f)).toBe(100);
@@ -75,6 +82,12 @@ describe('alignWords', () => {
 
   it('is case and punctuation blind', () => {
     expect(alignWords('Hi Nathalie, nice to meet you.', 'hi nathalie nice to meet you').score).toBe(100);
+  });
+
+  it('never marks a pause mark as missed', () => {
+    const a = alignWords('six years, / five of them', 'six years five of them');
+    expect(a.score).toBe(100);
+    expect(a.words[2]).toMatchObject({ word: '/', state: 'pending' });
   });
 });
 
