@@ -109,6 +109,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
                   {isPracticed(practice.scores[d.slug]) ? '✓' : '·'}
                 </span>
                 <span className="min-w-0 flex-1 text-sm text-j-text">{d.title}</span>
+                {d.audioUrl && <span className="shrink-0 text-xs text-j-warm" title="Con grabación lista" aria-label="Con grabación lista">★</span>}
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">{open ? 'Cerrar' : 'Practicar'}</span>
               </button>
               {open && (
@@ -165,7 +166,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
             <optgroup key={g.id} label={g.title}>
               {g.drills.map((d) => (
                 <option key={d.slug} value={d.slug}>
-                  {isPracticed(practice.scores[d.slug]) ? '✓ ' : ''}{d.title}
+                  {isPracticed(practice.scores[d.slug]) ? '✓ ' : ''}{d.audioUrl ? '★ ' : ''}{d.title}
                 </option>
               ))}
             </optgroup>
@@ -235,6 +236,7 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
                     )}
                   >
                     {done && <span className="mr-1.5">&#10003;</span>}
+                    {d.audioUrl && <span className="mr-1.5 text-j-warm" aria-label="Con grabación lista">★</span>}
                     {d.title}
                   </button>
                 </li>
