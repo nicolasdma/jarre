@@ -10,7 +10,7 @@ export interface PracticeDrill {
   conceptId: string | null;
 }
 
-export type PracticeMode = 'listen' | 'copy' | 'repeat' | 'sentences' | 'interview';
+export type PracticeMode = 'listen' | 'copy' | 'repeat' | 'sentences' | 'recall' | 'interview';
 /** The modes that practice one drill (the interview is a step of its own). */
 export type DrillMode = Exclude<PracticeMode, 'interview'>;
 
@@ -19,6 +19,8 @@ export const PRACTICE_MODES: { id: PracticeMode; label: string }[] = [
   { id: 'copy', label: 'Copiar' },
   { id: 'repeat', label: 'Repetir' },
   { id: 'sentences', label: 'Frase por frase' },
+  // Last of the drill steps: answer from the question alone (recall.ts).
+  { id: 'recall', label: 'Pregunta → respuesta' },
   { id: 'interview', label: 'Entrevista' },
 ];
 

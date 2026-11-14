@@ -1,17 +1,19 @@
 'use client';
 
 /**
- * One drill with every way to practice it: listen, copy, repeat
- * and sentence by sentence. Lives inside the learn view, under the section the drill
+ * One drill with every way to practice it: listen, copy, repeat,
+ * sentence by sentence, and last, answer from the question alone. Lives inside the learn view, under the section the drill
  * belongs to and in the lesson's Practice step; best scores are kept per
  * device (best-scores.ts).
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
+import { recordRecall, recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
 import { ListenMode } from './listen-mode';
+import { RecallMode } from './recall-mode';
+import { dueLabel, type RecallRating } from '@/lib/practice/recall';
 import { RepeatMode } from './repeat-mode';
 import { SentenceMode } from './sentence-mode';
 import { CopyMode, type CopyResult } from './copy-mode';
@@ -22,6 +24,8 @@ import { DRILL_MODES, type DrillMode, type PracticeDrill } from './types';
 interface DrillTrainerProps {
   resourceId: string;
   drill: PracticeDrill;
+  /** The interviewer's English question for this drill, if the lesson has one. */
+  ask?: string;
   /** The lesson's key terms: sound-alikes for the recognizer, respellings. */
   keyTerms: readonly KeyTerm[];
   mode: DrillMode;
@@ -33,6 +37,8 @@ interface DrillTrainerProps {
   onNext?: () => void;
   /** "3/8" or similar, shown between the arrows. */
   position?: string;
+  /** Pregunta → respuesta: go to the next drill due for review, if any. */
+  onNextDue?: () => void;
 }
 
 function isTyping(el: Element | null): boolean {
@@ -48,22 +54,35 @@ export function bestLine(best: DrillBest | undefined): string | null {
   if (best.repeat) parts.push(`repetir ${best.repeat.score}%`);
   if (best.sentences) parts.push(`frases ${best.sentences.score}% a la primera`);
   else if (best.shadowed) parts.push(`frase por frase ×${best.shadowed}`);
+  if (best.recall) parts.push(`pregunta ${best.recall.got}/${best.recall.tries} · repaso ${dueLabel(best.recall)}`);
   return parts.length ? parts.join(' · ') : null;
 }
 
 /** A drill counts as practiced once any mode has a result. */
 export function isPracticed(best: DrillBest | undefined): boolean {
-  return !!best && !!(best.copy || best.repeat || best.sentences || best.shadowed);
+  return !!best && !!(best.copy || best.repeat || best.sentences || best.shadowed || best.recall);
 }
 
-export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position }: DrillTrainerProps) {
+export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position, onNextDue }: DrillTrainerProps) {
   const audio = useDrillAudio(drill.audioUrl, drill.textEn);
+  const tabsRef = useRef<HTMLElement>(null);
+
+  // On a phone the mode tabs scroll sideways: keep the chosen one in view
+  // (Pregunta → respuesta, the last, starts out of view).
+  useEffect(() => {
+    const nav = tabsRef.current;
+    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!nav || !tab) return;
+    const n = nav.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    if (t.left < n.left || t.right > n.right) nav.scrollLeft += t.left - n.left - (n.width - t.width) / 2;
+  }, [mode]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
-      // Frase por frase has its own keys (Space: listen to the sentence).
-      if (e.key === ' ' && mode !== 'sentences' && document.activeElement?.closest('[data-drill-trainer]')) {
+      // Frase por frase and Pregunta → respuesta have their own keys.
+      if (e.key === ' ' && mode !== 'sentences' && mode !== 'recall' && document.activeElement?.closest('[data-drill-trainer]')) {
         e.preventDefault();
         audio.toggle();
       }
@@ -80,6 +99,10 @@ export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, 
   const onSentences = useCallback(
     (firstTry: number | null) =>
       onScores(firstTry === null ? recordShadowed(resourceId, drill.slug) : recordScore(resourceId, drill.slug, 'sentences', firstTry)),
+    [drill.slug, onScores, resourceId],
+  );
+  const onRecall = useCallback(
+    (rating: RecallRating) => onScores(recordRecall(resourceId, drill.slug, rating)),
     [drill.slug, onScores, resourceId],
   );
   const next = onNext ?? (() => {});
@@ -108,7 +131,7 @@ export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, 
         )}
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Modo de práctica">
+      <nav ref={tabsRef} className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Modo de práctica">
         {DRILL_MODES.map((m) => (
           <button
             key={m.id}
@@ -130,6 +153,18 @@ export function DrillTrainer({ resourceId, drill, keyTerms, mode, onModeChange, 
       {mode === 'copy' && <CopyMode key={`copy-${drill.slug}`} drill={drill} audio={audio} onResult={onCopyResult} onNext={next} />}
       {mode === 'repeat' && <RepeatMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onScore={onRepeatScore} />}
       {mode === 'sentences' && <SentenceMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onFinished={onSentences} />}
+      {mode === 'recall' && (
+        <RecallMode
+          key={`recall-${drill.slug}`}
+          drill={drill}
+          ask={ask}
+          audio={audio}
+          record={scores[drill.slug]?.recall}
+          onRate={onRecall}
+          onNext={onNext}
+          onNextDue={onNextDue}
+        />
+      )}
     </div>
   );
 }

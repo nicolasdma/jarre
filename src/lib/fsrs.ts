@@ -49,6 +49,25 @@ export function scheduleFSRS(
 }
 
 /**
+ * Same engine and retention, scheduled in whole days: no same-session
+ * learning steps (1 min, 10 min). For spoken drills recalled from a prompt,
+ * where the next useful try is another day (a miss comes back tomorrow).
+ */
+const dayScheduler = fsrs({
+  request_retention: FSRS_DESIRED_RETENTION,
+  maximum_interval: 180,
+  enable_short_term: false,
+});
+
+export function scheduleFSRSDays(
+  card: FSRSCard,
+  rating: Grade,
+  now: Date = new Date()
+): RecordLogItem {
+  return dayScheduler.repeat(card, now)[rating];
+}
+
+/**
  * Create a new empty FSRS card (for first-time reviews).
  */
 export function createNewFSRSCard(now: Date = new Date()): FSRSCard {
