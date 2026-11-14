@@ -11,6 +11,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { InterviewConfigSchema } from '../interview/personas';
+import { drillPhrases, segmentsFit } from '../practice/phrase-segments';
 
 const PHASES = ['0', '1', '1.5', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'] as const;
 const TRACKS = ['ai', 'travel', 'aventura'] as const;
@@ -87,6 +88,12 @@ const DrillSchema = z.object({
    * heart, useful phrases), which the learn view groups as "De memoria".
    */
   concept: z.string().optional(),
+  /**
+   * Where each phrase (" / ") sits in the audio, in seconds: one per phrase,
+   * in order. Usually not written by hand: scripts/align-drill-segments.ts
+   * writes them next to the audio and seed-lesson.ts reads them from there.
+   */
+  segments: z.array(z.object({ start: z.number().min(0), end: z.number().positive() })).optional(),
 });
 
 export const LessonSchema = z.object({
@@ -116,6 +123,12 @@ export const LessonSchema = z.object({
   for (const drill of l.drills) {
     if (drill.concept && !conceptIds.has(drill.concept)) {
       ctx.addIssue({ code: 'custom', message: `drill ${drill.id}: unknown concept ${drill.concept}` });
+    }
+    if (drill.segments && !segmentsFit(drill.text_en, drill.segments)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `drill ${drill.id}: segments need one {start, end} per phrase (${drillPhrases(drill.text_en).length}), in order, not overlapping`,
+      });
     }
   }
 });
@@ -194,4 +207,41 @@ export function mapCard(card: LessonCard): { front_content: Record<string, unkno
 /** Storage object path of a drill's audio inside the `lesson-audio` bucket. */
 export function drillAudioPath(resourceId: string, drillId: string): string {
   return `${resourceId}/${drillId}.m4a`;
+}
+
+/** Phrase timings for one drill's audio, written next to it by scripts/align-drill-segments.ts. */
+export interface DrillSegmentsFile {
+  version: 1;
+  drill: string;
+  /** The drill text they were aligned to: a re-written text makes them stale. */
+  text: string;
+  /** The audio they were measured on: a re-recorded file makes them stale. */
+  audio: { sha1: string; duration: number };
+  asr: string;
+  segments: { start: number; end: number; text: string }[];
+  boundaries?: unknown[];
+}
+
+/** `<dir>/<name>.m4a` → `<dir>/<name>.segments.json`. */
+export function segmentsSidecarPath(audioPath: string): string {
+  return audioPath.replace(/\.[^./\\]+$/, '') + '.segments.json';
+}
+
+/**
+ * The segments to store for a drill: its own `segments` when the lesson has
+ * them, else the sidecar's when it was made from this text and this audio
+ * file. Null (with the reason) when there are none that fit.
+ */
+export function drillSegments(
+  drill: { text_en: string; segments?: { start: number; end: number }[] },
+  sidecar: DrillSegmentsFile | null,
+  audioSha1: string | null,
+): { segments: { start: number; end: number }[] | null; why: string | null } {
+  if (drill.segments) return { segments: drill.segments, why: null };
+  if (!sidecar) return { segments: null, why: 'no segments file' };
+  if (sidecar.text !== drill.text_en) return { segments: null, why: 'segments file is for another text' };
+  if (!audioSha1 || sidecar.audio?.sha1 !== audioSha1) return { segments: null, why: 'segments file is for another recording' };
+  const segments = sidecar.segments.map(({ start, end }) => ({ start, end }));
+  if (!segmentsFit(drill.text_en, segments)) return { segments: null, why: 'segments file does not fit the phrases' };
+  return { segments, why: null };
 }

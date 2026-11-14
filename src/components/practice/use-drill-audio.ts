@@ -198,6 +198,11 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
 const SPEECH_CHARS_PER_SECOND = 14;
 const PREFERRED_VOICES = [/Google US English/i, /Samantha/i, /Microsoft (Aria|Jenny|Guy)/i];
 
+/** A breath mark (" / ") read as the comma it stands for, never as "slash". */
+function spoken(text: string): string {
+  return text.replace(/([.,:;!?])?\s+\/(?=\s|$)/g, (_, p: string | undefined) => p ?? ',');
+}
+
 function pickVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.replace('_', '-').startsWith('en-US'));
   for (const re of PREFERRED_VOICES) {
@@ -261,7 +266,7 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     void (async () => {
       do {
         for (const s of sentences) {
-          const ok = await speak(s.text, s.start, s.end);
+          const ok = await speak(spoken(s.text), s.start, s.end);
           if (!ok || runRef.current !== run) return;
         }
       } while (loopRef.current && runRef.current === run);

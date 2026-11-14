@@ -1,15 +1,19 @@
 'use client';
 
 /**
- * Sentence spans of a drill's recording (src/lib/practice/sentence-timing.ts):
- * the audio is decoded once with Web Audio, its pauses found, and each
- * sentence boundary snapped to a pause. Cached per device, keyed by the drill,
- * its text and the recording's length (the signed URL changes on every load
- * and the file behind it can be re-recorded or trimmed), so it runs once per
- * recording.
+ * Where each phrase of a drill sits in its recording, for Frase por frase.
+ *
+ * Exact: the drill's stored phrase timings (lesson_drills.segments, measured
+ * offline with Whisper and the audio's silences: phrase-segments.ts), used
+ * when there is one per phrase. Approximate, for drills without them: the
+ * audio is decoded once with Web Audio, its pauses found, and each boundary
+ * snapped to a pause (sentence-timing.ts); cached per device, keyed by the
+ * drill, its text and the recording's length (the signed URL changes on every
+ * load and the file behind it can be re-recorded or trimmed).
  */
 
 import { useEffect, useState } from 'react';
+import type { PhraseSegment } from '@/lib/practice/phrase-segments';
 import { detectPauses, placeSentences, type SentenceSpan } from '@/lib/practice/sentence-timing';
 import type { AudioSegment } from './use-drill-audio';
 
@@ -21,7 +25,12 @@ interface Cached {
   snapped: boolean;
 }
 
-export type SpanStatus = 'loading' | 'ready' | 'speech' | 'error';
+/**
+ * `exact`: stored phrase timings. `ready`: cut at the pauses found in the
+ * audio (approximate). `error`: the audio could not be read, proportional
+ * cuts. `speech`: no recording, the browser voice reads each phrase.
+ */
+export type SpanStatus = 'loading' | 'exact' | 'ready' | 'speech' | 'error';
 
 function hash(text: string): string {
   let h = 5381;
@@ -69,14 +78,17 @@ export function useSentenceSegments(
   sentences: string[],
   /** The recording's length as the player reports it; 0 until it is known. */
   recordingSeconds: number,
+  /** Stored timings in seconds, one per sentence; anything else is ignored. */
+  stored: readonly PhraseSegment[] | null = null,
 ): { segments: AudioSegment[] | null; status: SpanStatus } {
   const tenths = Math.round(recordingSeconds * 10);
   const key = `${CACHE_PREFIX}${slug}:${hash(sentences.join('\n'))}:${tenths}`;
   const hasAudio = Boolean(audioUrl);
+  const exact = Boolean(audioUrl && stored && stored.length === sentences.length);
   const [state, setState] = useState<{ key: string; value: Cached | null; failed: boolean }>({ key: '', value: null, failed: false });
 
   useEffect(() => {
-    if (!audioUrl || tenths === 0) return;
+    if (!audioUrl || tenths === 0 || exact) return;
     let cancelled = false;
     const cached = readCache(key);
     if (cached && cached.spans.length === sentences.length) {
@@ -97,10 +109,18 @@ export function useSentenceSegments(
     };
     // The signed URL changes on every page load; the key says when the recording changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, hasAudio]);
+  }, [key, hasAudio, exact]);
 
   if (!audioUrl) {
     return { segments: sentences.map((text, i) => ({ text, start: i / sentences.length, end: (i + 1) / sentences.length })), status: 'speech' };
+  }
+  if (exact && stored) {
+    if (!(recordingSeconds > 0)) return { segments: null, status: 'loading' };
+    const d = recordingSeconds;
+    return {
+      segments: stored.map((s, i) => ({ text: sentences[i], start: Math.min(1, s.start / d), end: Math.min(1, s.end / d) })),
+      status: 'exact',
+    };
   }
   const failed = state.key === key && state.failed;
   // Could not decode it: proportional spans, the best guess without the audio.

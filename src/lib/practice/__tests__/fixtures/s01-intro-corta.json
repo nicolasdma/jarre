@@ -1,0 +1,692 @@
+{
+ "_source": "3Y Health lesson drill s01-intro-corta: mlx-community/whisper-large-v3-turbo word timings of its audio and the silences detectPauses finds in it (2026-11-14)",
+ "text": "Hi, I'm Nicolás, / a full-stack engineer from Córdoba, Argentina. / I've been writing code for six years, / five of them shipping React and TypeScript, / plus Python in two recent projects. / I like owning things end to end: / I led the full stack of Valley of Guardians, / a web game with more than ten thousand users, / and I'm the sole front-end developer of Doubland, / a live AI simulation. / I build with Claude Code and Codex every day, / with instructions, skills and subagents I set up myself, / and on my site I built the harness around a live model: / a voice robot with tools, / tested by a judge model. / Agents for real clinic workflows / is exactly the work I want to do next.",
+ "words": [
+  {
+   "word": "Hi,",
+   "start": 0,
+   "end": 0.8
+  },
+  {
+   "word": "I'm",
+   "start": 1.06,
+   "end": 1.7
+  },
+  {
+   "word": "Nicolas,",
+   "start": 1.7,
+   "end": 2
+  },
+  {
+   "word": "a",
+   "start": 2.42,
+   "end": 2.98
+  },
+  {
+   "word": "full",
+   "start": 2.98,
+   "end": 3.18
+  },
+  {
+   "word": "-stack",
+   "start": 3.18,
+   "end": 3.48
+  },
+  {
+   "word": "engineer",
+   "start": 3.48,
+   "end": 3.82
+  },
+  {
+   "word": "from",
+   "start": 3.82,
+   "end": 4.24
+  },
+  {
+   "word": "Cordoba,",
+   "start": 4.24,
+   "end": 4.7
+  },
+  {
+   "word": "Argentina.",
+   "start": 4.88,
+   "end": 5.22
+  },
+  {
+   "word": "I've",
+   "start": 6.4,
+   "end": 7.04
+  },
+  {
+   "word": "been",
+   "start": 7.04,
+   "end": 7.14
+  },
+  {
+   "word": "writing",
+   "start": 7.14,
+   "end": 7.4
+  },
+  {
+   "word": "code",
+   "start": 7.4,
+   "end": 7.74
+  },
+  {
+   "word": "for",
+   "start": 7.74,
+   "end": 7.96
+  },
+  {
+   "word": "six",
+   "start": 7.96,
+   "end": 8.26
+  },
+  {
+   "word": "years,",
+   "start": 8.26,
+   "end": 8.58
+  },
+  {
+   "word": "five",
+   "start": 9.04,
+   "end": 9.46
+  },
+  {
+   "word": "of",
+   "start": 9.46,
+   "end": 9.6
+  },
+  {
+   "word": "them",
+   "start": 9.6,
+   "end": 9.78
+  },
+  {
+   "word": "shipping",
+   "start": 9.78,
+   "end": 10.16
+  },
+  {
+   "word": "React",
+   "start": 10.16,
+   "end": 10.52
+  },
+  {
+   "word": "and",
+   "start": 10.52,
+   "end": 10.84
+  },
+  {
+   "word": "TypeScript,",
+   "start": 10.84,
+   "end": 11.3
+  },
+  {
+   "word": "plus",
+   "start": 11.56,
+   "end": 12.04
+  },
+  {
+   "word": "Python",
+   "start": 12.04,
+   "end": 12.48
+  },
+  {
+   "word": "and",
+   "start": 12.48,
+   "end": 12.8
+  },
+  {
+   "word": "two",
+   "start": 12.8,
+   "end": 13
+  },
+  {
+   "word": "recent",
+   "start": 13,
+   "end": 13.32
+  },
+  {
+   "word": "projects.",
+   "start": 13.32,
+   "end": 13.8
+  },
+  {
+   "word": "I",
+   "start": 14.82,
+   "end": 15.46
+  },
+  {
+   "word": "like",
+   "start": 15.46,
+   "end": 15.66
+  },
+  {
+   "word": "owning",
+   "start": 15.66,
+   "end": 15.96
+  },
+  {
+   "word": "things",
+   "start": 15.96,
+   "end": 16.4
+  },
+  {
+   "word": "end",
+   "start": 16.4,
+   "end": 16.68
+  },
+  {
+   "word": "-to",
+   "start": 16.68,
+   "end": 16.8
+  },
+  {
+   "word": "-end.",
+   "start": 16.8,
+   "end": 17.04
+  },
+  {
+   "word": "I",
+   "start": 17.6,
+   "end": 18.24
+  },
+  {
+   "word": "led",
+   "start": 18.24,
+   "end": 18.44
+  },
+  {
+   "word": "the",
+   "start": 18.44,
+   "end": 18.58
+  },
+  {
+   "word": "full",
+   "start": 18.58,
+   "end": 18.78
+  },
+  {
+   "word": "stack",
+   "start": 18.78,
+   "end": 19.12
+  },
+  {
+   "word": "of",
+   "start": 19.12,
+   "end": 19.38
+  },
+  {
+   "word": "Valley",
+   "start": 19.38,
+   "end": 19.76
+  },
+  {
+   "word": "of",
+   "start": 19.76,
+   "end": 19.96
+  },
+  {
+   "word": "Guardians,",
+   "start": 19.96,
+   "end": 20.32
+  },
+  {
+   "word": "a",
+   "start": 20.66,
+   "end": 20.96
+  },
+  {
+   "word": "web",
+   "start": 20.96,
+   "end": 21.16
+  },
+  {
+   "word": "game",
+   "start": 21.16,
+   "end": 21.4
+  },
+  {
+   "word": "with",
+   "start": 21.4,
+   "end": 21.68
+  },
+  {
+   "word": "more",
+   "start": 21.68,
+   "end": 21.84
+  },
+  {
+   "word": "than",
+   "start": 21.84,
+   "end": 22.04
+  },
+  {
+   "word": "10",
+   "start": 22.04,
+   "end": 22.28
+  },
+  {
+   "word": ",000",
+   "start": 22.28,
+   "end": 22.68
+  },
+  {
+   "word": "users,",
+   "start": 22.68,
+   "end": 23.04
+  },
+  {
+   "word": "and",
+   "start": 23.26,
+   "end": 24
+  },
+  {
+   "word": "I'm",
+   "start": 24,
+   "end": 24.18
+  },
+  {
+   "word": "the",
+   "start": 24.18,
+   "end": 24.28
+  },
+  {
+   "word": "sole",
+   "start": 24.28,
+   "end": 24.5
+  },
+  {
+   "word": "front",
+   "start": 24.5,
+   "end": 24.86
+  },
+  {
+   "word": "-end",
+   "start": 24.86,
+   "end": 25.02
+  },
+  {
+   "word": "developer",
+   "start": 25.02,
+   "end": 25.44
+  },
+  {
+   "word": "of",
+   "start": 25.44,
+   "end": 25.74
+  },
+  {
+   "word": "Doblond,",
+   "start": 25.74,
+   "end": 26.22
+  },
+  {
+   "word": "a",
+   "start": 26.46,
+   "end": 26.82
+  },
+  {
+   "word": "live",
+   "start": 26.82,
+   "end": 27.14
+  },
+  {
+   "word": "AI",
+   "start": 27.14,
+   "end": 27.4
+  },
+  {
+   "word": "simulation.",
+   "start": 27.4,
+   "end": 27.9
+  },
+  {
+   "word": "I",
+   "start": 29.36,
+   "end": 29.9
+  },
+  {
+   "word": "build",
+   "start": 29.9,
+   "end": 30.16
+  },
+  {
+   "word": "with",
+   "start": 30.16,
+   "end": 30.38
+  },
+  {
+   "word": "Claude",
+   "start": 30.38,
+   "end": 30.8
+  },
+  {
+   "word": "Code",
+   "start": 30.8,
+   "end": 31.08
+  },
+  {
+   "word": "and",
+   "start": 31.08,
+   "end": 31.38
+  },
+  {
+   "word": "Codex",
+   "start": 31.38,
+   "end": 31.9
+  },
+  {
+   "word": "every",
+   "start": 31.9,
+   "end": 32.14
+  },
+  {
+   "word": "day,",
+   "start": 32.14,
+   "end": 32.34
+  },
+  {
+   "word": "with",
+   "start": 32.36,
+   "end": 33.04
+  },
+  {
+   "word": "instructions,",
+   "start": 33.04,
+   "end": 33.52
+  },
+  {
+   "word": "skills,",
+   "start": 33.92,
+   "end": 34.38
+  },
+  {
+   "word": "and",
+   "start": 34.44,
+   "end": 34.66
+  },
+  {
+   "word": "sub",
+   "start": 34.66,
+   "end": 34.94
+  },
+  {
+   "word": "-agents",
+   "start": 34.94,
+   "end": 35.3
+  },
+  {
+   "word": "I",
+   "start": 35.3,
+   "end": 35.5
+  },
+  {
+   "word": "set",
+   "start": 35.5,
+   "end": 35.72
+  },
+  {
+   "word": "up",
+   "start": 35.72,
+   "end": 35.82
+  },
+  {
+   "word": "myself.",
+   "start": 35.82,
+   "end": 36.12
+  },
+  {
+   "word": "And",
+   "start": 37.6,
+   "end": 38.14
+  },
+  {
+   "word": "on",
+   "start": 38.14,
+   "end": 38.28
+  },
+  {
+   "word": "my",
+   "start": 38.28,
+   "end": 38.44
+  },
+  {
+   "word": "site,",
+   "start": 38.44,
+   "end": 38.76
+  },
+  {
+   "word": "I",
+   "start": 38.78,
+   "end": 39.04
+  },
+  {
+   "word": "built",
+   "start": 39.04,
+   "end": 39.26
+  },
+  {
+   "word": "the",
+   "start": 39.26,
+   "end": 39.44
+  },
+  {
+   "word": "harness",
+   "start": 39.44,
+   "end": 39.8
+  },
+  {
+   "word": "around",
+   "start": 39.8,
+   "end": 40.32
+  },
+  {
+   "word": "a",
+   "start": 40.32,
+   "end": 40.5
+  },
+  {
+   "word": "live",
+   "start": 40.5,
+   "end": 40.74
+  },
+  {
+   "word": "model,",
+   "start": 40.74,
+   "end": 41.08
+  },
+  {
+   "word": "a",
+   "start": 41.4,
+   "end": 41.94
+  },
+  {
+   "word": "voice",
+   "start": 41.94,
+   "end": 42.18
+  },
+  {
+   "word": "robot",
+   "start": 42.18,
+   "end": 42.48
+  },
+  {
+   "word": "with",
+   "start": 42.48,
+   "end": 42.76
+  },
+  {
+   "word": "tools,",
+   "start": 42.76,
+   "end": 43.14
+  },
+  {
+   "word": "tested",
+   "start": 43.34,
+   "end": 43.78
+  },
+  {
+   "word": "by",
+   "start": 43.78,
+   "end": 44.04
+  },
+  {
+   "word": "a",
+   "start": 44.04,
+   "end": 44.2
+  },
+  {
+   "word": "judge",
+   "start": 44.2,
+   "end": 44.4
+  },
+  {
+   "word": "model.",
+   "start": 44.4,
+   "end": 44.72
+  },
+  {
+   "word": "Agents",
+   "start": 45.7,
+   "end": 46.24
+  },
+  {
+   "word": "for",
+   "start": 46.24,
+   "end": 46.42
+  },
+  {
+   "word": "real",
+   "start": 46.42,
+   "end": 46.72
+  },
+  {
+   "word": "clinic",
+   "start": 46.72,
+   "end": 47.06
+  },
+  {
+   "word": "workflows",
+   "start": 47.06,
+   "end": 47.56
+  },
+  {
+   "word": "is",
+   "start": 47.56,
+   "end": 47.98
+  },
+  {
+   "word": "exactly",
+   "start": 47.98,
+   "end": 48.48
+  },
+  {
+   "word": "the",
+   "start": 48.48,
+   "end": 48.72
+  },
+  {
+   "word": "work",
+   "start": 48.72,
+   "end": 48.94
+  },
+  {
+   "word": "I",
+   "start": 48.94,
+   "end": 49.06
+  },
+  {
+   "word": "want",
+   "start": 49.06,
+   "end": 49.24
+  },
+  {
+   "word": "to",
+   "start": 49.24,
+   "end": 49.36
+  },
+  {
+   "word": "do",
+   "start": 49.36,
+   "end": 49.48
+  },
+  {
+   "word": "next.",
+   "start": 49.48,
+   "end": 49.72
+  }
+ ],
+ "pauses": {
+  "duration": 50.048,
+  "speechStart": 0.66,
+  "speechEnd": 49.82,
+  "pauses": [
+   {
+    "start": 0.85,
+    "end": 1.56
+   },
+   {
+    "start": 2.23,
+    "end": 2.91
+   },
+   {
+    "start": 5.38,
+    "end": 6.85
+   },
+   {
+    "start": 8.64,
+    "end": 9.3
+   },
+   {
+    "start": 11.36,
+    "end": 11.85
+   },
+   {
+    "start": 13.87,
+    "end": 15.41
+   },
+   {
+    "start": 17.09,
+    "end": 18.16
+   },
+   {
+    "start": 20.52,
+    "end": 20.88
+   },
+   {
+    "start": 23.16,
+    "end": 23.82
+   },
+   {
+    "start": 26.28,
+    "end": 26.7
+   },
+   {
+    "start": 28.08,
+    "end": 29.84
+   },
+   {
+    "start": 32.35,
+    "end": 32.9
+   },
+   {
+    "start": 36.22,
+    "end": 37.96
+   },
+   {
+    "start": 41.1,
+    "end": 41.86
+   },
+   {
+    "start": 43.22,
+    "end": 43.53
+   },
+   {
+    "start": 44.76,
+    "end": 45.89
+   }
+  ]
+ }
+}

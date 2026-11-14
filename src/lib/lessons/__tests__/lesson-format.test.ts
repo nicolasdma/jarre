@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  drillSegments,
   LessonSchema,
   mapCard,
   mapQuiz,
   normalizeSectionMarkdown,
   resolveQuizHeading,
   sectionHeadings,
+  segmentsSidecarPath,
   stableUuid,
+  type DrillSegmentsFile,
   type LessonQuiz,
 } from '../lesson-format';
 import sample from '../../../../scripts/fixtures/sample-lesson.json';
@@ -53,5 +56,42 @@ describe('lesson format', () => {
     expect(a).toBe(stableUuid('x/card/1'));
     expect(a).not.toBe(stableUuid('x/card/2'));
     expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  describe('phrase timings', () => {
+    const text = "Hi, I'm Nicolás, / a full-stack engineer. / I like it.";
+    const withDrill = (drill: Record<string, unknown>) => {
+      const l = structuredClone(sample) as { drills: Record<string, unknown>[] };
+      l.drills[0] = { ...l.drills[0], text_en: text, ...drill };
+      return l;
+    };
+    const three = [{ start: 0, end: 1.2 }, { start: 1.3, end: 3 }, { start: 3.1, end: 4 }];
+
+    it('accepts one segment per phrase, in order', () => {
+      expect(LessonSchema.safeParse(withDrill({ segments: three })).success).toBe(true);
+    });
+
+    it('rejects segments that do not fit the phrases', () => {
+      expect(LessonSchema.safeParse(withDrill({ segments: three.slice(0, 2) })).success).toBe(false);
+      expect(LessonSchema.safeParse(withDrill({ segments: [three[0], { start: 0.5, end: 3 }, three[2]] })).success).toBe(false);
+      expect(LessonSchema.safeParse(withDrill({ segments: [three[0], { start: 2, end: 1.5 }, three[2]] })).success).toBe(false);
+    });
+
+    it('names the sidecar after the audio', () => {
+      expect(segmentsSidecarPath('/a/b/audios/01-intro.m4a')).toBe('/a/b/audios/01-intro.segments.json');
+    });
+
+    it('uses a sidecar only for the same text and the same recording', () => {
+      const sidecar: DrillSegmentsFile = {
+        version: 1, drill: 'x', text, audio: { sha1: 'abc', duration: 4.2 }, asr: 'whisper',
+        segments: three.map((s, i) => ({ ...s, text: `p${i}` })),
+      };
+      expect(drillSegments({ text_en: text }, sidecar, 'abc')).toEqual({ segments: three, why: null });
+      expect(drillSegments({ text_en: `${text} More.` }, sidecar, 'abc').segments).toBeNull();
+      expect(drillSegments({ text_en: text }, sidecar, 'other').segments).toBeNull();
+      expect(drillSegments({ text_en: text }, null, 'abc').segments).toBeNull();
+      // The lesson's own segments win.
+      expect(drillSegments({ text_en: text, segments: three }, null, null).segments).toBe(three);
+    });
   });
 });

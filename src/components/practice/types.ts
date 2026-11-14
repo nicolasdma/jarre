@@ -1,3 +1,5 @@
+import type { PhraseSegment } from '@/lib/practice/phrase-segments';
+
 export interface PracticeDrill {
   slug: string;
   title: string;
@@ -8,6 +10,11 @@ export interface PracticeDrill {
   audioUrl: string | null;
   /** The lesson concept (section) it practices; null: the "De memoria" group. */
   conceptId: string | null;
+  /**
+   * Where each phrase (" / ") sits in the recording, in seconds, or null
+   * without timings (lesson_drills.segments; phrase-segments.ts).
+   */
+  segments: PhraseSegment[] | null;
 }
 
 export type PracticeMode = 'listen' | 'copy' | 'repeat' | 'sentences' | 'recall' | 'interview';

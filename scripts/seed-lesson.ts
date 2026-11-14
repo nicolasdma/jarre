@@ -14,12 +14,16 @@
  * deactivated (quizzes, questions, cards) or deleted (drills, sections).
  *
  * Drill audio: the drill's `audio` path, else `<lesson dir>/audios/<drill id>.m4a`,
- * else (only with --tts) Gemini TTS saved to that same path. Format:
- * docs/lesson-format.md.
+ * else (only with --tts) Gemini TTS saved to that same path. Phrase timings
+ * for Frase por frase: the drill's `segments`, else the
+ * `<audio name>.segments.json` next to the audio
+ * (scripts/align-drill-segments.ts) when it was made from this text and this
+ * file. Format: docs/lesson-format.md.
  */
 
 import { config as loadEnv } from 'dotenv';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -27,12 +31,15 @@ import { TABLES } from '../src/lib/db/tables';
 import {
   LessonSchema,
   drillAudioPath,
+  drillSegments,
   mapCard,
   mapQuiz,
   normalizeSectionMarkdown,
   resolveQuizHeading,
   sectionHeadings,
+  segmentsSidecarPath,
   stableUuid,
+  type DrillSegmentsFile,
   type Lesson,
 } from '../src/lib/lessons/lesson-format';
 import { synthesizeDrillSpeech } from '../src/lib/llm/gemini-tts';
@@ -88,6 +95,14 @@ function localAudioFor(lessonDir: string, drill: Lesson['drills'][number]): stri
 /** The text as spoken: a pause mark (" / ") becomes a comma, or nothing after punctuation. */
 function speakable(text: string): string {
   return text.replace(/([.,:;!?])?\s+\/(?=\s|$)/g, (_, p: string | undefined) => (p ?? ',')).replace(/\s+/g, ' ').trim();
+}
+
+/** Phrase timings for a drill (see drillSegments): its own, else the sidecar next to its audio. */
+function segmentsFor(drill: Lesson['drills'][number], local: string | null): { segments: { start: number; end: number }[] | null; why: string | null } {
+  const sidecarPath = local ? segmentsSidecarPath(local) : null;
+  const sidecar = sidecarPath && existsSync(sidecarPath) ? (JSON.parse(readFileSync(sidecarPath, 'utf8')) as DrillSegmentsFile) : null;
+  const sha1 = local ? createHash('sha1').update(readFileSync(local)).digest('hex') : null;
+  return drillSegments(drill, sidecar, sha1);
 }
 
 async function generateAudio(text: string, out: string): Promise<void> {
@@ -166,6 +181,13 @@ async function main() {
   } else if (missing.length > 0) {
     console.log(`  without audio (pass --tts to generate): ${missing.map((a) => a.drill.id).join(', ')}`);
   }
+
+  // Phrase timings (after --tts, so a fresh recording is never paired with old timings).
+  const timings = audio.map((a) => ({ drill: a.drill, local: a.local, ...segmentsFor(a.drill, a.local) }));
+  const timed = timings.filter((t) => t.segments).length;
+  const withAudio = timings.filter((t) => t.local);
+  console.log(`  phrase timings: ${timed}/${withAudio.length} drills with audio`);
+  for (const t of withAudio.filter((x) => !x.segments)) console.log(`    ${t.drill.id}: ${t.why} (run scripts/align-drill-segments.ts)`);
 
   if (args.dryRun) {
     console.log('Dry run: lesson is valid, nothing written.');
@@ -305,7 +327,14 @@ async function main() {
   if (!hasConceptColumn && lesson.drills.some((d) => d.concept)) {
     console.log('  lesson_drills.concept_id missing: apply 20261111030000_lesson_drill_concept.sql to show drills under their sections');
   }
-  const drillRows = audio.map((a) => ({
+  // segments needs supabase/migrations/20261114010000_lesson_drill_segments.sql;
+  // without it the player cuts at the pauses it finds and says so.
+  const { error: segmentsColumnError } = await db.from(TABLES.lessonDrills).select('segments').limit(1);
+  const hasSegmentsColumn = !segmentsColumnError;
+  if (!hasSegmentsColumn && timed > 0) {
+    console.log('  lesson_drills.segments missing: apply 20261114010000_lesson_drill_segments.sql so Frase por frase cuts at each " / "');
+  }
+  const drillRows = timings.map((a) => ({
     resource_id: resourceId,
     slug: a.drill.id,
     priority: a.drill.priority,
@@ -314,6 +343,7 @@ async function main() {
     text_es: a.drill.text_es ?? null,
     audio_path: a.local ? drillAudioPath(resourceId, a.drill.id) : null,
     ...(hasConceptColumn ? { concept_id: a.drill.concept ?? null } : {}),
+    ...(hasSegmentsColumn ? { segments: a.segments } : {}),
     updated_at: now,
   }));
   if (drillRows.length) await must('lesson_drills', db.from(TABLES.lessonDrills).upsert(drillRows, { onConflict: 'resource_id,slug' }));
@@ -348,7 +378,7 @@ async function main() {
   console.log([
     `Done: ${resourceId}`,
     `  concepts ${conceptIds.length} · sections ${sections.length} · quizzes ${quizRows.length} · open ${questionRows.length} · cards ${cardRows.length}`,
-    `  drills ${drillRows.length} (${uploaded} with audio uploaded to ${AUDIO_BUCKET})`,
+    `  drills ${drillRows.length} (${uploaded} with audio uploaded to ${AUDIO_BUCKET}; ${hasSegmentsColumn ? timed : 0} with phrase timings)`,
     `  deactivated stale: quizzes ${staleQuizzes}, questions ${staleQuestions}, cards ${staleCards}; deleted stale: sections ${staleSections.length}, drills ${staleDrills.length}`,
     `  owner progress raised to 1 on ${toRaise.length} concepts; ${newSchedule.length} cards enrolled in review`,
     `  open: /learn/${resourceId} · practice: /resource/${resourceId}/practice`,

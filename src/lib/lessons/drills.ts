@@ -7,6 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { TABLES } from '@/lib/db/tables';
 import type { PracticeDrill } from '@/components/practice/types';
+import { segmentsFit, type PhraseSegment } from '@/lib/practice/phrase-segments';
 
 export const LESSON_AUDIO_BUCKET = 'lesson-audio';
 /** Long enough for a practice session; the page re-signs on every load. */
@@ -21,12 +22,21 @@ interface DrillRow {
   audio_path: string | null;
   /** Absent until supabase/migrations/20261111030000_lesson_drill_concept.sql is applied. */
   concept_id?: string | null;
+  /** Absent until supabase/migrations/20261114010000_lesson_drill_segments.sql is applied. */
+  segments?: unknown;
+}
+
+/** Phrase timings as stored: kept only when they are a well-formed list for this text. */
+function storedSegments(text: string, value: unknown): PhraseSegment[] | null {
+  if (!Array.isArray(value)) return null;
+  const segments = value.map((s) => ({ start: Number((s as PhraseSegment)?.start), end: Number((s as PhraseSegment)?.end) }));
+  return segmentsFit(text, segments) ? segments : null;
 }
 
 export async function fetchPracticeDrills(supabase: SupabaseClient, resourceId: string): Promise<PracticeDrill[]> {
   const { data, error } = await supabase
     .from(TABLES.lessonDrills)
-    // `*`: concept_id exists only once its migration is applied.
+    // `*`: concept_id and segments exist only once their migrations are applied.
     .select('*')
     .eq('resource_id', resourceId)
     .order('priority', { ascending: true })
@@ -54,6 +64,7 @@ export async function fetchPracticeDrills(supabase: SupabaseClient, resourceId: 
     textEs: r.text_es,
     audioUrl: r.audio_path ? signed.get(r.audio_path) ?? null : null,
     conceptId: r.concept_id ?? null,
+    segments: storedSegments(r.text_en, r.segments),
   }));
 }
 
