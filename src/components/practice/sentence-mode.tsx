@@ -4,8 +4,9 @@
  * Frase por frase: one phrase plays and stops, the mic opens for that phrase
  * only, and only that phrase is scored. Said well (≥ PASS_SCORE, key terms
  * through their sound-alikes), the next phrase plays by itself; if not, the
- * missed words come with their voice and respelling, and the learner repeats
- * it, listens again or skips. A summary at the end says which phrases needed
+ * missed words come with their voice and respelling, and after a beat the
+ * phrase plays again and the mic reopens, in a loop until it passes or the
+ * learner skips it (owner, 2026-11-15). A summary at the end says which phrases needed
  * retries.
  *
  * The turns are the drill's " / " phrases (its sentences when it has no
@@ -51,6 +52,9 @@ const END_OF_TURN_MS = 1600;
 const NO_SPEECH_MS = 8000;
 /** The beat between a phrase said well and the next one. */
 const ADVANCE_MS = 1100;
+/** A phrase said below the bar plays again by itself after this beat (time to see the missed words), and the mic
+ *  reopens: a loop until it passes (owner, 2026-11-15). "Saltear" leaves it. Silence stops the loop: nobody there. */
+const LOOP_MS = 1800;
 
 function isTyping(el: Element | null): boolean {
   if (!el) return false;
@@ -219,6 +223,16 @@ export function SentenceMode({
     return () => window.clearTimeout(t);
   }, [phase, run]);
 
+  // Said below the bar: the phrase plays again and the mic reopens, until it passes or is skipped. Not after
+  // silence, a failed playback (no score) or while a word's help is open.
+  const helpOpen = help !== null;
+  const failedScore = phase === 'result' && !state.silent && state.score !== null;
+  useEffect(() => {
+    if (!failedScore || !Ctor || helpOpen) return;
+    const t = window.setTimeout(() => dispatch({ type: 'replay' }), LOOP_MS);
+    return () => window.clearTimeout(t);
+  }, [failedScore, run, Ctor, helpOpen]);
+
   // The summary is reported once per pass through the drill.
   const reportedRef = useRef(false);
   const onFinishedRef = useRef(onFinished);
@@ -374,7 +388,7 @@ export function SentenceMode({
             {phase === 'playing' && <span className="text-j-accent">▶ Escuchá…</span>}
             {phase === 'listening' && <span className="text-j-error">● Tu turno: decí esta frase</span>}
             {phase === 'passed' && <span className="text-j-success">✓ Bien · {state.score}%</span>}
-            {phase === 'result' && <span className="text-j-error">{state.silent ? 'No te escuché' : `${state.score}% · probá de nuevo`}</span>}
+            {phase === 'result' && <span className="text-j-error">{state.silent ? 'No te escuché' : state.score === null ? 'No pude reproducir la frase' : `${state.score}% · va de nuevo…`}</span>}
             {phase === 'your-turn' && <span className="text-j-accent">Tu turno: decila</span>}
           </div>
 
@@ -419,7 +433,7 @@ export function SentenceMode({
                   <Ear size={14} /> Escuchar de nuevo · Espacio
                 </BigButton>
                 <BigButton onClick={next} testId="sentence-next">
-                  <SkipForward size={14} /> {index + 1 < phrases.length ? 'Siguiente' : 'Terminar'} · Enter
+                  <SkipForward size={14} /> {failedScore ? 'Saltear' : index + 1 < phrases.length ? 'Siguiente' : 'Terminar'} · Enter
                 </BigButton>
               </>
             )}
