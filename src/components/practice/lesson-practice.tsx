@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
 import { DrillTrainer, isPracticed } from './drill-trainer';
+import { isRecallDue } from '@/lib/practice/recall';
 import type { DrillMode, PracticeDrill } from './types';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 
@@ -22,6 +23,8 @@ interface LessonPracticeValue {
   drills: PracticeDrill[];
   /** The lesson's key terms (lesson JSON `interview.key_terms`). */
   keyTerms: readonly KeyTerm[];
+  /** The interviewer's English question per drill slug, when the lesson has one. */
+  asks: Readonly<Record<string, string>>;
   groups: DrillGroup<PracticeDrill>[];
   scores: BestScores;
   setScores: (scores: BestScores) => void;
@@ -35,6 +38,8 @@ interface LessonPracticeValue {
   setOpenSlug: (slug: string | null) => void;
 }
 
+const NO_ASKS: Readonly<Record<string, string>> = {};
+
 const LessonPracticeContext = createContext<LessonPracticeValue | null>(null);
 
 export function useLessonPractice(): LessonPracticeValue | null {
@@ -45,13 +50,14 @@ interface LessonPracticeProviderProps {
   resourceId: string;
   drills: PracticeDrill[];
   keyTerms: readonly KeyTerm[];
+  asks?: Readonly<Record<string, string>>;
   sections: { conceptId: string; title: string }[];
   initialSlug?: string | null;
   initialMode?: DrillMode | null;
   children: React.ReactNode;
 }
 
-export function LessonPracticeProvider({ resourceId, drills, keyTerms, sections, initialSlug, initialMode, children }: LessonPracticeProviderProps) {
+export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO_ASKS, sections, initialSlug, initialMode, children }: LessonPracticeProviderProps) {
   const groups = useMemo(() => groupDrills(drills, sections), [drills, sections]);
   const [scores, setScores] = useState<BestScores>({});
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
@@ -70,8 +76,8 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, sections,
   }, []);
 
   const value = useMemo(
-    () => ({ resourceId, drills, keyTerms, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug }),
-    [resourceId, drills, keyTerms, groups, scores, selectedSlug, mode, select, openSlug],
+    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug }),
+    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, openSlug],
   );
   return <LessonPracticeContext.Provider value={value}>{children}</LessonPracticeContext.Provider>;
 }
@@ -117,6 +123,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
                   <DrillTrainer
                     resourceId={practice.resourceId}
                     drill={d}
+                    ask={practice.asks[d.slug]}
                     keyTerms={practice.keyTerms}
                     mode={practice.mode}
                     onModeChange={practice.setMode}
@@ -145,6 +152,10 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
   const drill = order[index];
   const group = practice.groups.find((g) => g.drills.includes(drill));
   const done = order.filter((d) => isPracticed(practice.scores[d.slug])).length;
+  // Pregunta → respuesta reviews: drills whose recall is due today, in lesson order.
+  const due = order.filter((d) => isRecallDue(practice.scores[d.slug]?.recall));
+  const nextDue = [...order.slice(index + 1), ...order.slice(0, index)].find((d) => due.includes(d));
+  const reviewing = practice.mode === 'recall';
 
   return (
     <div className="py-16" data-testid="practice-step">
@@ -154,8 +165,23 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         </p>
         <h1 className="text-2xl font-bold text-j-text">Lo que vas a decir, en inglés</h1>
         <p className="text-sm text-j-text-secondary">
-          Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase. Elegí cualquiera en el índice, o seguí con las flechas.
+          Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase, y al final respondela solo con la pregunta. Elegí cualquiera en el índice, o seguí con las flechas.
         </p>
+        {due.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 border border-j-warm bg-j-warm-light px-3 py-2" data-testid="recall-due">
+            <p className="flex-1 text-sm text-j-text">
+              {due.length === 1 ? '1 respuesta para repasar hoy' : `${due.length} respuestas para repasar hoy`}
+              <span className="text-j-text-secondary"> · pregunta → respuesta</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => practice.select(due.includes(drill) ? drill.slug : due[0].slug, 'recall')}
+              className="min-h-[40px] bg-j-accent px-4 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent hover:bg-j-accent-hover"
+            >
+              Repasar
+            </button>
+          </div>
+        )}
         <select
           value={drill.slug}
           onChange={(e) => practice.select(e.target.value)}
@@ -179,6 +205,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         key={drill.slug}
         resourceId={practice.resourceId}
         drill={drill}
+        ask={practice.asks[drill.slug]}
         keyTerms={practice.keyTerms}
         mode={practice.mode}
         onModeChange={practice.setMode}
@@ -187,6 +214,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         onPrev={index > 0 ? () => practice.select(order[index - 1].slug) : undefined}
         onNext={index < order.length - 1 ? () => practice.select(order[index + 1].slug) : undefined}
         position={`${index + 1}/${order.length}`}
+        onNextDue={reviewing && nextDue ? () => practice.select(nextDue.slug) : undefined}
       />
 
       {onInterview && (
@@ -237,6 +265,9 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
                   >
                     {done && <span className="mr-1.5">&#10003;</span>}
                     {d.audioUrl && <span className="mr-1.5 text-j-warm" aria-label="Con grabación lista">★</span>}
+                    {isRecallDue(practice.scores[d.slug]?.recall) && (
+                      <span className="mr-1.5 text-j-warm-dark" title="Para repasar hoy">↻</span>
+                    )}
                     {d.title}
                   </button>
                 </li>

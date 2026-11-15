@@ -14,6 +14,7 @@ import {
 } from '@/components/practice/lesson-practice';
 import { drillModeFromParam, type PracticeDrill } from '@/components/practice/types';
 import { keyTermsFromInterview } from '@/lib/practice/key-terms';
+import { drillAsksFromInterview } from '@/lib/practice/recall';
 import { EvaluationFlow } from '@/app/evaluate/[resourceId]/evaluation-flow';
 import { VoiceEvaluationFlow } from '@/components/voice/voice-evaluation-flow';
 import { VoicePracticeFlow } from '@/components/voice/voice-practice-flow';
@@ -329,6 +330,7 @@ export function LearnFlow(props: LearnFlowProps) {
   const linkedMode = params.get('mode');
   const interviewConfig = props.practice?.interviewConfig;
   const keyTerms = useMemo(() => keyTermsFromInterview(interviewConfig), [interviewConfig]);
+  const asks = useMemo(() => drillAsksFromInterview(interviewConfig), [interviewConfig]);
   const flow = <LearnFlowInner {...props} linkedStep={linkedStep} />;
   if (!props.practice?.drills.length) return flow;
   return (
@@ -336,6 +338,7 @@ export function LearnFlow(props: LearnFlowProps) {
       resourceId={props.resourceId}
       drills={props.practice.drills}
       keyTerms={keyTerms}
+      asks={asks}
       sections={props.sections.map((s) => ({ conceptId: s.conceptId, title: s.sectionTitle }))}
       initialSlug={params.get('drill')}
       initialMode={drillModeFromParam(linkedMode)}

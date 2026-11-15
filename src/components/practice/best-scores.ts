@@ -5,6 +5,8 @@
  * Key: `jarre-practice-<resourceId>`; value: { [drillSlug]: DrillBest }.
  */
 
+import { scheduleRecall, type RecallRating, type RecallRecord } from '@/lib/practice/recall';
+
 /** `sentences`: % of sentences said well on the first try (Frase por frase). */
 export type ScoredMode = 'copy' | 'repeat' | 'sentences';
 
@@ -17,6 +19,8 @@ export interface ModeBest {
 export type DrillBest = Partial<Record<ScoredMode, ModeBest>> & {
   /** Runs of Frase por frase without speech recognition, and of the old shadowing. */
   shadowed?: number;
+  /** Pregunta → respuesta: the last rating and when it is due again (FSRS, in days). */
+  recall?: RecallRecord;
 };
 
 export type BestScores = Record<string, DrillBest>;
@@ -57,6 +61,14 @@ export function recordScore(
     scores[drill] = { ...scores[drill], [mode]: { score, ...(wpm !== undefined ? { wpm } : {}), at: new Date().toISOString() } };
     save(resourceId, scores);
   }
+  return scores;
+}
+
+/** Store a Pregunta → respuesta rating: always the latest, it drives the next review. */
+export function recordRecall(resourceId: string, drill: string, rating: RecallRating, now: Date = new Date()): BestScores {
+  const scores = loadBestScores(resourceId);
+  scores[drill] = { ...scores[drill], recall: scheduleRecall(scores[drill]?.recall, rating, now) };
+  save(resourceId, scores);
   return scores;
 }
 

@@ -1,26 +1,40 @@
 'use client';
 
 /**
- * Frase por frase: one sentence plays and stops, the mic opens for that
- * sentence only, and it is scored on the spot. Said well (≥ PASS_SCORE, key
- * terms through their sound-alikes), it moves on by itself; if not, the
+ * Frase por frase: one phrase plays and stops, the mic opens for that phrase
+ * only, and only that phrase is scored. Said well (≥ PASS_SCORE, key terms
+ * through their sound-alikes), the next phrase plays by itself; if not, the
  * missed words come with their voice and respelling, and the learner repeats
- * it, listens again or skips. A summary at the end says which sentences
- * needed retries.
+ * it, listens again or skips. A summary at the end says which phrases needed
+ * retries.
  *
- * Sentence audio: the recording is cut at the pauses found in it
- * (use-sentence-spans.ts); without a recording, the browser voice reads the
- * sentence. Replaces the old free-running shadowing, which had no turn taking
- * ("va a su ritmo y ya", owner, 2026-11-11).
+ * The turns are the drill's " / " phrases (its sentences when it has no
+ * marks). Every transition is in src/lib/practice/phrase-drill.ts; this
+ * component runs each phase's effect (play, listen, the beat after a pass).
+ *
+ * Phrase audio: the stored timings of each phrase (exact, measured offline:
+ * phrase-segments.ts); without them the recording is cut at the pauses found
+ * in it, and the page says the cuts are approximate (use-sentence-spans.ts);
+ * without a recording, the browser voice reads the phrase. Replaces the old
+ * free-running shadowing, which had no turn taking ("va a su ritmo y ya",
+ * owner, 2026-11-11).
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, Ear, Mic, Play, RotateCcw, SkipForward } from 'lucide-react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { Check, ChevronLeft, Ear, Mic, Play, RotateCcw, SkipForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { KeyTerm } from '@/lib/practice/key-terms';
+import {
+  firstTryPercent,
+  initialPhraseState,
+  phraseDrillReducer,
+  practicePhrases,
+  scorePhrase,
+  type PhraseResult,
+} from '@/lib/practice/phrase-drill';
+import { hasPhraseMarks } from '@/lib/practice/phrase-segments';
 import { wordsToPractice } from '@/lib/practice/pronunciation';
 import { alignWords } from '@/lib/practice/scoring';
-import { practiceSentences } from '@/lib/practice/sentence-timing';
 import { Chip, SpeechLabel } from './controls';
 import { recognitionError, useRecognitionCtor, type Recognition } from './recognition';
 import { TargetLegend, TargetText } from './target-text';
@@ -29,24 +43,14 @@ import { useSentenceSegments } from './use-sentence-spans';
 import type { DrillAudio, PlaybackRate } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
-/** A sentence counts as said at this word score. */
-export const PASS_SCORE = 85;
+export { PASS_SCORE } from '@/lib/practice/phrase-drill';
+
 /** Quiet after the last recognized word that ends the turn. */
 const END_OF_TURN_MS = 1600;
 /** Nothing heard at all: give the turn back. */
 const NO_SPEECH_MS = 8000;
-/** The beat between a sentence said well and the next one. */
+/** The beat between a phrase said well and the next one. */
 const ADVANCE_MS = 1100;
-
-type Phase = 'ready' | 'playing' | 'listening' | 'passed' | 'result' | 'your-turn' | 'summary';
-
-interface SentenceResult {
-  tries: number;
-  passed: boolean;
-  best: number;
-}
-
-const freshResults = (n: number): SentenceResult[] => Array.from({ length: n }, () => ({ tries: 0, passed: false, best: 0 }));
 
 function isTyping(el: Element | null): boolean {
   if (!el) return false;
@@ -94,122 +98,71 @@ export function SentenceMode({
   drill: PracticeDrill;
   audio: DrillAudio;
   terms: readonly KeyTerm[];
-  /** At the end: % of sentences said well on the first try, or null without speech recognition. */
+  /** At the end: % of phrases said well on the first try, or null without speech recognition. */
   onFinished: (firstTry: number | null) => void;
 }) {
-  const sentences = useMemo(() => practiceSentences(drill.textEn), [drill.textEn]);
-  const { segments, status } = useSentenceSegments(drill.audioUrl, drill.slug, sentences, audio.kind === 'file' ? audio.duration : 0);
+  const phrases = useMemo(() => practicePhrases(drill.textEn), [drill.textEn]);
+  const marked = hasPhraseMarks(drill.textEn);
+  const { segments, status } = useSentenceSegments(
+    drill.audioUrl,
+    drill.slug,
+    phrases,
+    audio.kind === 'file' ? audio.duration : 0,
+    marked ? drill.segments : null,
+  );
   const Ctor = useRecognitionCtor();
 
-  const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<Phase>('ready');
-  const [results, setResultsState] = useState<SentenceResult[]>(() => freshResults(sentences.length));
-  // Read synchronously by the steps; the state is for rendering.
-  const resultsRef = useRef(results);
-  const setResults = (next: SentenceResult[]) => {
-    resultsRef.current = next;
-    setResultsState(next);
-  };
-  const [heard, setHeard] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(phraseDrillReducer, phrases.length, initialPhraseState);
+  const { index, phase, results, run } = state;
+  // What the mic heard and what went wrong, tagged with the turn they belong to.
+  const [heardState, setHeard] = useState({ run: -1, text: '' });
+  const [errorState, setError] = useState({ run: -1, text: '' });
+  const heard = heardState.run === run ? heardState.text : '';
+  const error = errorState.run === run ? errorState.text : null;
   const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
 
-  // Every async step checks it is still the current run: any new action cancels the old one.
-  const runRef = useRef(0);
-  const recRef = useRef<Recognition | null>(null);
-  const timersRef = useRef<number[]>([]);
-
-  const clearTimers = () => {
-    timersRef.current.forEach((t) => window.clearTimeout(t));
-    timersRef.current = [];
-  };
-  const later = (fn: () => void, ms: number) => {
-    timersRef.current.push(window.setTimeout(fn, ms));
-  };
-
-  // `audio` is a new object every render; its pause is stable, so halt is too
-  // and the unmount cleanup below does not fire on every render.
+  // The effect of each phase. A new run (or leaving the phase) cancels the old one.
+  const playSegment = audio.playSegment;
   const pauseAudio = audio.pause;
-  const halt = useCallback(() => {
-    runRef.current++;
-    clearTimers();
-    const rec = recRef.current;
-    recRef.current = null;
-    if (rec) {
-      rec.onend = null;
-      rec.onresult = null;
-      rec.abort();
-    }
-    pauseAudio();
-  }, [pauseAudio]);
+  const segmentsRef = useRef(segments);
+  // The open recognizer, so "Listo" can end the turn.
+  const recRef = useRef<Recognition | null>(null);
+  const termsRef = useRef(terms);
+  useEffect(() => {
+    segmentsRef.current = segments;
+    termsRef.current = terms;
+  });
 
-  useEffect(() => halt, [halt]);
+  const hasSegments = Boolean(segments);
+  useEffect(() => {
+    if (phase !== 'playing' || !hasSegments) return;
+    const segs = segmentsRef.current;
+    if (!segs) return;
+    let live = true;
+    void playSegment(segs[index]).then((ok) => {
+      if (live) dispatch({ type: 'played', ok, canListen: Boolean(Ctor) });
+    });
+    return () => {
+      live = false;
+      pauseAudio();
+    };
+  }, [phase, run, index, hasSegments, playSegment, pauseAudio, Ctor]);
 
-  const sentence = sentences[index] ?? '';
-  const alignment = useMemo(
-    () => alignWords(sentence, heard, { terms, pendingTail: phase === 'listening' }),
-    [sentence, heard, terms, phase],
-  );
-
-  const finish = (all: SentenceResult[]) => {
-    setPhase('summary');
-    if (!Ctor) {
-      onFinished(null);
-      return;
-    }
-    const firstTry = all.filter((r) => r.passed && r.tries === 1).length;
-    onFinished(Math.round((firstTry / Math.max(1, all.length)) * 100));
-  };
-
-  // Declared before use through refs, so the steps can call each other.
-  const playRef = useRef<(i: number) => void>(() => {});
-  const listenRef = useRef<(i: number) => void>(() => {});
-
-  const goTo = (i: number, all: SentenceResult[]) => {
-    if (i >= sentences.length) {
-      halt();
-      finish(all);
-      return;
-    }
-    setIndex(i);
-    playRef.current(i);
-  };
-
-  const score = (i: number, text: string) => {
-    const s = alignWords(sentences[i], text, { terms }).score;
-    const next = resultsRef.current.map((r, k) =>
-      k === i ? { tries: r.tries + 1, passed: r.passed || s >= PASS_SCORE, best: Math.max(r.best, s) } : r,
-    );
-    setResults(next);
-    if (s >= PASS_SCORE) {
-      setPhase('passed');
-      const run = runRef.current;
-      later(() => {
-        if (runRef.current === run) goTo(i + 1, next);
-      }, ADVANCE_MS);
-    } else {
-      setPhase('result');
-    }
-  };
-
-  const listen = (i: number) => {
-    halt();
-    const run = runRef.current;
-    setHelp(null);
-    setError(null);
-    setHeard('');
-    if (!Ctor) {
-      setPhase('your-turn');
-      return;
-    }
-    const rec = new Ctor();
+  useEffect(() => {
+    if (phase !== 'listening' || !Ctor) return;
+    let live = true;
+    const timers: number[] = [];
+    const clearTimers = () => timers.splice(0).forEach((t) => window.clearTimeout(t));
+    const later = (fn: () => void, ms: number) => timers.push(window.setTimeout(fn, ms));
+    const phrase = phrases[index];
+    const rec: Recognition = new Ctor();
     rec.lang = 'en-US';
     rec.continuous = true;
     rec.interimResults = true;
     let finalText = '';
     let latest = '';
     const endTurn = () => {
-      if (runRef.current === run) rec.stop();
+      if (live) rec.stop();
     };
     rec.onresult = (e) => {
       let interim = '';
@@ -219,80 +172,107 @@ export function SentenceMode({
         else interim += ` ${r[0].transcript}`;
       }
       latest = `${finalText} ${interim}`.trim();
-      if (runRef.current !== run) return;
-      setHeard(latest);
+      if (!live) return;
+      setHeard({ run, text: latest });
       clearTimers();
-      // Everything said: no need to wait for the quiet.
-      if (alignWords(sentences[i], latest, { terms }).score === 100) later(endTurn, 250);
-      else later(endTurn, END_OF_TURN_MS);
+      // The whole phrase said: no need to wait for the quiet.
+      later(endTurn, scorePhrase(phrases, index, latest, termsRef.current) === 100 ? 250 : END_OF_TURN_MS);
     };
     rec.onerror = (e) => {
-      if (e.error !== 'aborted' && e.error !== 'no-speech' && runRef.current === run) setError(recognitionError(e.error));
+      if (live && e.error !== 'aborted' && e.error !== 'no-speech') setError({ run, text: recognitionError(e.error) });
     };
     rec.onend = () => {
-      if (runRef.current !== run) return;
+      if (!live) return;
       clearTimers();
-      recRef.current = null;
       if (!latest) {
-        setError(recognitionError('no-speech'));
-        setPhase('result');
+        setError((prev) => (prev.run === run ? prev : { run, text: recognitionError('no-speech') }));
+        dispatch({ type: 'silent' });
         return;
       }
-      score(i, latest);
+      // Only this phrase is scored.
+      dispatch({ type: 'scored', score: scorePhrase([phrase], 0, latest, termsRef.current) });
     };
     recRef.current = rec;
     later(endTurn, NO_SPEECH_MS);
     try {
       rec.start();
-      setPhase('listening');
     } catch {
-      setError('No pude iniciar el reconocimiento de voz.');
-      setPhase('result');
+      later(() => {
+        if (!live) return;
+        setError({ run, text: 'No pude iniciar el reconocimiento de voz.' });
+        dispatch({ type: 'silent' });
+      }, 0);
     }
-  };
+    return () => {
+      live = false;
+      clearTimers();
+      if (recRef.current === rec) recRef.current = null;
+      rec.onend = null;
+      rec.onresult = null;
+      rec.abort();
+    };
+  }, [phase, run, index, phrases, Ctor]);
 
-  const play = (i: number) => {
-    if (!segments) return;
-    halt();
-    const run = runRef.current;
+  useEffect(() => {
+    if (phase !== 'passed') return;
+    const t = window.setTimeout(() => dispatch({ type: 'advance' }), ADVANCE_MS);
+    return () => window.clearTimeout(t);
+  }, [phase, run]);
+
+  // The summary is reported once per pass through the drill.
+  const reportedRef = useRef(false);
+  const onFinishedRef = useRef(onFinished);
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  });
+  useEffect(() => {
+    if (phase !== 'summary') {
+      reportedRef.current = false;
+      return;
+    }
+    if (reportedRef.current) return;
+    reportedRef.current = true;
+    onFinishedRef.current(Ctor ? firstTryPercent(results) : null);
+  }, [phase, results, Ctor]);
+
+  // Stop everything when the mode goes away.
+  useEffect(() => () => pauseAudio(), [pauseAudio]);
+
+  const phrase = phrases[index] ?? '';
+  const alignment = useMemo(
+    () => alignWords(phrase, heard, { terms, pendingTail: phase === 'listening' }),
+    [phrase, heard, terms, phase],
+  );
+
+  const act = (e: Parameters<typeof dispatch>[0]) => {
     setHelp(null);
-    setError(null);
-    setHeard('');
-    setPhase('playing');
-    void audio.playSegment(segments[i]).then((ok) => {
-      if (runRef.current !== run) return;
-      if (ok) listenRef.current(i);
-      else setPhase('result');
-    });
+    dispatch(e);
   };
-
-  const start = () => {
-    const fresh = freshResults(sentences.length);
-    setResults(fresh);
-    goTo(0, fresh);
-  };
-  const next = () => goTo(index + 1, resultsRef.current);
-  const replay = () => play(index);
-  const again = () => listen(index);
+  const start = () => act({ type: 'start' });
+  const next = () => act({ type: 'next' });
+  const prev = () => act({ type: 'prev' });
+  const replay = () => act({ type: 'replay' });
+  const again = () => act({ type: 'again' });
+  // Ends the turn now: the recognizer delivers what it has and its onend scores it.
   const stopListening = () => recRef.current?.stop();
 
-  // Space: listen (again); Enter: next. Not while typing elsewhere.
-  const keysRef = useRef({ phase, replay, next, start, stopListening });
-  useLayoutEffect(() => {
-    playRef.current = play;
-    listenRef.current = listen;
-    keysRef.current = { phase, replay, next, start, stopListening };
+  // Space: start, then listen again; Enter: done talking, then next; R: say it again; ←/→: previous/next phrase.
+  const keysRef = useRef({ phase, start, next, prev, replay, again, stopListening, canRetry: Boolean(Ctor), canStart: hasSegments });
+  useEffect(() => {
+    keysRef.current = { phase, start, next, prev, replay, again, stopListening, canRetry: Boolean(Ctor), canStart: hasSegments };
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
       const k = keysRef.current;
+      const idle = k.phase === 'ready' || k.phase === 'summary';
+      if (idle && !k.canStart) return;
       if (e.key === ' ') {
         e.preventDefault();
-        if (k.phase === 'ready' || k.phase === 'summary') k.start();
+        if (idle) k.start();
         else k.replay();
       } else if (e.key === 'Enter') {
-        if (k.phase === 'ready' || k.phase === 'summary') {
+        if (idle) {
           e.preventDefault();
           k.start();
         } else if (k.phase === 'listening') {
@@ -302,6 +282,15 @@ export function SentenceMode({
           e.preventDefault();
           k.next();
         }
+      } else if ((e.key === 'r' || e.key === 'R') && k.canRetry && (k.phase === 'result' || k.phase === 'passed' || k.phase === 'your-turn')) {
+        e.preventDefault();
+        k.again();
+      } else if (e.key === 'ArrowRight' && !idle) {
+        e.preventDefault();
+        k.next();
+      } else if (e.key === 'ArrowLeft' && !idle) {
+        e.preventDefault();
+        k.prev();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -319,25 +308,36 @@ export function SentenceMode({
   const colored = phase === 'passed' || phase === 'result' || (phase === 'listening' && heard !== '');
   const current = results[index];
   const missed = phase === 'result' ? wordsToPractice(alignment, terms) : [];
+  const approximate = status === 'ready' || status === 'error';
+  const unit = marked ? 'frase' : 'oración';
 
   return (
-    <div className="space-y-5" data-mode="sentences">
+    <div className="space-y-5" data-mode="sentences" data-timing={status}>
       <p className="text-sm text-j-text-secondary" data-testid="sentences-instruction">
-        Escuchá la frase, después decila vos. Cuando la digas bien, pasa a la siguiente.
+        Escuchá la frase, después decí solo esa frase. Cuando la digas bien, pasa a la siguiente.
       </p>
       {!Ctor && (
         <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark">
           Este navegador no reconoce voz: escuchá cada frase, decila y pasá con Siguiente. Usá Chrome o Safari para que te corrija.
         </p>
       )}
+      {approximate && (
+        <p className="border border-dashed border-j-border px-3 py-2 font-mono text-[10px] text-j-text-tertiary" data-testid="sentences-approximate">
+          {status === 'error'
+            ? `No pude analizar el audio: cada ${unit} se corta por aproximación y puede empezar o terminar un poco corrida.`
+            : marked
+              ? 'Este drill todavía no tiene los tiempos de cada frase: la corto en las pausas del audio, así que algún corte puede quedar corrido.'
+              : 'Este drill no marca frases con " / ": va por oraciones, cortadas en las pausas del audio.'}
+        </p>
+      )}
 
       {phase === 'summary' ? (
-        <Summary sentences={sentences} results={results} scored={Boolean(Ctor)} onRestart={start} />
+        <Summary phrases={phrases} results={results} scored={Boolean(Ctor)} onRestart={start} />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-secondary" data-testid="sentence-progress">
-              Frase {index + 1} de {sentences.length}
+              Frase {index + 1} de {phrases.length}
             </p>
             <div className="flex items-center gap-1">
               {audio.kind === 'speech' && <SpeechLabel />}
@@ -347,13 +347,13 @@ export function SentenceMode({
             </div>
           </div>
           <ol className="flex gap-1" aria-label="Frases">
-            {sentences.map((s, i) => {
+            {phrases.map((s, i) => {
               const r = results[i];
               return (
                 <li key={i} className="flex-1">
                   <button
                     type="button"
-                    onClick={() => goTo(i, resultsRef.current)}
+                    onClick={() => act({ type: 'go', index: i })}
                     disabled={!segments}
                     title={s}
                     aria-label={`Frase ${i + 1}`}
@@ -372,23 +372,21 @@ export function SentenceMode({
           <div className="min-h-[1.5rem] font-mono text-[11px] uppercase tracking-[0.15em]" aria-live="polite" data-testid="sentence-status">
             {phase === 'ready' && <span className="text-j-text-tertiary">{segments ? 'Listo para empezar' : 'Preparando las frases…'}</span>}
             {phase === 'playing' && <span className="text-j-accent">▶ Escuchá…</span>}
-            {phase === 'listening' && <span className="text-j-error">● Tu turno: decila</span>}
-            {phase === 'passed' && <span className="text-j-success">✓ Bien · {alignment.score}%</span>}
-            {phase === 'result' && <span className="text-j-error">{heard ? `${alignment.score}% · probá de nuevo` : 'No te escuché'}</span>}
+            {phase === 'listening' && <span className="text-j-error">● Tu turno: decí esta frase</span>}
+            {phase === 'passed' && <span className="text-j-success">✓ Bien · {state.score}%</span>}
+            {phase === 'result' && <span className="text-j-error">{state.silent ? 'No te escuché' : `${state.score}% · probá de nuevo`}</span>}
             {phase === 'your-turn' && <span className="text-j-accent">Tu turno: decila</span>}
           </div>
 
-          {status === 'error' && (
-            <p className="font-mono text-[10px] text-j-text-tertiary">No pude analizar el audio: los cortes entre frases son aproximados.</p>
-          )}
-
-          <TargetText
-            words={alignment.words}
-            terms={terms}
-            colored={colored}
-            activeIndex={help?.index ?? null}
-            onWord={(i, el) => setHelp(help?.index === i ? null : { index: i, el })}
-          />
+          <div data-testid="sentence-current">
+            <TargetText
+              words={alignment.words}
+              terms={terms}
+              colored={colored}
+              activeIndex={help?.index ?? null}
+              onWord={(i, el) => setHelp(help?.index === i ? null : { index: i, el })}
+            />
+          </div>
           <WordHelpPopover
             anchor={help?.el ?? null}
             subject={help ? subjectFor(alignment, help.index, terms, colored) : null}
@@ -406,7 +404,7 @@ export function SentenceMode({
               </BigButton>
             )}
             {phase === 'listening' && (
-              <BigButton primary onClick={stopListening}>
+              <BigButton primary onClick={stopListening} testId="sentence-done">
                 <Mic size={14} /> Listo · Enter
               </BigButton>
             )}
@@ -414,20 +412,30 @@ export function SentenceMode({
               <>
                 {Ctor && (
                   <BigButton primary onClick={again} testId="sentence-again">
-                    <RotateCcw size={14} /> Repetir frase
+                    <RotateCcw size={14} /> Repetir frase · R
                   </BigButton>
                 )}
                 <BigButton onClick={replay} testId="sentence-replay">
                   <Ear size={14} /> Escuchar de nuevo · Espacio
                 </BigButton>
                 <BigButton onClick={next} testId="sentence-next">
-                  <SkipForward size={14} /> Siguiente · Enter
+                  <SkipForward size={14} /> {index + 1 < phrases.length ? 'Siguiente' : 'Terminar'} · Enter
                 </BigButton>
               </>
             )}
-            {(phase === 'playing' || phase === 'passed') && (
-              <BigButton onClick={phase === 'passed' ? next : replay}>
-                {phase === 'passed' ? <><Check size={14} /> Siguiente · Enter</> : <><RotateCcw size={14} /> Desde el principio de la frase</>}
+            {phase === 'playing' && (
+              <BigButton onClick={replay} testId="sentence-restart">
+                <RotateCcw size={14} /> Desde el principio de la frase
+              </BigButton>
+            )}
+            {phase === 'passed' && (
+              <BigButton onClick={next} testId="sentence-next">
+                <Check size={14} /> Siguiente · Enter
+              </BigButton>
+            )}
+            {index > 0 && phase !== 'ready' && (
+              <BigButton onClick={prev} testId="sentence-prev">
+                <ChevronLeft size={14} /> Frase anterior · ←
               </BigButton>
             )}
           </div>
@@ -443,13 +451,13 @@ export function SentenceMode({
 }
 
 function Summary({
-  sentences,
+  phrases,
   results,
   scored,
   onRestart,
 }: {
-  sentences: string[];
-  results: SentenceResult[];
+  phrases: string[];
+  results: PhraseResult[];
   scored: boolean;
   onRestart: () => void;
 }) {
@@ -457,11 +465,11 @@ function Summary({
   return (
     <section className="space-y-4" data-testid="sentences-summary">
       <p className="text-base text-j-text">
-        {scored ? `${firstTry} de ${sentences.length} frases a la primera.` : `Terminaste las ${sentences.length} frases.`}
+        {scored ? `${firstTry} de ${phrases.length} frases a la primera.` : `Terminaste las ${phrases.length} frases.`}
       </p>
       {scored && (
         <ol className="space-y-2">
-          {sentences.map((s, i) => {
+          {phrases.map((s, i) => {
             const r = results[i];
             const label = !r.passed ? (r.tries ? `salteada · mejor ${r.best}%` : 'salteada') : r.tries === 1 ? 'a la primera' : `${r.tries} intentos`;
             return (

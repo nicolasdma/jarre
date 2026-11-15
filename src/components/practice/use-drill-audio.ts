@@ -29,6 +29,13 @@ export interface DrillAudio {
   play: () => void;
   pause: () => void;
   restart: () => void;
+  /**
+   * Call inside a tap that will play later without one (Pregunta → respuesta
+   * plays when its countdown ends): iOS only lets a media element or the
+   * browser's voice start on its own after it started once from a gesture.
+   * Silent.
+   */
+  prime: () => void;
   /** Play one segment; resolves true when it ends, false when interrupted. */
   playSegment: (segment: AudioSegment) => Promise<boolean>;
 }
@@ -156,6 +163,18 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
     void audio.play().catch(() => undefined);
   }, [settleSegment]);
 
+  const prime = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audio.paused) return;
+    audio.muted = true;
+    const back = () => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+    };
+    audio.play().then(back, back);
+  }, []);
+
   const playSegment = useCallback(({ start, end }: AudioSegment) => {
     const audio = audioRef.current;
     if (!audio || !(audio.duration > 0)) return Promise.resolve(false);
@@ -168,7 +187,7 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
     });
   }, [settleSegment]);
 
-  return { available: Boolean(src), playing, ready, duration, time, toggle, play, pause, restart, playSegment };
+  return { available: Boolean(src), playing, ready, duration, time, toggle, play, pause, restart, prime, playSegment };
 }
 
 // ---------------------------------------------------------------------------
@@ -178,6 +197,11 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
 /** Rough speaking speed at rate 1, for progress and pauses: no timing comes back from the engine. */
 const SPEECH_CHARS_PER_SECOND = 14;
 const PREFERRED_VOICES = [/Google US English/i, /Samantha/i, /Microsoft (Aria|Jenny|Guy)/i];
+
+/** A breath mark (" / ") read as the comma it stands for, never as "slash". */
+function spoken(text: string): string {
+  return text.replace(/([.,:;!?])?\s+\/(?=\s|$)/g, (_, p: string | undefined) => p ?? ',');
+}
 
 function pickVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.replace('_', '-').startsWith('en-US'));
@@ -242,7 +266,7 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     void (async () => {
       do {
         for (const s of sentences) {
-          const ok = await speak(s.text, s.start, s.end);
+          const ok = await speak(spoken(s.text), s.start, s.end);
           if (!ok || runRef.current !== run) return;
         }
       } while (loopRef.current && runRef.current === run);
@@ -261,9 +285,13 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     return ok && runRef.current === run;
   }, [active, stop, speak]);
 
+  const prime = useCallback(() => {
+    if (active && !window.speechSynthesis.speaking) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  }, [active]);
+
   return {
     available: active, playing, ready: active, duration: active ? duration : 0, time,
-    toggle, play, pause: stop, restart: play, playSegment,
+    toggle, play, pause: stop, restart: play, prime, playSegment,
   };
 }
 

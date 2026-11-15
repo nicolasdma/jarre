@@ -64,7 +64,8 @@ Other card types (`fill_blank`, `true_false`, `connect`, `scenario_micro`) take 
 ```
 
 - `id`: letters, digits, `-`, `_` (case kept, it is also the audio file name).
-- `text_en` may mark breaths with a slash between spaces (`six years, / five of them`): shown as written, skipped by Copiar and Repetir, and read as a comma by `--tts`.
+- `text_en` may mark breaths with a slash between spaces (`six years, / five of them`): shown as written, skipped by Copiar and Repetir, and read as a comma by `--tts`. Each stretch between marks is a **phrase**: Frase por frase plays one phrase, stops, and listens to and scores only that phrase (a drill without marks goes sentence by sentence).
+- `segments` (optional): where each phrase sits in the audio, in seconds, `[{ "start": 0, "end": 2.38 }, …]`, one per phrase, in order, not overlapping (validated). Rarely written by hand: `npx tsx scripts/align-drill-segments.ts <lesson.json>` measures them locally (mlx_whisper word timings, each cut snapped to the silence between the phrases in the audio itself) and writes `<audio name>.segments.json` next to each audio; the seed uses that file when it was made from the drill's current text and this exact audio file (sha1), else the drill has no timings. Stored in `lesson_drills.segments` (migration `20261114010000_lesson_drill_segments.sql`; until it is applied the seed skips it). Without timings Frase por frase cuts at the pauses it finds in the audio and says the cuts are approximate. Re-run the aligner after re-recording a drill or editing its text.
 - `concept` (optional): the lesson concept the drill practices; the learn view shows it under that section. Without it the drill goes in the last group, "De memoria" (the plan by heart, useful phrases). Stored in `lesson_drills.concept_id` (migration `20261111030000_lesson_drill_concept.sql`; until it is applied the seed skips it and every drill is "De memoria").
 - Audio is looked up in this order: `audio` (absolute, `~/`, or relative to the JSON), then `<json dir>/audios/<id>.m4a`, then, with `--tts`, generated into that same path. A drill with no audio still loads: the practice page reads it with the browser's en-US voice (speechSynthesis), labelled "voz del navegador", until a re-seed adds the recording.
 - Audio is uploaded to the private Storage bucket `lesson-audio` at `<lesson id>/<drill id>.m4a`. The practice page signs 4-hour URLs with the learner's session (bucket read policy: authenticated).
@@ -113,7 +114,7 @@ The practice page's **Entrevista** tab runs a voice mock interview in English on
 
 ## What the loader does
 
-1. Validates the whole file before writing anything.
+1. Validates the whole file before writing anything, and says which drills with audio have phrase timings (and why the others do not).
 2. Upserts `concepts`, `resources` (core curriculum: `created_by` null, `type: article`, no URL), `resource_concepts`, `resource_sections`, `inline_quizzes`, `question_bank`, `concept_cards`, `lesson_drills`, and uploads the audio.
 3. Sets the owner's `concept_progress` to level 1 (never lowers a higher level) and enrolls the cards in `review_schedule`, like `/api/review/enroll`.
 
@@ -123,4 +124,4 @@ Re-running is safe: every row id is derived from the lesson (`stableUuid`), so r
 
 - Library (`/library`, which `/dashboard` redirects to): the resource card gets a **Practicar** button.
 - Learn view (`/learn/<id>`): the APPLY step embeds the practice page.
-- Everything is in the learn view, `/learn/<id>`: each section ends with its drills ("Decilo en inglés", every mode inline), APPLY becomes **Practicar** (every drill by group, with the groups and what is practiced in the side navigation) and the last step is **Entrevista**. Deep links: `?step=practice&drill=<id>&mode=listen|copy|repeat|sentences` (old links: `shadow` opens `sentences`, `dictation` opens `listen`), `?step=interview`. `/resource/<id>/practice` redirects there. Best scores per drill are kept in the browser (localStorage).
+- Everything is in the learn view, `/learn/<id>`: each section ends with its drills ("Decilo en inglés", every mode inline), APPLY becomes **Practicar** (every drill by group, with the groups and what is practiced in the side navigation) and the last step is **Entrevista**. Deep links: `?step=practice&drill=<id>&mode=listen|copy|repeat|sentences|recall` (old links: `shadow` opens `sentences`, `dictation` opens `listen`), `?step=interview`. `/resource/<id>/practice` redirects there. Best scores per drill are kept in the browser (localStorage).
