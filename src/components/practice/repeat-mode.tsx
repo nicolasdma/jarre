@@ -5,11 +5,13 @@ import { Mic, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 import { pronunciationFor, wordsToPractice } from '@/lib/practice/pronunciation';
+import { PASS_SCORE } from '@/lib/practice/phrase-drill';
 import { alignWords } from '@/lib/practice/scoring';
 import { AudioBar, Chip, PrimaryButton, Stat } from './controls';
 import { useShowRespelling } from './show-respelling';
 import { TargetLegend, TargetText } from './target-text';
 import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
+import { useMissedRespellings } from './use-missed-respellings';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 import { RECOGNITION_ERRORS as ERRORS, recognitionError, useRecognitionCtor, type Recognition } from './recognition';
@@ -27,7 +29,8 @@ const isIosDevice = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
  * The text never moves: words are only colored, extra words go under it. Key
  * terms the recognizer cannot know (Supabase, Centrobill) count as said when
  * it writes a known sound-alike, flagged to check by ear. Tap any word to
- * hear it; after an attempt, the words to drill.
+ * hear it; after an attempt, the words to drill. After a take below the
+ * bar, its missed words are written as they sound until a take passes.
  */
 export function RepeatMode({
   drill,
@@ -65,6 +68,8 @@ export function RepeatMode({
     () => alignWords(drill.textEn, heard, { terms, pendingTail: listening }),
     [drill.textEn, heard, terms, listening],
   );
+  // The words missed on the last take below the bar, written as they sound until a take passes.
+  const missedSay = useMissedRespellings(drill.textEn, alignment.words, terms);
   const [showRespelling, setShowRespelling] = useShowRespelling();
   const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
   const hasRespellings = useMemo(
@@ -140,6 +145,8 @@ export function RepeatMode({
       setListening(false);
       setInterim('');
       setDone(true);
+      const said = finalRef.current;
+      if (said) missedSay.noteAttempt(said, alignWords(drill.textEn, said, { terms }).score >= PASS_SCORE);
       if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
     };
     recRef.current = rec;
@@ -209,6 +216,7 @@ export function RepeatMode({
         terms={terms}
         colored={Boolean(Ctor && (heard || done))}
         showRespelling={showRespelling}
+        replaced={missedSay.replaced}
         activeIndex={help?.index ?? null}
         onWord={(index, el) => setHelp(help?.index === index ? null : { index, el })}
       />

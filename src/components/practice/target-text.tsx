@@ -28,6 +28,19 @@ const LOOK_TITLE: Partial<Record<Look, string>> = {
   alias: 'Nombre: el reconocedor no lo conoce. Revisalo con el audio.',
 };
 
+/**
+ * A missed word shown as it sounds (owner, 2026-11-15): the warm tint and dotted line say "this is not the
+ * spelling"; the attempt's color still paints it. Same size and weight as the rest, so nothing reflows while he speaks.
+ */
+const REPLACED_CLASS = 'bg-j-warm-light underline decoration-dotted decoration-j-warm-dark decoration-1 underline-offset-4';
+
+/** "Doubland;" with "DÁB-land" → "DÁB-land;": the sentence's punctuation stays where it was. */
+function withPunctuation(first: string, last: string, say: string): string {
+  const lead = /^[^\p{L}\p{N}]+/u.exec(first)?.[0] ?? '';
+  const trail = /[^\p{L}\p{N}]+$/u.exec(last)?.[0] ?? '';
+  return `${lead}${say}${trail}`;
+}
+
 interface TargetTextProps {
   /** From alignWords, always: before an attempt too, so the markup is the same before and after. */
   words: TargetWord[];
@@ -36,6 +49,12 @@ interface TargetTextProps {
   colored: boolean;
   /** Respellings under the key terms that have one. */
   showRespelling?: boolean;
+  /**
+   * Words written as they sound instead of their spelling, by the index of their first word (a key term's
+   * words go as one): the words missed on the last attempt. Coloring and scoring still use the English words;
+   * the spelling is in the title and in the word's help.
+   */
+  replaced?: ReadonlyMap<number, string>;
   /** The word whose help is open. */
   activeIndex?: number | null;
   onWord?: (index: number, el: HTMLElement) => void;
@@ -45,7 +64,7 @@ interface TargetTextProps {
  * The drill's English text, one button per word (tap: how it sounds). A key
  * term's words are grouped so its respelling sits under the whole name.
  */
-export function TargetText({ words, terms, colored, showRespelling = false, activeIndex = null, onWord }: TargetTextProps) {
+export function TargetText({ words, terms, colored, showRespelling = false, replaced, activeIndex = null, onWord }: TargetTextProps) {
   // Runs of words: a key term's words together, every other word alone.
   const runs: number[][] = [];
   words.forEach((w, i) => {
@@ -75,6 +94,34 @@ export function TargetText({ words, terms, colored, showRespelling = false, acti
       </button>
     );
   };
+  // A replaced word (or key term): one button with how it sounds, the spelling in its title.
+  const respelled = (run: number[], say: string) => {
+    const i = run[0];
+    const w = words[i];
+    const look = lookOf(w, colored);
+    const spelling = run.map((k) => words[k].word).join(' ');
+    return (
+      <button
+        type="button"
+        data-word-index={i}
+        data-word-state={colored ? (w.viaAlias ? 'alias' : w.state) : 'plain'}
+        data-replaced=""
+        title={`${spelling.replace(/[^\p{L}\p{N}]+$/u, '')} · así suena`}
+        aria-label={spelling}
+        onClick={(e) => onWord?.(i, e.currentTarget)}
+        className={cn(
+          'inline cursor-pointer p-0 text-left align-baseline [font:inherit]',
+          'hover:bg-j-bg-alt focus-visible:outline focus-visible:outline-1 focus-visible:outline-j-accent',
+          activeIndex === i && 'bg-j-accent-light',
+          STATE_CLASS[look],
+          REPLACED_CLASS,
+          look === 'plain' && 'text-j-warm-dark',
+        )}
+      >
+        <span lang="es">{withPunctuation(words[run[0]].word, words[run[run.length - 1]].word, say)}</span>
+      </button>
+    );
+  };
   const wordsOf = (run: number[]) =>
     run.map((i, k) => (
       <span key={i}>
@@ -89,6 +136,15 @@ export function TargetText({ words, terms, colored, showRespelling = false, acti
         const space = r < runs.length - 1 ? ' ' : null;
         const first = words[run[0]];
         const term = first.term !== null ? terms[first.term] ?? null : null;
+        const swap = replaced?.get(run[0]);
+        if (swap) {
+          return (
+            <span key={run[0]}>
+              {respelled(run, swap)}
+              {space}
+            </span>
+          );
+        }
         const say = term ? pronunciationFor(first.word, term)?.say ?? null : null;
         return (
           <span key={run[0]}>

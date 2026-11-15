@@ -3,8 +3,10 @@
  * Spanish ear, and which words of an attempt are worth drilling.
  *
  * Respellings come from the lesson's key terms first, then from the short
- * dictionary below of common technical English words. A word in neither gets
- * no respelling (the view offers the audio only): nothing is guessed.
+ * dictionary below of common technical English words, then from CMUdict
+ * (served by /api/practice/respell, converted by arpabet-respell.ts). A word
+ * in none gets no respelling (the view offers the audio only): nothing is
+ * guessed.
  *
  * Respelling convention: syllables split with "-", the stressed one in caps
  * with its accent ("PÉI-uol"); "u" before a vowel is an English w, "j" an
@@ -20,11 +22,11 @@ import { heardInstead, type WordAlignment } from './scoring';
 export interface Pronunciation {
   say: string;
   ipa: string | null;
-  source: 'term' | 'common';
+  source: 'term' | 'common' | 'dictionary';
 }
 
 /** Common technical English words a Spanish speaker tends to misplace, [respelling, IPA]. */
-const COMMON: Record<string, [string, string]> = {
+export const COMMON: Record<string, [string, string]> = {
   access: ['ÁK-ses', 'ˈæksɛs'],
   account: ['a-KÁUNT', 'əˈkaʊnt'],
   adult: ['a-DÁLT', 'əˈdʌlt'],
@@ -127,7 +129,7 @@ export function cleanWord(word: string): string {
   return word.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[.,;:!?)"”’']+$/u, '');
 }
 
-function dictionaryKey(word: string): string {
+export function dictionaryKey(word: string): string {
   return cleanWord(word).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’]/g, "'").replace(/'s$/, '');
 }
 
@@ -142,6 +144,31 @@ export function pronunciationFor(word: string, term: KeyTerm | null): Pronunciat
   if (term?.say) return { say: term.say, ipa: term.ipa, source: 'term' };
   if (term && /\s/.test(term.term.trim())) return null;
   return commonPronunciation(term ? term.term : word);
+}
+
+/** What CMUdict gave, keyed by dictionaryKey. */
+export type DictionaryRespellings = ReadonlyMap<string, { say: string; ipa: string }>;
+
+/**
+ * Key term → COMMON → CMUdict → null. A multi-word key term without its own
+ * respelling gets none (its words are not respelled one by one).
+ */
+export function resolvePronunciation(word: string, term: KeyTerm | null, fromDictionary: DictionaryRespellings): Pronunciation | null {
+  if (term?.say) return { say: term.say, ipa: term.ipa, source: 'term' };
+  if (term && /\s/.test(term.term.trim())) return null;
+  const subject = term ? term.term : word;
+  const common = commonPronunciation(subject);
+  if (common) return common;
+  const hit = fromDictionary.get(dictionaryKey(subject));
+  return hit ? { say: hit.say, ipa: hit.ipa, source: 'dictionary' } : null;
+}
+
+/** Whether a word needs CMUdict at all: not a function word, not covered by a key term or COMMON. */
+export function needsDictionary(word: string, term: KeyTerm | null): boolean {
+  if (term?.say || (term && /\s/.test(term.term.trim()))) return false;
+  const subject = term ? term.term : word;
+  const key = dictionaryKey(subject);
+  return Boolean(key) && /\p{L}/u.test(key) && !FUNCTION_WORDS.has(key) && !commonPronunciation(subject);
 }
 
 // ---------------------------------------------------------------------------

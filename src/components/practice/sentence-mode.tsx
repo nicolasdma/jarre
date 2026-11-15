@@ -6,7 +6,9 @@
  * through their sound-alikes), the next phrase plays by itself; if not, the
  * missed words come with their voice and respelling, and after a beat the
  * phrase plays again and the mic reopens, in a loop until it passes or the
- * learner skips it (owner, 2026-11-15). A summary at the end says which phrases needed
+ * learner skips it (owner, 2026-11-15). Until it passes, the words missed on
+ * the last try are written in the phrase as they sound
+ * (use-missed-respellings.ts). A summary at the end says which phrases needed
  * retries.
  *
  * The turns are the drill's " / " phrases (its sentences when it has no
@@ -28,6 +30,7 @@ import type { KeyTerm } from '@/lib/practice/key-terms';
 import {
   firstTryPercent,
   initialPhraseState,
+  PASS_SCORE,
   phraseDrillReducer,
   practicePhrases,
   scorePhrase,
@@ -41,6 +44,7 @@ import { recognitionError, useRecognitionCtor, type Recognition } from './recogn
 import { TargetLegend, TargetText } from './target-text';
 import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
 import { useSentenceSegments } from './use-sentence-spans';
+import { useMissedRespellings } from './use-missed-respellings';
 import type { DrillAudio, PlaybackRate } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
@@ -132,6 +136,7 @@ export function SentenceMode({
   // The open recognizer, so "Listo" can end the turn.
   const recRef = useRef<Recognition | null>(null);
   const termsRef = useRef(terms);
+  const noteAttemptRef = useRef<(heard: string, passed: boolean) => void>(() => {});
   useEffect(() => {
     segmentsRef.current = segments;
     termsRef.current = terms;
@@ -194,7 +199,10 @@ export function SentenceMode({
         return;
       }
       // Only this phrase is scored.
-      dispatch({ type: 'scored', score: scorePhrase([phrase], 0, latest, termsRef.current) });
+      const score = scorePhrase([phrase], 0, latest, termsRef.current);
+      // Below the bar, its missed words are written as they sound for the next try; a pass clears them.
+      noteAttemptRef.current(latest, score >= PASS_SCORE);
+      dispatch({ type: 'scored', score });
     };
     recRef.current = rec;
     later(endTurn, NO_SPEECH_MS);
@@ -257,9 +265,15 @@ export function SentenceMode({
     () => alignWords(phrase, heard, { terms, pendingTail: phase === 'listening' }),
     [phrase, heard, terms, phase],
   );
+  const missedSay = useMissedRespellings(phrase, alignment.words, terms);
+  useEffect(() => {
+    noteAttemptRef.current = missedSay.noteAttempt;
+  });
 
   const act = (e: Parameters<typeof dispatch>[0]) => {
     setHelp(null);
+    // Another phrase (or the drill again): the last attempt's words no longer apply.
+    if (e.type === 'go' || e.type === 'next' || e.type === 'prev' || e.type === 'start') missedSay.clear();
     dispatch(e);
   };
   const start = () => act({ type: 'start' });
@@ -397,6 +411,7 @@ export function SentenceMode({
               words={alignment.words}
               terms={terms}
               colored={colored}
+              replaced={missedSay.replaced}
               activeIndex={help?.index ?? null}
               onWord={(i, el) => setHelp(help?.index === i ? null : { index: i, el })}
             />
