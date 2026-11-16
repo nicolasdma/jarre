@@ -156,6 +156,7 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
       {mode === 'recall' && (
         <RecallMode
           key={`recall-${drill.slug}`}
+          resourceId={resourceId}
           drill={drill}
           ask={ask}
           audio={audio}

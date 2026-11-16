@@ -19,6 +19,7 @@ import {
 import { AudioBar, Chip, PrimaryButton } from './controls';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
+import { useRecallAnswer, type RecallAnswer } from './use-recall-answer';
 
 const SECONDS_KEY = 'jarre-recall-seconds';
 const RATING_LABEL: Record<RecallRating, string> = { got: 'La tenía', partial: 'A medias', missed: 'No salió' };
@@ -34,8 +35,15 @@ function isTyping(el: Element | null): boolean {
  * aloud, then its recording with the text, and a rating that schedules the
  * next review (recall.ts). Space starts, skips the countdown and then
  * plays/pauses; 1·2·3 or arrows pick a rating, Enter rates and then moves on.
+ *
+ * The answer is heard and judged against the drill's text by a lenient third
+ * party (use-recall-answer.ts, recall-eval.ts): its grade comes preselected
+ * above the answer, with what was said and what was missing, and the learner
+ * can still change it before Enter. Without a recognizer, a microphone or the
+ * judge, the learner rates as before.
  */
 export function RecallMode({
+  resourceId,
   drill,
   ask,
   audio,
@@ -44,6 +52,7 @@ export function RecallMode({
   onNext,
   onNextDue,
 }: {
+  resourceId: string;
   drill: PracticeDrill;
   /** The interviewer's English question, when the lesson links one to this drill. */
   ask?: string;
@@ -60,6 +69,11 @@ export function RecallMode({
   const [showEs, setShowEs] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const prompt = recallPrompt(drill.title, ask);
+  const answer = useRecallAnswer(resourceId, drill.slug);
+  /** The learner picked a rating themselves: the judge's no longer replaces it. */
+  const touchedRef = useRef(false);
+  /** The answer ended and the judge has not said anything yet. */
+  const judging = answer.status === 'listening' || answer.status === 'evaluating';
 
   // The chosen length is remembered on this device.
   useEffect(() => {
@@ -82,6 +96,20 @@ export function RecallMode({
     return () => window.clearInterval(id);
   }, [state.phase]);
 
+  // The answer is over: stop listening before the recording plays, and have it judged.
+  const { finish: finishAnswer, start: startAnswer } = answer;
+  useEffect(() => {
+    if (state.phase === 'answer') finishAnswer(state.answeredAfter !== null && state.answeredAfter >= state.seconds);
+    // Only on entering the answer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
+
+  // The judge's grade comes preselected, unless the learner already chose.
+  const judgedRating = answer.judgement?.kind === 'evaluated' ? answer.judgement.evaluation.rating : null;
+  useEffect(() => {
+    if (judgedRating && !touchedRef.current) dispatch({ type: 'select', rating: judgedRating });
+  }, [judgedRating]);
+
   // The answer plays as soon as the countdown ends (or is skipped), once.
   const { restart, pause, setLoop, loop } = audio;
   useEffect(() => {
@@ -94,11 +122,13 @@ export function RecallMode({
 
   const start = useCallback(() => {
     audio.prime();
+    touchedRef.current = false;
+    startAnswer();
     const t = Date.now();
     setNow(t);
     setShowEs(false);
     dispatch({ type: 'start', now: t });
-  }, [audio]);
+  }, [audio, startAnswer]);
 
   const rate = useCallback(
     (rating?: RecallRating) => {
@@ -109,10 +139,13 @@ export function RecallMode({
     [onRate, state.selected],
   );
 
+  const { reset: resetAnswer } = answer;
   const again = useCallback(() => {
     pause();
+    resetAnswer();
+    touchedRef.current = false;
     dispatch({ type: 'again' });
-  }, [pause]);
+  }, [pause, resetAnswer]);
 
   const next = onNextDue ?? onNext;
 
@@ -132,15 +165,16 @@ export function RecallMode({
         case 'start': start(); break;
         case 'skip': dispatch({ type: 'skip', now: Date.now() }); break;
         case 'toggle-audio': audio.toggle(); break;
-        case 'select': dispatch({ type: 'select', rating: key.rating }); break;
-        case 'move': dispatch({ type: 'move', by: key.by }); break;
-        case 'rate': rate(); break;
+        case 'select': touchedRef.current = true; dispatch({ type: 'select', rating: key.rating }); break;
+        case 'move': touchedRef.current = true; dispatch({ type: 'move', by: key.by }); break;
+        // While the judge is still out, Enter waits for it, unless the learner already chose.
+        case 'rate': if (!judging || touchedRef.current) rate(); break;
         case 'next': next?.(); break;
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [audio, next, rate, start, state.phase]);
+  }, [audio, judging, next, rate, start, state.phase]);
 
   const left = remainingSeconds(state, now);
   const fraction = remainingFraction(state, now);
@@ -214,7 +248,15 @@ export function RecallMode({
               {left}
               <span className="ml-1 text-2xl text-j-text-tertiary sm:text-3xl">s</span>
             </p>
-            <p className="pb-2 text-right font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Hablando…</p>
+            <p
+              className={cn(
+                'pb-2 text-right font-mono text-[10px] uppercase tracking-[0.15em]',
+                answer.status === 'listening' ? 'text-j-error' : 'text-j-text-tertiary',
+              )}
+              data-testid="recall-listening"
+            >
+              {answer.status === 'listening' ? '● Te escucho…' : 'Hablando…'}
+            </p>
           </div>
           <div className="h-1.5 bg-j-border">
             <div className={cn('h-1.5', left <= 5 ? 'bg-j-warm' : 'bg-j-accent')} style={{ width: `${fraction * 100}%` }} />
@@ -225,6 +267,8 @@ export function RecallMode({
           </div>
         </div>
       )}
+
+      {!hidden && <JudgePanel answer={answer} />}
 
       {!hidden && (
         <div className="space-y-5">
@@ -262,7 +306,10 @@ export function RecallMode({
                 role="radio"
                 aria-checked={state.selected === r.id}
                 onClick={() => rate(r.id)}
-                onFocus={() => dispatch({ type: 'select', rating: r.id })}
+                onFocus={() => {
+                  touchedRef.current = true;
+                  dispatch({ type: 'select', rating: r.id });
+                }}
                 data-rating={r.id}
                 className={cn(
                   'flex min-h-[52px] flex-col items-center justify-center gap-0.5 border px-2 py-2 text-sm transition-colors',
@@ -277,7 +324,7 @@ export function RecallMode({
             ))}
           </div>
           <p className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary sm:block">
-            1 · 2 · 3 elegir · Enter calificar · Espacio pausa
+            {judgedRating ? '1 · 2 · 3 corregir · Enter calificar · Espacio pausa' : '1 · 2 · 3 elegir · Enter calificar · Espacio pausa'}
           </p>
         </div>
       )}
@@ -296,6 +343,81 @@ export function RecallMode({
             {next && <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Enter</span>}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function JudgeList({ title, items, mark, tone }: { title: string; items: string[]; mark: string; tone: string }) {
+  if (!items.length) return null;
+  return (
+    <div className="space-y-1">
+      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">{title}</p>
+      <ul className="space-y-1">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2 text-sm leading-snug text-j-text-body" lang="es">
+            <span className={cn('shrink-0 font-mono', tone)} aria-hidden>{mark}</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * What the judge says about the try, above the answer. Nothing when the
+ * answer was not heard at all (no recognizer): the mode is then self-rated.
+ */
+function JudgePanel({ answer }: { answer: RecallAnswer }) {
+  const { status, judgement, micError, transcript } = answer;
+  if (micError) {
+    return (
+      <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark" data-testid="recall-judge" data-judge="mic">
+        {micError} Mientras tanto te calificás vos.
+      </p>
+    );
+  }
+  if (status === 'idle') return null;
+  if (status !== 'done' || !judgement) {
+    return (
+      <p className="border border-j-border px-3 py-2 text-sm text-j-text-secondary" aria-live="polite" data-testid="recall-judge" data-judge="pending">
+        Evalúo lo que dijiste… Si no querés esperar, elegí vos con 1 · 2 · 3.
+      </p>
+    );
+  }
+  if (judgement.kind === 'unheard') {
+    return (
+      <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark" data-testid="recall-judge" data-judge="unheard">
+        No llego a escuchar una respuesta, así que no hay evaluación. Calificate vos.
+      </p>
+    );
+  }
+  if (judgement.kind === 'unavailable') {
+    return (
+      <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark" data-testid="recall-judge" data-judge="unavailable">
+        El evaluador no está disponible ahora. Calificate vos, como siempre.
+      </p>
+    );
+  }
+  const e = judgement.evaluation;
+  return (
+    <div className="space-y-4 border border-j-border bg-j-bg-white px-4 py-4 sm:px-6" aria-live="polite" data-testid="recall-judge" data-judge={e.rating}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm-dark">Evaluación</p>
+        <p className="text-lg font-semibold text-j-text">{RATING_LABEL[e.rating]}</p>
+        {!e.answered && <p className="text-sm text-j-text-secondary">No termina de contestar la pregunta.</p>}
+      </div>
+      <JudgeList title="Dijiste" items={e.said} mark="✓" tone="text-j-accent" />
+      <JudgeList title="Te faltó" items={e.missing} mark="·" tone="text-j-warm-dark" />
+      {e.tip && (
+        <p className="border-l-2 border-j-warm pl-3 text-sm leading-snug text-j-text-em" lang="es">{e.tip}</p>
+      )}
+      {transcript && (
+        <details className="text-sm text-j-text-secondary">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Lo que escuché</summary>
+          <p className="mt-2 leading-relaxed" lang="en">{transcript}</p>
+        </details>
       )}
     </div>
   );
