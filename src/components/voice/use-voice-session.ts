@@ -866,8 +866,10 @@ export function useVoiceSession({
           paramsRef.current.onToolCall?.(functionCalls);
         },
         onResumptionUpdate: (handle, resumable) => {
+          // A handle sent mid-generation cannot resume the session: keep the last resumable one.
+          if (!resumable) return;
           resumptionHandleRef.current = handle;
-          log.info(`Resumption handle stored (resumable: ${resumable})`);
+          log.info('Resumption handle stored');
         },
         onGoAway: (timeLeftMs) => {
           if (sessionEndDetectedRef.current || !sessionIdRef.current) {

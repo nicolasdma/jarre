@@ -133,8 +133,6 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const [current, setCurrent] = useState<MockAttempt | null>(null);
   const [showGuide, setShowGuide] = useState(true);
 
-  const sendRef = useRef<(text: string, options?: { respond?: boolean }) => void>(() => {});
-
   /** Send the editor as the interviewer would see it, when it changed. */
   const snapshot = useCallback((reason: SnapshotReason, force = false): string | null => {
     const r = rt.current;
@@ -154,12 +152,12 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     interview,
     turnTaking: 'thinking-aloud',
     onReconnected: () => {
-      // A fresh connection lost the screen: show it again.
+      // A fresh connection lost the screen: show it again, once the interviewer
+      // is done answering the reconnection (sending while it speaks could cut it).
       const note = snapshot('reconnect', true);
-      if (note) sendRef.current(note);
+      if (note) rt.current.pending.push(note);
     },
   });
-  sendRef.current = voice.sendText;
   // The clock reads the session through a ref, so a transcript update does not restart it.
   const voiceRef = useRef(voice);
   voiceRef.current = voice;

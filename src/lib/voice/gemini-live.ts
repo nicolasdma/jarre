@@ -155,6 +155,10 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
             // NOTE: contextWindowCompression removed — not supported on native audio models
             // (causes WebSocket 1008 "Operation is not implemented"). Sessions limited to ~15 min
             // without compression. Our 3-layer reconnection handles this gracefully.
+            // gemini-3.8-live accepts compression and resumption in the setup, but a probe on
+            // 2026-11-17 (17 min, a ping every ~100 s) still closed at 14 min with 1011 and no
+            // GoAway, and every resume with the last resumable handle got 1008 "session not
+            // found or expired": on 3.8 only Layer 2 (a fresh session fed the transcript) works.
           },
           callbacks: {
             onopen: () => {
@@ -361,10 +365,9 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       }
       retryCount++;
       const savedRetryCount = retryCount;
-      // Reuse the stored config, injecting resumption handle if provided
-      const reconnectConfig = resumptionHandle
-        ? { ...lastConfig, resumptionHandle }
-        : lastConfig;
+      // Reuse the stored config with this handle, or none: a reconnect without a
+      // handle is a fresh session, never the handle of an earlier resume.
+      const reconnectConfig = { ...lastConfig, resumptionHandle };
       await this.connect(ephemeralToken, reconnectConfig);
       // Restore retry count (connect() resets it, but during reconnect we need to keep tracking)
       retryCount = savedRetryCount;
