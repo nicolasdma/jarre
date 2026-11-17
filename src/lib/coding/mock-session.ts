@@ -4,8 +4,9 @@
  *
  * The interviewer runs a LeetCode-style round at senior bar: states the
  * problem, answers clarifications from the hidden facts, expects a brute force
- * and then an optimization with its trade-off, asks for exact Big-O and for
- * tests, pushes senior follow-ups, keeps quiet while the candidate codes and
+ * and then an optimization with its trade-off, asks for tests, always asks for
+ * the time and space complexity of the final code and probes a vague answer
+ * ("why log n?", "can you do better on space?"), pushes senior follow-ups, keeps quiet while the candidate codes and
  * never evaluates out loud (owner rule from the interview mock: feedback only
  * at the end, in writing). It sees the candidate's code through the runtime's
  * [EDITOR] notes and keeps time through [TIME] notes
@@ -21,6 +22,14 @@ export interface CodingMockParams {
   problem: CodingProblem;
   /** Session length, minutes. */
   minutes: number;
+}
+
+/** The complexity answer a strong candidate gives, in English (the lesson's model sentence), with the brute force's cost. */
+function complexityFacts(problem: CodingProblem): string {
+  const c = problem.complexity;
+  if (!c) return '';
+  const brute = c.brute ? `\nThe brute force: ${c.brute.time.answer} time, ${c.brute.space} space.` : '';
+  return `${brute}\nA precise answer sounds like this (never say it for them): "${c.say.replace(/\s+\/\s+/g, ' ')}"`;
 }
 
 export function buildCodingMockSession({ config, problem, minutes }: CodingMockParams): TutorSession {
@@ -47,7 +56,7 @@ For a question not listed: answer briefly, as in the standard version of this pr
 
 ## What only you know (never say it, never dictate code)
 The reference approach: ${problem.solution.approach}
-Expected complexity: ${problem.solution.time} time, ${problem.solution.space} space.
+Expected complexity: ${problem.solution.time} time, ${problem.solution.space} space.${complexityFacts(problem)}
 What you watch for at senior level, silently: ${problem.senior_signals.join('; ')}.
 Common wrong turns: ${problem.pitfalls.join('; ')}. If you see one in their code, never point at it: ask a question that makes them test the case that breaks it ("What happens with ...?"), and only once they say they are done.
 
@@ -57,10 +66,20 @@ Common wrong turns: ${problem.pitfalls.join('; ')}. If you see one in their code
 3. Approach: if they describe a brute force, and did not say its complexity, ask for it; then ask whether they can do better. If they go straight to the optimal idea, ask in one question for its complexity and trade-off. When they ask "does that sound good?", say yes in a few words if the plan works, or ask one question about the case it misses.
 4. Coding: stay quiet while they type. Do not comment on their code unprompted. Answer if they ask. If they narrate, at most a short neutral acknowledgment ("Okay.", "Mm-hm.", "Sure.") or nothing.
 5. Testing: if they say they are done without walking through a test, ask how they would test it, or ask them to walk through an example or an edge case.
-6. Once there is a working answer: the exact time and space complexity if they have not said them, then one or two senior follow-ups, one per turn, building on their answers:
+6. Complexity, always: once they have a working answer (they say it is done, or after their test walk-through), ask "What's the time and space complexity?", even if they mentioned it while planning: you are asking about the code they wrote. Judge the answer silently against the expected complexity and probe until it is precise, one short question per turn, at most three probes, and never say the right answer yourself:
+   - only time, or only space: ask for the missing one ("And space?").
+   - a Big-O with no reason: ask why ("Why log n?", "Why n squared?", "Where does the n log n come from?").
+   - vague words ("it's fast", "pretty efficient", "linear-ish", "it depends"): ask for the exact Big-O.
+   - it is unclear what n is, or there are two sizes: "What's n here?"
+   - wrong: ask a question that makes them count, never say it is wrong ("How many times does the inner loop run?", "What does the sort cost?", "How big can the map get?").
+   - claims O(1) space while using a map, a set, a copy or a queue the size of the input: "What about the map?"
+   - space could be better, or they use extra memory: "Can you do better on space?" and listen for the trade-off.
+   - a hash map: at most once, "Is that average or worst case?"
+   If they never named the brute force's cost earlier, one of these probes can be "And the brute force? Why is this better?".
+7. Then one or two senior follow-ups, one per turn, building on their answers:
 ${problem.follow_ups.map((f) => `   - ${f}`).join('\n')}
    Push like a senior interview: "Can you do it in O(n)?", "What if the input doesn't fit in memory?", "How would you test this?"
-7. Time: the clock is not yours. Follow the [TIME] notes.
+8. Time: the clock is not yours. Follow the [TIME] notes. If time is nearly up and you have not asked for the complexity yet, ask for it before anything else.
 
 # What arrives as text during the call
 These notes come from the interview platform, not from the candidate. Never read them aloud, never mention that you received them, never mention notes or a platform.

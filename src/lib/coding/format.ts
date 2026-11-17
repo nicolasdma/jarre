@@ -33,6 +33,54 @@ export const CodingExerciseSchema = z.object({
   starter: z.string().min(1),
 });
 
+/** One Big-O question: the right answer among the options, and why in one line. */
+export const BigOAnswerSchema = z
+  .object({
+    /** As written on screen, e.g. "O(n log n)". */
+    answer: z.string().min(1),
+    /** What the learner picks from (the answer among them). */
+    options: z.array(z.string().min(1)).min(2).max(6),
+    /** Why, in one line (learner's language). */
+    why: z.string().min(1),
+  })
+  .superRefine((a, ctx) => {
+    if (!a.options.includes(a.answer)) ctx.addIssue({ code: 'custom', message: `answer ${a.answer} is not one of the options` });
+  });
+
+/**
+ * "What's the time and space complexity?": the step after a code exercise
+ * passes, and each item of the lesson's Big-O drill. The learner picks or
+ * says time and space (and the brute force's time, when it is different),
+ * then sees the answers with their reasons and the sentence to say aloud.
+ */
+export const ComplexityCheckSchema = z.object({
+  time: BigOAnswerSchema,
+  space: BigOAnswerSchema,
+  /** The brute force, when it costs something else: its time (asked), its space and what the optimization removes. */
+  brute: z.object({ time: BigOAnswerSchema, space: z.string().min(1), why: z.string().min(1) }).optional(),
+  /** The answer as said on the call (English, " / " breath marks allowed). */
+  say: z.string().min(1),
+  /** The lesson drill with that sentence and its recording. */
+  drill: z.string().optional(),
+});
+
+/** One fragment of the Big-O drill: code to read and say the complexity of. */
+export const ComplexityDrillItemSchema = ComplexityCheckSchema.extend({
+  id: slug,
+  title: z.string().min(1),
+  /** The fragment (TypeScript). */
+  code: z.string().min(1),
+});
+
+export const ComplexityDrillSchema = z.object({
+  /** Lesson concept whose reading section shows the drill. */
+  concept: z.string().min(1),
+  title: z.string().min(1),
+  /** What to do (learner's language, markdown allowed). */
+  instructions: z.string().min(1),
+  items: z.array(ComplexityDrillItemSchema).min(1),
+});
+
 export const CodingProblemSchema = z.object({
   id: slug,
   title: z.string().min(1),
@@ -80,6 +128,8 @@ export const CodingProblemSchema = z.object({
     code: z.string().min(1),
   }),
   exercises: z.array(CodingExerciseSchema).default([]),
+  /** The complexity step after an exercise passes; also what the interviewer expects to hear. */
+  complexity: ComplexityCheckSchema.optional(),
 });
 
 export const CodingPersonaSchema = z.object({
@@ -114,6 +164,8 @@ export const CodingConfigSchema = z
     /** Drill slugs with the phrases for being stuck and asking for help. */
     stuck_drills: z.array(z.string()).default([]),
     problems: z.array(CodingProblemSchema).min(1),
+    /** "Say the Big-O": code fragments under a reading section, each answered aloud. */
+    complexity_drill: ComplexityDrillSchema.optional(),
   })
   .superRefine((c, ctx) => {
     const dup = (ids: string[]) => ids.find((id, i) => ids.indexOf(id) !== i);
@@ -121,6 +173,9 @@ export const CodingConfigSchema = z
     if (p) ctx.addIssue({ code: 'custom', message: `duplicate coding problem id ${p}` });
     const e = dup(c.problems.flatMap((x) => x.exercises.map((ex) => ex.id)));
     if (e) ctx.addIssue({ code: 'custom', message: `duplicate coding exercise id ${e}` });
+    const items = c.complexity_drill?.items.map((x) => x.id) ?? [];
+    const i = dup(items);
+    if (i) ctx.addIssue({ code: 'custom', message: `duplicate complexity drill item ${i}` });
     for (const phase of c.phases) {
       if (phase.to <= phase.from) ctx.addIssue({ code: 'custom', message: `phase ${phase.id}: "to" must be after "from"` });
     }
@@ -131,6 +186,10 @@ export type CodingProblem = z.infer<typeof CodingProblemSchema>;
 export type CodingPersona = z.infer<typeof CodingPersonaSchema>;
 export type CodingPhase = z.infer<typeof CodingPhaseSchema>;
 export type CodingConfig = z.infer<typeof CodingConfigSchema>;
+export type BigOAnswer = z.infer<typeof BigOAnswerSchema>;
+export type ComplexityCheck = z.infer<typeof ComplexityCheckSchema>;
+export type ComplexityDrillItem = z.infer<typeof ComplexityDrillItemSchema>;
+export type ComplexityDrill = z.infer<typeof ComplexityDrillSchema>;
 
 /** The coding round of a stored interview block, or null when it has none or it is invalid. */
 export function parseCodingConfig(interview: unknown): CodingConfig | null {

@@ -120,6 +120,16 @@ export const LessonSchema = z.object({
   const d = dup(l.drills.map((x) => x.id));
   if (d) ctx.addIssue({ code: 'custom', message: `duplicate drill id ${d}` });
   const conceptIds = new Set(l.concepts.map((c) => c.id));
+  const drillIds = new Set(l.drills.map((x) => x.id));
+  const coding = l.interview?.coding;
+  for (const p of coding?.problems ?? []) {
+    if (p.complexity?.drill && !drillIds.has(p.complexity.drill)) {
+      ctx.addIssue({ code: 'custom', message: `coding problem ${p.id}: complexity drill ${p.complexity.drill} is not a drill of the lesson` });
+    }
+  }
+  if (coding?.complexity_drill && !conceptIds.has(coding.complexity_drill.concept)) {
+    ctx.addIssue({ code: 'custom', message: `complexity drill: unknown concept ${coding.complexity_drill.concept}` });
+  }
   for (const drill of l.drills) {
     if (drill.concept && !conceptIds.has(drill.concept)) {
       ctx.addIssue({ code: 'custom', message: `drill ${drill.id}: unknown concept ${drill.concept}` });

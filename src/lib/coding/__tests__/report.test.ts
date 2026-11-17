@@ -62,6 +62,9 @@ describe('buildCodingReportMessages', () => {
       problems: [{ id: 'sum', title: 'Sum' }],
     });
     expect(system).toContain('senior_judgment');
+    expect(system).toContain('- complexity:');
+    expect(system).toContain('exactly six entries');
+    expect(user).toContain('REFERENCE COMPLEXITY: O(n) time, O(1) space');
     expect(user).toContain('FINAL TESTS (examples + hidden edge cases, on the final code): 2/3 pass');
     expect(user).toContain('CANDIDATE: Can the array be empty?');
     expect(user).toContain('SAM: Sum the numbers.');
@@ -89,6 +92,33 @@ describe('the interviewer prompt', () => {
     expect(instruction).toContain('interview complete');
     for (const hint of SUM_PROBLEM.hints) expect(instruction).not.toContain(hint);
     expect(opener).toBe("Hi, I'm ready.");
+  });
+
+  it('always asks for the complexity and probes a vague answer, knowing the precise one', () => {
+    const problem = {
+      ...SUM_PROBLEM,
+      complexity: {
+        time: { answer: 'O(n)', options: ['O(1)', 'O(n)', 'O(n²)'], why: 'una pasada' },
+        space: { answer: 'O(1)', options: ['O(1)', 'O(n)'], why: 'una variable' },
+        say: "It's O of n time, / because I add each number once. / Space is constant.",
+      },
+    };
+    const { instruction } = buildCodingMockSession({ config, problem, minutes: 30 });
+    expect(instruction).toContain("ask \"What's the time and space complexity?\"");
+    expect(instruction).toContain('Why log n?');
+    expect(instruction).toContain('Can you do better on space?');
+    expect(instruction).toContain("It's O of n time, because I add each number once. Space is constant.");
+    expect(instruction).not.toContain('una pasada');
+    const { user } = buildCodingReportMessages({
+      problem,
+      interviewerName: 'Sam',
+      transcript: [{ role: 'user', text: 'It is linear time.' }],
+      finalCode: '',
+      facts,
+      drills: [],
+      problems: [],
+    });
+    expect(user).toContain("REFERENCE COMPLEXITY: O(n) time, O(1) space. A precise spoken answer: \"It's O of n time, because I add each number once. Space is constant.\"");
   });
 
   it('reads the coding round from a stored interview block, and ignores an invalid one', () => {

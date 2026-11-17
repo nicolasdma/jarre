@@ -3,7 +3,7 @@
  * Body: { resourceId, problemId, transcript: [{ role, text }], finalCode, facts }
  * Response: { report: CodingReport }
  *
- * The written scorecard after a coding mock: five dimensions scored 1-4 at
+ * The written scorecard after a coding mock: six dimensions (complexity on its own) scored 1-4 at
  * senior bar with quoted moments, what the engineer would note, and the three
  * things to drill next. The problem (statement, approach, senior signals,
  * pitfalls, hints) is read here from the lesson, not taken from the client;

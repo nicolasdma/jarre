@@ -2,7 +2,7 @@
 
 /**
  * The written scorecard after a coding mock (POST /api/interview/coding-report):
- * the verdict at senior bar, the five dimensions with quoted moments, what the
+ * the verdict at senior bar, the six dimensions (complexity on its own) with quoted moments, what the
  * engineer would note, the clarifications asked and missed, English
  * corrections and the three things to drill next. A report already stored
  * with the attempt is shown as is; otherwise it is requested once.

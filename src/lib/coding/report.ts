@@ -5,8 +5,9 @@
  *
  * It scores the five dimensions live-coding rubrics share (communication,
  * problem solving, code that runs, testing, and senior judgment: trade-offs,
- * exact Big-O, scale, production), each 1 to 4 with moments quoted from the
- * transcript, against the problem's senior signals and pitfalls. The facts the
+ * scale, production) plus complexity on its own (the time and space Big-O of
+ * the final code, said precisely and with its reason, and the brute force's
+ * cost), each 1 to 4 with moments quoted from the transcript, against the problem's senior signals and pitfalls. The facts the
  * page measured (hidden tests passed, runs, minutes to first code, hints
  * given) go in as facts, so "code that runs" is judged on the tests and not
  * on an impression. Drills to practice next can only be the lesson's drills
@@ -16,7 +17,7 @@
 import { z } from 'zod';
 import type { CodingProblem } from './format';
 
-export const RUBRIC_DIMENSIONS = ['communication', 'problem_solving', 'code', 'testing', 'senior_judgment'] as const;
+export const RUBRIC_DIMENSIONS = ['communication', 'problem_solving', 'code', 'testing', 'complexity', 'senior_judgment'] as const;
 export type RubricDimension = (typeof RUBRIC_DIMENSIONS)[number];
 
 export const RUBRIC_LABELS: Record<RubricDimension, string> = {
@@ -24,6 +25,7 @@ export const RUBRIC_LABELS: Record<RubricDimension, string> = {
   problem_solving: 'Resolución',
   code: 'Código que corre',
   testing: 'Testing',
+  complexity: 'Complejidad (Big-O)',
   senior_judgment: 'Criterio senior',
 };
 
@@ -96,6 +98,14 @@ export interface ReportTranscriptLine {
 
 const NEXT_MAX = 3;
 
+/** The complexity to judge against: the lesson's check when it has one, else the solution's headline. */
+function complexityReference(problem: CodingProblem): string {
+  const c = problem.complexity;
+  if (!c) return `${problem.solution.time} time, ${problem.solution.space} space`;
+  const brute = c.brute ? `; brute force ${c.brute.time.answer} time, ${c.brute.space} space` : '';
+  return `${c.time.answer} time, ${c.space.answer} space${brute}. A precise spoken answer: "${c.say.replace(/\s+\/\s+/g, ' ')}"`;
+}
+
 export function buildCodingReportMessages(params: {
   problem: CodingProblem;
   interviewerName: string;
@@ -109,19 +119,20 @@ export function buildCodingReportMessages(params: {
 
   const system = `You write the scorecard of a mock live-coding interview that a Spanish-speaking developer just did in English, in TypeScript, to prepare a real 30-minute LeetCode-style round at SENIOR level. You are the engineer who ran it: demanding, specific and fair. An error you leave out is an error they repeat on the real call.
 
-Score each of five dimensions from 1 to 4 (1 strong no, 2 lean no, 3 lean yes, 4 strong yes), at senior bar:
+Score each of six dimensions from 1 to 4 (1 strong no, 2 lean no, 3 lean yes, 4 strong yes), at senior bar:
 - communication: restates the problem, clarifies and states assumptions, thinks aloud, narrates decisions not keystrokes, uses hints well, never long silences.
 - problem_solving: gets to a brute force fast with its Big-O, then optimizes with a stated trade-off; reasons from examples when stuck.
 - code: correct, readable, clear names and structure, runs. Judge correctness on the FINAL TESTS fact, not on impressions.
 - testing: walks through an example and edge cases WITHOUT being asked, finds and fixes their own bugs.
-- senior_judgment: exact time AND space complexity, trade-offs, scale/memory/input-validation/production follow-ups answered with substance.
+- complexity: the time AND space Big-O of their FINAL code, both correct, each with its reason (which loop, sort or structure dominates), saying what n is when it is not obvious; the brute force's cost and why the optimization beats it; probes ("why log n?", "can you do better on space?", "average or worst case?") answered with substance. 4: both exact with reasons, unprompted or at the first ask. 3: correct but needed a probe for the reason or for space. 2: vague ("it's fast", "linear-ish"), only one of the two, or a wrong one corrected after probing. 1: never stated, or wrong and left wrong (e.g. O(1) space with a map the size of the input). Compare against the REFERENCE COMPLEXITY below.
+- senior_judgment: trade-offs, scale/memory/input-validation/production follow-ups answered with substance.
 The transcript is speech recognition: ignore noise in ordinary words. Hints the interviewer gave lower problem_solving according to how big they were.
 
 Return JSON only:
 {
  "summary": "2 or 3 sentences in rioplatense Spanish (vos), no em dash: how it went at senior bar and the one thing to fix first",
  "verdict": "strong_yes | yes | lean_yes | lean_no | no (would this pass a senior bar?)",
- "rubric": [{"dimension": "communication|problem_solving|code|testing|senior_judgment", "score": 1-4, "note": "one line in Spanish: why", "evidence": [{"quote": "words the candidate actually said, or a short code excerpt", "note": "what it shows, in Spanish"}]}],
+ "rubric": [{"dimension": "communication|problem_solving|code|testing|complexity|senior_judgment", "score": 1-4, "note": "one line in Spanish: why", "evidence": [{"quote": "words the candidate actually said, or a short code excerpt", "note": "what it shows, in Spanish"}]}],
  "moments": [{"quote": "what was said or done, quoted", "what": "what happened, one line in Spanish", "better": "how it should have sounded on the call, in English, one or two spoken sentences"}],
  "engineer_notes": ["what the engineer writes in their notes, short, English, like a real scorecard"],
  "clarifications": {"asked": ["the clarifying questions they asked"], "missed": ["important questions they did not ask"]},
@@ -129,7 +140,7 @@ Return JSON only:
  "next": [{"drill": "a drill slug from the list (optional)", "problem": "a problem id from the list (optional)", "what": "what to drill, Spanish", "why": "one line in Spanish"}]
 }
 Rules:
-- "rubric": exactly five entries, one per dimension, in the order above. Never inflate: a 4 needs evidence.
+- "rubric": exactly six entries, one per dimension, in the order above. Never inflate: a 4 needs evidence. For complexity, quote what they said about time and space, and in the note say the right answer if theirs was wrong or incomplete.
 - "moments": 3 to 6, the ones that moved the score most, good and bad, in order of the call.
 - "language": the 2 to 4 English errors that matter most; quote only words they actually said; empty if none.
 - "next": exactly ${NEXT_MAX} items, each with a drill slug or a problem id from the lists below (never invented), targeting the biggest gaps.`;
@@ -137,6 +148,7 @@ Rules:
   const user = `PROBLEM: ${problem.title} (${problem.difficulty}, ${problem.pattern})
 Statement: ${problem.statement}
 Reference approach: ${problem.solution.approach} (${problem.solution.time} time, ${problem.solution.space} space)
+REFERENCE COMPLEXITY: ${complexityReference(problem)}
 Senior signals to look for: ${problem.senior_signals.join('; ')}
 Common pitfalls: ${problem.pitfalls.join('; ')}
 Hint ladder (the interviewer gave ${facts.hintsGiven}): ${problem.hints.map((h, i) => `${i + 1}. ${h}`).join(' ')}

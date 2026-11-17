@@ -2,18 +2,22 @@
 
 /**
  * Under a reading section, after "Decilo en inglés": the section's problem
- * written in code, guided first and then blank. One exercise open at a time.
+ * written in code, guided first and then blank, one exercise open at a time;
+ * or, in the Big-O section, the "say the Big-O" drill.
  */
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useCoding } from './coding-context';
 import { CodeExercise } from './code-exercise';
+import { ComplexityDrillView } from './complexity-drill';
 
 export function SectionExercises({ conceptId }: { conceptId: string }) {
   const coding = useCoding();
   const [open, setOpen] = useState<string | null>(null);
   if (!coding) return null;
+  const bigO = coding.config.complexity_drill;
+  if (bigO && bigO.concept === conceptId) return <ComplexityDrillView resourceId={coding.resourceId} drill={bigO} />;
   const problems = coding.config.problems.filter((p) => p.concept === conceptId && p.exercises.length > 0);
   if (!problems.length) return null;
   const exercises = problems.flatMap((p) => p.exercises.map((e) => ({ problem: p, exercise: e })));

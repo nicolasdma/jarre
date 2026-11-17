@@ -1,7 +1,8 @@
 /**
  * What the coding practice keeps in this browser (localStorage): the draft of
  * each exercise, which exercises passed every test, and the mock attempts
- * (transcript, final code, facts and report). Every read and write is guarded:
+ * (transcript, final code, facts and report), and the complexity checks
+ * answered. Every read and write is guarded:
  * private windows and full storage just mean nothing is remembered.
  */
 
@@ -74,4 +75,21 @@ export function saveAttempt(resourceId: string, attempt: MockAttempt): MockAttem
   const next = [attempt, ...others].slice(0, ATTEMPTS_MAX);
   write(key('attempts', resourceId), next);
   return next;
+}
+
+/** A complexity check answered: what was picked and whether each part was right. */
+export interface ComplexityResult {
+  picked: { time?: string; space?: string; brute?: string };
+  right: { time: boolean; space: boolean; brute?: boolean };
+  at: string;
+}
+
+export function loadComplexity(resourceId: string): Record<string, ComplexityResult> {
+  return read<Record<string, ComplexityResult>>(key('complexity', resourceId), {});
+}
+
+export function saveComplexity(resourceId: string, checkId: string, result: ComplexityResult): Record<string, ComplexityResult> {
+  const all = { ...loadComplexity(resourceId), [checkId]: result };
+  write(key('complexity', resourceId), all);
+  return all;
 }

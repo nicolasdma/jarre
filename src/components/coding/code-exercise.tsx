@@ -4,8 +4,9 @@
  * One code exercise inside a reading section: the problem, the editor with
  * the exercise's starter, Run (the file and its console.log) and Test (the
  * example and hidden tests), all in a sandboxed Web Worker. The draft is
- * kept in the browser; passing every test marks the exercise done. The
- * reference solution opens after a first test run.
+ * kept in the browser; passing every test marks the exercise done and opens
+ * the complexity step (time and space, said or picked; complexity-check.tsx).
+ * The reference solution opens after a first test run.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -18,6 +19,7 @@ import { CodeEditor } from './code-editor';
 import { RunOutput, summarizeRun } from './run-output';
 import { ProblemStatement } from './problem-statement';
 import { clearDraft, loadDraft, saveDraft } from './coding-store';
+import { ComplexityCheck } from './complexity-check';
 
 interface CodeExerciseProps {
   resourceId: string;
@@ -36,6 +38,7 @@ export function CodeExercise({ resourceId, problem, exercise, solved, onSolved }
   const [running, setRunning] = useState(false);
   const [tested, setTested] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+  const [passed, setPassed] = useState(false);
 
   useEffect(() => {
     const draft = loadDraft(resourceId, exercise.id);
@@ -61,8 +64,10 @@ export function CodeExercise({ resourceId, problem, exercise, solved, onSolved }
       setRunning(false);
       if (withTests) {
         setTested(true);
-        const { passed, total } = summarizeRun(r);
-        if (r.ok && total > 0 && passed === total && !solved) onSolved();
+        const summary = summarizeRun(r);
+        const allPass = r.ok && summary.total > 0 && summary.passed === summary.total;
+        setPassed(allPass);
+        if (allPass && !solved) onSolved();
       }
     },
     [code, allTests, problem.exports, solved, onSolved],
@@ -130,6 +135,10 @@ export function CodeExercise({ resourceId, problem, exercise, solved, onSolved }
       </div>
 
       <RunOutput result={result} running={running} label={label} />
+
+      {problem.complexity && (passed || solved) && (
+        <ComplexityCheck resourceId={resourceId} checkId={exercise.id} check={problem.complexity} />
+      )}
 
       {showSolution && <SolutionPanel problem={problem} />}
     </div>
