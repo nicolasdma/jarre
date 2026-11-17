@@ -555,9 +555,17 @@ function LearnFlowInner({
     }),
     [resourceTitle, sections, practiceData],
   );
+  // A presentation lesson (interview `mode: 'presentation'`) rehearses a talk, not a call.
+  const isPresentation = (practiceData?.interviewConfig as { mode?: unknown } | null | undefined)?.mode === 'presentation';
   const stepLabels = useMemo(
-    () => (hasPractice ? { apply: t('learn.step.drills', language) } : undefined),
-    [hasPractice, language],
+    () =>
+      hasPractice
+        ? {
+            apply: t('learn.step.drills', language),
+            ...(isPresentation ? { interview: language === 'es' ? 'Simulacro' : 'Rehearsal' } : {}),
+          }
+        : undefined,
+    [hasPractice, language, isPresentation],
   );
   const stepNotes = practiceProgress ? { apply: `${practiceProgress.done}/${practiceProgress.total}` } : undefined;
 
@@ -912,15 +920,21 @@ function LearnFlowInner({
                   {language === 'es' ? 'Último paso' : 'Last step'}
                 </p>
                 <p className="mx-auto mb-6 max-w-md text-sm text-j-text-secondary">
-                  {language === 'es'
-                    ? 'Un simulacro de la llamada, en inglés: preguntas que no preparaste, repreguntas sobre lo que digas y un reporte con lo que tenés que practicar.'
-                    : 'A mock of the call, in English: questions you did not prepare, follow-ups on what you say, and a report of what to practice.'}
+                  {isPresentation
+                    ? language === 'es'
+                      ? 'Un simulacro de la presentación, en inglés: la presentas completa, después te hacen preguntas sobre el tema, y al final un reporte con lo que debes practicar.'
+                      : 'A rehearsal of the talk, in English: you give it whole, then you get questions on the topic, and a report of what to practice.'
+                    : language === 'es'
+                      ? 'Un simulacro de la llamada, en inglés: preguntas que no preparaste, repreguntas sobre lo que digas y un reporte con lo que tenés que practicar.'
+                      : 'A mock of the call, in English: questions you did not prepare, follow-ups on what you say, and a report of what to practice.'}
                 </p>
                 <button
                   onClick={() => changeStep('interview')}
                   className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent transition-colors hover:bg-j-accent-hover"
                 >
-                  {language === 'es' ? 'Simulacro de entrevista' : 'Mock interview'} →
+                  {isPresentation
+                    ? language === 'es' ? 'Simulacro de la presentación' : 'Rehearse the talk'
+                    : language === 'es' ? 'Simulacro de entrevista' : 'Mock interview'} →
                 </button>
               </div>
             )}

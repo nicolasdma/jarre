@@ -73,3 +73,15 @@ describe('interview report', () => {
     expect(hasAnswers([{ role: 'user', text: 'I start with the schema' }])).toBe(true);
   });
 });
+
+describe('presentation report', () => {
+  it('judges the talk as the first entry and writes the summary in neutral Spanish', () => {
+    const setup = resolveInterviewSetup({ ...config, mode: 'presentation' });
+    const { system } = buildInterviewReportMessages({ setup, drills, sections: [], transcript: [{ role: 'user', text: 'Data integrity means the data can be trusted.' }] });
+    expect(system).toContain('rehearsal of a short work presentation');
+    expect(system).toContain('neutral Latin American Spanish (tú, never vos)');
+    expect(system).not.toContain('rioplatense');
+    const interview = buildInterviewReportMessages({ setup: resolveInterviewSetup(config), drills, sections: [], transcript: [] });
+    expect(interview.system).toContain('rioplatense Spanish (vos)');
+  });
+});

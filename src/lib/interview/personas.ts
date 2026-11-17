@@ -69,6 +69,15 @@ export const InterviewQuestionSchema = z.object({
 });
 
 export const InterviewConfigSchema = z.object({
+  /**
+   * What the mock rehearses. `interview` (default): a job or client call.
+   * `presentation`: the learner gives a short talk first, then the audience
+   * asks a few questions about it (owner, 2026-11-17: a 5-minute talk with 2
+   * slides to defend at work). A presentation uses only the lesson's own
+   * personas and curveballs: the defaults are freelance-call people and
+   * questions (price, Upwork, NDA) that make no sense after a talk.
+   */
+  mode: z.enum(['interview', 'presentation']).default('interview'),
   /** The situation the mock rehearses (English): the company, the role, the call. */
   context: z.string().min(1).optional(),
   /** Persona selected by default. */
@@ -95,6 +104,7 @@ export type InterviewConfig = z.infer<typeof InterviewConfigSchema>;
 export type InterviewDepth = 1 | 2 | 3;
 
 export interface InterviewSetup {
+  mode: InterviewConfig['mode'];
   context: string | null;
   persona: InterviewPersona;
   depth: InterviewDepth;
@@ -342,12 +352,16 @@ function isDepth(value: unknown): value is InterviewDepth {
 /** The lesson's interview block, validated. Anything invalid falls back to defaults. */
 export function parseInterviewConfig(raw: unknown): InterviewConfig {
   const parsed = InterviewConfigSchema.safeParse(raw ?? {});
-  return parsed.success ? parsed.data : { personas: [], key_terms: [], questions: [] };
+  return parsed.success ? parsed.data : { mode: 'interview', personas: [], key_terms: [], questions: [] };
 }
 
-/** Lesson personas first (overriding a default with the same id), then the defaults. */
+/**
+ * Lesson personas first (overriding a default with the same id), then the
+ * defaults. A presentation with its own personas uses only those.
+ */
 export function interviewPersonas(config: InterviewConfig): InterviewPersona[] {
   const own = config.personas;
+  if (config.mode === 'presentation' && own.length > 0) return own;
   const ownIds = new Set(own.map((p) => p.id));
   return [...own, ...DEFAULT_INTERVIEW_PERSONAS.filter((p) => !ownIds.has(p.id))];
 }
@@ -365,14 +379,17 @@ export function resolveInterviewSetup(
   const depth: InterviewDepth = isDepth(choice.depth) ? choice.depth : 2;
   const ownCurveballs = config.questions.filter((q) => q.kind === 'curveball');
   const ownIds = new Set(ownCurveballs.map((q) => q.id));
+  const presentation = config.mode === 'presentation';
+  const curveballs = presentation ? ownCurveballs : [...ownCurveballs, ...DEFAULT_CURVEBALLS.filter((q) => !ownIds.has(q.id))];
   return {
+    mode: config.mode,
     context: config.context ?? null,
     persona,
     depth,
     personas,
     questions: config.questions.filter((q) => q.kind !== 'curveball'),
-    curveballs: [...ownCurveballs, ...DEFAULT_CURVEBALLS.filter((q) => !ownIds.has(q.id))],
+    curveballs,
     keyTerms: config.key_terms.map(keyTermName),
-    curveballCount: curveballCountFor(depth, persona),
+    curveballCount: Math.min(curveballCountFor(depth, persona), presentation ? curveballs.length : Infinity),
   };
 }

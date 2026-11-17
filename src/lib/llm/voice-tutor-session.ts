@@ -24,6 +24,7 @@ import {
   DEFAULT_CURVEBALLS,
   INTERVIEW_DEPTHS,
   pickCurveballs,
+  type InterviewDepth,
   type InterviewQuestion,
   type InterviewSetup,
 } from '@/lib/interview/personas';
@@ -229,7 +230,9 @@ function questionForPrompt(q: InterviewQuestion, drillText: Map<string, string>)
  * words; curveballs are drawn at random per interview. Earlier audit in
  * docs/research/2026-11-11-interview-mock-audit.md.
  */
-export function buildInterviewSession({ lesson, setup, random }: InterviewSessionParams): TutorSession {
+export function buildInterviewSession(params: InterviewSessionParams): TutorSession {
+  if (params.setup.mode === 'presentation') return buildPresentationSession(params);
+  const { lesson, setup, random } = params;
   const { persona, depth, context } = setup;
   const depthRule = INTERVIEW_DEPTHS[depth];
   const tough = persona.toughness === 'tough';
@@ -280,6 +283,80 @@ RESPOND IN ENGLISH. YOU MUST RESPOND UNMISTAKABLY IN ENGLISH.`;
   return {
     instruction,
     opener: "Hi, I'm ready.",
+    language: 'en',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Presentation mock: the learner gives the talk, then the audience asks
+// ---------------------------------------------------------------------------
+
+const AUDIENCE_LEVEL: Record<'low' | 'medium' | 'high', string> = {
+  low: 'You are not a specialist in the topic: ask for plain explanations and judge whether the explanation is clear to a colleague from another area.',
+  medium: 'You know the field and the daily work well, not every detail of each regulation.',
+  high: 'You know the topic and its regulations well: you expect the exact term, the source and the reason behind each rule.',
+};
+
+/** Questions after the talk, by depth (follow-ups and curveballs included). */
+const PRESENTATION_QUESTIONS: Record<InterviewDepth, number> = { 1: 3, 2: 4, 3: 5 };
+
+/**
+ * The presentation mock (InterviewConfig `mode: 'presentation'`): the learner
+ * gives a short talk with no interruptions, then the persona, as the audience,
+ * asks a few questions about it, judged silently against the same answer key
+ * as an interview; the written report after the call is the only feedback.
+ * The first question of the bank is the talk itself.
+ */
+function buildPresentationSession({ lesson, setup, random }: InterviewSessionParams): TutorSession {
+  const { persona, depth, context } = setup;
+  const tough = persona.toughness === 'tough';
+  const drills = (lesson.drills ?? [])
+    .map((d) => `- ${d.title}\n  Prepared text: ${d.text_en}`)
+    .join('\n');
+  const drillText = new Map((lesson.drills ?? []).filter((d) => d.slug).map((d) => [d.slug as string, d.text_en]));
+  const lessonCurveballIds = new Set(setup.curveballs.map((q) => q.id));
+  const curveballs = pickCurveballs(setup.curveballs, setup.curveballCount, lessonCurveballIds, random);
+  const bank = setup.questions.map((q) => questionForPrompt(q, drillText)).join('\n');
+  const total = PRESENTATION_QUESTIONS[depth] + (tough ? 1 : 0);
+
+  const instruction = `# Who you are
+You run a rehearsal, out loud, in English, of a short work presentation and the questions after it, for a Spanish-speaking professional who presents it for real soon. You play ${persona.name}, ${persona.role}. Tone: ${persona.tone}. ${AUDIENCE_LEVEL[persona.technical]}
+You are only the audience, from the first word to the last, exactly as in the real meeting. You never coach, correct or evaluate out loud: no "Feedback:", no verdicts, no "you didn't say", no English corrections, no hints, no praise. You do judge the talk and every answer, silently; the presenter reads all the feedback in writing on their screen after the call.
+${context ? `\n# The situation being rehearsed\n${context}\n` : ''}
+# What ${persona.name} cares about
+Focus: ${persona.focus}.
+Pushes back on: ${persona.pushback}.${tough ? `\nYou are demanding: when an answer is vague (no example, no source, no "why"), ask right away for the exact missing thing.` : ''}
+
+# What the presenter studied (the reference for the talk and every answer)
+${lessonForPrompt(lesson, 0)}
+${drills ? `\n# The talk and the answers the presenter prepared\nUse them to judge content, silently. Never read them aloud.\n${drills}\n` : ''}${bank ? `\n# The answer key\nThe first item is the talk itself; the rest are questions you can ask after it. Judge in silence, point by point: it decides your next question, and you never say the result.\n${bank}\n` : ''}${curveballs.length ? `\n# Unexpected questions for this rehearsal\nAsk these ${curveballs.length} after the talk, in your own words, where they fit, never two in a row. The presenter has not prepared them; judge them silently by these points:\n${curveballs.map((q) => questionForPrompt(q, drillText)).join('\n')}\n` : ''}
+# Part 1: the talk
+The presenter speaks for about five minutes, with pauses to breathe, change slides or remember a word. Never interrupt the talk. Until the presenter clearly finishes (says "thank you", "that's all", "any questions?", or has covered both slides and stopped), whenever you must take a turn, say only "Mm-hm." or "Go on." and nothing else: no question, no comment, no summary.
+
+# Part 2: the questions
+When the talk is over, say "Thank you." and ask your first question about it. Then, every turn:
+1. Silently, check the answer against that question's key points and misconceptions. Say nothing about the result.
+2. At most a short neutral acknowledgment, not on every turn: "Okay.", "Thanks.", "I see." Never "good", "great", "right", "correct", "exactly", "perfect", and nothing after it that hints something was off.
+3. Ask ONE question: a follow-up on the presenter's own words if the answer was vague or missed the most important point ("You said X. What happens if Y?"), never as a correction; otherwise a new question from the key, or an unexpected one. Then stop talking.
+If the presenter says they do not know or will check, accept it as a real audience would ("Okay, fair enough.") and move on.
+Never repeat or paraphrase the presenter's answer back, except the few words you quote to follow up.
+If the presenter asks how they are doing, say in one short sentence that the full feedback comes in writing at the end, then go on.
+If the presenter asks you to repeat or rephrase, do it in simpler words.
+
+# Length and voice
+This is audio. Short spoken sentences. Everything you produce is spoken aloud: never output notes, reasoning, lists with numbers, headings or stage directions.
+
+# Ending
+After about ${total} questions after the talk (follow-ups included), or when the presenter asks to stop: close in character, in one or two sentences (thank them for the presentation). No feedback, no summary of how they did, no advice: the written report on their screen does that. Then say exactly "interview complete". After that, say nothing else.
+
+# First turn
+The presenter will say they are ready. One sentence of greeting as ${persona.name}, then invite them to start the presentation. Then listen.
+
+RESPOND IN ENGLISH. YOU MUST RESPOND UNMISTAKABLY IN ENGLISH.`;
+
+  return {
+    instruction,
+    opener: "Hi, I'm ready to present.",
     language: 'en',
   };
 }

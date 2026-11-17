@@ -142,3 +142,44 @@ describe('learning session: who ends it, and Spanish then English', () => {
     expect(instruction).not.toContain('Spanish first, then English');
   });
 });
+
+describe('presentation session (interview mode "presentation")', () => {
+  const talk = {
+    mode: 'presentation',
+    context: 'A 5-minute talk with 2 slides at a CRO team meeting.',
+    personas: [
+      { id: 'manager', name: 'Laura', label: 'Tu jefa', blurb: 'b', role: 'the clinical operations manager', tone: 'calm', focus: 'f', pushback: 'p', technical: 'high', toughness: 'standard' },
+    ],
+    questions: [
+      { id: 'talk', kind: 'core', ask: 'Please go ahead with your presentation.', tests: 'talk', key_points: ['defines data integrity', 'the nine ALCOA+ attributes'] },
+      { id: 'cb-alcoa-plus-plus', kind: 'curveball', ask: 'What is ALCOA++?', tests: 'alcoa', key_points: ['adds Traceable'] },
+    ],
+  };
+
+  it('uses only the lesson personas and curveballs: no freelance-call defaults', () => {
+    const setup = resolveInterviewSetup(talk, { depth: 3 });
+    expect(setup.mode).toBe('presentation');
+    expect(setup.personas.map((p) => p.id)).toEqual(['manager']);
+    expect(setup.curveballs.map((q) => q.id)).toEqual(['cb-alcoa-plus-plus']);
+    expect(setup.curveballCount).toBe(1);
+  });
+
+  it('lets the presenter give the whole talk first, then asks a few questions without feedback', () => {
+    const { instruction, opener, language } = buildInterviewSession({ lesson, setup: resolveInterviewSetup(talk, { depth: 1 }), random: () => 0 });
+    expect(language).toBe('en');
+    expect(opener).toMatch(/present/);
+    expect(instruction).toContain('You play Laura, the clinical operations manager');
+    expect(instruction).toContain('Never interrupt the talk');
+    expect(instruction).toContain('After about 3 questions after the talk');
+    expect(instruction).toContain('What is ALCOA++?');
+    expect(instruction).toContain('You never coach, correct or evaluate out loud');
+    expect(instruction).toContain('interview complete');
+    expect(instruction).not.toMatch(/Upwork|job interview|developer/);
+  });
+
+  it('keeps the interview mock unchanged without the mode', () => {
+    const setup = resolveInterviewSetup(null);
+    expect(setup.mode).toBe('interview');
+    expect(buildInterviewSession({ lesson, setup }).instruction).toContain('mock job interview');
+  });
+});

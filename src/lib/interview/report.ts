@@ -82,11 +82,15 @@ export function buildInterviewReportMessages(params: {
 }): { system: string; user: string } {
   const { setup, drills, sections, transcript } = params;
   const interviewer = setup.persona.name;
-  const system = `You write the report of a mock job interview that a Spanish-speaking developer just did in English, to prepare a real call. You are demanding and precise: an error you leave out is an error they repeat on the real call. Judge every answer against the answer key and the lesson. The transcript is speech recognition: ignore recognition noise in ordinary words, but when a KEY name or term came out unrecognizable (e.g. "Body of Guardians" for Valley of Guardians, "role low security" for row-level security) report it under "terms".
+  const presentation = setup.mode === 'presentation';
+  // A presentation is rehearsed by someone who is not the owner (owner, 2026-11-17: a Colombian
+  // clinical trial assistant), so its summary is in neutral Spanish, not rioplatense.
+  const spanish = presentation ? 'neutral Latin American Spanish (tú, never vos)' : 'rioplatense Spanish (vos)';
+  const system = `You write the report of ${presentation ? 'a rehearsal of a short work presentation and the questions after it, which a Spanish-speaking professional just did in English, to prepare the real one. The first entry of "questions" is the talk itself, judged against the first item of the answer key' : 'a mock job interview that a Spanish-speaking developer just did in English, to prepare a real call'}. You are demanding and precise: an error you leave out is an error they repeat on the real call. Judge every answer against the answer key and the lesson. The transcript is speech recognition: ignore recognition noise in ordinary words, but when a KEY name or term came out unrecognizable (e.g. "Body of Guardians" for Valley of Guardians, "role low security" for row-level security) report it under "terms".
 
 Return JSON only:
 {
- "summary": "2 or 3 sentences in rioplatense Spanish (vos), no em dash: how it went and the one thing to fix first",
+ "summary": "2 or 3 sentences in ${spanish}, no em dash: how it went and the one thing to fix first",
  "questions": [{"question": "the interviewer's question, short, in English", "score": 0-3, "good": "one line in Spanish: the specific thing that was right (empty if nothing was)", "missing": ["key points of the answer key left out, short, English"], "better": "how to say it better: the answer as it should sound on the call, in English, one or two short spoken sentences with the missing key points and the right mechanism"}],
  "misconceptions": [{"said": "what the candidate claimed, quoted or close", "right": "the correct mechanism, one sentence, English"}],
  "must_know": [{"topic": "e.g. the six milestones", "missing": ["each item of the canonical answer they did not say"]}],
