@@ -23,9 +23,10 @@ import {
   type ConceptForSession,
 } from '@/lib/llm/voice-unified-prompt';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
-import { buildInterviewSession, type TutorLesson } from '@/lib/llm/voice-tutor-session';
+import { buildInterviewSession, type TutorLesson, type TutorSession } from '@/lib/llm/voice-tutor-session';
 import type { InterviewSetup } from '@/lib/interview/personas';
 import { TUTOR_TOOLS } from '@/lib/voice/tool-declarations';
+import type { TurnTaking } from '@/lib/voice/live-models';
 import { handleToolCall, type ToolDispatch } from '@/lib/voice/tool-handler';
 import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
@@ -154,8 +155,13 @@ export interface UseUnifiedVoiceSessionParams {
   /** Learning: every section of the resource, so the tutor knows the whole lesson. */
   lessonSections?: { title: string; content: string }[];
 
-  // Interview mock: the lesson it rehearses and who interviews, how deep
-  interview?: { lesson: TutorLesson; setup: InterviewSetup };
+  // Interview mock: the lesson it rehearses and who interviews, how deep;
+  // or a session already built (the coding mock, src/lib/coding/mock-session.ts).
+  interview?: { lesson: TutorLesson; setup: InterviewSetup } | { session: TutorSession };
+  /** After a dropped connection is restored. */
+  onReconnected?: () => void;
+  /** How long a pause ends the learner's turn; default by mode (`patient` for the interview). */
+  turnTaking?: TurnTaking;
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -183,6 +189,8 @@ export interface UnifiedVoiceSession {
   stream: MediaStream | null;
   /** AnalyserNode for tutor playback audio frequency data */
   playbackAnalyser: AnalyserNode | null;
+  /** Text into the live conversation (context, or `respond` to make the model speak now). */
+  sendText: (text: string, options?: { respond?: boolean }) => void;
 
   start: () => Promise<void>;
   stop: () => void;
@@ -281,6 +289,8 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     onToolAction,
     onSessionComplete,
     onExplorationComplete,
+    onReconnected,
+    turnTaking,
   } = params;
 
   const [state, setState] = useState<UnifiedSessionState>('idle');
@@ -565,8 +575,9 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     onToolCall: handleGeminiToolCall,
     lessonTitle: resourceTitle,
     lessonSections,
-    turnTaking: mode === 'interview' ? 'patient' : 'default',
+    turnTaking: turnTaking ?? (mode === 'interview' ? 'patient' : 'default'),
     endPolicy: mode === 'interview' ? 'interview' : mode === 'learning' ? 'learning' : 'default',
+    onReconnected,
   });
 
   // Keep sendToolResponse ref in sync
@@ -719,7 +730,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
       }
       case 'interview': {
         if (!interview) throw new Error('interview setup required for interview mode');
-        const session = buildInterviewSession(interview);
+        const session = 'session' in interview ? interview.session : buildInterviewSession(interview);
         return { instruction: session.instruction, initialMsg: session.opener, conceptIds: [] };
       }
     }
@@ -835,6 +846,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     transcript: voiceSession.transcript,
     stream: voiceSession.stream,
     playbackAnalyser: voiceSession.playbackAnalyser,
+    sendText: voiceSession.sendText,
     start,
     stop,
     retryPostProcess,

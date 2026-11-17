@@ -406,12 +406,16 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       }
     },
 
-    /** Send a text message to prompt the model to speak (e.g., greeting) */
-    sendText(text: string) {
+    /**
+     * Send text into the conversation. `turnComplete` (default) asks the model
+     * to respond now (a greeting, an opener); false only adds context it reads
+     * on its next turn (the coding mock's editor snapshots).
+     */
+    sendText(text: string, turnComplete = true) {
       if (!session || state !== 'connected') return;
 
       try {
-        session.sendClientContent({ turns: text });
+        session.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete });
       } catch (err) {
         log.error('Failed to send text:', err);
       }

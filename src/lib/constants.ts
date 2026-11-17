@@ -157,6 +157,8 @@ export const TOKEN_BUDGETS = {
   EXPLORATION_SUMMARY: 2000,
   /** Per question: what was right, what was missing and how to say it better, up to 13 questions. */
   INTERVIEW_REPORT: 5000,
+  /** Coding mock scorecard: five dimensions with quotes, moments, notes, next drills. */
+  CODING_REPORT: 4500,
   RECALL_EVAL: 400,
   INSIGHTS: 1000,
   EVAL_GENERATE: 2000,

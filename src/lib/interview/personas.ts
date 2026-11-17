@@ -18,6 +18,7 @@
 
 import { z } from 'zod';
 import { KeyTermEntrySchema, keyTermName } from '../practice/key-terms';
+import { CodingConfigSchema } from '../coding/format';
 
 export const InterviewPersonaSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
@@ -81,6 +82,11 @@ export const InterviewConfigSchema = z.object({
   key_terms: z.array(KeyTermEntrySchema).default([]),
   /** The lesson's question bank; a curveball with a default's id overrides it. */
   questions: z.array(InterviewQuestionSchema).default([]),
+  /**
+   * The live-coding round: problems with tests, their code exercises and the
+   * timed mock with the AI interviewer (src/lib/coding/format.ts).
+   */
+  coding: CodingConfigSchema.optional(),
 });
 
 export type InterviewPersona = z.infer<typeof InterviewPersonaSchema>;

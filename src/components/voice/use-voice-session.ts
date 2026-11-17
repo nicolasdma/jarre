@@ -63,6 +63,8 @@ interface UseVoiceSessionParams {
   endPolicy?: SessionEndPolicy;
   /** Learning: work each idea in Spanish, then have the learner say it in English. */
   bilingual?: boolean;
+  /** After a dropped connection is restored (the coding mock re-sends what the model must see). */
+  onReconnected?: () => void;
 }
 
 
@@ -99,6 +101,11 @@ interface VoiceSession {
   sendToolResponse: (responses: FunctionResponse[]) => void;
   /** AnalyserNode for tutor playback audio frequency data */
   playbackAnalyser: AnalyserNode | null;
+  /**
+   * Text into the live conversation: `respond` asks the model to speak now,
+   * otherwise it is context for its next turn. No-op when not connected.
+   */
+  sendText: (text: string, options?: { respond?: boolean }) => void;
 }
 
 // ============================================================================
@@ -135,6 +142,7 @@ export function useVoiceSession({
   turnTaking = 'default',
   endPolicy = 'default',
   bilingual = false,
+  onReconnected,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -195,6 +203,9 @@ export function useVoiceSession({
   // Track params in ref so callbacks don't go stale
   const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual });
   paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual };
+
+  const onReconnectedRef = useRef(onReconnected);
+  onReconnectedRef.current = onReconnected;
 
   // Stable ref for onSessionComplete to avoid stale closures
   const onSessionCompleteRef = useRef(onSessionComplete);
@@ -898,6 +909,7 @@ export function useVoiceSession({
               await c.reconnect(freshToken, handle);
               c.resetRetryCount();
               log.info('[Reconnect] Proactive GoAway succeeded (session resumed)');
+              onReconnectedRef.current?.();
               logTransition('listening', 'goaway_reconnect');
               setTutorState('listening');
             } catch (err) {
@@ -945,6 +957,7 @@ export function useVoiceSession({
                   await c.reconnect(freshToken, handle);
                   c.resetRetryCount();
                   log.info('[Reconnect] Layer 1 succeeded (session resumed with handle)');
+              onReconnectedRef.current?.();
                   logTransition('listening', 'layer1_reconnect');
                   setTutorState('listening');
                   return;
@@ -967,6 +980,7 @@ export function useVoiceSession({
                     c.sendText(fallbackContext);
                   }
                   log.info('[Reconnect] Layer 2 succeeded (context reconstructed from buffer)');
+              onReconnectedRef.current?.();
                   logTransition('listening', 'layer2_reconnect');
                   setTutorState('listening');
                   return;
@@ -981,6 +995,7 @@ export function useVoiceSession({
                 c.sendText(fallbackContext);
               }
               log.info('[Reconnect] Layer 2 succeeded (no handle, context from buffer)');
+              onReconnectedRef.current?.();
               logTransition('listening', 'layer2_reconnect');
               setTutorState('listening');
             } catch (err) {
@@ -1119,6 +1134,10 @@ export function useVoiceSession({
     clientRef.current?.sendToolResponse(responses);
   }, []);
 
+  const sendText = useCallback((text: string, options?: { respond?: boolean }) => {
+    clientRef.current?.sendText(text, options?.respond ?? false);
+  }, []);
+
   // ---- Cleanup on unmount ----
 
   useEffect(() => {
@@ -1179,5 +1198,6 @@ export function useVoiceSession({
     stream,
     sendToolResponse,
     playbackAnalyser: playbackAnalyserRef.current,
+    sendText,
   };
 }

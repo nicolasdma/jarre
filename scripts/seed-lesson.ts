@@ -43,6 +43,8 @@ import {
   type Lesson,
 } from '../src/lib/lessons/lesson-format';
 import { synthesizeDrillSpeech } from '../src/lib/llm/gemini-tts';
+import { verifyCodingConfig } from '../src/lib/coding/verify';
+import { runInThread } from './lib/coding-runner';
 
 loadEnv({ path: '.env' });
 loadEnv({ path: '.env.local', override: true });
@@ -163,6 +165,24 @@ async function main() {
       quizHeadings: c.quizzes.map((q) => resolveQuizHeading(q, headings)),
     };
   });
+
+  // Coding round: every reference solution passes its tests and every starter fails one, or nothing is written.
+  if (lesson.interview?.coding) {
+    const coding = lesson.interview.coding;
+    const drillIds = new Set(lesson.drills.map((d) => d.id));
+    const conceptIds = new Set(lesson.concepts.map((c) => c.id));
+    const badRefs = [
+      ...coding.phases.filter((p) => p.drill && !drillIds.has(p.drill)).map((p) => `phase ${p.id}: unknown drill ${p.drill}`),
+      ...coding.stuck_drills.filter((d) => !drillIds.has(d)).map((d) => `stuck_drills: unknown drill ${d}`),
+      ...coding.problems.filter((p) => p.concept && !conceptIds.has(p.concept)).map((p) => `problem ${p.id}: unknown concept ${p.concept}`),
+    ];
+    if (badRefs.length) throw new Error(`Coding round: ${badRefs.join('; ')}`);
+    const { ok, reports } = await verifyCodingConfig(coding, (req) => runInThread(req));
+    for (const r of reports) {
+      console.log(`  coding ${r.id}: solution ${r.solution.passed}/${r.solution.total}${r.problems.length ? ` · ${r.problems.join('; ')}` : ''}`);
+    }
+    if (!ok) throw new Error('Coding round failed verification (see above); nothing written.');
+  }
 
   // Audio plan.
   const audio = lesson.drills.map((d) => ({ drill: d, local: localAudioFor(lessonDir, d) }));

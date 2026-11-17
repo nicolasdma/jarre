@@ -4,6 +4,10 @@ import { useState, useMemo, useCallback, useEffect, memo, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { InterviewMode } from '@/components/practice/interview-mode';
+import { CodingProvider, useCoding } from '@/components/coding/coding-context';
+import { CodingMock } from '@/components/coding/coding-mock';
+import { SectionExercises } from '@/components/coding/section-exercises';
+import { parseCodingConfig } from '@/lib/coding/format';
 import {
   LessonPracticeProvider,
   PracticeNav,
@@ -53,7 +57,7 @@ interface Section {
   sortOrder: number;
 }
 
-type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview' | 'coding';
 
 const STEP_TO_TUTOR_MODE: Record<Step, VoiceMode> = {
   activate: 'freeform',
@@ -63,6 +67,7 @@ const STEP_TO_TUTOR_MODE: Record<Step, VoiceMode> = {
   evaluate: 'eval',
   // The interview runs its own voice session in the step itself.
   interview: 'freeform',
+  coding: 'freeform',
 };
 
 interface EvalConcept {
@@ -109,9 +114,11 @@ const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   apply: { key: 'learn.step.apply' },
   evaluate: { key: 'learn.step.evaluate' },
   interview: { key: 'learn.step.interview' },
+  coding: { key: 'learn.step.coding' },
 };
 
 const STEP_ORDER_WITH_INTERVIEW: Step[] = [...STEP_ORDER, 'interview'];
+const STEP_ORDER_WITH_CODING: Step[] = [...STEP_ORDER_WITH_INTERVIEW, 'coding'];
 
 // Question type labels/colors (duplicated from reading-questions to avoid circular dependency)
 const Q_TYPE_LABELS: Record<string, string> = {
@@ -165,7 +172,15 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
 }: ConceptSectionWrapperProps) {
   const handleComplete = useCallback(() => onComplete(index), [onComplete, index]);
   // Stable per concept, so the memoized section does not re-render on practice clicks.
-  const drills = useMemo(() => <SectionDrills conceptId={section.conceptId} />, [section.conceptId]);
+  const drills = useMemo(
+    () => (
+      <>
+        <SectionDrills conceptId={section.conceptId} />
+        <SectionExercises conceptId={section.conceptId} />
+      </>
+    ),
+    [section.conceptId],
+  );
   const handleActivate = useCallback(() => onActivate(index), [onActivate, index]);
   const handleStateChange = useCallback(
     (state: SectionState) => onStateChange(section.id, state),
@@ -319,7 +334,7 @@ function StickyHeader({
 /** Steps a deep link can open: `?step=interview`, `?step=practice&drill=<slug>&mode=<mode>`. */
 function stepFromParam(value: string | null): Step | null {
   if (value === 'practice' || value === 'drills') return 'apply';
-  return value === 'activate' || value === 'learn' || value === 'apply' || value === 'practice-eval' || value === 'evaluate' || value === 'interview'
+  return value === 'activate' || value === 'learn' || value === 'apply' || value === 'practice-eval' || value === 'evaluate' || value === 'interview' || value === 'coding'
     ? value
     : null;
 }
@@ -331,8 +346,20 @@ export function LearnFlow(props: LearnFlowProps) {
   const interviewConfig = props.practice?.interviewConfig;
   const keyTerms = useMemo(() => keyTermsFromInterview(interviewConfig), [interviewConfig]);
   const asks = useMemo(() => drillAsksFromInterview(interviewConfig), [interviewConfig]);
+  const coding = useMemo(() => parseCodingConfig(interviewConfig), [interviewConfig]);
+  const codingDrills = useMemo(
+    () => (props.practice?.drills ?? []).map((d) => ({ slug: d.slug, title: d.title, textEn: d.textEn })),
+    [props.practice],
+  );
   const flow = <LearnFlowInner {...props} linkedStep={linkedStep} />;
   if (!props.practice?.drills.length) return flow;
+  const withCoding = coding ? (
+    <CodingProvider resourceId={props.resourceId} config={coding} drills={codingDrills}>
+      {flow}
+    </CodingProvider>
+  ) : (
+    flow
+  );
   return (
     <LessonPracticeProvider
       resourceId={props.resourceId}
@@ -343,7 +370,7 @@ export function LearnFlow(props: LearnFlowProps) {
       initialSlug={params.get('drill')}
       initialMode={drillModeFromParam(linkedMode)}
     >
-      {flow}
+      {withCoding}
     </LessonPracticeProvider>
   );
 }
@@ -371,7 +398,8 @@ function LearnFlowInner({
   const practice = useLessonPractice();
   const practiceProgress = usePracticeProgress();
   const hasPractice = !!practice;
-  const steps = hasPractice ? STEP_ORDER_WITH_INTERVIEW : STEP_ORDER;
+  const hasCoding = !!useCoding();
+  const steps = hasPractice ? (hasCoding ? STEP_ORDER_WITH_CODING : STEP_ORDER_WITH_INTERVIEW) : STEP_ORDER;
   const [currentStep, setCurrentStep] = useState<Step>(() => {
     if (linkedStep && steps.includes(linkedStep)) return linkedStep;
     const saved = (initialProgress?.currentStep as Step) ?? 'activate';
@@ -638,6 +666,19 @@ function LearnFlowInner({
         </div>
       )}
 
+      {/* LIVE CODING — the timed mock with the voice interviewer; wide: editor, problem and guide side by side */}
+      {currentStep === 'coding' && hasCoding && (
+        <div className="lg:pl-[220px]">
+          <CodingMock
+            resourceTitle={resourceTitle}
+            onPracticeDrill={(slug) => {
+              practice?.select(slug, 'repeat');
+              changeStep('apply');
+            }}
+          />
+        </div>
+      )}
+
       {/* Step content — centered relative to full viewport (compensates for TOC + tutor sidebar) */}
       <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
         {/* STEP 3 with drills: PRACTICE — every answer of the call, every mode */}
@@ -656,6 +697,24 @@ function LearnFlowInner({
                 changeStep('apply');
               }}
             />
+            {hasCoding && (
+              <div className="mt-16 border-t border-j-border pt-12 text-center">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
+                  {language === 'es' ? 'Último paso' : 'Last step'}
+                </p>
+                <p className="mx-auto mb-6 max-w-md text-sm text-j-text-secondary">
+                  {language === 'es'
+                    ? 'La ronda entera: el entrevistador te presenta un problema, vos codeás y explicás, y al final el informe escrito.'
+                    : 'The whole round: the interviewer presents a problem, you code and explain, and a written scorecard at the end.'}
+                </p>
+                <button
+                  onClick={() => changeStep('coding')}
+                  className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent transition-colors hover:bg-j-accent-hover"
+                >
+                  {language === 'es' ? 'Simulacro de coding en vivo' : 'Live coding mock'} →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

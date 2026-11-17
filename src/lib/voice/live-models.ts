@@ -71,7 +71,7 @@ export function voiceLiveModelProfile(model: string): VoiceLiveModelProfile | nu
 // Turn taking
 // ---------------------------------------------------------------------------
 
-export type TurnTaking = 'default' | 'patient';
+export type TurnTaking = 'default' | 'patient' | 'thinking-aloud';
 
 /**
  * End-of-speech settings sent to the Live API (realtimeInputConfig). The API
@@ -88,5 +88,14 @@ export const TURN_TAKING: Record<TurnTaking, RealtimeInputConfig> = {
   },
   patient: {
     automaticActivityDetection: { endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW, silenceDurationMs: 1700 },
+  },
+  /**
+   * The coding mock: the candidate thinks aloud while typing, with pauses
+   * that are not the end of a turn. A longer window keeps the interviewer
+   * from answering every pause; a question still gets an answer ~2.5 s after
+   * it ends. Not measured with a probe yet: tune from the owner's sessions.
+   */
+  'thinking-aloud': {
+    automaticActivityDetection: { endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW, silenceDurationMs: 2500 },
   },
 };

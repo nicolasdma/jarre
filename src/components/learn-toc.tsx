@@ -2,7 +2,7 @@
 
 import { t, type Language } from '@/lib/translations';
 
-type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview';
+type Step = 'activate' | 'learn' | 'practice-eval' | 'apply' | 'evaluate' | 'interview' | 'coding';
 
 interface Section {
   sectionTitle: string;
@@ -38,6 +38,7 @@ const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
   'practice-eval': 'learn.step.practiceEval',
   evaluate: 'learn.step.evaluate',
   interview: 'learn.step.interview',
+  coding: 'learn.step.coding',
 };
 
 /**

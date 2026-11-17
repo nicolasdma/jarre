@@ -112,6 +112,40 @@ The practice page's **Entrevista** tab runs a voice mock interview in English on
 - The drills are the prepared answers; the sections are the reference for content.
 - Needs `supabase/migrations/20261111020000_resource_interview.sql` applied before seeding a lesson that has the block. Without the column the tab works with the defaults.
 
+## Coding round
+
+A lesson for a live-coding interview adds `interview.coding` (stored with the interview block in `resources.interview`, no migration). Schema: `src/lib/coding/format.ts`. It drives two things in the learn view:
+
+- **Escribilo en código**, under the reading section of each problem (`problem.concept`): its `exercises`, usually `guided` (the plan as comments, TODOs in the core) and then `blank` (the signature only). Editor (CodeMirror, no AI completion), **Probar** runs the example and hidden tests, **Correr** runs the file and shows its `console.log`. Drafts and solved exercises are kept in the browser.
+- **Coding en vivo**, the last step (`?step=coding`): a timed mock with a voice interviewer (Gemini Live, the interview mock's session) who presents a problem, answers clarifications from `clarifications`, watches the code, keeps time and gives hints one rung at a time; at the end the final code runs against every test and a written scorecard appears (`POST /api/interview/coding-report`, DeepSeek, five dimensions scored 1 to 4 with quoted moments). Attempts (transcript, final code, facts, report) are kept in the browser.
+
+```json
+"coding": {
+  "context": "The round being rehearsed (English).",
+  "interviewer": { "name": "Sam", "role": "…", "tone": "…" },
+  "minutes": 30,
+  "phases": [{ "id": "clarify", "title": "Aclarar", "from": 0, "to": 0.1, "what": "…", "drill": "tt-f2-aclarar" }],
+  "stuck_drills": ["tt-f6-trabado"],
+  "problems": [{
+    "id": "two-sum", "title": "Two Sum", "difficulty": "easy", "pattern": "Hash map", "concept": "3yt-two-sum", "minutes": 15,
+    "statement": "…", "examples": [{ "input": "…", "output": "…" }], "constraints": ["…"],
+    "clarifications": [{ "topic": "sorted?", "answer": "No." }],
+    "exports": ["twoSum"], "starter": "export function twoSum(…) {…}",
+    "example_tests": "import { twoSum } from './solution';\ntest('example 1', () => { expect(twoSum([2, 7], 9)).toEqual([0, 1]); });",
+    "tests": "…hidden edge cases…",
+    "hints": ["a question", "a direction", "the step"], "follow_ups": ["…"], "senior_signals": ["…"], "pitfalls": ["…"],
+    "solution": { "approach": "…", "time": "O(n)", "space": "O(n)", "code": "…" },
+    "exercises": [{ "id": "two-sum-guided", "level": "guided", "title": "…", "instructions": "…", "starter": "…" }]
+  }]
+}
+```
+
+- Tests are TypeScript against the candidate's file (`import … from './solution'`), with `test` and a small Jest-like `expect` (`src/lib/coding/harness.ts`: toBe, toEqual, toThrow, toContain, toBeLessThan, `.not`, `.rejects`…). They run in a Web Worker (Sucrase strips the types; a run is killed after 6 s), never on a server.
+- `phases[].drill` and `stuck_drills` name drills whose text (cut at " / ") is the phrase list the mock's guide shows.
+- The hint ladder never goes into the interviewer's prompt: the page hands it one rung at a time, when the candidate asks for help or stays stuck after a check-in (`src/lib/coding/mock-runtime.ts`).
+- `npx tsx scripts/verify-coding.ts <lesson.json>` proves every reference solution passes its tests and every starter fails one; `seed-lesson.ts` runs the same check (also with `--dry-run`) and writes nothing if it fails.
+- `npx tsx scripts/probe-coding-mock.ts <lesson.json>` checks the interviewer against the real Live API (paid: one session).
+
 ## What the loader does
 
 1. Validates the whole file before writing anything, and says which drills with audio have phrase timings (and why the others do not).
