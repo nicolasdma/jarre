@@ -15,6 +15,7 @@ import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
 import { DrillTrainer, isPracticed } from './drill-trainer';
 import { isRecallDue } from '@/lib/practice/recall';
+import { drillGrade, type DrillGrade } from '@/lib/practice/drill-grade';
 import type { DrillMode, PracticeDrill } from './types';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 
@@ -86,6 +87,40 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 // Under a reading section
 // ---------------------------------------------------------------------------
 
+const GRADE_TONE = ['', 'text-j-error', 'text-j-error', 'text-j-text', 'text-j-success', 'text-j-success'];
+
+/**
+ * A drill's grade 1 to 5 (lib/practice/drill-grade.ts), or that it is still
+ * pending: what was done and what was skipped, at a glance.
+ */
+function GradeBadge({ g }: { g: DrillGrade }) {
+  if (!g.done) {
+    return (
+      <span className="shrink-0 border border-dashed border-j-warm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-j-warm" data-testid="drill-pending">
+        Pendiente
+      </span>
+    );
+  }
+  if (g.grade === null) {
+    return (
+      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary" title="Hecha, sin nada que evaluar (sin reconocimiento de voz)">
+        ✓ sin nota
+      </span>
+    );
+  }
+  return (
+    <span className={cn('flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums', GRADE_TONE[g.grade])} title={`Tu mejor intento: ${g.grade} de 5`} data-testid="drill-grade">
+      <span aria-hidden className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span key={n} className={cn('h-2 w-2 rounded-full', n <= g.grade! ? 'bg-current' : 'bg-j-border')} />
+        ))}
+      </span>
+      <span className="sr-only">Nota </span>
+      {g.grade}/5
+    </span>
+  );
+}
+
 /** The section's drills, under its reading: one opens inline with every mode. */
 export function SectionDrills({ conceptId }: { conceptId: string }) {
   const practice = useLessonPractice();
@@ -93,29 +128,31 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
   const group = practice.groups.find((g) => g.id === conceptId);
   if (!group) return null;
   const done = group.drills.filter((d) => isPracticed(practice.scores[d.slug])).length;
+  const pending = group.drills.length - done;
 
   return (
     <section className="mt-8 border-t border-j-border pt-6" aria-label="Decilo en inglés" data-testid="section-drills">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Decilo en inglés</p>
-        <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary">{done}/{group.drills.length} practicadas</p>
+        <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary">
+          {done}/{group.drills.length} practicadas
+          {pending > 0 && <span className="text-j-warm"> · {pending} {pending === 1 ? 'pendiente' : 'pendientes'}</span>}
+        </p>
       </div>
       <ul className="space-y-2">
         {group.drills.map((d) => {
           const open = practice.openSlug === d.slug;
           return (
-            <li key={d.slug} className={cn('border', open ? 'border-j-accent' : 'border-j-border')}>
+            <li key={d.slug} id={`drill-${d.slug}`} className={cn('border', open ? 'border-j-accent' : 'border-j-border')}>
               <button
                 type="button"
                 onClick={() => practice.setOpenSlug(open ? null : d.slug)}
                 aria-expanded={open}
                 className="flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-left hover:bg-j-bg-alt"
               >
-                <span className={cn('w-4 shrink-0 text-xs', isPracticed(practice.scores[d.slug]) ? 'text-j-accent' : 'text-j-text-tertiary')}>
-                  {isPracticed(practice.scores[d.slug]) ? '✓' : '·'}
-                </span>
                 <span className="min-w-0 flex-1 text-sm text-j-text">{d.title}</span>
                 {d.audioUrl && <span className="shrink-0 text-xs text-j-warm" title="Con grabación lista" aria-label="Con grabación lista">★</span>}
+                <GradeBadge g={drillGrade(practice.scores[d.slug])} />
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">{open ? 'Cerrar' : 'Practicar'}</span>
               </button>
               {open && (
@@ -252,6 +289,7 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
             {g.drills.map((d) => {
               const active = d.slug === practice.selectedSlug;
               const done = isPracticed(practice.scores[d.slug]);
+              const grade = drillGrade(practice.scores[d.slug]).grade;
               return (
                 <li key={d.slug}>
                   <button
@@ -263,7 +301,7 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
                       active ? 'bg-j-accent-light font-medium text-j-accent' : done ? 'text-j-text-secondary hover:text-j-text' : 'text-j-text-tertiary hover:text-j-text-secondary',
                     )}
                   >
-                    {done && <span className="mr-1.5">&#10003;</span>}
+                    {done && <span className="mr-1.5 tabular-nums">{grade ? `${grade}/5` : <>&#10003;</>}</span>}
                     {d.audioUrl && <span className="mr-1.5 text-j-warm" aria-label="Con grabación lista">★</span>}
                     {isRecallDue(practice.scores[d.slug]?.recall) && (
                       <span className="mr-1.5 text-j-warm-dark" title="Para repasar hoy">↻</span>
