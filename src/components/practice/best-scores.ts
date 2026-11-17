@@ -21,6 +21,8 @@ export type DrillBest = Partial<Record<ScoredMode, ModeBest>> & {
   shadowed?: number;
   /** Pregunta → respuesta: the last rating and when it is due again (FSRS, in days). */
   recall?: RecallRecord;
+  /** Escuchar: when the audio was first heard to its end (ISO; lib/practice/drill-progress.ts). */
+  listened?: string;
 };
 
 export type BestScores = Record<string, DrillBest>;
@@ -75,6 +77,15 @@ export function recordRecall(resourceId: string, drill: string, rating: RecallRa
 export function recordShadowed(resourceId: string, drill: string): BestScores {
   const scores = loadBestScores(resourceId);
   scores[drill] = { ...scores[drill], shadowed: (scores[drill]?.shadowed ?? 0) + 1 };
+  save(resourceId, scores);
+  return scores;
+}
+
+/** Escuchar heard to its end: kept once, the first time. */
+export function recordListened(resourceId: string, drill: string, now: Date = new Date()): BestScores {
+  const scores = loadBestScores(resourceId);
+  if (scores[drill]?.listened) return scores;
+  scores[drill] = { ...scores[drill], listened: now.toISOString() };
   save(resourceId, scores);
   return scores;
 }

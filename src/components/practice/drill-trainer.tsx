@@ -10,7 +10,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { recordRecall, recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
+import { recordListened, recordRecall, recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
+import { drillModes, isModeApproved } from '@/lib/practice/drill-progress';
 import { ListenMode } from './listen-mode';
 import { RecallMode } from './recall-mode';
 import { dueLabel, type RecallRating } from '@/lib/practice/recall';
@@ -60,7 +61,7 @@ export function bestLine(best: DrillBest | undefined): string | null {
 
 /** A drill counts as practiced once any mode has a result. */
 export function isPracticed(best: DrillBest | undefined): boolean {
-  return !!best && !!(best.copy || best.repeat || best.sentences || best.shadowed || best.recall);
+  return !!best && !!(best.listened || best.copy || best.repeat || best.sentences || best.shadowed || best.recall);
 }
 
 export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position, onNextDue }: DrillTrainerProps) {
@@ -101,12 +102,14 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
       onScores(firstTry === null ? recordShadowed(resourceId, drill.slug) : recordScore(resourceId, drill.slug, 'sentences', firstTry)),
     [drill.slug, onScores, resourceId],
   );
+  const onListened = useCallback(() => onScores(recordListened(resourceId, drill.slug)), [drill.slug, onScores, resourceId]);
   const onRecall = useCallback(
     (rating: RecallRating) => onScores(recordRecall(resourceId, drill.slug, rating)),
     [drill.slug, onScores, resourceId],
   );
   const next = onNext ?? (() => {});
   const best = bestLine(scores[drill.slug]);
+  const modes = drillModes(audio.available);
 
   return (
     <div className="space-y-4" data-drill-trainer data-testid="drill-trainer">
@@ -145,11 +148,17 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
             )}
           >
             {m.label}
+            {modes.includes(m.id) && isModeApproved(scores[drill.slug], m.id) && (
+              <span className={cn('ml-1.5', mode !== m.id && 'text-j-success')} title="Aprobado" data-testid="mode-approved">
+                <span aria-hidden>✓</span>
+                <span className="sr-only"> (aprobado)</span>
+              </span>
+            )}
           </button>
         ))}
       </nav>
 
-      {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} />}
+      {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} onListened={onListened} />}
       {mode === 'copy' && <CopyMode key={`copy-${drill.slug}`} drill={drill} audio={audio} onResult={onCopyResult} onNext={next} />}
       {mode === 'repeat' && <RepeatMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onScore={onRepeatScore} />}
       {mode === 'sentences' && <SentenceMode key={drill.slug} drill={drill} audio={audio} terms={keyTerms} onFinished={onSentences} />}

@@ -346,7 +346,7 @@ export function SentenceMode({
       </p>
       {!Ctor && (
         <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark">
-          Este navegador no reconoce voz: escuchá cada frase, decila y pasá con Siguiente. Usá Chrome o Safari para que te corrija.
+          Este navegador no reconoce voz: escuchá cada frase, decila y pasá con Siguiente. Sin corrección no cuenta como aprobado: usá Chrome o Safari para que te corrija y sume.
         </p>
       )}
       {approximate && (

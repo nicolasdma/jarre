@@ -1,12 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { listenedThrough, newListenTrack, trackListen } from '@/lib/practice/drill-progress';
 import { AudioBar, Chip } from './controls';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 
-export function ListenMode({ drill, audio }: { drill: PracticeDrill; audio: DrillAudio }) {
+export function ListenMode({
+  drill,
+  audio,
+  onListened,
+}: {
+  drill: PracticeDrill;
+  audio: DrillAudio;
+  /** The audio was heard to its end here (lib/practice/drill-progress.ts): Escuchar is approved. */
+  onListened?: () => void;
+}) {
   const [showEs, setShowEs] = useState(false);
+
+  // Follow the playhead while this mode is open; once it played through, report it once.
+  const trackRef = useRef(newListenTrack());
+  const reportedRef = useRef(false);
+  const onListenedRef = useRef(onListened);
+  useEffect(() => {
+    onListenedRef.current = onListened;
+  });
+  const { time, duration } = audio;
+  useEffect(() => {
+    trackRef.current = trackListen(trackRef.current, time, duration);
+    if (!reportedRef.current && listenedThrough(trackRef.current)) {
+      reportedRef.current = true;
+      onListenedRef.current?.();
+    }
+  }, [time, duration]);
+
   return (
     <div className="space-y-5" data-mode="listen">
       <AudioBar audio={audio} />

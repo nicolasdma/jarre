@@ -9,13 +9,13 @@
  * practice click.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
-import { DrillTrainer, isPracticed } from './drill-trainer';
+import { DrillTrainer } from './drill-trainer';
 import { isRecallDue } from '@/lib/practice/recall';
-import { drillGrade, type DrillGrade } from '@/lib/practice/drill-grade';
+import { drillModes, drillProgress, type DrillProgress } from '@/lib/practice/drill-progress';
 import type { DrillMode, PracticeDrill } from './types';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 
@@ -37,9 +37,12 @@ interface LessonPracticeValue {
   /** The drill opened inline under a reading section, if any. */
   openSlug: string | null;
   setOpenSlug: (slug: string | null) => void;
+  /** Approved modes of a drill (lib/practice/drill-progress.ts). */
+  progressOf: (drill: PracticeDrill) => DrillProgress;
 }
 
 const NO_ASKS: Readonly<Record<string, string>> = {};
+const noSubscribe = () => () => {};
 
 const LessonPracticeContext = createContext<LessonPracticeValue | null>(null);
 
@@ -66,10 +69,17 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
   );
   const [mode, setMode] = useState<DrillMode>(initialMode ?? 'listen');
   const [openSlug, setOpenSlug] = useState<string | null>(null);
+  // A drill with no recording plays in the browser voice; with neither, Escuchar and Frase por frase are not there.
+  const hasVoice = useSyncExternalStore(noSubscribe, () => 'speechSynthesis' in window, () => true);
 
   useEffect(() => {
     setScores(loadBestScores(resourceId));
   }, [resourceId]);
+
+  const progressOf = useCallback(
+    (d: PracticeDrill) => drillProgress(scores[d.slug], drillModes(Boolean(d.audioUrl) || hasVoice)),
+    [scores, hasVoice],
+  );
 
   const select = useCallback((slug: string, nextMode?: DrillMode) => {
     setSelectedSlug(slug);
@@ -77,8 +87,8 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
   }, []);
 
   const value = useMemo(
-    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug }),
-    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, openSlug],
+    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug, progressOf }),
+    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, openSlug, progressOf],
   );
   return <LessonPracticeContext.Provider value={value}>{children}</LessonPracticeContext.Provider>;
 }
@@ -87,36 +97,25 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 // Under a reading section
 // ---------------------------------------------------------------------------
 
-const GRADE_TONE = ['', 'text-j-error', 'text-j-error', 'text-j-text', 'text-j-success', 'text-j-success'];
-
 /**
- * A drill's grade 1 to 5 (lib/practice/drill-grade.ts), or that it is still
- * pending: what was done and what was skipped, at a glance.
+ * A drill's approved modes as a plain "3/5", small; "pendiente" until anything
+ * was tried. Complete reads in the success color.
  */
-function GradeBadge({ g }: { g: DrillGrade }) {
-  if (!g.done) {
+function ProgressCount({ p }: { p: DrillProgress }) {
+  if (!p.started) {
     return (
-      <span className="shrink-0 border border-dashed border-j-warm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-j-warm" data-testid="drill-pending">
-        Pendiente
-      </span>
-    );
-  }
-  if (g.grade === null) {
-    return (
-      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary" title="Hecha, sin nada que evaluar (sin reconocimiento de voz)">
-        ✓ sin nota
+      <span className="shrink-0 font-mono text-[10px] text-j-text-tertiary" data-testid="drill-pending">
+        pendiente
       </span>
     );
   }
   return (
-    <span className={cn('flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums', GRADE_TONE[g.grade])} title={`Tu mejor intento: ${g.grade} de 5`} data-testid="drill-grade">
-      <span aria-hidden className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <span key={n} className={cn('h-2 w-2 rounded-full', n <= g.grade! ? 'bg-current' : 'bg-j-border')} />
-        ))}
-      </span>
-      <span className="sr-only">Nota </span>
-      {g.grade}/5
+    <span
+      className={cn('shrink-0 font-mono text-[10px] tabular-nums', p.complete ? 'text-j-success' : 'text-j-text-tertiary')}
+      title={`${p.done} de ${p.total} modos aprobados`}
+      data-testid="drill-progress"
+    >
+      {p.done}/{p.total}
     </span>
   );
 }
@@ -127,16 +126,14 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
   if (!practice) return null;
   const group = practice.groups.find((g) => g.id === conceptId);
   if (!group) return null;
-  const done = group.drills.filter((d) => isPracticed(practice.scores[d.slug])).length;
-  const pending = group.drills.length - done;
+  const complete = group.drills.filter((d) => practice.progressOf(d).complete).length;
 
   return (
     <section className="mt-8 border-t border-j-border pt-6" aria-label="Decilo en inglés" data-testid="section-drills">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Decilo en inglés</p>
-        <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary">
-          {done}/{group.drills.length} practicadas
-          {pending > 0 && <span className="text-j-warm"> · {pending} {pending === 1 ? 'pendiente' : 'pendientes'}</span>}
+        <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary" data-testid="section-complete">
+          {complete}/{group.drills.length} completas
         </p>
       </div>
       <ul className="space-y-2">
@@ -152,7 +149,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
               >
                 <span className="min-w-0 flex-1 text-sm text-j-text">{d.title}</span>
                 {d.audioUrl && <span className="shrink-0 text-xs text-j-warm" title="Con grabación lista" aria-label="Con grabación lista">★</span>}
-                <GradeBadge g={drillGrade(practice.scores[d.slug])} />
+                <ProgressCount p={practice.progressOf(d)} />
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">{open ? 'Cerrar' : 'Practicar'}</span>
               </button>
               {open && (
@@ -188,7 +185,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
   const index = Math.max(0, order.findIndex((d) => d.slug === practice.selectedSlug));
   const drill = order[index];
   const group = practice.groups.find((g) => g.drills.includes(drill));
-  const done = order.filter((d) => isPracticed(practice.scores[d.slug])).length;
+  const complete = order.filter((d) => practice.progressOf(d).complete).length;
   // Pregunta → respuesta reviews: drills whose recall is due today, in lesson order.
   const due = order.filter((d) => isRecallDue(practice.scores[d.slug]?.recall));
   const nextDue = [...order.slice(index + 1), ...order.slice(0, index)].find((d) => due.includes(d));
@@ -198,7 +195,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
     <div className="py-16" data-testid="practice-step">
       <header className="mb-8 space-y-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
-          Practicar · {done}/{order.length} practicadas
+          Practicar · {complete}/{order.length} completas
         </p>
         <h1 className="text-2xl font-bold text-j-text">Lo que vas a decir, en inglés</h1>
         <p className="text-sm text-j-text-secondary">
@@ -229,7 +226,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
             <optgroup key={g.id} label={g.title}>
               {g.drills.map((d) => (
                 <option key={d.slug} value={d.slug}>
-                  {isPracticed(practice.scores[d.slug]) ? '✓ ' : ''}{d.audioUrl ? '★ ' : ''}{d.title}
+                  {optionPrefix(practice.progressOf(d))}{d.audioUrl ? '★ ' : ''}{d.title}
                 </option>
               ))}
             </optgroup>
@@ -288,8 +285,7 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
           <ul className="space-y-0.5">
             {g.drills.map((d) => {
               const active = d.slug === practice.selectedSlug;
-              const done = isPracticed(practice.scores[d.slug]);
-              const grade = drillGrade(practice.scores[d.slug]).grade;
+              const p = practice.progressOf(d);
               return (
                 <li key={d.slug}>
                   <button
@@ -298,10 +294,14 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
                     title={d.title}
                     className={cn(
                       'w-full truncate px-4 py-1.5 text-left text-[12px] leading-snug transition-colors',
-                      active ? 'bg-j-accent-light font-medium text-j-accent' : done ? 'text-j-text-secondary hover:text-j-text' : 'text-j-text-tertiary hover:text-j-text-secondary',
+                      active ? 'bg-j-accent-light font-medium text-j-accent' : p.started ? 'text-j-text-secondary hover:text-j-text' : 'text-j-text-tertiary hover:text-j-text-secondary',
                     )}
                   >
-                    {done && <span className="mr-1.5 tabular-nums">{grade ? `${grade}/5` : <>&#10003;</>}</span>}
+                    {p.started && (
+                      <span className={cn('mr-1.5 font-mono text-[10px] tabular-nums', p.complete ? 'text-j-success' : 'text-j-text-tertiary')} title={`${p.done} de ${p.total} modos aprobados`}>
+                        {p.done}/{p.total}
+                      </span>
+                    )}
                     {d.audioUrl && <span className="mr-1.5 text-j-warm" aria-label="Con grabación lista">★</span>}
                     {isRecallDue(practice.scores[d.slug]?.recall) && (
                       <span className="mr-1.5 text-j-warm-dark" title="Para repasar hoy">↻</span>
@@ -318,12 +318,18 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
   );
 }
 
-/** "12/33 practicadas", for the navigation's step list. */
+/** "12/33": drills with every mode approved, for the navigation's step list. */
 export function usePracticeProgress(): { done: number; total: number } | null {
   const practice = useLessonPractice();
   if (!practice || practice.drills.length === 0) return null;
   return {
-    done: practice.drills.filter((d) => isPracticed(practice.scores[d.slug])).length,
+    done: practice.drills.filter((d) => practice.progressOf(d).complete).length,
     total: practice.drills.length,
   };
+}
+
+/** The drill picker on a phone: "✓ " complete, "3/5 " started, nothing pending. */
+function optionPrefix(p: DrillProgress): string {
+  if (p.complete) return '✓ ';
+  return p.started ? `${p.done}/${p.total} ` : '';
 }
