@@ -76,6 +76,12 @@ describe('deepEqual and formatValue', () => {
     expect(deepEqual(NaN, NaN)).toBe(true);
   });
 
+  it('never lets a sparse array equal a full one', () => {
+    expect(deepEqual(new Array(3), [1, 2, 3])).toBe(false);
+    expect(deepEqual([1, 2, 3], new Array(3))).toBe(false);
+    expect(deepEqual(new Array(2), new Array(2))).toBe(true);
+  });
+
   it('formats nested values and cuts long ones', () => {
     expect(formatValue({ a: [1, 'x'] })).toBe('{a: [1, "x"]}');
     expect(formatValue(Array.from({ length: 500 }, (_, i) => i)).endsWith('…')).toBe(true);

@@ -103,7 +103,12 @@ export function deepEqual(a: unknown, b: unknown): boolean {
     return true;
   }
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
+    if (a.length !== b.length) return false;
+    // A plain loop: `every` skips the holes of a sparse array (new Array(3)), which would equal anything.
+    for (let i = 0; i < a.length; i++) {
+      if (i in a !== i in b || !deepEqual(a[i], b[i])) return false;
+    }
+    return true;
   }
   const ka = Object.keys(a as object).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
   const kb = Object.keys(b as object).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
