@@ -20,6 +20,7 @@ export function useTutorFrequency(analyser: AnalyserNode | null): Float32Array {
   const bandsRef = useRef(new Float32Array(NUM_BANDS));
   const smoothedRef = useRef(new Float32Array(NUM_BANDS));
   const rafRef = useRef<number>(0);
+  const dataRef = useRef(new Uint8Array(0));
   const analyserRef = useRef(analyser);
   analyserRef.current = analyser;
 
@@ -33,7 +34,9 @@ export function useTutorFrequency(analyser: AnalyserNode | null): Float32Array {
     }
 
     const bufferLength = node.frequencyBinCount; // fftSize/2 = 128
-    const dataArray = new Uint8Array(bufferLength);
+    // One buffer for the analyser's life, not a new one every frame.
+    if (dataRef.current.length !== bufferLength) dataRef.current = new Uint8Array(bufferLength);
+    const dataArray = dataRef.current;
     node.getByteFrequencyData(dataArray);
 
     // Group bins into NUM_BANDS bands

@@ -251,7 +251,8 @@ function StickyHeader({
   const isFocusMode = currentStep === 'learn' && scrolledPast200;
 
   return (
-    <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg/90 backdrop-blur-sm transition-all duration-300 ${
+    // Solid, not a 90% wash with backdrop blur: the blur was re-filtered on every scroll frame.
+    <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg transition-all duration-300 ${
       isFocusMode ? 'py-0' : ''
     }`}>
       <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-8 transition-all duration-300 ${

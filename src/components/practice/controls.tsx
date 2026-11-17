@@ -2,7 +2,7 @@
 
 import { Pause, Play, Repeat, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DrillAudio, PlaybackRate } from './use-drill-audio';
+import { useAudioTime, type DrillAudio, type PlaybackRate } from './use-drill-audio';
 
 export function Chip({
   active,
@@ -91,7 +91,6 @@ export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLo
       </p>
     );
   }
-  const progress = audio.duration > 0 ? Math.min(100, (audio.time / audio.duration) * 100) : 0;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -125,14 +124,32 @@ export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLo
           </Chip>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <div className="h-1 flex-1 bg-j-border">
-          <div className="h-1 bg-j-accent" style={{ width: `${progress}%` }} />
-        </div>
-        <span className="font-mono text-[10px] tabular-nums text-j-text-tertiary">
-          {formatTime(audio.time)} / {formatTime(audio.duration)}
-        </span>
+      <AudioProgress audio={audio} />
+    </div>
+  );
+}
+
+/**
+ * The bar and the clock: the only part that follows the audio as it plays
+ * (a few times a second, on the element's timeupdate). The fill is scaled,
+ * not resized (no layout), and steps with each update: easing it between
+ * updates kept the compositor drawing every display frame the whole time
+ * the audio played.
+ */
+function AudioProgress({ audio }: { audio: DrillAudio }) {
+  const time = useAudioTime(audio);
+  const progress = audio.duration > 0 ? Math.min(1, time / audio.duration) : 0;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-1 flex-1 overflow-hidden bg-j-border">
+        <div
+          className="h-1 origin-left bg-j-accent"
+          style={{ transform: `scaleX(${progress})` }}
+        />
       </div>
+      <span className="font-mono text-[10px] tabular-nums text-j-text-tertiary">
+        {formatTime(time)} / {formatTime(audio.duration)}
+      </span>
     </div>
   );
 }

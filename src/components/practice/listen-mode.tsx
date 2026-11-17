@@ -25,13 +25,18 @@ export function ListenMode({
   useEffect(() => {
     onListenedRef.current = onListened;
   });
+  // Subscribed to the clock directly: following the playhead never re-renders this mode.
   const { time, duration } = audio;
   useEffect(() => {
-    trackRef.current = trackListen(trackRef.current, time, duration);
-    if (!reportedRef.current && listenedThrough(trackRef.current)) {
-      reportedRef.current = true;
-      onListenedRef.current?.();
-    }
+    const follow = () => {
+      trackRef.current = trackListen(trackRef.current, time.get(), duration);
+      if (!reportedRef.current && listenedThrough(trackRef.current)) {
+        reportedRef.current = true;
+        onListenedRef.current?.();
+      }
+    };
+    follow();
+    return time.subscribe(follow);
   }, [time, duration]);
 
   return (

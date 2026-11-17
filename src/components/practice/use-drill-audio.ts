@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { splitSentences } from '@/lib/practice/scoring';
+import { createTimeStore, type TimeStore } from './time-store';
 
 export type PlaybackRate = 0.75 | 1;
 
@@ -20,7 +21,12 @@ export interface DrillAudio {
   ready: boolean;
   /** Seconds. Estimated from the text for `speech`. */
   duration: number;
-  time: number;
+  /**
+   * Seconds played so far. It moves while the audio plays, so it is not
+   * state of the trainer: read it with useAudioTime (only that component
+   * re-renders), or call `time.get()` in a handler.
+   */
+  time: TimeStore;
   rate: PlaybackRate;
   loop: boolean;
   setRate: (rate: PlaybackRate) => void;
@@ -40,9 +46,14 @@ export interface DrillAudio {
   playSegment: (segment: AudioSegment) => Promise<boolean>;
 }
 
+/** The drill's played seconds, re-rendering only the caller (a progress bar) as it moves. */
+export function useAudioTime(audio: DrillAudio): number {
+  return useSyncExternalStore(audio.time.subscribe, audio.time.get, audio.time.get);
+}
+
 type Engine = Omit<DrillAudio, 'kind' | 'rate' | 'loop' | 'setRate' | 'setLoop'>;
 
-const IDLE = { playing: false, ready: false, duration: 0, time: 0 };
+const IDLE = { playing: false, ready: false, duration: 0 };
 const noSubscribe = () => () => {};
 
 // ---------------------------------------------------------------------------
@@ -54,19 +65,19 @@ interface ElementState {
   playing: boolean;
   ready: boolean;
   duration: number;
-  time: number;
 }
 
 function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): Engine {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const segmentRef = useRef<{ end: number; resolve: (done: boolean) => void } | null>(null);
   const frameRef = useRef<number | null>(null);
+  const [time] = useState(createTimeStore);
   // State is tagged with its src, so a new drill reads as fresh without resetting in an effect.
   const [el, setEl] = useState<ElementState>({ src: null, ...IDLE });
   const patch = useCallback((forSrc: string, next: Partial<Omit<ElementState, 'src'>>) => {
     setEl((prev) => ({ ...(prev.src === forSrc ? prev : { ...IDLE }), ...next, src: forSrc }));
   }, []);
-  const { playing, ready, duration, time } = el.src === src ? el : IDLE;
+  const { playing, ready, duration } = el.src === src ? el : IDLE;
   const rateRef = useRef(rate);
   const loopRef = useRef(loop);
 
@@ -85,7 +96,30 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
     seg?.resolve(done);
   }, []);
 
+  /**
+   * While a segment plays, watch the clock each frame to cut it on its end
+   * (timeupdate comes only every ~250 ms). Nothing else needs frames: the
+   * progress bar follows timeupdate.
+   */
+  const watchSegment = useCallback(() => {
+    if (frameRef.current !== null) return;
+    const step = () => {
+      frameRef.current = null;
+      const audio = audioRef.current;
+      const seg = segmentRef.current;
+      if (!audio || !seg || audio.paused) return;
+      if (audio.currentTime >= seg.end) {
+        audio.pause();
+        settleSegment(true);
+        return;
+      }
+      frameRef.current = requestAnimationFrame(step);
+    };
+    frameRef.current = requestAnimationFrame(step);
+  }, [settleSegment]);
+
   useEffect(() => {
+    time.set(0);
     if (!src) {
       audioRef.current = null;
       return;
@@ -97,41 +131,42 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
     audio.loop = loopRef.current;
     audioRef.current = audio;
 
-    const tick = () => {
-      patch(src, { time: audio.currentTime });
-      const seg = segmentRef.current;
-      if (seg && audio.currentTime >= seg.end) {
-        audio.pause();
-        settleSegment(true);
-      }
-      if (!audio.paused) frameRef.current = requestAnimationFrame(tick);
-    };
+    const onTime = () => time.set(audio.currentTime);
     const onPlay = () => {
       patch(src, { playing: true });
-      frameRef.current = requestAnimationFrame(tick);
+      if (segmentRef.current) watchSegment();
     };
-    const onPause = () => patch(src, { playing: false, time: audio.currentTime });
+    const onPause = () => {
+      patch(src, { playing: false });
+      time.set(audio.currentTime);
+    };
     const onEnded = () => {
       patch(src, { playing: false });
+      time.set(audio.currentTime);
       settleSegment(true);
     };
     const onMeta = () => patch(src, { duration: Number.isFinite(audio.duration) ? audio.duration : 0, ready: true });
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('seeked', onTime);
     audio.addEventListener('loadedmetadata', onMeta);
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
       settleSegment(false);
       audio.pause();
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('seeked', onTime);
       audio.removeEventListener('loadedmetadata', onMeta);
       audio.removeAttribute('src');
       audio.load();
     };
-  }, [src, settleSegment, patch]);
+  }, [src, settleSegment, patch, time, watchSegment]);
 
   const play = useCallback(() => {
     const audio = audioRef.current;
@@ -184,10 +219,15 @@ function useFileAudio(src: string | null, rate: PlaybackRate, loop: boolean): En
       audio.loop = false;
       audio.currentTime = start * audio.duration;
       audio.play().catch(() => settleSegment(false));
+      // Already playing: no 'play' event comes, so watch from here.
+      if (!audio.paused) watchSegment();
     });
-  }, [settleSegment]);
+  }, [settleSegment, watchSegment]);
 
-  return { available: Boolean(src), playing, ready, duration, time, toggle, play, pause, restart, prime, playSegment };
+  return useMemo(
+    () => ({ available: Boolean(src), playing, ready, duration, time, toggle, play, pause, restart, prime, playSegment }),
+    [src, playing, ready, duration, time, toggle, play, pause, restart, prime, playSegment],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -215,8 +255,9 @@ function pickVoice(): SpeechSynthesisVoice | null {
 function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop: boolean): Engine {
   const supported = useSyncExternalStore(noSubscribe, () => 'speechSynthesis' in window, () => false);
   const active = enabled && supported;
-  const [state, setState] = useState({ text: '', playing: false, time: 0 });
-  const { playing, time } = state.text === text ? state : { playing: false, time: 0 };
+  const [state, setState] = useState({ text: '', playing: false });
+  const playing = state.text === text ? state.playing : false;
+  const [time] = useState(createTimeStore);
   const duration = text.length / SPEECH_CHARS_PER_SECOND;
   const runRef = useRef(0);
   const rateRef = useRef(rate);
@@ -227,6 +268,11 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     loopRef.current = loop;
   }, [rate, loop]);
 
+  // A new drill starts from zero.
+  useEffect(() => {
+    time.set(0);
+  }, [text, time]);
+
   // Stop speaking when the drill changes or the page goes away.
   useEffect(() => {
     if (!active) return;
@@ -236,6 +282,11 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     };
   }, [active, text]);
 
+  const setPlaying = useCallback(
+    (next: boolean) => setState((s) => (s.text === text && s.playing === next ? s : { text, playing: next })),
+    [text],
+  );
+
   /** Speak one piece; resolves false if cancelled. Progress maps onto [from, to] of the drill. */
   const speak = useCallback((piece: string, from: number, to: number) => new Promise<boolean>((resolve) => {
     const u = new SpeechSynthesisUtterance(piece);
@@ -243,19 +294,20 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     u.rate = rateRef.current;
     const voice = pickVoice();
     if (voice) u.voice = voice;
-    const at = (frac: number) => setState({ text, playing: true, time: (from + frac * (to - from)) * duration });
+    const at = (frac: number) => time.set((from + frac * (to - from)) * duration);
     at(0);
+    setPlaying(true);
     u.onboundary = (e) => at(piece.length ? e.charIndex / piece.length : 0);
     u.onend = () => resolve(true);
     u.onerror = () => resolve(false);
     window.speechSynthesis.speak(u);
-  }), [text, duration]);
+  }), [duration, setPlaying, time]);
 
   const stop = useCallback(() => {
     runRef.current++;
     window.speechSynthesis.cancel();
-    setState((s) => ({ text, playing: false, time: s.text === text ? s.time : 0 }));
-  }, [text]);
+    setPlaying(false);
+  }, [setPlaying]);
 
   // Sentence by sentence: Chrome cuts single utterances off after ~15 s.
   const play = useCallback(() => {
@@ -270,9 +322,10 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
           if (!ok || runRef.current !== run) return;
         }
       } while (loopRef.current && runRef.current === run);
-      setState({ text, playing: false, time: duration });
+      time.set(duration);
+      setPlaying(false);
     })();
-  }, [active, stop, text, speak, duration]);
+  }, [active, stop, text, speak, duration, time, setPlaying]);
 
   const toggle = useCallback(() => (playing ? stop() : play()), [playing, stop, play]);
 
@@ -281,18 +334,21 @@ function useSpeechAudio(text: string, enabled: boolean, rate: PlaybackRate, loop
     stop();
     const run = runRef.current;
     const ok = await speak(seg.text, seg.start, seg.end);
-    if (runRef.current === run) setState((s) => ({ ...s, playing: false }));
+    if (runRef.current === run) setPlaying(false);
     return ok && runRef.current === run;
-  }, [active, stop, speak]);
+  }, [active, stop, speak, setPlaying]);
 
   const prime = useCallback(() => {
     if (active && !window.speechSynthesis.speaking) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
   }, [active]);
 
-  return {
-    available: active, playing, ready: active, duration: active ? duration : 0, time,
-    toggle, play, pause: stop, restart: play, prime, playSegment,
-  };
+  return useMemo(
+    () => ({
+      available: active, playing, ready: active, duration: active ? duration : 0, time,
+      toggle, play, pause: stop, restart: play, prime, playSegment,
+    }),
+    [active, playing, duration, time, toggle, play, stop, prime, playSegment],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -308,5 +364,5 @@ export function useDrillAudio(src: string | null, text: string): DrillAudio {
   const speech = useSpeechAudio(text, !src, rate, loop);
   const engine = src ? file : speech;
   const kind = src ? 'file' : speech.available ? 'speech' : 'none';
-  return { ...engine, kind, rate, loop, setRate, setLoop };
+  return useMemo(() => ({ ...engine, kind, rate, loop, setRate, setLoop }), [engine, kind, rate, loop]);
 }

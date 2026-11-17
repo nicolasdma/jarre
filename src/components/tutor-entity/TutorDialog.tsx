@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 
 interface TutorDialogProps {
   messages?: string[];
@@ -14,14 +15,15 @@ export function TutorDialog({ messages = [] }: TutorDialogProps) {
   const lastMessage = messages[messages.length - 1] ?? '';
   const prevMessageRef = useRef('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
 
   // Typewriter effect when the last message changes
   useEffect(() => {
     if (lastMessage === prevMessageRef.current) return;
     prevMessageRef.current = lastMessage;
 
-    if (!lastMessage) {
-      setDisplayedText('');
+    if (!lastMessage || reducedMotion) {
+      setDisplayedText(lastMessage);
       setIsTyping(false);
       return;
     }
@@ -40,7 +42,7 @@ export function TutorDialog({ messages = [] }: TutorDialogProps) {
     }, TYPEWRITER_SPEED);
 
     return () => clearInterval(interval);
-  }, [lastMessage]);
+  }, [lastMessage, reducedMotion]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -92,7 +94,7 @@ export function TutorDialog({ messages = [] }: TutorDialogProps) {
               className={`inline-block w-[0.55em] h-[1.1em] align-text-bottom ml-px ${
                 isTyping
                   ? 'bg-j-accent'
-                  : 'animate-[cursor-blink_1s_step-end_infinite] bg-j-accent'
+                  : 'animate-[cursor-blink_1s_step-end_3] motion-reduce:animate-none bg-j-accent'
               }`}
             />
           </p>

@@ -1,19 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   ENTITY_STATES,
   FRAME_INTERVAL,
   LERP_SPEED,
-  INTRO_LERP_SPEED,
   HOVER_LERP_SPEED,
-  INTRO_HOLD_DURATION,
   type EntityStateParams,
 } from './entity-constants';
 import { lerp, lerpColor, computeEntityFrame, paintEntityFrame } from './entity-renderer';
-import { getCurrentGeometryName, setAudioBands, setVoiceActive, setWaveMicLevel } from './geometries';
+import { setAudioBands, setVoiceActive, setWaveMicLevel } from './geometries';
+import { entityShouldAnimate, SETTLE_MS } from './entity-loop';
 import { useTutorFrequency } from '../voice/use-tutor-frequency';
-import { useAudioLevel } from '../voice/use-audio-level';
+import { useAudioLevelRef } from '../voice/use-audio-level';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import type { TutorState } from '../voice/use-voice-session';
 
 interface TutorEntityProps {
@@ -66,6 +66,20 @@ const BREATH_SPEED = 1.8;     // cycles per second
 const BREATH_RADIUS_AMP = 0.015; // how much major radius oscillates
 const BREATH_OPACITY_AMP = 0.08; // how much opacity oscillates
 
+const WARM_PEAK: [number, number, number] = [255, 190, 90];
+
+/**
+ * The glow layer is blurred by CSS, so its pixels are never seen sharp: it is
+ * drawn at 1x even on a 2x screen (a quarter of the pixels to fill and blur).
+ */
+const GLOW_DPR = 1;
+
+/**
+ * The tutor in the sidebar: an ASCII torus that is the button to start a
+ * voice session. At rest it is one still frame; it draws frames only while
+ * the pointer is on it, a voice session drives it, or it eases back after
+ * either (entity-loop.ts). Reduced motion: still frames only, one per change.
+ */
 export function TutorEntity({
   onStartVoice,
   playbackAnalyser,
@@ -75,31 +89,140 @@ export function TutorEntity({
   const glowCanvasRef = useRef<HTMLCanvasElement>(null);
   const sharpCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
+  const rafRef = useRef(0);
   const lastFrameRef = useRef(0);
   const timeRef = useRef(0);
   const sizeRef = useRef({ w: 0, h: 0 });
-  const [hovered, setHovered] = useState(false);
-  const [debugName, setDebugName] = useState('');
+  const hoveredRef = useRef(false);
+  const settleUntilRef = useRef(0);
+  const glowBlurRef = useRef(-1);
   const mouseRef = useRef<{ x: number; y: number } | null>(null);
-  const introPhaseRef = useRef(true);
-  const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.intro });
+  const currentParamsRef = useRef<EntityStateParams>({ ...ENTITY_STATES.idle });
 
-  // Keep voiceState in a ref so the animate callback always reads the latest
+  const reducedMotion = useReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
+
+  // Keep voiceState in a ref so the frame callback always reads the latest
   const voiceStateRef = useRef(voiceState);
   voiceStateRef.current = voiceState;
 
-  // Frequency bands from Gemini playback audio
+  // Frequency bands from Gemini playback audio (a buffer updated in place)
   const frequencyBands = useTutorFrequency(playbackAnalyser ?? null);
   const frequencyBandsRef = useRef(frequencyBands);
   frequencyBandsRef.current = frequencyBands;
 
-  // Mic audio level — user's voice
-  const micLevel = useAudioLevel(micStream ?? null);
-  const micLevelRef = useRef(micLevel);
-  micLevelRef.current = micLevel;
+  // Mic audio level — user's voice, read by the frame without re-rendering
+  const micLevelRef = useAudioLevelRef(micStream ?? null);
 
   const isVoiceActive = voiceState !== undefined;
+
+  /** Draw one frame advanced by dt seconds (0: a still frame of the current state). */
+  const drawFrame = useCallback((dt: number) => {
+    const glowCanvas = glowCanvasRef.current;
+    const sharpCanvas = sharpCanvasRef.current;
+    const glowCtx = glowCanvas?.getContext('2d');
+    const sharpCtx = sharpCanvas?.getContext('2d');
+    if (!glowCanvas || !glowCtx || !sharpCtx) return;
+
+    timeRef.current += dt;
+    const voice = voiceStateRef.current;
+    const target = voice
+      ? ENTITY_STATES[voiceStateToEntityState(voice)]
+      : hoveredRef.current ? ENTITY_STATES.hover : ENTITY_STATES.idle;
+    const speed = !voice && hoveredRef.current ? HOVER_LERP_SPEED : LERP_SPEED;
+    // Reduced motion (or a still frame): jump to the state instead of easing.
+    const lerpT = reducedMotionRef.current || dt === 0 ? 1 : Math.min(1, speed * dt);
+    let params = lerpParams(currentParamsRef.current, target, lerpT);
+    currentParamsRef.current = params;
+
+    // Thinking state: breathing pulse — sinusoidal modulation of radius and opacity
+    if (voice === 'thinking') {
+      const breath = Math.sin(timeRef.current * BREATH_SPEED * Math.PI * 2);
+      params = {
+        ...params,
+        majorRadius: params.majorRadius + breath * BREATH_RADIUS_AMP,
+        minorRadius: params.minorRadius + breath * BREATH_RADIUS_AMP * 0.5,
+        charOpacity: params.charOpacity + breath * BREATH_OPACITY_AMP,
+        glowOpacity: params.glowOpacity + breath * BREATH_OPACITY_AMP * 0.6,
+      };
+    }
+
+    // Listening state: pulse radius with mic level for "absorbing" feel
+    const micLevel = micLevelRef.current;
+    if (voice === 'listening' && micLevel > 0.01) {
+      params = {
+        ...params,
+        majorRadius: params.majorRadius + micLevel * 0.03,
+        charOpacity: Math.min(0.85, params.charOpacity + micLevel * 0.2),
+      };
+    }
+
+    // Color cycling: gentle oscillation toward warm bright orange
+    if (params.colorCycleSpeed > 0 && params.colorCycleIntensity > 0) {
+      const wave1 = Math.sin(timeRef.current * params.colorCycleSpeed * Math.PI * 2);
+      const wave2 = Math.sin(timeRef.current * params.colorCycleSpeed * Math.PI * 2 * 1.7 + 1.2);
+      const blend = ((wave1 * 0.7 + wave2 * 0.3) * 0.5 + 0.5) * params.colorCycleIntensity;
+      params = {
+        ...params,
+        color: lerpColor(params.color, WARM_PEAK, blend),
+        accentColor: lerpColor(params.accentColor, WARM_PEAK, blend * 0.6),
+        charOpacity: Math.min(1.0, params.charOpacity + blend * 0.05),
+        glowOpacity: Math.min(1.0, params.glowOpacity + blend * 0.08),
+      };
+    }
+
+    // The glow blur is a style write: only when its rounded value changes.
+    const blur = Math.round(params.glowBlur);
+    if (blur !== glowBlurRef.current) {
+      glowBlurRef.current = blur;
+      glowCanvas.style.filter = `blur(${blur}px)`;
+    }
+
+    const { w, h } = sizeRef.current;
+    const focal = mouseRef.current;
+    const bands = voice ? frequencyBandsRef.current : null;
+    setAudioBands(bands, dt);
+    const mic = voice === 'listening' ? micLevel : 0;
+    setWaveMicLevel(mic);
+    // Compute geometry once, paint it to both canvases.
+    computeEntityFrame(w, h, params, timeRef.current, focal, bands, mic);
+    paintEntityFrame(glowCtx, w, h, params, focal, timeRef.current);
+    paintEntityFrame(sharpCtx, w, h, params, focal, timeRef.current);
+  }, [micLevelRef]);
+
+  const shouldAnimate = useCallback((now: number) => entityShouldAnimate({
+    voiceActive: voiceStateRef.current !== undefined,
+    hovered: hoveredRef.current,
+    settleUntil: settleUntilRef.current,
+    now,
+    reducedMotion: reducedMotionRef.current,
+    visible: isDrawable(sizeRef.current),
+  }), []);
+
+  const frame = useCallback(function step() {
+    rafRef.current = 0;
+    const now = performance.now();
+    const elapsed = now - lastFrameRef.current;
+    if (elapsed >= FRAME_INTERVAL) {
+      lastFrameRef.current = now - (elapsed % FRAME_INTERVAL);
+      drawFrame(Math.min(elapsed / 1000, 0.1));
+    }
+    if (shouldAnimate(now)) rafRef.current = requestAnimationFrame(step);
+  }, [drawFrame, shouldAnimate]);
+
+  /** Something changed: run the loop if there is motion to show, else draw one still frame. */
+  const wake = useCallback(() => {
+    const now = performance.now();
+    if (shouldAnimate(now)) {
+      if (!rafRef.current) {
+        lastFrameRef.current = now - FRAME_INTERVAL;
+        rafRef.current = requestAnimationFrame(frame);
+      }
+    } else if (isDrawable(sizeRef.current)) {
+      drawFrame(0);
+    }
+  }, [drawFrame, frame, shouldAnimate]);
 
   // Activate/deactivate waveform morph on voice state change
   useEffect(() => {
@@ -107,120 +230,13 @@ export function TutorEntity({
     return () => setVoiceActive(false);
   }, [isVoiceActive]);
 
-  const animate = useCallback(() => {
-    const glowCanvas = glowCanvasRef.current;
-    const sharpCanvas = sharpCanvasRef.current;
-    if (!glowCanvas || !sharpCanvas) return;
-    const glowCtx = glowCanvas.getContext('2d');
-    const sharpCtx = sharpCanvas.getContext('2d');
-    if (!glowCtx || !sharpCtx) return;
-
-    const now = performance.now();
-    const elapsed = now - lastFrameRef.current;
-
-    if (elapsed < FRAME_INTERVAL) {
-      rafRef.current = requestAnimationFrame(animate);
-      return;
-    }
-
-    lastFrameRef.current = now - (elapsed % FRAME_INTERVAL);
-    const dt = Math.min(elapsed / 1000, 0.1);
-    timeRef.current += dt;
-
-    // Determine target state and lerp speed
-    let target: EntityStateParams;
-    let speed: number;
-
-    if (introPhaseRef.current) {
-      if (timeRef.current < INTRO_HOLD_DURATION) {
-        target = ENTITY_STATES.intro;
-        speed = LERP_SPEED;
-      } else {
-        target = ENTITY_STATES.idle;
-        speed = INTRO_LERP_SPEED;
-
-        const radiusDiff = Math.abs(
-          currentParamsRef.current.majorRadius - ENTITY_STATES.idle.majorRadius,
-        );
-        if (radiusDiff < 0.005) {
-          introPhaseRef.current = false;
-        }
-      }
-    } else if (voiceStateRef.current) {
-      // Voice session active — target driven by tutor state
-      const stateKey = voiceStateToEntityState(voiceStateRef.current);
-      target = ENTITY_STATES[stateKey];
-      speed = LERP_SPEED;
-    } else {
-      target = hovered ? ENTITY_STATES.hover : ENTITY_STATES.idle;
-      speed = hovered ? HOVER_LERP_SPEED : LERP_SPEED;
-    }
-
-    const lerpT = Math.min(1, speed * dt);
-    currentParamsRef.current = lerpParams(currentParamsRef.current, target, lerpT);
-
-    // Thinking state: breathing pulse — sinusoidal modulation of radius and opacity
-    const currentVoiceState = voiceStateRef.current;
-    if (currentVoiceState === 'thinking') {
-      const breath = Math.sin(timeRef.current * BREATH_SPEED * Math.PI * 2);
-      currentParamsRef.current = {
-        ...currentParamsRef.current,
-        majorRadius: currentParamsRef.current.majorRadius + breath * BREATH_RADIUS_AMP,
-        minorRadius: currentParamsRef.current.minorRadius + breath * BREATH_RADIUS_AMP * 0.5,
-        charOpacity: currentParamsRef.current.charOpacity + breath * BREATH_OPACITY_AMP,
-        glowOpacity: currentParamsRef.current.glowOpacity + breath * BREATH_OPACITY_AMP * 0.6,
-      };
-    }
-
-    // Listening state: pulse radius with mic level for "absorbing" feel
-    if (currentVoiceState === 'listening' && micLevelRef.current > 0.01) {
-      const mic = micLevelRef.current;
-      currentParamsRef.current = {
-        ...currentParamsRef.current,
-        majorRadius: currentParamsRef.current.majorRadius + mic * 0.03,
-        charOpacity: Math.min(0.85, currentParamsRef.current.charOpacity + mic * 0.2),
-      };
-    }
-
-    // Color cycling: gentle oscillation toward warm bright orange
-    const cur = currentParamsRef.current;
-    if (cur.colorCycleSpeed > 0 && cur.colorCycleIntensity > 0) {
-      const WARM_PEAK: [number, number, number] = [255, 190, 90];
-      const wave1 = Math.sin(timeRef.current * cur.colorCycleSpeed * Math.PI * 2);
-      const wave2 = Math.sin(timeRef.current * cur.colorCycleSpeed * Math.PI * 2 * 1.7 + 1.2);
-      const blend = ((wave1 * 0.7 + wave2 * 0.3) * 0.5 + 0.5) * cur.colorCycleIntensity;
-      currentParamsRef.current = {
-        ...cur,
-        color: lerpColor(cur.color, WARM_PEAK, blend),
-        accentColor: lerpColor(cur.accentColor, WARM_PEAK, blend * 0.6),
-        charOpacity: Math.min(1.0, cur.charOpacity + blend * 0.05),
-        glowOpacity: Math.min(1.0, cur.glowOpacity + blend * 0.08),
-      };
-    }
-
-    // Update glow canvas blur dynamically
-    if (glowCanvas) {
-      glowCanvas.style.filter = `blur(${Math.round(currentParamsRef.current.glowBlur)}px)`;
-    }
-
-    const { w, h } = sizeRef.current;
-
-    // Compute geometry ONCE, paint to BOTH canvases
-    const focal = mouseRef.current;
-    // Feed audio bands to waveform geometry (all voice states, not just speaking)
-    const bands = voiceStateRef.current ? frequencyBandsRef.current : null;
-    setAudioBands(bands, dt);
-    const mic = currentVoiceState === 'listening' ? micLevelRef.current : 0;
-    setWaveMicLevel(mic);
-    computeEntityFrame(w, h, currentParamsRef.current, timeRef.current, focal, bands, mic);
-    paintEntityFrame(glowCtx, w, h, currentParamsRef.current, focal, timeRef.current);
-    paintEntityFrame(sharpCtx, w, h, currentParamsRef.current, focal, timeRef.current);
-
-    // Debug: update geometry name label
-    setDebugName(getCurrentGeometryName());
-
-    rafRef.current = requestAnimationFrame(animate);
-  }, [hovered]);
+  // A voice state change is something to show; the end of a session eases back to rest.
+  const hadVoiceRef = useRef(false);
+  useEffect(() => {
+    if (hadVoiceRef.current && voiceState === undefined) settleUntilRef.current = performance.now() + SETTLE_MS;
+    hadVoiceRef.current = voiceState !== undefined;
+    wake();
+  }, [voiceState, reducedMotion, wake]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -231,42 +247,38 @@ export function TutorEntity({
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       const dpr = window.devicePixelRatio || 1;
-
-      for (const canvas of [glowCanvas, sharpCanvas]) {
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
+      for (const [canvas, scale] of [[glowCanvas, Math.min(GLOW_DPR, dpr)], [sharpCanvas, dpr]] as const) {
+        canvas.width = Math.round(width * scale);
+        canvas.height = Math.round(height * scale);
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
-        const ctx = canvas.getContext('2d');
-        if (ctx) ctx.scale(dpr, dpr);
+        canvas.getContext('2d')?.setTransform(scale, 0, 0, scale, 0, 0);
       }
-
       sizeRef.current = { w: width, h: height };
+      // Resizing clears the canvases: redraw (or resume) right away.
+      wake();
     });
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [wake]);
 
   useEffect(() => {
-    lastFrameRef.current = performance.now();
-    rafRef.current = requestAnimationFrame(animate);
-
     const handleVisibility = () => {
       if (document.hidden) {
         cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
       } else {
-        lastFrameRef.current = performance.now();
-        rafRef.current = requestAnimationFrame(animate);
+        wake();
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [animate]);
+  }, [wake]);
 
   const handleClick = () => {
     if (!isVoiceActive) onStartVoice();
@@ -282,10 +294,11 @@ export function TutorEntity({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full transition-opacity duration-500 ${
-        isVoiceActive ? 'cursor-default' : 'cursor-pointer'
-      }`}
-      onMouseEnter={() => { setHovered(true); }}
+      className={`relative w-full h-full ${isVoiceActive ? 'cursor-default' : 'cursor-pointer'}`}
+      onMouseEnter={() => {
+        hoveredRef.current = true;
+        wake();
+      }}
       onMouseMove={(e) => {
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
@@ -294,7 +307,12 @@ export function TutorEntity({
           y: (e.clientY - rect.top) / rect.height,
         };
       }}
-      onMouseLeave={() => { setHovered(false); mouseRef.current = null; }}
+      onMouseLeave={() => {
+        hoveredRef.current = false;
+        mouseRef.current = null;
+        settleUntilRef.current = performance.now() + SETTLE_MS;
+        wake();
+      }}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -310,10 +328,11 @@ export function TutorEntity({
         ref={sharpCanvasRef}
         className="absolute inset-0 w-full h-full"
       />
-      {/* Shape name tag — temporarily hidden */}
-      <div hidden className="absolute top-2 left-2 px-2 py-1 bg-black/80 text-orange-400 text-xs font-mono rounded pointer-events-none z-10">
-        {debugName}
-      </div>
     </div>
   );
+}
+
+/** The page is visible and the canvas has a size (it is display:none below lg). */
+function isDrawable(size: { w: number; h: number }): boolean {
+  return !document.hidden && size.w >= 10 && size.h >= 10;
 }

@@ -7,19 +7,26 @@
  * Returns a smoothed 0-1 value focused on voice frequencies.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 
 const SMOOTHING = 0.12;
+/** The level re-renders its component only when it moves at least this much (silence: never). */
+const LEVEL_STEP = 0.01;
 
-export function useAudioLevel(stream: MediaStream | null): number {
-  const [level, setLevel] = useState(0);
-  const animFrameRef = useRef<number>(0);
-  const prevLevelRef = useRef(0);
+/**
+ * Follow a stream's voice level on every animation frame, calling `onLevel`
+ * with the smoothed value. Stops (and closes its AudioContext) when the
+ * stream goes away or the component unmounts.
+ */
+function useLevelLoop(stream: MediaStream | null, onLevel: (level: number) => void): void {
+  const onLevelRef = useRef(onLevel);
+  useEffect(() => {
+    onLevelRef.current = onLevel;
+  });
 
   useEffect(() => {
     if (!stream) {
-      setLevel(0);
-      prevLevelRef.current = 0;
+      onLevelRef.current(0);
       return;
     }
 
@@ -31,6 +38,8 @@ export function useAudioLevel(stream: MediaStream | null): number {
     source.connect(analyser);
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let prev = 0;
+    let frame = 0;
 
     function tick() {
       analyser.getByteFrequencyData(dataArray);
@@ -45,21 +54,38 @@ export function useAudioLevel(stream: MediaStream | null): number {
       const raw = sum / ((end - start) * 255); // normalize to 0-1
 
       // Lerp smoothing
-      const smoothed = prevLevelRef.current + SMOOTHING * (raw - prevLevelRef.current);
-      prevLevelRef.current = smoothed;
-      setLevel(smoothed);
+      prev = prev + SMOOTHING * (raw - prev);
+      onLevelRef.current(prev);
 
-      animFrameRef.current = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     }
 
-    animFrameRef.current = requestAnimationFrame(tick);
+    frame = requestAnimationFrame(tick);
 
     return () => {
-      cancelAnimationFrame(animFrameRef.current);
+      cancelAnimationFrame(frame);
       source.disconnect();
       audioContext.close().catch(() => {});
+      onLevelRef.current(0);
     };
   }, [stream]);
+}
 
+/** The voice level as state, for components that draw it with React. */
+export function useAudioLevel(stream: MediaStream | null): number {
+  const [level, setLevel] = useState(0);
+  useLevelLoop(stream, (next) => {
+    // Re-render only on a visible change, not on every frame.
+    setLevel((prev) => (next === 0 || Math.abs(next - prev) >= LEVEL_STEP ? next : prev));
+  });
   return level;
+}
+
+/** The voice level in a ref, for a canvas loop that reads it each frame without re-rendering. */
+export function useAudioLevelRef(stream: MediaStream | null): RefObject<number> {
+  const ref = useRef(0);
+  useLevelLoop(stream, (next) => {
+    ref.current = next;
+  });
+  return ref;
 }
