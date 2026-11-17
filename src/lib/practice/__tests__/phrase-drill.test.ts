@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   firstTryPercent,
+  saidWellPercent,
   initialPhraseState,
   PASS_SCORE,
   phraseDrillReducer as step,
@@ -113,5 +114,28 @@ describe('Frase por frase', () => {
 
   it('reports the share said well on the first try', () => {
     expect(firstTryPercent([{ tries: 1, passed: true, best: 90 }, { tries: 2, passed: true, best: 90 }, { tries: 1, passed: false, best: 50 }])).toBe(33);
+  });
+
+  it("the owner's drill (2026-11-17): 9 at once, 3 after 2, 3 and 5 tries, 1 skipped at 67 % is 12 of 13 said well", () => {
+    const results = [
+      ...Array.from({ length: 9 }, () => ({ tries: 1, passed: true, best: 90 })),
+      { tries: 2, passed: true, best: 88 },
+      { tries: 3, passed: true, best: 86 },
+      { tries: 5, passed: true, best: 85 },
+      { tries: 4, passed: false, best: 67 },
+    ];
+    expect(firstTryPercent(results)).toBe(69);
+    expect(saidWellPercent(results)).toBe(92);
+  });
+
+  it('a phrase skipped without trying, or below the bar, never counts as said well', () => {
+    expect(saidWellPercent([{ tries: 0, passed: false, best: 0 }, { tries: 3, passed: false, best: 84 }])).toBe(0);
+  });
+
+  it('repeating until it passes marks the phrase said well', () => {
+    const s = run(initialPhraseState(1), { type: 'start' }, played, { type: 'scored', score: 60 }, { type: 'replay' }, played, { type: 'scored', score: PASS_SCORE });
+    expect(s.results[0]).toMatchObject({ tries: 2, passed: true });
+    expect(saidWellPercent(s.results)).toBe(100);
+    expect(firstTryPercent(s.results)).toBe(0);
   });
 });

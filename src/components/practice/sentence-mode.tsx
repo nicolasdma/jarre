@@ -29,12 +29,14 @@ import { cn } from '@/lib/utils';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 import {
   firstTryPercent,
+  saidWellPercent,
   initialPhraseState,
   PASS_SCORE,
   phraseDrillReducer,
   practicePhrases,
   scorePhrase,
   type PhraseResult,
+  type SentencesResult,
 } from '@/lib/practice/phrase-drill';
 import { hasPhraseMarks } from '@/lib/practice/phrase-segments';
 import { wordsToPractice } from '@/lib/practice/pronunciation';
@@ -106,8 +108,8 @@ export function SentenceMode({
   drill: PracticeDrill;
   audio: DrillAudio;
   terms: readonly KeyTerm[];
-  /** At the end: % of phrases said well on the first try, or null without speech recognition. */
-  onFinished: (firstTry: number | null) => void;
+  /** At the end: % of phrases said well (any try) and on the first try, or null without speech recognition. */
+  onFinished: (result: SentencesResult | null) => void;
 }) {
   const phrases = useMemo(() => practicePhrases(drill.textEn), [drill.textEn]);
   const marked = hasPhraseMarks(drill.textEn);
@@ -254,7 +256,7 @@ export function SentenceMode({
     }
     if (reportedRef.current) return;
     reportedRef.current = true;
-    onFinishedRef.current(Ctor ? firstTryPercent(results) : null);
+    onFinishedRef.current(Ctor ? { saidWell: saidWellPercent(results), firstTry: firstTryPercent(results) } : null);
   }, [phase, results, Ctor]);
 
   // Stop everything when the mode goes away.
@@ -491,10 +493,11 @@ function Summary({
   onRestart: () => void;
 }) {
   const firstTry = results.filter((r) => r.passed && r.tries === 1).length;
+  const well = results.filter((r) => r.passed).length;
   return (
     <section className="space-y-4" data-testid="sentences-summary">
       <p className="text-base text-j-text">
-        {scored ? `${firstTry} de ${phrases.length} frases a la primera.` : `Terminaste las ${phrases.length} frases.`}
+        {scored ? `${well} de ${phrases.length} frases dichas bien · ${firstTry} a la primera.` : `Terminaste las ${phrases.length} frases.`}
       </p>
       {scored && (
         <ol className="space-y-2">

@@ -20,6 +20,7 @@ import { SentenceMode } from './sentence-mode';
 import { CopyMode, type CopyResult } from './copy-mode';
 import { useDrillAudio } from './use-drill-audio';
 import type { KeyTerm } from '@/lib/practice/key-terms';
+import type { SentencesResult } from '@/lib/practice/phrase-drill';
 import { DRILL_MODES, type DrillMode, type PracticeDrill } from './types';
 
 interface DrillTrainerProps {
@@ -53,7 +54,8 @@ export function bestLine(best: DrillBest | undefined): string | null {
   const parts: string[] = [];
   if (best.copy) parts.push(`copiar ${best.copy.score}%${best.copy.wpm ? ` · ${best.copy.wpm} wpm` : ''}`);
   if (best.repeat) parts.push(`repetir ${best.repeat.score}%`);
-  if (best.sentences) parts.push(`frases ${best.sentences.score}% a la primera`);
+  if (best.sentencesWell) parts.push(`frases ${best.sentencesWell.score}% bien${best.sentences ? ` · ${best.sentences.score}% a la primera` : ''}`);
+  else if (best.sentences) parts.push(`frases ${best.sentences.score}% a la primera`);
   else if (best.shadowed) parts.push(`frase por frase ×${best.shadowed}`);
   if (best.recall) parts.push(`pregunta ${best.recall.got}/${best.recall.tries} · repaso ${dueLabel(best.recall)}`);
   return parts.length ? parts.join(' · ') : null;
@@ -61,7 +63,7 @@ export function bestLine(best: DrillBest | undefined): string | null {
 
 /** A drill counts as practiced once any mode has a result. */
 export function isPracticed(best: DrillBest | undefined): boolean {
-  return !!best && !!(best.listened || best.copy || best.repeat || best.sentences || best.shadowed || best.recall);
+  return !!best && !!(best.listened || best.copy || best.repeat || best.sentences || best.sentencesWell || best.shadowed || best.recall);
 }
 
 export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position, onNextDue }: DrillTrainerProps) {
@@ -98,8 +100,11 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
   );
   const onRepeatScore = useCallback((score: number) => onScores(recordScore(resourceId, drill.slug, 'repeat', score)), [drill.slug, onScores, resourceId]);
   const onSentences = useCallback(
-    (firstTry: number | null) =>
-      onScores(firstTry === null ? recordShadowed(resourceId, drill.slug) : recordScore(resourceId, drill.slug, 'sentences', firstTry)),
+    (result: SentencesResult | null) => {
+      if (!result) return onScores(recordShadowed(resourceId, drill.slug));
+      recordScore(resourceId, drill.slug, 'sentences', result.firstTry);
+      onScores(recordScore(resourceId, drill.slug, 'sentencesWell', result.saidWell));
+    },
     [drill.slug, onScores, resourceId],
   );
   const onListened = useCallback(() => onScores(recordListened(resourceId, drill.slug)), [drill.slug, onScores, resourceId]);

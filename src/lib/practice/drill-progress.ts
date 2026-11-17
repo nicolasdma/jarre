@@ -16,9 +16,14 @@
  * - Copiar: typing accuracy ≥ 90 %.
  * - Repetir: % of the drill's words said, ≥ 80 %.
  * - Frase por frase: the % of phrases said well (≥ PASS_SCORE, 85, the app's
- *   "said well") on the first try, ≥ 80 %: at least four of every five phrases
- *   right at once. Without speech recognition the run is kept (`shadowed`) but
- *   never approves: nothing judged it.
+ *   "said well") in any try, ≥ 80 % (owner, 2026-11-17: "si repito y sale
+ *   bien, debe tomarla como bien"; 9 of 13 at once plus 3 after repeating is
+ *   12 of 13, approved). A phrase skipped below the bar does not count. Kept
+ *   as `sentencesWell`; `sentences`, the % on the first try, is informative
+ *   now, but a best kept before this rule had only that one and it still
+ *   approves at 80 % (it is never above the new one). Without speech
+ *   recognition the run is kept (`shadowed`) but never approves: nothing
+ *   judged it.
  * - Pregunta → respuesta: rated "La tenía" at least once.
  *
  * Only Escuchar and Frase por frase need audio; a drill with no recording and
@@ -48,8 +53,9 @@ export function isModeApproved(best: DrillBest | undefined, mode: DrillMode): bo
       return Boolean(best.listened);
     case 'copy':
     case 'repeat':
-    case 'sentences':
       return (best[mode]?.score ?? 0) >= APPROVAL_PERCENT[mode];
+    case 'sentences':
+      return Math.max(best.sentencesWell?.score ?? 0, best.sentences?.score ?? 0) >= APPROVAL_PERCENT.sentences;
     case 'recall':
       return (best.recall?.got ?? 0) > 0;
   }
@@ -69,7 +75,7 @@ export interface DrillProgress {
 export function drillProgress(best: DrillBest | undefined, modes: readonly DrillMode[]): DrillProgress {
   const approved = modes.filter((m) => isModeApproved(best, m));
   const started = Boolean(
-    best && (best.listened || best.copy || best.repeat || best.sentences || best.shadowed || best.recall),
+    best && (best.listened || best.copy || best.repeat || best.sentences || best.sentencesWell || best.shadowed || best.recall),
   );
   return { approved, done: approved.length, total: modes.length, complete: modes.length > 0 && approved.length === modes.length, started };
 }

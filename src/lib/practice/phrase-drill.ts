@@ -122,7 +122,21 @@ export function phraseDrillReducer(s: PhraseDrillState, e: PhraseEvent): PhraseD
   }
 }
 
-/** % of phrases said well on the first try. */
+/** What a scored run of Frase por frase leaves: both %, rounded. */
+export interface SentencesResult {
+  /** % of phrases said well (≥ PASS_SCORE) in any try: approves the mode. */
+  saidWell: number;
+  /** % said well on the first try: informative. */
+  firstTry: number;
+}
+
+/** % of phrases said well (≥ PASS_SCORE) in any try; a phrase skipped below the bar does not count. */
+export function saidWellPercent(results: readonly PhraseResult[]): number {
+  const well = results.filter((r) => r.passed).length;
+  return Math.round((well / Math.max(1, results.length)) * 100);
+}
+
+/** % of phrases said well on the first try: informative, it no longer approves. */
 export function firstTryPercent(results: readonly PhraseResult[]): number {
   const firstTry = results.filter((r) => r.passed && r.tries === 1).length;
   return Math.round((firstTry / Math.max(1, results.length)) * 100);

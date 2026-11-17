@@ -35,6 +35,21 @@ describe('approval per mode', () => {
     expect(isModeApproved({ shadowed: 4 }, 'sentences')).toBe(false);
   });
 
+  it("Frase por frase approves on phrases said well in any try: the owner's 9 at once, 12 of 13 well (92 %)", () => {
+    expect(isModeApproved({ sentences: { score: 69, at }, sentencesWell: { score: 92, at } }, 'sentences')).toBe(true);
+    expect(isModeApproved({ sentences: { score: 50, at }, sentencesWell: { score: 79, at } }, 'sentences')).toBe(false);
+  });
+
+  it('a best kept before the new rule (first try only) still approves at 80 %, and never goes down', () => {
+    expect(isModeApproved({ sentences: { score: 85, at } }, 'sentences')).toBe(true);
+    expect(isModeApproved({ sentences: { score: 85, at }, sentencesWell: { score: 70, at } }, 'sentences')).toBe(true);
+    expect(isModeApproved({ sentences: { score: 69, at } }, 'sentences')).toBe(false);
+  });
+
+  it('a run with only the new % counts as started', () => {
+    expect(drillProgress({ sentencesWell: { score: 40, at } }, ALL)).toMatchObject({ done: 0, started: true });
+  });
+
   it('Pregunta → respuesta approves with one "La tenía", even if a later try was worse', () => {
     expect(isModeApproved({ recall: recall('missed', 1) }, 'recall')).toBe(true);
     expect(isModeApproved({ recall: recall('partial', 0) }, 'recall')).toBe(false);

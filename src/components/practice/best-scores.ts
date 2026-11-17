@@ -7,8 +7,13 @@
 
 import { scheduleRecall, type RecallRating, type RecallRecord } from '@/lib/practice/recall';
 
-/** `sentences`: % of sentences said well on the first try (Frase por frase). */
-export type ScoredMode = 'copy' | 'repeat' | 'sentences';
+/**
+ * Frase por frase keeps two: `sentencesWell`, % of phrases said well in any
+ * try (what approves it, since 2026-11-17), and `sentences`, % said well on
+ * the first try (informative; before that date it was the only one kept, and
+ * it still counts as a floor: lib/practice/drill-progress.ts).
+ */
+export type ScoredMode = 'copy' | 'repeat' | 'sentences' | 'sentencesWell';
 
 export interface ModeBest {
   score: number;
