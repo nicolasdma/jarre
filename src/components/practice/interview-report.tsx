@@ -1,10 +1,12 @@
 'use client';
 
 /**
- * The written report after an interview mock (POST /api/interview/report):
- * a score per question, the misconceptions, what was not known by heart, key
- * terms that came out wrong, recurring English errors and three drills to
- * practice next. The spoken closing is short; this is what to study from.
+ * The written closing of an interview mock (POST /api/interview/report), the
+ * only feedback of the mock: the interviewer never evaluates on the call. On
+ * top a short summary; then, per question, what was right, what was missing
+ * against the key points and how to say it better; then the misconceptions,
+ * what was not known by heart, key terms that came out wrong, recurring
+ * English errors and three drills to practice next.
  */
 
 import { useEffect, useState } from 'react';
@@ -73,7 +75,7 @@ export function InterviewReport({ resourceId, personaId, depth, transcript, dril
   if (!report) {
     return (
       <p className="border border-j-border p-4 text-sm text-j-text-secondary" aria-live="polite" data-testid="interview-report">
-        Armando el reporte de la entrevista…
+        Armando el cierre de la entrevista…
       </p>
     );
   }
@@ -85,10 +87,50 @@ export function InterviewReport({ resourceId, personaId, depth, transcript, dril
     <div className="space-y-6 border border-j-border p-4" data-testid="interview-report">
       <div className="space-y-1">
         <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
-          Reporte{max ? ` · ${total}/${max}` : ''}
+          Cierre de la entrevista{max ? ` · ${total}/${max}` : ''}
         </p>
         {report.summary && <p className="text-sm leading-relaxed text-j-text">{report.summary}</p>}
       </div>
+
+      {report.questions.length > 0 && (
+        <Section title="Pregunta por pregunta">
+          <ol className="space-y-4">
+            {report.questions.map((q, i) => (
+              <li key={i} className="space-y-1 text-sm">
+                <p>
+                  <span
+                    className={cn(
+                      'mr-2 inline-block min-w-[84px] font-mono text-[10px] uppercase tracking-[0.12em]',
+                      q.score >= 3 ? 'text-j-accent' : q.score === 2 ? 'text-j-text-secondary' : 'text-red-600',
+                    )}
+                  >
+                    {q.score}/3 {SCORE_LABEL[q.score]}
+                  </span>
+                  <span className="font-medium text-j-text">{q.question}</span>
+                </p>
+                {q.good && (
+                  <p className="text-j-text-secondary">
+                    <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Bien</span>
+                    {q.good}
+                  </p>
+                )}
+                {q.missing.length > 0 && (
+                  <p className="text-j-text-secondary">
+                    <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Faltó</span>
+                    {q.missing.join(' · ')}
+                  </p>
+                )}
+                {q.better && (
+                  <p className="border-l-2 border-j-accent pl-2 text-j-text">
+                    <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Mejor así</span>
+                    {q.better}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )}
 
       {report.practice.length > 0 && (
         <Section title="Practicá ahora">
@@ -136,28 +178,6 @@ export function InterviewReport({ resourceId, personaId, depth, transcript, dril
                 </ul>
               </div>
             ))}
-        </Section>
-      )}
-
-      {report.questions.length > 0 && (
-        <Section title="Pregunta por pregunta">
-          <ul className="space-y-2">
-            {report.questions.map((q, i) => (
-              <li key={i} className="text-sm">
-                <span
-                  className={cn(
-                    'mr-2 inline-block min-w-[84px] font-mono text-[10px] uppercase tracking-[0.12em]',
-                    q.score >= 3 ? 'text-j-accent' : q.score === 2 ? 'text-j-text-secondary' : 'text-red-600',
-                  )}
-                >
-                  {q.score}/3 {SCORE_LABEL[q.score]}
-                </span>
-                <span className="text-j-text">{q.question}</span>
-                {q.verdict && <span className="block text-j-text-secondary">{q.verdict}</span>}
-                {q.missing.length > 0 && <span className="block text-xs text-j-text-tertiary">Faltó: {q.missing.join(' · ')}</span>}
-              </li>
-            ))}
-          </ul>
         </Section>
       )}
 

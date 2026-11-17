@@ -6,8 +6,8 @@
  * the mode:
  * - default (eval, practice, debate…): the end phrase after 15 s, or a
  *   farewell ("chau", "bye") after 30 s.
- * - interview: only the end phrase; the interviewer says goodbye before the
- *   final feedback, so a farewell is not the end.
+ * - interview: only the end phrase; the interviewer closes the call in
+ *   character (a goodbye) before saying it, so a farewell is not the end.
  * - learning: the learner decides, never the model. The owner (2026-11-11):
  *   the tutor cut him off mid-session with "Sesión completada": the model
  *   judged the ideas covered and said "session complete", and a passing

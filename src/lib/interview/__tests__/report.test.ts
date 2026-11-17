@@ -33,7 +33,7 @@ describe('interview report', () => {
     const report = parseInterviewReport(
       {
         summary: 'Bien.',
-        questions: [{ question: 'Six weeks?', score: '1', verdict: 'Solo la semana uno.' }],
+        questions: [{ question: 'Six weeks?', score: '1', good: 'La semana uno.' }],
         practice: [
           { drill: '00-plan', why: 'a' },
           { drill: 'made-up', why: 'b' },
@@ -44,8 +44,28 @@ describe('interview report', () => {
       new Set(drills.map((d) => d.slug)),
     );
     expect(report.questions[0].score).toBe(1);
+    expect(report.questions[0].good).toBe('La semana uno.');
+    expect(report.questions[0].missing).toEqual([]);
+    expect(report.questions[0].better).toBe('');
     expect(report.practice.map((p) => p.drill)).toEqual(['00-plan', '03-links']);
     expect(report.misconceptions).toEqual([]);
+  });
+
+  it('asks per question for what was right, what was missing and how to say it better, and checks the key terms', () => {
+    const { system, user } = buildInterviewReportMessages({
+      setup: resolveInterviewSetup({ ...config, key_terms: ['Valley of Guardians'] }),
+      drills,
+      sections: [],
+      transcript: [
+        { role: 'model', text: 'Walk me through the six weeks.' },
+        { role: 'user', text: 'Week one is the schema and then I am not sure.' },
+      ],
+    });
+    expect(system).toContain('"good":');
+    expect(system).toContain('"missing":');
+    expect(system).toContain('"better": "how to say it better');
+    expect(system).toContain('The interviewer gave no feedback during the call');
+    expect(user).toContain('KEY TERMS (check under "terms"): Valley of Guardians');
   });
 
   it('needs at least one real answer', () => {

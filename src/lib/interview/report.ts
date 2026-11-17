@@ -1,7 +1,10 @@
 /**
  * Interview mock: the written report shown after the call.
  *
- * The spoken closing is five sentences; this is the part to study from. It is
+ * It is the only feedback of the mock: the interviewer never evaluates out
+ * loud (owner, 2026-11-16: feedback at the end, as a closing, in writing). Per
+ * question it says what was right, what was missing against the key points
+ * and how to say it better; on top, a two or three line summary. It is
  * built from the transcript and the same answer key the interviewer used
  * (`questions` with key points and misconceptions, must-know lists checked
  * against their canonical drill), so a question scores against a list and not
@@ -34,8 +37,12 @@ export const InterviewReportSchema = z.object({
         question: z.string(),
         /** 0: wrong or missing, 1: weak, 2: right but incomplete, 3: complete. */
         score,
-        verdict: z.string().default(''),
+        /** What was right, one line in Spanish; empty when nothing was. */
+        good: z.string().default(''),
+        /** Key points of the answer key left out, short, English. */
         missing: z.array(z.string()).default([]),
+        /** How to say it better: the answer as it should sound on the call, English, one or two sentences. */
+        better: z.string().default(''),
       }),
     )
     .default([]),
@@ -80,7 +87,7 @@ export function buildInterviewReportMessages(params: {
 Return JSON only:
 {
  "summary": "2 or 3 sentences in rioplatense Spanish (vos), no em dash: how it went and the one thing to fix first",
- "questions": [{"question": "the interviewer's question, short, in English", "score": 0-3, "verdict": "one line in Spanish: what was right and what was wrong", "missing": ["key points left out, short, English"]}],
+ "questions": [{"question": "the interviewer's question, short, in English", "score": 0-3, "good": "one line in Spanish: the specific thing that was right (empty if nothing was)", "missing": ["key points of the answer key left out, short, English"], "better": "how to say it better: the answer as it should sound on the call, in English, one or two short spoken sentences with the missing key points and the right mechanism"}],
  "misconceptions": [{"said": "what the candidate claimed, quoted or close", "right": "the correct mechanism, one sentence, English"}],
  "must_know": [{"topic": "e.g. the six milestones", "missing": ["each item of the canonical answer they did not say"]}],
  "terms": [{"heard": "as it came out", "say": "the right name or term"}],
@@ -88,13 +95,15 @@ Return JSON only:
  "practice": [{"drill": "a drill slug from the list below", "why": "one line in Spanish"}]
 }
 Rules:
+- "questions": one entry per question the interviewer asked, follow-ups and curveballs included, in order. The interviewer gave no feedback during the call, so this is the first time the candidate learns how each answer went: be specific.
 - Score: 3 only when every key point is there and nothing is wrong; 2 right but incomplete; 1 weak or vague; 0 wrong or not answered. Never inflate.
+- "better": for a MUST KNOW question, the full canonical list in order, said as on the call.
 - "misconceptions": technical claims that contradict the key or the lesson, even said in passing. Not language mistakes.
 - "language": the 3 to 5 English errors that matter most, recurring ones first; quote only words they actually said.
 - "practice": exactly ${PRACTICE_MAX} drills, the ones that fix the biggest gaps, by slug from the list. Never invent a slug.`;
 
   const user = `INTERVIEWER: ${interviewer}, ${setup.persona.role}.
-${setup.context ? `SITUATION: ${setup.context}\n` : ''}
+${setup.context ? `SITUATION: ${setup.context}\n` : ''}${setup.keyTerms.length ? `KEY TERMS (check under "terms"): ${setup.keyTerms.join(', ')}\n` : ''}
 ANSWER KEY:
 ${answerKey(setup, drills)}
 

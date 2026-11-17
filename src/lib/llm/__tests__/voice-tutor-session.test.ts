@@ -46,12 +46,11 @@ describe('interview session', () => {
     const setup = resolveInterviewSetup(null, { personaId: 'worried-client', depth: 3 });
     const { instruction, language } = buildInterviewSession({ lesson, setup });
     expect(language).toBe('en');
-    expect(instruction).toContain(`you play ${setup.persona.name}`);
+    expect(instruction).toContain(`You play ${setup.persona.name}`);
     expect(instruction).toContain(setup.persona.pushback);
     expect(instruction).toContain('up to two follow-ups');
     expect(instruction).toContain('Not Centrobill specifically.');
     expect(instruction).toContain('interview complete');
-    expect(instruction).toContain('Feedback:');
   });
 
   const bank = {
@@ -70,26 +69,41 @@ describe('interview session', () => {
     ],
   };
 
-  it('judges against the answer key: key points, misconceptions, the canonical must-know answer and the key terms', () => {
+  it('judges silently against the answer key: key points, misconceptions and the canonical must-know answer', () => {
     const setup = resolveInterviewSetup(bank, { personaId: 'tough', depth: 2 });
     const { instruction } = buildInterviewSession({ lesson, setup, random: () => 0 });
     expect(instruction).toContain('each link expires 120 seconds after it is signed');
     expect(instruction).toContain('Catch these misconceptions: links expire every two minutes as a global timer');
     expect(instruction).toContain('MUST KNOW BY HEART');
     expect(instruction).toContain('The canonical answer, item by item: Week one is the schema.');
-    expect(instruction).toContain('Valley of Guardians, row-level security');
+    expect(instruction).toContain('in silence: it decides your next question, and you never say the result');
   });
 
-  it('orders feedback content first, calibrates praise and follows up on the candidate own words', () => {
+  it('only interviews, like a real call: no feedback, corrections or praise between questions, nor at the end', () => {
+    // The owner (2026-11-16): feedback in the middle of each question, no; at the end, in writing.
+    for (const depth of [1, 2, 3] as const) {
+      for (const personaId of ['tough', 'recruiter', 'expert']) {
+        const { instruction } = buildInterviewSession({ lesson, setup: resolveInterviewSetup(bank, { personaId, depth }), random: () => 0 });
+        expect(instruction).toContain('You never coach, correct or evaluate out loud');
+        expect(instruction).toContain('No feedback, no summary of how they did, no advice');
+        expect(instruction).toContain('the full feedback comes in writing at the end');
+        expect(instruction).not.toMatch(/starting with "Feedback:"|You didn't say \.\.\."|"you said \.\.\., say \.\.\."|Say X clearly|give the feedback|step out of character/);
+        const asksForFeedback = instruction
+          .split(/(?<=[.:])\s/)
+          .filter((s) => /feedback/i.test(s))
+          .filter((s) => !/no feedback|no "Feedback:"|feedback in writing|feedback comes in writing|asks for feedback/i.test(s));
+        expect(asksForFeedback).toEqual([]);
+      }
+    }
+  });
+
+  it('follows up on the candidate own words without revealing the answer', () => {
     const setup = resolveInterviewSetup(bank, { personaId: 'tough', depth: 2 });
     const { instruction } = buildInterviewSession({ lesson, setup, random: () => 0 });
-    const order = ['a. A misconception first', 'b. Then the most important key point', 'c. Then the name check', 'd. Then one or two English corrections'];
-    const at = order.map((x) => instruction.indexOf(x));
-    expect(at.every((i) => i > 0)).toBe(true);
-    expect([...at].sort((x, y) => x - y)).toEqual(at);
-    expect(instruction).toContain('never use "spot on"');
     expect(instruction).toContain('Decide in this order');
     expect(instruction).toContain("built on the candidate's OWN words");
+    expect(instruction).toContain('never as a correction');
+    expect(instruction).toContain('At most a short neutral acknowledgment');
     expect(instruction).toContain('Sorry, be specific');
   });
 

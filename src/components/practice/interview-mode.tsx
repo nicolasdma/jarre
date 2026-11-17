@@ -2,9 +2,11 @@
 
 /**
  * Interview mock: a voice session where the tutor plays an interviewer from
- * the lesson (persona + depth), asks one question at a time in English, and
- * after each answer gives short feedback (what worked, what was technically
- * off against the lesson, the 1-3 English corrections that matter).
+ * the lesson (persona + depth) and asks one question at a time in English,
+ * like a real call: no feedback during it. When the interview ends (the
+ * interviewer closes it, or Terminar), the written closing appears
+ * (InterviewReport): per question what was right, what was missing and how to
+ * say it better.
  *
  * Personas are data (src/lib/interview/personas.ts + the lesson's
  * `interview` block); the prompt is buildInterviewSession.
@@ -74,9 +76,9 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-j-text">Simulacro de entrevista</h1>
         <p className="text-sm text-j-text-secondary">
-          Te entrevistan en inglés sobre esta lección y te tiran preguntas que no preparaste. Después de cada respuesta,
-          el feedback va en orden: lo que no cierra técnicamente, lo que te faltó decir, un nombre que no se entendió y
-          una o dos correcciones de inglés. Si querés el feedback en castellano, pedilo.
+          Te entrevistan en inglés sobre esta lección y te tiran preguntas que no preparaste, como en una llamada real:
+          durante la entrevista no hay feedback. Al terminar (cuando cierra el entrevistador o tocás Terminar) aparece el
+          cierre por escrito: pregunta por pregunta, qué estuvo bien, qué faltó y cómo decirlo mejor.
         </p>
       </div>
 

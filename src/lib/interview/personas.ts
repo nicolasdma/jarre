@@ -201,7 +201,7 @@ export const INTERVIEW_DEPTHS: Record<
     blurb: 'Te corta si sos vago, va a los bordes y tira cuatro sorpresas.',
     questions: 12,
     curveballs: 4,
-    rule: 'Dig: after each answer, ask up to two follow-ups built on the candidate\'s own words that push on edge cases, failure modes or the "why", before moving to a new topic. If an answer is vague (no mechanism, no number, filler), cut in right away instead of giving feedback: "Sorry, be specific: ..." with the exact thing missing (how many seconds, who verifies it, which week); give the feedback for both answers after they answer that.',
+    rule: 'Dig: after each answer, ask up to two follow-ups built on the candidate\'s own words that push on edge cases, failure modes or the "why", before moving to a new topic. If an answer is vague (no mechanism, no number, filler), cut in right away: "Sorry, be specific: ..." with the exact thing missing (how many seconds, who verifies it, which week).',
   },
 };
 

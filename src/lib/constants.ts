@@ -155,7 +155,8 @@ export const TOKEN_BUDGETS = {
   REVIEW_FALLBACK: 300,
   QUIZ_JUSTIFY: 400,
   EXPLORATION_SUMMARY: 2000,
-  INTERVIEW_REPORT: 3000,
+  /** Per question: what was right, what was missing and how to say it better, up to 13 questions. */
+  INTERVIEW_REPORT: 5000,
   RECALL_EVAL: 400,
   INSIGHTS: 1000,
   EVAL_GENERATE: 2000,
