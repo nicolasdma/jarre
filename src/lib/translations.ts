@@ -241,7 +241,7 @@ const translations = {
   'learn.step.activate': { es: 'Portada', en: 'Cover' },
   'learn.step.learn': { es: 'Entender', en: 'Understand' },
   'learn.step.apply': { es: 'Playground', en: 'Playground' },
-  'learn.step.practiceEval': { es: 'Ensayar con el tutor', en: 'Rehearse with the tutor' },
+  'learn.step.practiceEval': { es: 'Ensayar', en: 'Rehearse' },
   'learn.step.evaluate': { es: 'Evaluación por voz', en: 'Voice evaluation' },
   'learn.step.interview': { es: 'Simulacro', en: 'Mock interview' },
   'learn.step.coding': { es: 'Simulacro con código', en: 'Live coding mock' },

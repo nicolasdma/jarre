@@ -114,10 +114,19 @@ interface LearnFlowProps {
 // ============================================================================
 
 /**
- * The steps in the lesson's navigation, in order. The cover ('activate') is not
- * one of them: it opens a new lesson and comes back from the lesson's title.
+ * A lesson is three stops: Entender ('learn'), Decirlo ('apply': the phrases,
+ * or the playground in a lesson without them) and Ensayar ('practice-eval').
+ * The cover ('activate') opens a new lesson and comes back from its title.
+ * Ensayar holds the ways to rehearse, each still its own step (so saved
+ * progress and links keep working): the voice tutor ('practice-eval', first),
+ * the mock ('interview', 'coding') and the voice evaluation ('evaluate').
  */
-const STEP_ORDER: Step[] = ['learn', 'apply', 'practice-eval', 'evaluate'];
+const REHEARSE_STEPS: readonly Step[] = ['practice-eval', 'interview', 'coding', 'evaluate'];
+
+/** The stop a step belongs to, for the navigation. */
+function stopOf(step: Step): Step {
+  return REHEARSE_STEPS.includes(step) ? 'practice-eval' : step;
+}
 
 const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   activate: { key: 'learn.step.activate' },
@@ -129,8 +138,6 @@ const STEP_LABELS: Record<Step, { key: Parameters<typeof t>[0] }> = {
   coding: { key: 'learn.step.coding' },
 };
 
-const STEP_ORDER_WITH_INTERVIEW: Step[] = [...STEP_ORDER, 'interview'];
-const STEP_ORDER_WITH_CODING: Step[] = [...STEP_ORDER_WITH_INTERVIEW, 'coding'];
 
 // Question type labels/colors (duplicated from reading-questions to avoid circular dependency)
 const Q_TYPE_LABELS: Record<string, string> = {
@@ -394,6 +401,100 @@ function startLabel(language: Language, resuming: boolean, part: number): string
   return `${resuming ? 'Continue' : 'Start'}: ${step}, part ${part}`;
 }
 
+/**
+ * Ensayar: the ways to rehearse, as options with one line each, the voice
+ * tutor first and marked as the one to start with. In a lesson with phrases
+ * the voice evaluation goes under "Más".
+ */
+function RehearseChooser({
+  language,
+  current,
+  options,
+  presentation,
+  onPick,
+}: {
+  language: Language;
+  current: Step;
+  options: Step[];
+  presentation: boolean;
+  onPick: (step: Step) => void;
+}) {
+  const es = language === 'es';
+  const withMock = options.includes('interview');
+  const copy: Partial<Record<Step, { title: string; line: string }>> = {
+    'practice-eval': {
+      title: es ? 'Con el tutor' : 'With the tutor',
+      line: es ? 'Te pregunta, te ayuda si te trabás y te corrige en el momento. Unos 7 minutos.' : 'Asks you, helps when you get stuck and corrects you right away. About 7 minutes.',
+    },
+    interview: {
+      title: presentation ? (es ? 'Simulacro de la presentación' : 'Rehearse the talk') : es ? 'Simulacro de la entrevista' : 'Mock interview',
+      line: presentation
+        ? es ? 'La presentás de corrido y después te hacen preguntas. Sin ayuda; al final, un informe escrito.' : 'You give it straight through, then questions. No help; a written report at the end.'
+        : es ? 'Preguntas que no preparaste, como en la llamada real. Sin ayuda; al final, un informe escrito.' : 'Questions you did not prepare, like the real call. No help; a written report at the end.',
+    },
+    coding: {
+      title: es ? 'Simulacro con código' : 'Live coding mock',
+      line: es ? 'La ronda entera: un problema, vos codeás y explicás, y el informe al final.' : 'The whole round: a problem, you code and explain, and the report at the end.',
+    },
+    evaluate: {
+      title: es ? 'Evaluación por voz' : 'Voice evaluation',
+      line: es ? 'Una charla corta para medir qué te quedó. Queda guardada. Unos 10 minutos.' : 'A short talk to measure what stayed with you. It is saved. About 10 minutes.',
+    },
+  };
+  // With phrases the evaluation is the extra; without them it is one of the two options.
+  const main = options.filter((o) => !(withMock && o === 'evaluate'));
+  const more = options.filter((o) => withMock && o === 'evaluate');
+
+  return (
+    <section aria-label={es ? 'Ensayar' : 'Rehearse'} data-testid="rehearse-chooser">
+      <SectionLabel className="mb-4">{es ? 'Ensayar' : 'Rehearse'}</SectionLabel>
+      <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={es ? 'Cómo ensayar' : 'How to rehearse'}>
+        {main.map((step, i) => {
+          const c = copy[step];
+          if (!c) return null;
+          const on = current === step;
+          return (
+            <button
+              key={step}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onPick(step)}
+              className={`min-h-[72px] border px-4 py-3 text-left transition-colors ${
+                on ? 'border-j-accent bg-j-accent-light' : 'border-j-border-input hover:border-j-accent'
+              }`}
+            >
+              <span className="flex items-baseline gap-2">
+                <span className="text-sm font-medium text-j-text">{c.title}</span>
+                {i === 0 && (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-j-warm">{es ? 'recomendado' : 'recommended'}</span>
+                )}
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-j-text-secondary">{c.line}</span>
+            </button>
+          );
+        })}
+      </div>
+      {more.length > 0 && (
+        <p className="mt-3 flex flex-wrap items-center gap-x-3 text-sm text-j-text-tertiary">
+          <span>{es ? 'Más:' : 'More:'}</span>
+          {more.map((step) => (
+            <button
+              key={step}
+              type="button"
+              onClick={() => onPick(step)}
+              aria-current={current === step ? 'true' : undefined}
+              className={`min-h-[44px] underline underline-offset-4 ${current === step ? 'text-j-accent' : 'text-j-text-secondary hover:text-j-text'}`}
+            >
+              {copy[step]?.title}
+            </button>
+          ))}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function LessonSummary({ title, summary, language }: { title: string; summary: ActivateSummary | null; language: Language }) {
   const parts = summary?.sections ?? [];
   return (
@@ -501,16 +602,22 @@ function LearnFlowInner({
   const practiceProgress = usePracticeProgress();
   const hasPractice = !!practice;
   const hasCoding = !!useCoding();
-  const steps = hasPractice ? (hasCoding ? STEP_ORDER_WITH_CODING : STEP_ORDER_WITH_INTERVIEW) : STEP_ORDER;
+  // The stops in the navigation; a lesson without phrases has Decirlo only when it has a playground.
+  const steps: Step[] = hasPractice || playgroundHref ? ['learn', 'apply', 'practice-eval'] : ['learn', 'practice-eval'];
+  // The ways to rehearse this lesson: the mock only with phrases, the coding round only with code.
+  const rehearseSteps: Step[] = hasPractice
+    ? ['practice-eval', 'interview', ...(hasCoding ? (['coding'] as Step[]) : []), 'evaluate']
+    : ['practice-eval', 'evaluate'];
+  const isLessonStep = (step: Step) => step !== 'activate' && (steps.includes(step) || rehearseSteps.includes(step));
   const [currentStep, setCurrentStep] = useState<Step>(() => {
-    if (linkedStep && (linkedStep === 'activate' || steps.includes(linkedStep))) return linkedStep;
+    if (linkedStep && (linkedStep === 'activate' || isLessonStep(linkedStep))) return linkedStep;
     const saved = (initialProgress?.currentStep as Step) ?? 'activate';
-    return saved === 'activate' || steps.includes(saved) ? saved : 'evaluate';
+    return saved === 'activate' || isLessonStep(saved) ? saved : 'practice-eval';
   });
   // Where "Seguir" on the cover goes: the last step worked on, none in a new lesson.
   const [lastStep, setLastStep] = useState<Step | null>(() => {
     const saved = initialProgress?.currentStep as Step | undefined;
-    return saved && saved !== 'activate' && steps.includes(saved) ? saved : null;
+    return saved && isLessonStep(saved) ? saved : null;
   });
   const [activeSection, setActiveSection] = useState(
     initialProgress?.activeSection ?? 0
@@ -683,6 +790,13 @@ function LearnFlowInner({
         : undefined,
     [hasPractice, language, isPresentation],
   );
+  // After the tutor: the mock in a lesson with phrases, the voice evaluation otherwise.
+  const afterTutor: Step = hasPractice ? 'interview' : 'evaluate';
+  const afterTutorLabel =
+    language === 'es'
+      ? `Siguiente: ${hasPractice ? 'simulacro' : 'evaluación por voz'}`
+      : `Next: ${hasPractice ? 'mock' : 'voice evaluation'}`;
+
   /** One line per step on the cover: how big it is and how far along. */
   const stepMeta = (step: Step): string => {
     const es = language === 'es';
@@ -698,7 +812,9 @@ function LearnFlowInner({
           ? `${practiceProgress.total} frases · ${practiceProgress.done} hechas`
           : `${practiceProgress.total} phrases · ${practiceProgress.done} done`;
       case 'practice-eval':
-        return es ? 'Te pregunta y te ayuda · unos 7 min' : 'Asks and helps you · about 7 min';
+        return hasPractice
+          ? es ? 'Con el tutor de voz, o un simulacro' : 'With the voice tutor, or a mock'
+          : es ? 'Con el tutor de voz, o una evaluación' : 'With the voice tutor, or an evaluation';
       case 'evaluate':
         return es ? 'Una charla corta para medir · unos 10 min' : 'A short talk to measure · about 10 min';
       case 'interview':
@@ -774,7 +890,7 @@ function LearnFlowInner({
       <StickyHeader
         language={language}
         resourceId={resourceId}
-        currentStep={currentStep}
+        currentStep={stopOf(currentStep)}
         resourceTitle={resourceTitle}
         activeSection={activeSection}
         sectionsCount={sections.length}
@@ -792,8 +908,8 @@ function LearnFlowInner({
           sections={sections}
           activeSection={activeSection}
           completedSections={completedSections}
-          currentStep={currentStep}
-          visitedSteps={visitedSteps}
+          currentStep={stopOf(currentStep)}
+          visitedSteps={new Set([...visitedSteps].map(stopOf))}
           steps={steps}
           stepLabels={stepLabels}
           stepNotes={stepNotes}
@@ -832,6 +948,19 @@ function LearnFlowInner({
         </div>
       )}
 
+      {/* ENSAYAR — the ways to rehearse, the tutor first; each opens below */}
+      {rehearseSteps.includes(currentStep) && (
+        <div className="max-w-3xl px-4 pt-12 sm:px-8 mx-auto lg:ml-[calc(50vw-274px)]">
+          <RehearseChooser
+            language={language}
+            current={currentStep}
+            options={rehearseSteps}
+            presentation={isPresentation}
+            onPick={changeStep}
+          />
+        </div>
+      )}
+
       {/* LIVE CODING — the timed mock with the voice interviewer; wide: editor, problem and guide side by side */}
       {currentStep === 'coding' && hasCoding && (
         <div className="px-4 sm:px-8 lg:pl-[220px] lg:pr-0">
@@ -854,7 +983,7 @@ function LearnFlowInner({
 
         {/* STEP 6: INTERVIEW — the mock call, last: everything learned, out loud, in English */}
         {currentStep === 'interview' && hasPractice && (
-          <div className="py-16">
+          <div className="pt-10 pb-16">
             <InterviewMode
               resourceId={resourceId}
               resourceTitle={resourceTitle}
@@ -865,22 +994,6 @@ function LearnFlowInner({
                 changeStep('apply');
               }}
             />
-            {hasCoding && (
-              <div className="mt-16 border-t border-j-border pt-12 text-center">
-                <p className="mx-auto mb-4 max-w-md text-sm text-j-text-secondary">
-                  {language === 'es'
-                    ? 'Después: la ronda entera con código. El entrevistador te presenta un problema, vos codeás y explicás, y al final, el informe escrito.'
-                    : 'Next: the whole round with code. The interviewer presents a problem, you code and explain, and a written scorecard at the end.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => changeStep('coding')}
-                  className="min-h-[44px] border border-j-border-input px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-accent hover:text-j-accent"
-                >
-                  {language === 'es' ? 'Siguiente: simulacro con código' : 'Next: live coding mock'} →
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -1057,13 +1170,14 @@ function LearnFlowInner({
 
         {/* STEP 4: PRACTICE EVAL — Voice guided practice (default) or text fallback */}
         {currentStep === 'practice-eval' && (
-          <div className="py-16">
+          <div className="pt-10 pb-16">
             {practiceMode === 'voice' ? (
               <VoicePracticeFlow
                 language={language}
                 resourceId={resourceId}
                 concepts={concepts}
-                onComplete={() => changeStep('evaluate')}
+                onComplete={() => changeStep(afterTutor)}
+                nextLabel={afterTutorLabel}
                 onSwitchToText={() => setPracticeMode('text')}
                 onReviewMaterial={() => changeStep('learn')}
                 lastPracticeResult={lastPracticeResult}
@@ -1089,7 +1203,7 @@ function LearnFlowInner({
                     setPracticeEvalState(next);
                     saveLearnProgress(resourceId, buildProgress({ practiceEval: next }));
                   }}
-                  onComplete={() => changeStep('evaluate')}
+                  onComplete={() => changeStep(afterTutor)}
                 />
               </>
             )}
@@ -1098,7 +1212,7 @@ function LearnFlowInner({
 
         {/* STEP 5: EVALUATE — Voice evaluation (default) or text fallback */}
         {currentStep === 'evaluate' && (
-          <div className="py-16">
+          <div className="pt-10 pb-16">
             {evalMode === 'voice' ? (
               <VoiceEvaluationFlow
                 resource={{ id: resourceId, title: resourceTitle, type: resourceType }}
@@ -1116,27 +1230,6 @@ function LearnFlowInner({
                 language={language}
                 onCancel={() => changeStep('practice-eval')}
               />
-            )}
-            {/* The way on to the mock, quiet: the evaluation's own button is this screen's only primary. */}
-            {hasPractice && (
-              <div className="mt-16 border-t border-j-border pt-10 text-center">
-                <p className="mx-auto mb-4 max-w-md text-sm text-j-text-secondary">
-                  {isPresentation
-                    ? language === 'es'
-                      ? 'Después: el simulacro de la presentación, en inglés. La presentás de corrido, te hacen preguntas y al final te llega un informe escrito.'
-                      : 'Next: the rehearsal of the talk, in English. You give it whole, you get questions, and a written report at the end.'
-                    : language === 'es'
-                      ? 'Después: el simulacro de la llamada, en inglés. Preguntas que no preparaste, repreguntas sobre lo que digas y un informe escrito al final.'
-                      : 'Next: the mock call, in English. Questions you did not prepare, follow-ups on what you say, and a written report at the end.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => changeStep('interview')}
-                  className="min-h-[44px] border border-j-border-input px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-accent hover:text-j-accent"
-                >
-                  {language === 'es' ? 'Siguiente: simulacro' : isPresentation ? 'Next: rehearsal' : 'Next: mock interview'} →
-                </button>
-              </div>
             )}
           </div>
         )}
