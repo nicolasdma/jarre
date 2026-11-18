@@ -12,7 +12,7 @@ interface PageProps {
 
 export const metadata: Metadata = {
   title: 'Feed — Jarre',
-  description: 'Un feed de repaso del material de la lección.',
+  description: 'Un feed con lo de la lección.',
   robots: { index: false, follow: false },
 };
 

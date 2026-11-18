@@ -31,9 +31,7 @@ export type FeedPostKind =
   /** A code fragment: predict its Big-O, or just read the answer. */
   | 'complexity'
   /** A code snippet with one line of what it does. */
-  | 'code'
-  /** An honest, calm progress reminder (never a stop, never a streak). */
-  | 'milestone';
+  | 'code';
 
 /**
  * How the post invites participation. ALWAYS optional: you can keep scrolling.
@@ -65,14 +63,12 @@ export interface PostProfile {
   novelty: Novelty;
 }
 
-export type MilestoneKind = 'covered' | 'resurfacing' | 'patterns';
-
 export interface FeedPost {
   /** Stable React key: kind + ids + pass, unique across the infinite stream. */
   key: string;
   kind: FeedPostKind;
-  /** The lesson concept this post is about; null only for cross-cutting milestones. */
-  conceptId: string | null;
+  /** The lesson concept this post is about. */
+  conceptId: string;
   profile: PostProfile;
   /** Which palette (encoding variety); rotates, and changes on re-surface. */
   paletteIndex: number;
@@ -89,8 +85,6 @@ export interface FeedPost {
   complexityId?: string;
   /** code: the coding problem id. */
   codeId?: string;
-  /** milestone: which reminder. */
-  milestone?: MilestoneKind;
 }
 
 /** Whether a post offers a real recall beat (for the generator's minority accounting and tests). */

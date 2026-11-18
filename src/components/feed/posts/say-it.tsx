@@ -81,7 +81,7 @@ export function SayIt({ post, active, reducedMotion }: { post: FeedPost; active:
   const { graph, accounts, controller, audioUrl } = useFeedContext();
   const drill = post.drillSlug ? graph.drills[post.drillSlug] : undefined;
   const ask = post.drillSlug ? graph.asks[post.drillSlug] : undefined;
-  const account = post.conceptId ? accounts[post.conceptId] ?? null : null;
+  const account = accounts[post.conceptId] ?? null;
   const [state, dispatch] = useReducer(recallReducer, undefined, () => initialRecallState());
   const [now, setNow] = useState(() => Date.now());
   const [rated, setRated] = useState<RecallRating | null>(null);

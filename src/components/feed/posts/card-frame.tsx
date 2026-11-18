@@ -228,7 +228,7 @@ function MetaLine({ post }: { post: FeedPost }) {
       ? 'Nuevo en tu feed'
       : post.pass > 0
         ? `Vuelve · ${post.pass + 1}ª vez`
-        : 'Repaso';
+        : 'Vuelve';
   return (
     <p className="px-4 pb-4 pt-1.5 text-[11px] uppercase tracking-[0.06em] text-neutral-500 dark:text-neutral-400">{text}</p>
   );
@@ -244,11 +244,8 @@ export function CardFrame({
   active,
   reducedMotion,
   label,
-  compact = false,
 }: {
   post: FeedPost;
-  /** A short card: no action row and no meta line (the progress card). */
-  compact?: boolean;
   /** What this post is: "Concepto", "Quiz", "Big-O"… shown under the handle. */
   kindLabel: string;
   /** Optional participation note on the right of the header ("tocá si querés"). */
@@ -262,7 +259,7 @@ export function CardFrame({
   label: string;
 }) {
   const { accounts } = useFeedContext();
-  const account = post.conceptId ? accounts[post.conceptId] ?? null : null;
+  const account = accounts[post.conceptId] ?? null;
   return (
     <article
       aria-label={label}
@@ -297,9 +294,9 @@ export function CardFrame({
         )}
       </header>
       {media}
-      {!compact && <CardActions post={post} spec={actions} />}
+      <CardActions post={post} spec={actions} />
       {caption}
-      {compact ? <div className="h-1" /> : <MetaLine post={post} />}
+      <MetaLine post={post} />
     </article>
   );
 }

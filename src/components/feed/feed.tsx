@@ -52,7 +52,6 @@ import { useFeedAudio, useFeedAudioStatus } from './use-feed-audio';
 import { FeedContext, type FeedContextValue } from './feed-context';
 import { createSavedStore, type SavedStore } from './feed-saved';
 import { PostCard, feedAudioSrc } from './posts/post-card';
-import type { FeedStats } from './posts/milestone';
 import { TopicStories } from './topic-stories';
 import { lessonHasCodeTabs } from '@/lib/lessons/code-tabs';
 import { warmCodeVariants } from './use-code-variants';
@@ -342,11 +341,6 @@ export function Feed({
     return () => window.removeEventListener('keydown', onKey);
   }, [feed, activeIndex, scrollToIndex, controller, status.hasAudio]);
 
-  const stats: FeedStats = useMemo(
-    () => ({ covered: seen.size, total: graph.concepts.length, due: learnerRef.current.dueConceptIds?.length ?? 0 }),
-    [seen, graph.concepts.length],
-  );
-
   const ctx: FeedContextValue = useMemo(
     () => ({ graph, accounts, controller, saved, audioUrl }),
     [graph, accounts, controller, saved, audioUrl],
@@ -368,7 +362,7 @@ export function Feed({
               <ChevronLeft size={20} /> Lección
             </Link>
             <div className="min-w-0 flex-1 text-center">
-              <p className="font-[family-name:var(--font-serif-display)] text-[26px] leading-none">repaso</p>
+              <p className="font-[family-name:var(--font-serif-display)] text-[26px] leading-none">feed</p>
             </div>
             <button
               type="button"
@@ -392,7 +386,7 @@ export function Feed({
             {!feed ? (
               <p className="py-24 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500">Armando tu feed…</p>
             ) : (
-              <div role="feed" aria-label="Feed de repaso" aria-busy={false} className="mt-3 flex flex-col sm:mt-4">
+              <div role="feed" aria-label="Feed" aria-busy={false} className="mt-3 flex flex-col sm:mt-4">
                 {feed.base > 0 && (
                   <div ref={spacerRef} aria-hidden data-index={feed.base - 1} style={{ height: feed.spacer }} />
                 )}
@@ -416,7 +410,7 @@ export function Feed({
                       className="scroll-mt-16 pb-3.5 sm:pb-5"
                       style={near ? undefined : { height: heights.current.get(post.key) ?? PLACEHOLDER_HEIGHT }}
                     >
-                      {near ? <PostCard post={post} active={index === activeIndex} reducedMotion={reducedMotion} stats={stats} /> : null}
+                      {near ? <PostCard post={post} active={index === activeIndex} reducedMotion={reducedMotion} /> : null}
                     </div>
                   );
                 })}

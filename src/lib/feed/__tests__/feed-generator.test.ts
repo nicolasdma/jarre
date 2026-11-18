@@ -247,7 +247,6 @@ describe('feed generator: every id points at real lesson data (projection only)'
       if (p.complexityId) expect(g.complexity[p.complexityId]).toBeTruthy();
       if (p.codeId) expect(g.code[p.codeId]).toBeTruthy();
       if (p.drillSlug) expect(g.drills[p.drillSlug]).toBeTruthy();
-      if (p.kind === 'milestone') expect(p.milestone).toBeTruthy();
     }
   });
 });

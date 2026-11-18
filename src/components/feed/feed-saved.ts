@@ -14,8 +14,8 @@ const PREFIX = 'jarre-feed-saved:';
 
 /** What a post is about, independent of when it shows up in the stream. */
 export function savedId(post: FeedPost): string {
-  const asset = post.quizId ?? post.cardId ?? post.complexityId ?? post.codeId ?? post.drillSlug ?? post.milestone ?? '';
-  return `${post.kind}:${post.conceptId ?? 'x'}:${asset}`;
+  const asset = post.quizId ?? post.cardId ?? post.complexityId ?? post.codeId ?? post.drillSlug ?? '';
+  return `${post.kind}:${post.conceptId}:${asset}`;
 }
 
 export interface SavedStore {

@@ -34,7 +34,6 @@ import {
   type Energy,
   type FeedPost,
   type FeedPostKind,
-  type MilestoneKind,
   type Participation,
   type PostProfile,
   type TeachingDensity,
@@ -121,9 +120,6 @@ const NEW_FORCE_AFTER = 3;
 const RESURFACE_GAPS = [4, 8, 13, 19, 26];
 /** Weak-concept priority: how much strength 0 pulls a re-surface forward. */
 const WEAKNESS_BOOST = 6;
-/** A calm progress reminder about this often; never a stop. */
-const MILESTONE_EVERY = 12;
-const MILESTONE_MIN_INDEX = 8;
 
 const VISUALS: VisualVibe[] = ['polished', 'plain', 'raw'];
 /** How many recent posts an asset (a quiz, a card…) must wait before showing again. */
@@ -181,14 +177,13 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   let introducedCount = 0;
   let sinceActive = ACTIVE_SPACING; // allow an early active once material exists
   let sinceNew = NEW_FORCE_AFTER; // allow an intro immediately
-  let sinceMilestone = 0;
   const recentKinds: FeedPostKind[] = [];
   const recentParticipation: Participation[] = [];
   const recentEnergy: Energy[] = [];
   /** Assets shown lately (quiz/card/Big-O/code/say-it ids): not shown again this soon. */
   const recentAssets: string[] = [];
   /** Concepts of the last posts: a re-surface prefers another account. */
-  const recentConcepts: (string | null)[] = [];
+  const recentConcepts: string[] = [];
 
   function note<T>(list: T[], value: T, keep = 3): void {
     list.push(value);
@@ -251,7 +246,7 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
     const weights: Record<Energy, number> =
       kind === 'say-it' || kind === 'predict'
         ? { calm: 0.2, lively: 0.4, stimulating: 0.4 }
-        : kind === 'milestone' || kind === 'nugget'
+        : kind === 'nugget'
           ? { calm: 0.55, lively: 0.35, stimulating: 0.1 }
           : { calm: 0.35, lively: 0.45, stimulating: 0.2 };
     // Avoid three identical energies in a row.
@@ -263,7 +258,6 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
 
   function visualFor(kind: FeedPostKind, paletteIndex: number): VisualVibe {
     if (kind === 'code' || kind === 'complexity') return rng() < 0.5 ? 'raw' : 'plain';
-    if (kind === 'milestone') return 'plain';
     // Polished and plain alternate with the palette so the feed does not drone.
     const weights: Record<VisualVibe, number> = paletteIndex % 2 === 0
       ? { polished: 0.6, plain: 0.3, raw: 0.1 }
@@ -292,7 +286,7 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
 
   function emit(raw: Omit<FeedPost, 'key'>): FeedPost {
     const post = vary(raw);
-    const key = `${index}-${post.kind}-${post.conceptId ?? 'x'}-${post.pass}`;
+    const key = `${index}-${post.kind}-${post.conceptId}-${post.pass}`;
     note(recentKinds, post.kind);
     note(recentParticipation, post.profile.participation);
     note(recentEnergy, post.profile.energy);
@@ -308,18 +302,8 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
     } else {
       sinceNew++;
     }
-    sinceMilestone++;
     index++;
     return { ...post, key };
-  }
-
-  function milestone(): FeedPost {
-    const kind: MilestoneKind = (['covered', 'resurfacing', 'patterns'] as const)[
-      Math.floor((index / MILESTONE_EVERY)) % 3
-    ];
-    sinceMilestone = 0;
-    const profile: PostProfile = { participation: 'passive', energy: 'calm', visual: 'plain', density: 'light', novelty: 'resurface' };
-    return emit({ kind: 'milestone', conceptId: null, profile, paletteIndex: index % PALETTE_COUNT, pass: 0, milestone: kind });
   }
 
   function markSeen(c: FeedConceptAssets): { pass: number; times: number } {
@@ -352,11 +336,6 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   }
 
   function next(): FeedPost {
-    // Occasional calm progress reminder (never a stop).
-    if (index >= MILESTONE_MIN_INDEX && sinceMilestone >= MILESTONE_EVERY && introducedCount > 0) {
-      return milestone();
-    }
-
     // Coverage: if the pool is empty, or we have not introduced anyone in a
     // while, introduce the next new concept as a calm nugget.
     const mustIntroduce =

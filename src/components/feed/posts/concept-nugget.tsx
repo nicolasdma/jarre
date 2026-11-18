@@ -183,7 +183,7 @@ export function ConceptNugget({ post, active, reducedMotion }: { post: FeedPost;
       active={active}
       reducedMotion={reducedMotion}
       label={`${title}: concepto`}
-      kindLabel={post.profile.novelty === 'new' ? 'Concepto nuevo' : 'Concepto · repaso'}
+      kindLabel={post.profile.novelty === 'new' ? 'Concepto nuevo' : 'Concepto'}
       hint={participationHint(post)}
       media={media}
       actions={{ audioSrc: audio, onRepeat: repeat, lessonHref: lessonHrefFor(graph.resourceId, post) }}

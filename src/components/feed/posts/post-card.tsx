@@ -9,18 +9,15 @@ import { PredictReveal } from './predict-reveal';
 import { SayIt } from './say-it';
 import { Complexity } from './complexity';
 import { CodeSnippet } from './code-snippet';
-import { Milestone, type FeedStats } from './milestone';
 
 export function PostCard({
   post,
   active,
   reducedMotion,
-  stats,
 }: {
   post: FeedPost;
   active: boolean;
   reducedMotion: boolean;
-  stats: FeedStats;
 }) {
   switch (post.kind) {
     case 'nugget':
@@ -35,8 +32,6 @@ export function PostCard({
       return <Complexity post={post} active={active} reducedMotion={reducedMotion} />;
     case 'code':
       return <CodeSnippet post={post} active={active} reducedMotion={reducedMotion} />;
-    case 'milestone':
-      return <Milestone post={post} stats={stats} active={active} reducedMotion={reducedMotion} />;
     default:
       return null;
   }
