@@ -5,6 +5,7 @@ import { TABLES } from '@/lib/db/tables';
 import { fetchPracticeDrills } from '@/lib/lessons/drills';
 import { buildFeedGraph, type GraphCardRow, type GraphConceptRow, type GraphQuizRow } from '@/lib/feed/feed-graph';
 import { Feed } from '@/components/feed/feed';
+import { lessonVideos } from '@/lib/feed/lesson-videos';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -117,6 +118,7 @@ export default async function FeedPage({ params }: PageProps) {
     })
     .filter((c) => c.prompt && c.answer);
 
+  const day = new Date().toISOString().slice(0, 10);
   const graph = buildFeedGraph({
     resourceId,
     concepts,
@@ -124,6 +126,7 @@ export default async function FeedPage({ params }: PageProps) {
     cards,
     drills,
     interview: (resource as Record<string, unknown>).interview ?? null,
+    videos: lessonVideos(resourceId, day),
   });
 
   if (graph.concepts.length === 0) {
@@ -134,6 +137,5 @@ export default async function FeedPage({ params }: PageProps) {
     );
   }
 
-  const day = new Date().toISOString().slice(0, 10);
   return <Feed graph={graph} day={day} resignAudio />;
 }

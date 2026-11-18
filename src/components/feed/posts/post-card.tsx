@@ -9,6 +9,7 @@ import { PredictReveal } from './predict-reveal';
 import { SayIt } from './say-it';
 import { Complexity } from './complexity';
 import { CodeSnippet } from './code-snippet';
+import { VideoPost } from './video-post';
 
 export function PostCard({
   post,
@@ -32,6 +33,8 @@ export function PostCard({
       return <Complexity post={post} active={active} reducedMotion={reducedMotion} />;
     case 'code':
       return <CodeSnippet post={post} active={active} reducedMotion={reducedMotion} />;
+    case 'video':
+      return <VideoPost post={post} active={active} reducedMotion={reducedMotion} />;
     default:
       return null;
   }

@@ -1,0 +1,3560 @@
+{
+ "lessonId": "3y-health-tecnica-v2",
+ "builtAt": "2026-11-18T19:28:39.802Z",
+ "videos": [
+  {
+   "videoId": "BgLTDT03QtU",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Big-O Notation - For Coding Interviews",
+   "durationSec": 1238,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.89,
+   "fetchedAt": "2026-11-18",
+   "id": "BgLTDT03QtU",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "0oDAlMwTrLo",
+   "channel": "Back To Back SWE",
+   "channelId": "UCmJz2DV1a3yfgrR7GqRtUUA",
+   "title": "Asymptotic Notations 101: Big O, Big Omega, & Theta (Asymptotic Analysis Bootcamp)",
+   "durationSec": 1396,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.89,
+   "fetchedAt": "2026-11-18",
+   "id": "0oDAlMwTrLo",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "GQCJoKttQek",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Big O Complexity Ranking for Algorithms!",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.87,
+   "fetchedAt": "2026-11-18",
+   "id": "GQCJoKttQek",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "f0SNsSSBVW4",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Big O Complexity Ranking for Algorithms!",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.85,
+   "fetchedAt": "2026-11-18",
+   "id": "f0SNsSSBVW4",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "_Sb5peEGnhU",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Merry Christmas - This Function is Big O(n).",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "_Sb5peEGnhU",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "WbF2bLbAUik",
+   "channel": "Fireship",
+   "channelId": "UCsBjURrPoezykLs9EqgamOA",
+   "title": "Big O explained with a deck of cards",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "WbF2bLbAUik",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "fS2LpZlEfCI",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Time Complexity - Big O(n) vs O(2n) vs O(n^2)",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "fS2LpZlEfCI",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "rv_ZacJYRFA",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Big-O Notation - Everything you Need for Coding Interviews",
+   "durationSec": 880,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "rv_ZacJYRFA",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "HEN9bHOjBT8",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Big O Complexity Tricks",
+   "durationSec": 57,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "HEN9bHOjBT8",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "AsXvviTI47I",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Big Omega vs Big Theta vs Big O in Time Complexity",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "AsXvviTI47I",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "waPQP2TDOGE",
+   "channel": "Back To Back SWE",
+   "channelId": "UCmJz2DV1a3yfgrR7GqRtUUA",
+   "title": "The Ultimate Big O Notation Tutorial (Time & Space Complexity For Algorithms)",
+   "durationSec": 1040,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "waPQP2TDOGE",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "g2o22C3CRfU",
+   "channel": "Fireship",
+   "channelId": "UCsBjURrPoezykLs9EqgamOA",
+   "title": "Big-O Notation in 100 Seconds",
+   "durationSec": 100,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "g2o22C3CRfU",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "XMUe3zFhM5c",
+   "channel": "Bro Code",
+   "channelId": "UC4SVo0Ue36XCfOyb5Lh1viQ",
+   "title": "Learn Big O notation in 6 minutes 📈",
+   "durationSec": 385,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "XMUe3zFhM5c",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "Q_1M2JaijjQ",
+   "channel": "Reducible",
+   "channelId": "UCK8XIGR5kRidIw2fWqwyHRA",
+   "title": "What Is Big O Notation?",
+   "durationSec": 1065,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "Q_1M2JaijjQ",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "TnTu1QWaWc0",
+   "channel": "Nate Gentile",
+   "channelId": "UC36xmz34q02JYaZYKrMwXng",
+   "title": "¿Cómo piensa tu PC? Algoritmos de ordenación y complejidad temporal (Big O) explicados",
+   "durationSec": 1336,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.64,
+   "fetchedAt": "2026-11-18",
+   "id": "TnTu1QWaWc0",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "MyAiCtuhiqQ",
+   "channel": "Chio Code",
+   "channelId": "UCjhbs3YjA7CPUw0-Dgb3f2A",
+   "title": "Notación Big O | Análisis de algoritmos de forma sencilla",
+   "durationSec": 753,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.61,
+   "fetchedAt": "2026-11-18",
+   "id": "MyAiCtuhiqQ",
+   "conceptIds": [
+    "3yt-v2-big-o"
+   ]
+  },
+  {
+   "videoId": "JBm5OXbReQE",
+   "channel": "Victor Sanz",
+   "channelId": "UCysMbdMKB0HWV2eXwX1keAQ",
+   "title": "Complejidad Computacional 101: Big O, Búsqueda Lineal y Búsqueda Binaria",
+   "durationSec": 579,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.5,
+   "fetchedAt": "2026-11-18",
+   "id": "JBm5OXbReQE",
+   "conceptIds": [
+    "3yt-v2-big-o",
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "8AfFsAwhwCQ",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Noob Recursive Backtracker vs Dynamic Programming Tabulator",
+   "durationSec": 55,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.88,
+   "fetchedAt": "2026-11-18",
+   "id": "8AfFsAwhwCQ",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "4Ixo2GZXSdY",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "4 Steps To Solve Dynamic Programming Problems",
+   "durationSec": 58,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "4Ixo2GZXSdY",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "vsswMwh-LMM",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Google Dynamic Programming Problem - Coin Change - Leetcode 322",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "vsswMwh-LMM",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "xtNlTSabJPw",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Memoization Technique in Dynamic Programming (DP)",
+   "durationSec": 55,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "xtNlTSabJPw",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "zeXHAROIK88",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Learning Dynamic Programming Has Never Been Easier...",
+   "durationSec": 55,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "zeXHAROIK88",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "yUgm0GtZOX4",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Top Down vs Bottom Up Dynamic Programming!",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "yUgm0GtZOX4",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "_i4Yxeh5ceQ",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Dynamic Programming 1D - Full Course - Python",
+   "durationSec": 10759,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "_i4Yxeh5ceQ@5828",
+   "start": 5828,
+   "end": 6548,
+   "chapter": "Coin Change",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "H9bfqozjoqs",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Coin Change - Dynamic Programming Bottom Up - Leetcode 322",
+   "durationSec": 1163,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "H9bfqozjoqs",
+   "start": 185,
+   "end": 640,
+   "chapter": "DFS Solution",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "vYquumk4nWw",
+   "channel": "CS Dojo",
+   "channelId": "UCxX9wt5FWQUAAz4UrysqK9A",
+   "title": "What Is Dynamic Programming and How To Use It",
+   "durationSec": 868,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "vYquumk4nWw",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "1R0_7HqNaW0",
+   "channel": "Kevin Naughton Jr.",
+   "channelId": "UCKvwPt6BifPP54yzH99ff1g",
+   "title": "Coin Change",
+   "durationSec": 616,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "1R0_7HqNaW0",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "aPQY__2H3tE",
+   "channel": "Reducible",
+   "channelId": "UCK8XIGR5kRidIw2fWqwyHRA",
+   "title": "5 Simple Steps for Solving Dynamic Programming Problems",
+   "durationSec": 1287,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "aPQY__2H3tE",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "piAlsJySUGE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Dynamic Programming - Top Down Memoization & Bottom Up Tabulation - DSA Course in Python Lecture 15",
+   "durationSec": 1241,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "piAlsJySUGE",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "VwylCVAVdmo",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Equal Average Partition Dynamic Programming",
+   "durationSec": 1134,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.73,
+   "fetchedAt": "2026-11-18",
+   "id": "VwylCVAVdmo",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "koE9ly1CFDc",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Coin Change - Leetcode 322 - Dynamic Programming (Python)",
+   "durationSec": 927,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.71,
+   "fetchedAt": "2026-11-18",
+   "id": "koE9ly1CFDc",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "C240g6_Dsl4",
+   "channel": "BettaTech",
+   "channelId": "UCSf6S_PAhXsqGMTPDiKgdRg",
+   "title": "¿En qué consiste REALMENTE la PROGRAMACIÓN DINÁMICA?",
+   "durationSec": 800,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.59,
+   "fetchedAt": "2026-11-18",
+   "id": "C240g6_Dsl4",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "e5zaZEfHsIs",
+   "channel": "Chio Code",
+   "channelId": "UCjhbs3YjA7CPUw0-Dgb3f2A",
+   "title": "Programación Dinámica | Memoización | Explicado Paso a Paso",
+   "durationSec": 1129,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.57,
+   "fetchedAt": "2026-11-18",
+   "id": "e5zaZEfHsIs",
+   "conceptIds": [
+    "3yt-v2-coin-change"
+   ]
+  },
+  {
+   "videoId": "TsDJN0KjNDY",
+   "channel": "Keerti Purswani",
+   "channelId": "UCqPw78XvJUKtGiq3TzAcwJQ",
+   "title": "Edge Cases for Questions involving numbers | Handle Corner Cases 😇😇 ⏱️⌛ Learn in a min ⏱️⌛ #Shorts",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.53,
+   "fetchedAt": "2026-11-18",
+   "id": "TsDJN0KjNDY",
+   "conceptIds": [
+    "3yt-v2-debug-remaining-units"
+   ]
+  },
+  {
+   "videoId": "d1vGQ7HohEg",
+   "channel": "Bear Liu",
+   "channelId": "UCyKwn6o-yUgQsWQldR8xEZQ",
+   "title": "What Are Edge Cases in UX Design? Explained with Examples",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.38,
+   "fetchedAt": "2026-11-18",
+   "id": "d1vGQ7HohEg",
+   "conceptIds": [
+    "3yt-v2-debug-remaining-units"
+   ]
+  },
+  {
+   "videoId": "elTT2HHFVOQ",
+   "channel": "CodeArc",
+   "channelId": "UCiCP5m_9rivGVJw-hpAZ_Xw",
+   "title": "Tropological Sorting Step by step dry run | Leetcode | CodeArc",
+   "durationSec": 37,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.31,
+   "fetchedAt": "2026-11-18",
+   "id": "elTT2HHFVOQ",
+   "conceptIds": [
+    "3yt-v2-debug-remaining-units"
+   ]
+  },
+  {
+   "videoId": "3hbL0nakyVM",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Amazon Interview Question - Group Anagrams",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "3hbL0nakyVM",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "UK_I7y5Xwow",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Amazon Coding Interview Question - Group Anagrams - Leetcode 49",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "UK_I7y5Xwow",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "lBCt1x-vOww",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Group Anagrams - Leetcode 49",
+   "durationSec": 48,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "lBCt1x-vOww",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "sUsGcnGqEIE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Group Anagrams Leetcode 49 Brute Force and Optimal",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "sUsGcnGqEIE",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "DPX3m6mJrXw",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Amateur vs Senior Developer on Group Anagrams, Leetcode 49",
+   "durationSec": 50,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "DPX3m6mJrXw",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "7MnVLhVXd2g",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Companies Love this Interview Question! | Group Anagrams - Leetcode 49",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "7MnVLhVXd2g",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "vzdNOK2oB2E",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Group Anagrams - Categorize Strings by Count - Leetcode 49",
+   "durationSec": 492,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "vzdNOK2oB2E",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "fOldQ0G0uwE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Companies Love this Interview Question! Group Anagrams - Leetcode 49",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "fOldQ0G0uwE",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "XOLA_qGid-M",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Companies Love this Interview Question! Group Anagrams - Leetcode 49",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "XOLA_qGid-M",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "bMmDaOg-iSA",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Amazon Coding Interview Question - Group Anagrams - Leetcode 49",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "bMmDaOg-iSA",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "ptgykfAEax8",
+   "channel": "Kevin Naughton Jr.",
+   "channelId": "UCKvwPt6BifPP54yzH99ff1g",
+   "title": "Group Anagrams",
+   "durationSec": 325,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "ptgykfAEax8",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "9F9p97ZMhOw",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Amateur vs Senior Developer on Group Anagrams, Leetcode 49",
+   "durationSec": 50,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.7,
+   "fetchedAt": "2026-11-18",
+   "id": "9F9p97ZMhOw",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "eDmxPfVa81k",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Group Anagrams - Leetcode 49 - Hashmaps & Sets (Python)",
+   "durationSec": 448,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.7,
+   "fetchedAt": "2026-11-18",
+   "id": "eDmxPfVa81k",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "QoRX7bqIUf4",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Group Anagrams | LeetCode 49 | Blind 75 #leetcode #codinginterview #faang",
+   "durationSec": 179,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "QoRX7bqIUf4",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "kucF7h_1_j0",
+   "channel": "The Engineer's Desk",
+   "channelId": "UCo89mFZ-fLpuo_nZwL9zkGw",
+   "title": "How to find group anagrams within three simple steps ? #leetcode #javascript #coding",
+   "durationSec": 90,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.45,
+   "fetchedAt": "2026-11-18",
+   "id": "kucF7h_1_j0",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "WfnduWD0t4o",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "Group Anagrams - LeetCode 49 - Python - Visually Explained",
+   "durationSec": 176,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.44,
+   "fetchedAt": "2026-11-18",
+   "id": "WfnduWD0t4o",
+   "conceptIds": [
+    "3yt-v2-group-anagrams"
+   ]
+  },
+  {
+   "videoId": "P5K_F_vHeJg",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Sliding Window Algorithm Explained Clearly | Longest Substring Without Repeating Characters Leetcode",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "P5K_F_vHeJg",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "CZQGRp93K4k",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Sliding Window Maximum | Leetcode",
+   "durationSec": 1216,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "CZQGRp93K4k",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "qtVh-XEpsJo",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Longest Substring Without Repeating Characters | Amazon",
+   "durationSec": 1440,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "qtVh-XEpsJo",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "wiGpQwVHdE0",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Longest Substring Without Repeating Characters - Leetcode 3 - Python",
+   "durationSec": 406,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "wiGpQwVHdE0",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "9LaWPbbs_nA",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Sliding Window Algorithm Explained Clearly   Longest Substring Without Repeating Characters Leetcode",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "9LaWPbbs_nA",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "3IETreEybaA",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode Longest Substring Without Repeating Characters Solution Explained - Java",
+   "durationSec": 520,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "3IETreEybaA",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "GaXwHThEgGk",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Sliding Window Algorithm - Variable Length + Fixed Length - DSA Course in Python Lecture 13",
+   "durationSec": 1231,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "GaXwHThEgGk",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "FCbOzdHKW18",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Longest Substring Without Repeating Characters - Leetcode 3 - Sliding Window (Python)",
+   "durationSec": 724,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "FCbOzdHKW18",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "P3PHHfgNHiw",
+   "channel": "Code In Motion",
+   "channelId": "UCHfZYKHT27azup4Dz4S8NAA",
+   "title": "LeetCode Pattern #1 Sliding Window #leetcode",
+   "durationSec": 80,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.55,
+   "fetchedAt": "2026-11-18",
+   "id": "P3PHHfgNHiw",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "dOonV4byDEg",
+   "channel": "Profound Academy",
+   "channelId": "UCCc6GHrY1rgSmDRlVtsl52g",
+   "title": "Sliding Window Technique",
+   "durationSec": 378,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.53,
+   "fetchedAt": "2026-11-18",
+   "id": "dOonV4byDEg",
+   "start": 38,
+   "end": 82,
+   "chapter": "Naive Approach - O(NK)",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "xAUIG7szilo",
+   "channel": "emcapsulation",
+   "channelId": "UC-5TrKLXor1WFRSi02NgNFw",
+   "title": "Sliding Window Algorithm Technique",
+   "durationSec": 136,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.52,
+   "fetchedAt": "2026-11-18",
+   "id": "xAUIG7szilo",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "6zR4GSlN_ws",
+   "channel": "James Q Quick",
+   "channelId": "UC-T8W79DN6PBnzomelvqJYw",
+   "title": "#1 Tip Solving Sliding Window Problems #shorts #coding #dsa",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.51,
+   "fetchedAt": "2026-11-18",
+   "id": "6zR4GSlN_ws",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "B99HdtOVEC4",
+   "channel": "Maddy Zhang",
+   "channelId": "UCJKzyA7mf4L6CtdNuRFExTw",
+   "title": "Sliding window technique!",
+   "durationSec": 58,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.49,
+   "fetchedAt": "2026-11-18",
+   "id": "B99HdtOVEC4",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "-uViRsr3QJY",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Longest Substring Without Repeating Characters | LeetCode 3 | Blind 75 | Sliding Window #leetcode",
+   "durationSec": 179,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.49,
+   "fetchedAt": "2026-11-18",
+   "id": "-uViRsr3QJY",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "VkXEqb1XAYY",
+   "channel": "Pooja Dutt",
+   "channelId": "UCYQvAPEWa3ibT0_FcjqYa8g",
+   "title": "Have you heard of the sliding window algorithm?",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.48,
+   "fetchedAt": "2026-11-18",
+   "id": "VkXEqb1XAYY",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "CnoQ_dSy74c",
+   "channel": "DevSandoval",
+   "channelId": "UCfFZ64zm54HzMxtzQj80T1A",
+   "title": "❌ Deja de usar Fuerza Bruta: Patrón Ventana Deslizante 🪟 #leetcode #python #algorithm",
+   "durationSec": 47,
+   "kind": "short",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.35,
+   "fetchedAt": "2026-11-18",
+   "id": "CnoQ_dSy74c",
+   "conceptIds": [
+    "3yt-v2-longest-substring"
+   ]
+  },
+  {
+   "videoId": "S6IfqDXWa10",
+   "channel": "Back To Back SWE",
+   "channelId": "UCmJz2DV1a3yfgrR7GqRtUUA",
+   "title": "Implement An LRU Cache - The LRU Cache Eviction Policy (\"LRU Cache\" on LeetCode)",
+   "durationSec": 811,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "S6IfqDXWa10",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "7ABFKPK2hD4",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "LRU Cache - Twitch Interview Question - Leetcode 146",
+   "durationSec": 1069,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "7ABFKPK2hD4",
+   "start": 120,
+   "end": 450,
+   "chapter": "Drawing solution",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "z9bJUPxzFOw",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "L18. Implement LRU Cache",
+   "durationSec": 1496,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "z9bJUPxzFOw",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "xDEuM5qa0zg",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Implement LRU Cache | Leetcode",
+   "durationSec": 1025,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "xDEuM5qa0zg",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "Xc4sICC8m4M",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Implement LRU Cache | C++ and Java Clean and Short Implementation",
+   "durationSec": 843,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "Xc4sICC8m4M",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "NDpwj0VWz1U",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 146. LRU Cache (Algorithm Explained)",
+   "durationSec": 1080,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "NDpwj0VWz1U",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "fljUnc1q-dw",
+   "channel": "Vivek Gupta",
+   "channelId": "UC_xBkUq2z-rbp2mbZal-0cw",
+   "title": "Why Most Candidates Fail the LRU Cache Question",
+   "durationSec": 45,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.54,
+   "fetchedAt": "2026-11-18",
+   "id": "fljUnc1q-dw",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "Otsb0bOCeQA",
+   "channel": "Vivek Gupta",
+   "channelId": "UC_xBkUq2z-rbp2mbZal-0cw",
+   "title": "LRU Cache FAILS With Redis (And How To Fix It) | LeetCode LRU Cache Question",
+   "durationSec": 93,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.51,
+   "fetchedAt": "2026-11-18",
+   "id": "Otsb0bOCeQA",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "9F6I7tLACVE",
+   "channel": "RoadsideCoder",
+   "channelId": "UCIPZVAwDGa-A4ZJxCBvXRuQ",
+   "title": "LRU Cache in React JS 🔥🔥 #reactjs #javascript #reactjstutorial",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.49,
+   "fetchedAt": "2026-11-18",
+   "id": "9F6I7tLACVE",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "Eb9IUMuiwYc",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "LRU Cache - LeetCode 146 - Python - Visually Explained",
+   "durationSec": 180,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.46,
+   "fetchedAt": "2026-11-18",
+   "id": "Eb9IUMuiwYc",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "bah6P20xwbk",
+   "channel": "Code With K5KC",
+   "channelId": "UC5qZdx9pQ9Z8KdcLRU_3PGA",
+   "title": "Java's Secret Built-In LRU Cache ☕️",
+   "durationSec": 71,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.46,
+   "fetchedAt": "2026-11-18",
+   "id": "bah6P20xwbk",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "gxRl_xiOTtU",
+   "channel": "Algorithms",
+   "channelId": "UC-soSaJSmOqk82a_ZZr6prg",
+   "title": "LRU Cache | Caching Algorithms | #animated #lru #cache #caching #algorithm #lrucache",
+   "durationSec": 30,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.39,
+   "fetchedAt": "2026-11-18",
+   "id": "gxRl_xiOTtU",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "pYBmGtXQxAg",
+   "channel": "Dev Rick",
+   "channelId": "UC24I-iQwrWx8hfUxnJEJ2kg",
+   "title": "LeetCode 146 - LRU Cache",
+   "durationSec": 169,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.38,
+   "fetchedAt": "2026-11-18",
+   "id": "pYBmGtXQxAg",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "tYUfbZV0osg",
+   "channel": "Carter",
+   "channelId": "UCEoupq2CS4O3fxn4wttOI9g",
+   "title": "Implementing an LRU Cache in C++",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.35,
+   "fetchedAt": "2026-11-18",
+   "id": "tYUfbZV0osg",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "JrlwTvWWR8E",
+   "channel": "360Interview AI",
+   "channelId": "UCkPFDoQcfEQ23S92PCDquow",
+   "title": "Software Engineer/Developer Interview Question: 146. LRU Cache",
+   "durationSec": 21,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.33,
+   "fetchedAt": "2026-11-18",
+   "id": "JrlwTvWWR8E",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "gSGqO06OQn0",
+   "channel": "BugToBuild",
+   "channelId": "UCCBreKGLwJs3NtSpFwqnEpA",
+   "title": "LRU Cache in 60 seconds #coding #codinginterview #codingforbeginners",
+   "durationSec": 50,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.3,
+   "fetchedAt": "2026-11-18",
+   "id": "gSGqO06OQn0",
+   "conceptIds": [
+    "3yt-v2-lru-cache"
+   ]
+  },
+  {
+   "videoId": "zTuuWOaOcOE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Most Asked Coding Question Ever? Merge Intervals - Leetcode 56",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "zTuuWOaOcOE",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "2JzRBPFYbKE",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Merge Intervals | Leetcode | Problem-6 | Brute-Optimal | C++/Java",
+   "durationSec": 660,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "2JzRBPFYbKE",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "44H3cEC2fFM",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Merge Intervals - Sorting - Leetcode 56",
+   "durationSec": 615,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "44H3cEC2fFM",
+   "start": 85,
+   "end": 340,
+   "chapter": "Drawing Solution",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "qKczfGUrFY4",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 56. Merge Intervals (Algorithm Explained)",
+   "durationSec": 777,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "qKczfGUrFY4",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "HCbKvBOlMVI",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Merge Intervals - Leetcode 56 - Arrays & Strings (Python)",
+   "durationSec": 434,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.69,
+   "fetchedAt": "2026-11-18",
+   "id": "HCbKvBOlMVI",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "b-qtjXsGfqo",
+   "channel": "Padho with Pratyush",
+   "channelId": "UCsY3M9SiyS9MfFq68e9S0Rw",
+   "title": "L34 DSA Patterns 2025 | Merge Overlapping Intervals | Merge Interval DSA Pattern",
+   "durationSec": 236,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.49,
+   "fetchedAt": "2026-11-18",
+   "id": "b-qtjXsGfqo",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "42UKQddTB5Y",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Merge Intervals | LeetCode 56 | Blind 75 #leetcode #codinginterview #faang",
+   "durationSec": 180,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.48,
+   "fetchedAt": "2026-11-18",
+   "id": "42UKQddTB5Y",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "yrGJLhg5fNo",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "Merge Intervals - LeetCode 56 - Python - Visually Explained",
+   "durationSec": 152,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.42,
+   "fetchedAt": "2026-11-18",
+   "id": "yrGJLhg5fNo",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "XsOI7fpx8IY",
+   "channel": "Pepcoding",
+   "channelId": "UC7rNzgC2fEBVpb-q_acpsmw",
+   "title": "Merge Overlapping Intervals | Question",
+   "durationSec": 170,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.42,
+   "fetchedAt": "2026-11-18",
+   "id": "XsOI7fpx8IY",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "U_NcPd942dw",
+   "channel": "Dev Rick",
+   "channelId": "UC24I-iQwrWx8hfUxnJEJ2kg",
+   "title": "LeetCode 56 - Merge Intervals",
+   "durationSec": 153,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.37,
+   "fetchedAt": "2026-11-18",
+   "id": "U_NcPd942dw",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "wXYcQpM7x4M",
+   "channel": "Rakesh Code Burner",
+   "channelId": "UCakuKQqTUziV7xzBy1Cz7QA",
+   "title": "Merge Intervals | Leetcode 56",
+   "durationSec": 124,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.36,
+   "fetchedAt": "2026-11-18",
+   "id": "wXYcQpM7x4M",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "P60_1daJi00",
+   "channel": "CodeJulian",
+   "channelId": "UCXVjGTr5D6kVyEIoSkLGdGw",
+   "title": "LeetCode#56 Merge Intervals - Python",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.36,
+   "fetchedAt": "2026-11-18",
+   "id": "P60_1daJi00",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "kjKi-0Dul0I",
+   "channel": "Aaron Leslie",
+   "channelId": "UCGVHuYRRlgmSjr2NsdvGLzA",
+   "title": "How Would You Solve This Meta Interview Question? Merge Intervals | LeetCode 56",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.33,
+   "fetchedAt": "2026-11-18",
+   "id": "kjKi-0Dul0I",
+   "conceptIds": [
+    "3yt-v2-merge-intervals"
+   ]
+  },
+  {
+   "videoId": "yG0RhKFTonw",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "How to use Cracking The Coding Interview Effectively",
+   "durationSec": 582,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.85,
+   "fetchedAt": "2026-11-18",
+   "id": "yG0RhKFTonw",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "z3h0JGANLoI",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "How To Pass Your Coding Interviews (with Clément Mihailescu)",
+   "durationSec": 1102,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "z3h0JGANLoI",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "uQdy914JRKQ",
+   "channel": "CS Dojo",
+   "channelId": "UCxX9wt5FWQUAAz4UrysqK9A",
+   "title": "How to Crack a Google Coding Interview - An Ex-Googler’s Guide",
+   "durationSec": 907,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.69,
+   "fetchedAt": "2026-11-18",
+   "id": "uQdy914JRKQ",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "NNVIxeGWF1w",
+   "channel": "KodNest",
+   "channelId": "UC75MPpkVHYI5RedrarGBiDw",
+   "title": "My Secret to Cracking Google’s DSA Round! 💻🚀",
+   "durationSec": 40,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.62,
+   "fetchedAt": "2026-11-18",
+   "id": "NNVIxeGWF1w",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "EV0VUyZKTpM",
+   "channel": "Sahil & Sarra",
+   "channelId": "UCkcqmxjMXaBb0kDWqqSEU1g",
+   "title": "How to not fail a coding interview",
+   "durationSec": 44,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.61,
+   "fetchedAt": "2026-11-18",
+   "id": "EV0VUyZKTpM",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "MGsbj3QwrlY",
+   "channel": "Erik Cupsa",
+   "channelId": "UCgKFOz_KrMbmypWrawtzDQg",
+   "title": "How To ACE Coding Interviews 🧑‍💻",
+   "durationSec": 53,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.61,
+   "fetchedAt": "2026-11-18",
+   "id": "MGsbj3QwrlY",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "yW45uCVhbLQ",
+   "channel": "TAP ACADEMY",
+   "channelId": "UCvT21bzLRHrnAc-F1SRqRSw",
+   "title": "Crack the Google Coding Interview - 5 Insider Steps to Pass (2025 Guide) #shorts #googleinternship",
+   "durationSec": 71,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.48,
+   "fetchedAt": "2026-11-18",
+   "id": "yW45uCVhbLQ",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "6dlbVG5aH0c",
+   "channel": "Tech With Tim",
+   "channelId": "UC4JX40jDee_tINbkjycV4Sg",
+   "title": "How to ACE your coding interviews PART I",
+   "durationSec": 41,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "6dlbVG5aH0c",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "_WgFLjuznec",
+   "channel": "Gentleman Programming Vods",
+   "channelId": "UCIscmdXDtypp2zTzEEYxJwg",
+   "title": "Entrevista técnica: LeetCode en 15 minutos ya no sirve",
+   "durationSec": 44,
+   "kind": "short",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.45,
+   "fetchedAt": "2026-11-18",
+   "id": "_WgFLjuznec",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "TwpizYlIcbg",
+   "channel": "Tech With Tim",
+   "channelId": "UC4JX40jDee_tINbkjycV4Sg",
+   "title": "How to Pass a Python Live Coding Interview in 2026",
+   "durationSec": 34,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.42,
+   "fetchedAt": "2026-11-18",
+   "id": "TwpizYlIcbg",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "lrMPbTGrZM4",
+   "channel": "Smart Interviews",
+   "channelId": "UC3JtcFSnkIgi_l62SwnAcpA",
+   "title": "Brute Force vs Optimal Solution in DSA | Smart Strategy to Crack Coding Interviews",
+   "durationSec": 146,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.36,
+   "fetchedAt": "2026-11-18",
+   "id": "lrMPbTGrZM4",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "xbI41sl9XiQ",
+   "channel": "Formation",
+   "channelId": "UCfWj1UhNyX1-x5qZnQElBtg",
+   "title": "How to talk during your coding interview",
+   "durationSec": 159,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.34,
+   "fetchedAt": "2026-11-18",
+   "id": "xbI41sl9XiQ",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "lNCHIaS0blA",
+   "channel": "geffrrey",
+   "channelId": "UC-OfNNpbuitRRwOF1MiPJsg",
+   "title": "Resolver entrevista técnica de amazon en programacion #java #developer #coding #clip #trend",
+   "durationSec": 32,
+   "kind": "short",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.31,
+   "fetchedAt": "2026-11-18",
+   "id": "lNCHIaS0blA",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "qxaQLlBoOsY",
+   "channel": "geffrrey",
+   "channelId": "UC-OfNNpbuitRRwOF1MiPJsg",
+   "title": "Resolver entrevista técnica programación | #java #backend #python #developer #trend",
+   "durationSec": 50,
+   "kind": "short",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.28,
+   "fetchedAt": "2026-11-18",
+   "id": "qxaQLlBoOsY",
+   "conceptIds": [
+    "3yt-v2-metodo"
+   ]
+  },
+  {
+   "videoId": "vgV21-PSEEU",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Breadth First Search (BFS) vs Depth First Search (DFS) for Graphs!",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.87,
+   "fetchedAt": "2026-11-18",
+   "id": "vgV21-PSEEU",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "9mj8MTp3c8A",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Number of Islands - Leetcode 200",
+   "durationSec": 51,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.86,
+   "fetchedAt": "2026-11-18",
+   "id": "9mj8MTp3c8A",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "9dOFm8am4Qs",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Google Graph Interview Question!  | Leetcode 200 - Number of Islands",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "9dOFm8am4Qs",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "-tgVpUgsQ5k",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "G-5. Breadth-First Search (BFS) | C++ and Java | Traversal Technique in Graphs",
+   "durationSec": 1179,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "-tgVpUgsQ5k",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "UeE67iCK2lQ",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Breadth-First Search (BFS) | Traversal Technique in Graphs",
+   "durationSec": 1243,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "UeE67iCK2lQ",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "1Jp1mcS17Po",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Breadth First Search (BFS) Algorithm Explained + Python Implementation",
+   "durationSec": 41,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "1Jp1mcS17Po",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "pV2kpPD66nE",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "NUMBER OF ISLANDS - Leetcode 200 - Python",
+   "durationSec": 701,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "pV2kpPD66nE",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "U6-X_QOwPcs",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode Number of Islands Solution Explained - Java",
+   "durationSec": 519,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "U6-X_QOwPcs",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "Mi7ZPNwzy0U",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Breadth First Search (BFS) vs Depth First Search (DFS) for Graphs!",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "Mi7ZPNwzy0U",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "gCswsDauXPc",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Number of Islands - Leetcode 200 - Graphs (Python)",
+   "durationSec": 661,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "gCswsDauXPc",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "o8S2bO3pmO4",
+   "channel": "Kevin Naughton Jr.",
+   "channelId": "UCKvwPt6BifPP54yzH99ff1g",
+   "title": "Number of Islands",
+   "durationSec": 614,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "o8S2bO3pmO4",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "i0lV6zt0vrY",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Breadth First Search (BFS) Algorithm Explained + Python Implementation",
+   "durationSec": 41,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "i0lV6zt0vrY",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "KGsV10i51os",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Google Graph Interview Question! Leetcode 200 - Number of Islands",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "KGsV10i51os",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "xlVX7dXLS64",
+   "channel": "Reducible",
+   "channelId": "UCK8XIGR5kRidIw2fWqwyHRA",
+   "title": "Breadth First Search (BFS): Visualized and Explained",
+   "durationSec": 641,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.73,
+   "fetchedAt": "2026-11-18",
+   "id": "xlVX7dXLS64",
+   "start": 45,
+   "end": 159,
+   "chapter": "BFS Intuition/Examples",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "oDqjPvD54Ss",
+   "channel": "WilliamFiset",
+   "channelId": "UCD8yeTczadqdARzQUp29PJw",
+   "title": "Breadth First Search Algorithm | Shortest Path | Graph Theory",
+   "durationSec": 443,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.7,
+   "fetchedAt": "2026-11-18",
+   "id": "oDqjPvD54Ss",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "HZ5YTanv5QE",
+   "channel": "Michael Sambol",
+   "channelId": "UCzDJwLWoYCUQowF_nG3m5OQ",
+   "title": "Breadth-first search in 4 minutes",
+   "durationSec": 239,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.69,
+   "fetchedAt": "2026-11-18",
+   "id": "HZ5YTanv5QE",
+   "conceptIds": [
+    "3yt-v2-number-of-islands"
+   ]
+  },
+  {
+   "videoId": "1IB91Rz8uvU",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Medium Amazon Interview Question - Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.85,
+   "fetchedAt": "2026-11-18",
+   "id": "1IB91Rz8uvU",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "khTiTSZ5QZY",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "Apple Coding Interview Question - Product Of Array Except Self",
+   "durationSec": 613,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "khTiTSZ5QZY",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "oxTWIfJk7jE",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "oxTWIfJk7jE",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "qtrUyQ0GWBQ",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Prefix Sums are Easy, and Super Helpful!",
+   "durationSec": 52,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "qtrUyQ0GWBQ",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "bNvIQI2wAjk",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Product of Array Except Self - Leetcode 238 - Python",
+   "durationSec": 714,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "bNvIQI2wAjk",
+   "start": 129,
+   "end": 587,
+   "chapter": "Drawing Explanation",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "GdDf1m60_qs",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Medium Amazon Interview Question - Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "GdDf1m60_qs",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "lBiD5P3C1NA",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "FAANG Interview Question! | Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "lBiD5P3C1NA",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "tSRFtR3pv74",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 238. Product of Array Except Self (Solution Explained)",
+   "durationSec": 889,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "tSRFtR3pv74",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "TMGzvXu-9hk",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "FAANG Interview Question! Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "TMGzvXu-9hk",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "yKZFurr4GQA",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Product of Array Except Self - Leetcode 238 - Arrays & Strings (Python)",
+   "durationSec": 478,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "yKZFurr4GQA",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "O9iY2YQWqpU",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "FAANG Interview Question! Product of Array Except Self - Leetcode 238",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.66,
+   "fetchedAt": "2026-11-18",
+   "id": "O9iY2YQWqpU",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "WMvyrjsetZ0",
+   "channel": "MaxOutCoding",
+   "channelId": "UCWgDzDGNek8gR1RINZ-nILQ",
+   "title": "Interview Tips - Prefix Sums Explanation",
+   "durationSec": 46,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.42,
+   "fetchedAt": "2026-11-18",
+   "id": "WMvyrjsetZ0",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "DM7JSyP1GlE",
+   "channel": "coderZone",
+   "channelId": "UCkqgTg2WuZ1upylC8bUkqAA",
+   "title": "Prefix Sum Clearly Explained",
+   "durationSec": 219,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.4,
+   "fetchedAt": "2026-11-18",
+   "id": "DM7JSyP1GlE",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "UrNqhlfxUm0",
+   "channel": "Code Steve",
+   "channelId": "UC8UWd9kvu_jrkOG68QVQlzA",
+   "title": "Prefix Sums Unlocked | Learn the Technique with Game Tokens! #usaco #programming #algorithm",
+   "durationSec": 72,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.4,
+   "fetchedAt": "2026-11-18",
+   "id": "UrNqhlfxUm0",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "C8L5QRuJ9Dk",
+   "channel": "kushal raj pareek",
+   "channelId": "UCYrO_5TEgJbvZVCEu106mvg",
+   "title": "Prefix sum #coding #datastructures #dsa",
+   "durationSec": 61,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.4,
+   "fetchedAt": "2026-11-18",
+   "id": "C8L5QRuJ9Dk",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "HSfp88-cWg8",
+   "channel": "STEMViz",
+   "channelId": "UCLu0aFhp1qagPe6f2YwVexQ",
+   "title": "Leetcode Q238: Product Of Array Except Self Solution VISUALIZED",
+   "durationSec": 160,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.39,
+   "fetchedAt": "2026-11-18",
+   "id": "HSfp88-cWg8",
+   "conceptIds": [
+    "3yt-v2-product-except-self"
+   ]
+  },
+  {
+   "videoId": "TKsV628GZOI",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Why Binary Search is O(log n)",
+   "durationSec": 55,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.87,
+   "fetchedAt": "2026-11-18",
+   "id": "TKsV628GZOI",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "edJ19qIL8WQ",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Binary Search with C++ STL | 4 Problems followed up | Lower Bound and Upper Bound explained",
+   "durationSec": 778,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "edJ19qIL8WQ",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "58JECm3nQ8Q",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "The Binary Search Algorithm (+ Python Code Solution)",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "58JECm3nQ8Q",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "MFhxShGxHWc",
+   "channel": "Fireship",
+   "channelId": "UCsBjURrPoezykLs9EqgamOA",
+   "title": "Binary Search Algorithm in 100 Seconds",
+   "durationSec": 140,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "MFhxShGxHWc",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "5XVh0-z_Vls",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Binary Search!",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "5XVh0-z_Vls",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "Nplt7TFbkKs",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "The Binary Search Technique You NEED to KNOW!",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "Nplt7TFbkKs",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "F0nFCgAypPE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Binary Search Explained!",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "F0nFCgAypPE",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "U8XENwh8Oy8",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Search in rotated sorted array - Leetcode 33 - Python",
+   "durationSec": 808,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "U8XENwh8Oy8",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "SNd1m5-93m0",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "The Binary Search Algorithm (+ Python Code Solution)",
+   "durationSec": 61,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "SNd1m5-93m0",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "QdVrY3stDD4",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 33. Search in Rotated Sorted Array",
+   "durationSec": 570,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "QdVrY3stDD4",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "tgVSkMA8joQ",
+   "channel": "mCoding",
+   "channelId": "UCaiL2GDNpLYH6Wokkk1VNcg",
+   "title": "Binary Search - A Different Perspective | Python Algorithms",
+   "durationSec": 536,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "tgVSkMA8joQ",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "9nmrkG6QtpQ",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Binary Search - Traditional + Condition Based - DSA Course in Python Lecture 7",
+   "durationSec": 1311,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "9nmrkG6QtpQ",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "xrMppTpoqdw",
+   "channel": "Bro Code",
+   "channelId": "UC4SVo0Ue36XCfOyb5Lh1viQ",
+   "title": "Learn Binary Search in 10 minutes 🪓",
+   "durationSec": 604,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.72,
+   "fetchedAt": "2026-11-18",
+   "id": "xrMppTpoqdw",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "4Ik1nCLjwcI",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Search in Rotated Sorted Array - Leetcode 33 - Binary Search (Python)",
+   "durationSec": 547,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.69,
+   "fetchedAt": "2026-11-18",
+   "id": "4Ik1nCLjwcI",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "0GKFJKgds5M",
+   "channel": "Pildoras de programación",
+   "channelId": "UCpqqJGMaVEmyinn1J-DhnYg",
+   "title": "método bisect para realizar una búsqueda binaria. #binarysearch #python #programacion #algoritmos",
+   "durationSec": 61,
+   "kind": "short",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.64,
+   "fetchedAt": "2026-11-18",
+   "id": "0GKFJKgds5M",
+   "conceptIds": [
+    "3yt-v2-search-rotated"
+   ]
+  },
+  {
+   "videoId": "pJXu6sejh70",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Meta's Favorite Coding Question - 3Sum - Leetcode 15",
+   "durationSec": 57,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.85,
+   "fetchedAt": "2026-11-18",
+   "id": "pJXu6sejh70",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "lQLpJyRFCX8",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Two Pointers is REQUIRED for Coding Interviews! | Palindrome Check",
+   "durationSec": 35,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "lQLpJyRFCX8",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "ap1PpiD-k_8",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Two Pointers - Palindrome Check",
+   "durationSec": 35,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "ap1PpiD-k_8",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "72dhVtYfCwc",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Facebook loves this Coding Question - 3Sum, Leetcode 15",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "72dhVtYfCwc",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "jzZsG8n2R9A",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "3Sum - Leetcode 15 - Python",
+   "durationSec": 774,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "jzZsG8n2R9A",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "0wIDVTUWU3c",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Facebook Asked This Coding Question 50 TIMES!!! | 3Sum - Leetcode 15",
+   "durationSec": 58,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "0wIDVTUWU3c",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "4_4iYv18C4E",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Two Pointers is REQUIRED for Coding Interviews! Palindrome Check",
+   "durationSec": 35,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "4_4iYv18C4E",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "9sv8MfOhCW0",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Meta's Favorite Coding Question - 3Sum - Leetcode 15",
+   "durationSec": 57,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "9sv8MfOhCW0",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "qJSPYnS35SE",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 3Sum Solution Explained - Java",
+   "durationSec": 600,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "qJSPYnS35SE",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "TBePcj8DgxM",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "3Sum (Updated Solution) - Leetcode 15 - Two Pointers (Python)",
+   "durationSec": 671,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.73,
+   "fetchedAt": "2026-11-18",
+   "id": "TBePcj8DgxM",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "8IjCNFIo8YI",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "3Sum - Leetcode 15 - 2 Pointers (Python)",
+   "durationSec": 582,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.68,
+   "fetchedAt": "2026-11-18",
+   "id": "8IjCNFIo8YI",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "oLFx6Hzwg8E",
+   "channel": "Code In Motion",
+   "channelId": "UCHfZYKHT27azup4Dz4S8NAA",
+   "title": "LeetCode Pattern 2: Two Pointer Technique #leetcode",
+   "durationSec": 73,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "oLFx6Hzwg8E",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "sg_rzLWP5dk",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "Three Sum - LeetCode 15 - Python - Visually Explained",
+   "durationSec": 179,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "sg_rzLWP5dk",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "QX1oHTAq_iQ",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "3Sum | Two Pointer Technique | LeetCode 15 | Three Sum",
+   "durationSec": 156,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.46,
+   "fetchedAt": "2026-11-18",
+   "id": "QX1oHTAq_iQ",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "xZ4AfXHQ1VQ",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Two Pointers Technique",
+   "durationSec": 177,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.41,
+   "fetchedAt": "2026-11-18",
+   "id": "xZ4AfXHQ1VQ",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "56BVIlPt4og",
+   "channel": "Bradley Allen",
+   "channelId": "UCYtU31c9jw4g7tFzDt1MGLw",
+   "title": "Two Pointer Algorithm Explained With C++ Examples",
+   "durationSec": 190,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.41,
+   "fetchedAt": "2026-11-18",
+   "id": "56BVIlPt4og",
+   "conceptIds": [
+    "3yt-v2-three-sum"
+   ]
+  },
+  {
+   "videoId": "vA9F1QYFurg",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Google Interview Question! | Top K Frequent Elements - Leetcode 347",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.84,
+   "fetchedAt": "2026-11-18",
+   "id": "vA9F1QYFurg",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "eNR2PmOm_6w",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Meta Coding Interview Question - Top K Frequent Elements - Leetcode 347",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "eNR2PmOm_6w",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "Q6_UanmPklY",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Leetcode 347 - Top K Frequent Elements",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "Q6_UanmPklY",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "uJIEElQRFPg",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Here's How to use a HEAP | Top K Frequent Elements  - Leetcode 347",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "uJIEElQRFPg",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "YPTqKIgVk-k",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Top K Frequent Elements - Bucket Sort - Leetcode 347 - Python",
+   "durationSec": 793,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "YPTqKIgVk-k",
+   "start": 178,
+   "end": 582,
+   "chapter": "Drawing Explanation",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "IsM4fqZ0F5A",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Meta Coding Interview Question - Top K Frequent Elements - Leetcode 347",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "IsM4fqZ0F5A",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "6uXxUMlxrQ0",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Google Interview Question! Top K Frequent Elements - Leetcode 347",
+   "durationSec": 61,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "6uXxUMlxrQ0",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "phNDYf1xzco",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Top K Frequent Elements - Leetcode 347 - Heaps (Python)",
+   "durationSec": 848,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.7,
+   "fetchedAt": "2026-11-18",
+   "id": "phNDYf1xzco",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "W6unzLgrhLI",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "Top K Frequent Elements - LeetCode 347 - Python - Visually Explained",
+   "durationSec": 168,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.5,
+   "fetchedAt": "2026-11-18",
+   "id": "W6unzLgrhLI",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "zzO4QYDietM",
+   "channel": "The Curious Coder",
+   "channelId": "UCyPrKcV17_gpPBO43YM_pSg",
+   "title": "Top K Frequent Elements 🔥 | Heaps in DSA | Day 7/100 #shorts",
+   "durationSec": 179,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.49,
+   "fetchedAt": "2026-11-18",
+   "id": "zzO4QYDietM",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "H8q4qrkKRQQ",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Top K Frequent Elements | LeetCode 347 | Blind 75 #leetcode #codinginterview #faang",
+   "durationSec": 180,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "H8q4qrkKRQQ",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "frBEOJ8WE_8",
+   "channel": "Brian Linaldi",
+   "channelId": "UCn-FIUikcLSInC3y8xcBBYg",
+   "title": "Meta - Top K Frequent Elements - Leetcode 347",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.42,
+   "fetchedAt": "2026-11-18",
+   "id": "frBEOJ8WE_8",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "Ulk-BcB8WKI",
+   "channel": "CodeJay",
+   "channelId": "UC4hVAymIyrB3O3V2oNgKmjA",
+   "title": "Top K Frequent Elements - Leetcode 347",
+   "durationSec": 58,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.4,
+   "fetchedAt": "2026-11-18",
+   "id": "Ulk-BcB8WKI",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "Gj4-8sRi7W0",
+   "channel": "Timothy H Chang",
+   "channelId": "UCYN7_u5craa4dZc12Ik2P0g",
+   "title": "Leetcode - Top K Frequent Elements (Python)",
+   "durationSec": 208,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.39,
+   "fetchedAt": "2026-11-18",
+   "id": "Gj4-8sRi7W0",
+   "conceptIds": [
+    "3yt-v2-top-k-frequent"
+   ]
+  },
+  {
+   "videoId": "pFag4mBsO1I",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "This is the Most Asked FAANG Interview Question! - Two Sum - Leetcode 1",
+   "durationSec": 42,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.88,
+   "fetchedAt": "2026-11-18",
+   "id": "pFag4mBsO1I",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "UXDSeD9mN-k",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "2 Sum Problem | 2 types of the same problem for Interviews | Brute-Better-Optimal",
+   "durationSec": 1100,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.83,
+   "fetchedAt": "2026-11-18",
+   "id": "UXDSeD9mN-k",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "aBeFISO1YNA",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Two Sum - Leetcode 1",
+   "durationSec": 42,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "aBeFISO1YNA",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "ssL3sHwPeb4",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "L51. Two Sum In BST | Check if there exists a pair with Sum K",
+   "durationSec": 906,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "ssL3sHwPeb4",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "yJUiR8qJeu4",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Coding Interview - Two Sum (Python)",
+   "durationSec": 89,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "yJUiR8qJeu4",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "KLlXCFG5TnA",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Two Sum - Leetcode 1 - HashMap - Python",
+   "durationSec": 506,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.8,
+   "fetchedAt": "2026-11-18",
+   "id": "KLlXCFG5TnA",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "PRtKbzmS6N4",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Watch this if you want to work at FAANG -  Two Sum - Leetcode 1",
+   "durationSec": 52,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "PRtKbzmS6N4",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "dRUpbt8vHpo",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Two Sum Problem | Leetcode's First Ever Problem | Please watch new video - link in description",
+   "durationSec": 530,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "dRUpbt8vHpo",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "ysifKoOZw5g",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Two Sum - Leetcode 1 - Python #shorts",
+   "durationSec": 58,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "ysifKoOZw5g",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "1sc_4cvGS2g",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Coding Interview - Two Sum (Python)",
+   "durationSec": 89,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "1sc_4cvGS2g",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "BoHO04xVeU0",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode Two Sum Solution Explained - Java",
+   "durationSec": 631,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "BoHO04xVeU0",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "kyLxTdsT8ws",
+   "channel": "Abdul Bari",
+   "channelId": "UCZCFT11CWBi3MHNlGf019nw",
+   "title": "6.2 Sum Of Subsets Problem - Backtracking",
+   "durationSec": 739,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.71,
+   "fetchedAt": "2026-11-18",
+   "id": "kyLxTdsT8ws",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "aRE7Nxb3Qfs",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Two Sum - Leetcode 1 - Hashmaps & Sets (Python)",
+   "durationSec": 265,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.7,
+   "fetchedAt": "2026-11-18",
+   "id": "aRE7Nxb3Qfs",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "VtiZXaomOTg",
+   "channel": "ByteMonk",
+   "channelId": "UCzCsyvyrq38R6TnztEzOmgg",
+   "title": "Big O Notation Deep Dive | The Skill That Gets You Hired",
+   "durationSec": 1532,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.53,
+   "fetchedAt": "2026-11-18",
+   "id": "VtiZXaomOTg@1310",
+   "start": 1310,
+   "end": 1454,
+   "chapter": "Two Sum: mediocre vs strong candidate",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "DwulbaqvOMg",
+   "channel": "Algo Andre",
+   "channelId": "UCc7uRK_A1pgaJ2c64PXLHeg",
+   "title": "The most asked coding interview question (Two Sum) #leetcode #education",
+   "durationSec": 41,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.52,
+   "fetchedAt": "2026-11-18",
+   "id": "DwulbaqvOMg",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "e-Rk1oqLuHY",
+   "channel": "fredfalso",
+   "channelId": "UCE4Cd_c5_DMamwMj796Z28A",
+   "title": "Two Sum (FÁCIL)  - Leetcode #1 en español",
+   "durationSec": 146,
+   "kind": "long",
+   "lang": "es",
+   "flavor": "oddball",
+   "quality": 0.46,
+   "fetchedAt": "2026-11-18",
+   "id": "e-Rk1oqLuHY",
+   "start": 12,
+   "end": 82,
+   "chapter": "Explicación Diagramada",
+   "conceptIds": [
+    "3yt-v2-two-sum"
+   ]
+  },
+  {
+   "videoId": "d-EB49XnynY",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Valid Parentheses - Leetcode 20",
+   "durationSec": 51,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.85,
+   "fetchedAt": "2026-11-18",
+   "id": "d-EB49XnynY",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "CdsrJEomHAE",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Stacks are ESSENTIAL for Coding Interviews! | Valid Parentheses - Leetcode 20",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "CdsrJEomHAE",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "xwjS0iZhw4I",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "L2. Check for Balanced Parentheses | Stack and Queue",
+   "durationSec": 748,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.82,
+   "fetchedAt": "2026-11-18",
+   "id": "xwjS0iZhw4I",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "2ySBfQZPAqg",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Nvidia Coding Interview Question - Valid Parentheses - Leetcode 20",
+   "durationSec": 59,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.81,
+   "fetchedAt": "2026-11-18",
+   "id": "2ySBfQZPAqg",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "wkDfsKijrZ8",
+   "channel": "take U forward",
+   "channelId": "UCJskGeByzRRSvmOyZOz61ig",
+   "title": "Valid Parentheses | Leetcode",
+   "durationSec": 768,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.79,
+   "fetchedAt": "2026-11-18",
+   "id": "wkDfsKijrZ8",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "WTzjTskDFMg",
+   "channel": "NeetCode",
+   "channelId": "UC_mYaQAE6-71rjSN6CeCA-g",
+   "title": "Valid Parentheses - Stack - Leetcode 20 - Python",
+   "durationSec": 643,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.78,
+   "fetchedAt": "2026-11-18",
+   "id": "WTzjTskDFMg",
+   "start": 85,
+   "end": 440,
+   "chapter": "Drawing Explanation",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "C_fa8lgq8-4",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Nvidia Coding Interview Question - Valid Parentheses - Leetcode 20",
+   "durationSec": 60,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.77,
+   "fetchedAt": "2026-11-18",
+   "id": "C_fa8lgq8-4",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "CCyEXcNamC4",
+   "channel": "Back To Back SWE",
+   "channelId": "UCmJz2DV1a3yfgrR7GqRtUUA",
+   "title": "The Balanced Parentheses Problem - Classic Stack Problem (\"Valid Parentheses\" on Leetcode)",
+   "durationSec": 703,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.76,
+   "fetchedAt": "2026-11-18",
+   "id": "CCyEXcNamC4",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "g5DkM4PRkCs",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Stacks are ESSENTIAL for Coding Interviews!   Valid Parentheses - Leetcode 20",
+   "durationSec": 56,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.75,
+   "fetchedAt": "2026-11-18",
+   "id": "g5DkM4PRkCs",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "9kmUaXrjizQ",
+   "channel": "Nick White",
+   "channelId": "UC1fLEeYICmo3O9cUsqIi7HA",
+   "title": "LeetCode 20. Valid Parentheses Solution Explained - Java",
+   "durationSec": 448,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.74,
+   "fetchedAt": "2026-11-18",
+   "id": "9kmUaXrjizQ",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "7-_V-ufnF4c",
+   "channel": "Greg Hogg",
+   "channelId": "UCJublDh2UsiIKsAE1553miw",
+   "title": "Valid Parentheses - Leetcode 20 - Stacks (Python)",
+   "durationSec": 535,
+   "kind": "long",
+   "lang": "en",
+   "flavor": "core",
+   "quality": 0.71,
+   "fetchedAt": "2026-11-18",
+   "id": "7-_V-ufnF4c",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "AzFfQtvy8U0",
+   "channel": "Dev Rick",
+   "channelId": "UC24I-iQwrWx8hfUxnJEJ2kg",
+   "title": "LeetCode 20 - Valid Parentheses",
+   "durationSec": 158,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.48,
+   "fetchedAt": "2026-11-18",
+   "id": "AzFfQtvy8U0",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "rc3ASepfKEQ",
+   "channel": "AlgoMonster",
+   "channelId": "UCCKAEO4_rqh1GTMxg9H6_sQ",
+   "title": "Valid Parentheses | LeetCode 20 | Blind 75 | Stack Solution | #leetcode #codinginterview #faang",
+   "durationSec": 147,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.47,
+   "fetchedAt": "2026-11-18",
+   "id": "rc3ASepfKEQ",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "ZWCA2nin6FU",
+   "channel": "Hello Byte",
+   "channelId": "UCneBEzatq8l08DhfB0fM64w",
+   "title": "Valid Parentheses - LeetCode 20 - Python - Visually Explained",
+   "durationSec": 161,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.44,
+   "fetchedAt": "2026-11-18",
+   "id": "ZWCA2nin6FU",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "7-nNrmsOQic",
+   "channel": "Allen Tran",
+   "channelId": "UCYiijO_u3pe7KomLyh9KwuA",
+   "title": "How to Solve LeetCode #20: Valid Parentheses #cs",
+   "durationSec": 57,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.41,
+   "fetchedAt": "2026-11-18",
+   "id": "7-nNrmsOQic",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  },
+  {
+   "videoId": "I45sF7vpwuc",
+   "channel": "Transcendental Space",
+   "channelId": "UCFs5HTxCkzwMY5_Os6_GpXA",
+   "title": "Valid Parentheses Explained Visually | LeetCode #20 Stack Solution #leetcode",
+   "durationSec": 130,
+   "kind": "short",
+   "lang": "en",
+   "flavor": "oddball",
+   "quality": 0.4,
+   "fetchedAt": "2026-11-18",
+   "id": "I45sF7vpwuc",
+   "conceptIds": [
+    "3yt-v2-valid-parentheses"
+   ]
+  }
+ ]
+}

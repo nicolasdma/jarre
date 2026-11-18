@@ -31,7 +31,9 @@ export type FeedPostKind =
   /** A code fragment: predict its Big-O, or just read the answer. */
   | 'complexity'
   /** A code snippet with one line of what it does. */
-  | 'code';
+  | 'code'
+  /** A real YouTube video or short on the concept (embedded, attributed, never re-hosted). */
+  | 'video';
 
 /**
  * How the post invites participation. ALWAYS optional: you can keep scrolling.
@@ -85,6 +87,8 @@ export interface FeedPost {
   complexityId?: string;
   /** code: the coding problem id. */
   codeId?: string;
+  /** video: the entry id in graph.videos (videoId, or videoId@start for a segment). */
+  videoId?: string;
 }
 
 /** Whether a post offers a real recall beat (for the generator's minority accounting and tests). */

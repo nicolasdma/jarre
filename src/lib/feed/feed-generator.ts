@@ -29,6 +29,7 @@
  */
 
 import type { FeedGraph, FeedConceptAssets } from './feed-graph';
+import { isFreshVideo, type FeedVideo } from './feed-videos';
 import {
   PALETTE_COUNT,
   type Energy,
@@ -127,6 +128,34 @@ const RECENT_ASSETS = 10;
 /** Score penalty for re-surfacing the account of one of the last two posts. */
 const RECENT_CONCEPT_PENALTY = 8;
 
+// Real videos (owner, 2026-11-18): no cadence. "Not one video every 6-8 posts
+// followed by a recall card": too patterned. A doomscroll mixes interesting
+// and so-so, typical and out of the mold, short and long, unpredictably.
+// So the chance of a video is driven by a hidden two-state MOOD (browsing ↔
+// watching) that flips at random: videos cluster in some stretches and vanish
+// in others, the gaps have no period, and back-to-back videos happen but are
+// rare. Which video is a weighted pick with noise (quality, weakness of its
+// concept, novelty, a follow-up to what was just on screen, not the same
+// channel or concept as the last videos, short vs long by mood, and now and
+// then a deliberate pick outside the usual LeetCode-channel mold). Stale index
+// entries (older than 30 days on the feed's day) never enter the pool.
+
+/** Per post, the chance the mood flips browse → watch and watch → browse. */
+const MOOD_TO_WATCH = 0.07;
+const MOOD_TO_BROWSE = 0.3;
+/** Chance a slot is a video, by mood. */
+const VIDEO_P_WATCH = 0.42;
+const VIDEO_P_BROWSE = 0.05;
+/** Right after a video, its chance is multiplied by this (back to back: possible, rare). */
+const BACK_TO_BACK = 0.3;
+/** A long dry spell slowly opens up (never a rule, just a nudge). */
+const DRY_SPELL = 30;
+const DRY_SPELL_BONUS = 0.08;
+/** Chance a pick deliberately goes outside the mold (another channel, Spanish, a lecture's chapter). */
+const ODDBALL_P = 0.18;
+/** A video is not shown again within this many posts. */
+const VIDEO_REPEAT_AFTER = 250;
+
 function gapFor(times: number): number {
   return RESURFACE_GAPS[Math.min(Math.max(times - 1, 0), RESURFACE_GAPS.length - 1)];
 }
@@ -184,6 +213,17 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   const recentAssets: string[] = [];
   /** Concepts of the last posts: a re-surface prefers another account. */
   const recentConcepts: string[] = [];
+
+  // Videos: only fresh entries of concepts this graph has.
+  const conceptById = new Map(concepts.map((c) => [c.id, c]));
+  const videoPool: FeedVideo[] = Object.values(graph.videos ?? {}).filter(
+    (v) => isFreshVideo(v.fetchedAt, seedParts.day) && v.conceptIds.some((id) => conceptById.has(id)),
+  );
+  let mood: 'browse' | 'watch' = 'browse';
+  let sinceVideo = 5; // posts since the last video (none yet)
+  const videoShownAt = new Map<string, number>();
+  const recentVideoConcepts: string[] = [];
+  const recentVideoChannels: string[] = [];
 
   function note<T>(list: T[], value: T, keep = 3): void {
     list.push(value);
@@ -291,7 +331,8 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
     note(recentParticipation, post.profile.participation);
     note(recentEnergy, post.profile.energy);
     note(recentConcepts, post.conceptId, 2);
-    const asset = post.quizId ?? post.cardId ?? post.complexityId ?? post.codeId ?? (post.kind === 'say-it' ? post.drillSlug : undefined);
+    const asset = post.quizId ?? post.cardId ?? post.complexityId ?? post.codeId ?? post.videoId ?? (post.kind === 'say-it' ? post.drillSlug : undefined);
+    sinceVideo = post.kind === 'video' ? 0 : sinceVideo + 1;
     if (asset) note(recentAssets, asset, RECENT_ASSETS);
     if (post.profile.participation === 'active-optional') sinceActive = 0;
     else sinceActive++;
@@ -335,7 +376,80 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
     return emit({ kind: 'nugget', conceptId: c.id, profile, paletteIndex, pass, drillSlug });
   }
 
+  /** The video this slot gets, or null (most slots). Consumes rng only when the lesson has videos. */
+  function maybeVideo(): FeedPost | null {
+    const flip = rng();
+    if (mood === 'browse' ? flip < MOOD_TO_WATCH : flip < MOOD_TO_BROWSE) mood = mood === 'browse' ? 'watch' : 'browse';
+    let p = mood === 'watch' ? VIDEO_P_WATCH : VIDEO_P_BROWSE;
+    if (sinceVideo === 0) p *= BACK_TO_BACK;
+    else if (sinceVideo >= DRY_SPELL) p += DRY_SPELL_BONUS;
+    if (rng() >= p) return null;
+    const v = pickVideo();
+    return v ? videoPost(v) : null;
+  }
+
+  function videoConcept(v: FeedVideo): FeedConceptAssets {
+    // A video about several concepts belongs to the one on screen lately, else the first one the lesson teaches.
+    const owners = v.conceptIds.map((id) => conceptById.get(id)).filter((c): c is FeedConceptAssets => Boolean(c));
+    return owners.find((c) => recentConcepts.includes(c.id)) ?? owners.find((c) => seen.has(c.id)) ?? owners[0];
+  }
+
+  function pickVideo(): FeedVideo | null {
+    const odd = rng() < ODDBALL_P;
+    const wantLong = rng() < (mood === 'watch' ? 0.4 : 0.25);
+    let best: FeedVideo | null = null;
+    let bestScore = -Infinity;
+    for (const v of videoPool) {
+      const shown = videoShownAt.get(v.id);
+      if (shown !== undefined && index - shown < VIDEO_REPEAT_AFTER) continue;
+      const c = videoConcept(v);
+      const weak = 1 - (strength[c.id] ?? 0.5);
+      const novelty = !seen.has(c.id) ? 0.35 : recentConcepts.includes(c.id) ? 0.7 : 0.2;
+      const score =
+        v.quality * 1.2 +
+        weak * 0.9 +
+        (due.has(c.id) ? 0.5 : 0) +
+        novelty -
+        (recentVideoConcepts.includes(c.id) ? 1.2 : 0) -
+        (recentVideoChannels.includes(v.channelId) ? 0.8 : 0) +
+        ((v.kind === 'long') === wantLong ? 0.6 : 0) +
+        (odd ? (v.flavor === 'oddball' ? 1 : 0) : v.flavor === 'core' ? 0.25 : 0) +
+        rng() * 1.1;
+      if (score > bestScore) {
+        bestScore = score;
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  function videoPost(v: FeedVideo): FeedPost {
+    const c = videoConcept(v);
+    const isNew = !seen.has(c.id);
+    if (isNew) {
+      const at = notIntroduced.indexOf(c.id);
+      if (at >= 0) notIntroduced.splice(at, 1);
+    }
+    const { pass } = markSeen(c);
+    const paletteIndex = paletteFor(c, pass);
+    videoShownAt.set(v.id, index);
+    note(recentVideoConcepts, c.id, 4);
+    note(recentVideoChannels, v.channelId, 3);
+    const profile: PostProfile = {
+      participation: 'passive',
+      energy: v.kind === 'short' ? 'lively' : 'calm',
+      visual: 'plain',
+      density: v.kind === 'long' ? 'dense' : 'light',
+      novelty: isNew ? 'new' : 'resurface',
+    };
+    return emit({ kind: 'video', conceptId: c.id, profile, paletteIndex, pass, videoId: v.id });
+  }
+
   function next(): FeedPost {
+    if (videoPool.length && index > 0) {
+      const v = maybeVideo();
+      if (v) return v;
+    }
     // Coverage: if the pool is empty, or we have not introduced anyone in a
     // while, introduce the next new concept as a calm nugget.
     const mustIntroduce =

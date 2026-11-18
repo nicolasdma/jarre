@@ -16,6 +16,7 @@
 import type { PracticeDrill } from '@/components/practice/types';
 import type { PhraseSegment } from '@/lib/practice/phrase-segments';
 import { drillAsksFromInterview } from '@/lib/practice/recall';
+import type { FeedVideo } from './feed-videos';
 
 // ---------------------------------------------------------------------------
 // Resolved content (what a post component reads)
@@ -100,6 +101,8 @@ export interface FeedConceptAssets {
   cardIds: string[];
   complexityIds: string[];
   codeIds: string[];
+  /** Real YouTube videos about this concept (graph.videos ids). Optional: a lesson may have none. */
+  videoIds?: string[];
 }
 
 export interface FeedGraph {
@@ -112,6 +115,8 @@ export interface FeedGraph {
   code: Record<string, FeedCode>;
   /** Drill slug → the interview's English question for it. */
   asks: Record<string, string>;
+  /** Entry id → a YouTube video of the lesson's index (src/data/feed-videos). */
+  videos?: Record<string, FeedVideo>;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +156,8 @@ export interface BuildFeedGraphInput {
   drills: PracticeDrill[];
   /** The stored `resources.interview` block, as is (unknown). */
   interview: unknown;
+  /** The lesson's YouTube index entries (already fresh-filtered by the caller, or not: the generator checks again). */
+  videos?: readonly FeedVideo[];
 }
 
 // ---------------------------------------------------------------------------
@@ -311,11 +318,21 @@ export function buildFeedGraph(input: BuildFeedGraphInput): FeedGraph {
   for (const c of code) {
     if (c.conceptId) byConcept.get(c.conceptId)?.codeIds.push(c.id);
   }
+  const videos: Record<string, FeedVideo> = {};
+  for (const v of input.videos ?? []) {
+    const owners = v.conceptIds.filter((id) => byConcept.has(id));
+    if (!owners.length) continue;
+    videos[v.id] = v;
+    for (const id of owners) {
+      const c = byConcept.get(id)!;
+      (c.videoIds ??= []).push(v.id);
+    }
+  }
 
   // Only concepts the feed can actually show something for.
   const concepts = ordered
     .map((c) => byConcept.get(c.id)!)
     .filter((c) => c.drillSlugs.length || c.quizIds.length || c.cardIds.length || c.complexityIds.length || c.codeIds.length || c.definition);
 
-  return { resourceId: input.resourceId, concepts, drills, quizzes, cards, complexity: complexityById, code: codeById, asks };
+  return { resourceId: input.resourceId, concepts, drills, quizzes, cards, complexity: complexityById, code: codeById, asks, videos };
 }

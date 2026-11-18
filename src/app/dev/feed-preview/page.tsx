@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { buildFeedGraph } from '@/lib/feed/feed-graph';
 import { lessonFileGraphInput } from '@/lib/feed/lesson-file-graph';
 import { Feed } from '@/components/feed/feed';
+import { lessonVideos } from '@/lib/feed/lesson-videos';
 import { isDevelopment, loadPreviewLesson, previewAudioFile, previewSegments, PREVIEW_ENV } from './preview-lesson';
 
 export const dynamic = 'force-dynamic';
@@ -44,9 +45,9 @@ export default async function FeedPreviewPage({ searchParams }: { searchParams: 
       ? { url: `/dev/feed-preview/audio/${drillId}`, segments: previewSegments(drillId, textEn) }
       : { url: null, segments: null },
   );
-  const graph = buildFeedGraph(input);
   const { day } = await searchParams;
   const seedDay = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : new Date().toISOString().slice(0, 10);
+  const graph = buildFeedGraph({ ...input, videos: lessonVideos(loaded.lesson.id, seedDay) });
 
   return <Feed graph={graph} day={seedDay} />;
 }
