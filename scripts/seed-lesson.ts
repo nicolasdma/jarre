@@ -2,12 +2,19 @@
 /**
  * Load a lesson JSON into the content tables, idempotently.
  *
- *   npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run]
+ *   npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run] [--enroll | --no-enroll]
  *
  * Writes: concepts, resources, resource_concepts, resource_sections,
  * inline_quizzes, question_bank, concept_cards, lesson_drills, drill audio in
- * the `lesson-audio` bucket; for the owner: concept_progress at level 1 and
- * the cards enrolled in review_schedule (same rows as /api/review/enroll).
+ * the `lesson-audio` bucket; for the owner, unless enrollment is off:
+ * concept_progress at level 1 and the cards enrolled in review_schedule (same
+ * rows as /api/review/enroll).
+ *
+ * Enrollment: the lesson's `enroll_cards` (default true), overridden by
+ * --enroll / --no-enroll. A content pack sets it false. Even when on, a card
+ * whose content (front and back) the owner already has enrolled, from any
+ * lesson, is not enrolled again (`selectCardsToEnroll`): re-namespaced copies
+ * of a lesson used to land in the deck twice.
  *
  * Re-running updates in place: every row has a stable id derived from the
  * lesson, so review progress survives. Rows the lesson no longer has are
@@ -30,6 +37,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { TABLES } from '../src/lib/db/tables';
 import {
   LessonSchema,
+  cardContentKey,
   drillAudioPath,
   drillSegments,
   mapCard,
@@ -38,6 +46,7 @@ import {
   resolveQuizHeading,
   sectionHeadings,
   segmentsSidecarPath,
+  selectCardsToEnroll,
   stableUuid,
   type DrillSegmentsFile,
   type Lesson,
@@ -57,6 +66,8 @@ interface Args {
   userId?: string;
   tts: boolean;
   dryRun: boolean;
+  /** --enroll / --no-enroll; undefined → the lesson's `enroll_cards` (default true). */
+  enroll?: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -66,10 +77,12 @@ function parseArgs(argv: string[]): Args {
     if (a === '--user') args.userId = argv[++i];
     else if (a === '--tts') args.tts = true;
     else if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--enroll') args.enroll = true;
+    else if (a === '--no-enroll') args.enroll = false;
     else if (!a.startsWith('--')) args.file = a;
     else throw new Error(`Unknown flag ${a}`);
   }
-  if (!args.file) throw new Error('Usage: npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run]');
+  if (!args.file) throw new Error('Usage: npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run] [--enroll | --no-enroll]');
   return args;
 }
 
@@ -151,7 +164,8 @@ async function main() {
   const lesson = LessonSchema.parse(JSON.parse(readFileSync(file, 'utf8')));
   const resourceId = lesson.id;
 
-  console.log(`Lesson ${resourceId}: ${lesson.concepts.length} concepts, ${lesson.drills.length} drills, phase ${lesson.phase}, track ${lesson.track}`);
+  const enrollCards = args.enroll ?? lesson.enroll_cards ?? true;
+  console.log(`Lesson ${resourceId}: ${lesson.concepts.length} concepts, ${lesson.drills.length} drills, phase ${lesson.phase}, track ${lesson.track}, review enrollment ${enrollCards ? 'on' : 'off'}`);
 
   // Validate every section/quiz placement before touching the DB.
   const sections = lesson.concepts.map((c, i) => {
@@ -373,34 +387,60 @@ async function main() {
   if (staleDrills.length) await must('lesson_drills (stale)', db.from(TABLES.lessonDrills).delete().in('id', staleDrills));
 
   // Owner: mastery level 1 (never lowered) so the cards join the review deck.
-  const owner = await pickOwner(db, args.userId);
-  console.log(`  owner: ${owner.id} (${owner.label})`);
-  const progress = (await must('concept_progress', db.from(TABLES.conceptProgress)
-    .select('concept_id, level').eq('user_id', owner.id).in('concept_id', conceptIds))) as { concept_id: string; level: string }[];
-  const atLeastOne = new Set(progress.filter((p) => Number(p.level) >= 1).map((p) => p.concept_id));
-  const toRaise = conceptIds.filter((id) => !atLeastOne.has(id));
-  if (toRaise.length) {
-    await must('concept_progress', db.from(TABLES.conceptProgress).upsert(
-      toRaise.map((id) => ({ user_id: owner.id, concept_id: id, level: '1', updated_at: now })),
-      { onConflict: 'user_id,concept_id' },
-    ));
-  }
+  // Off for a content pack: nothing of the owner's is touched.
+  let toRaise: string[] = [];
+  let enrolledCount = 0;
+  let duplicateCount = 0;
+  if (enrollCards) {
+    const owner = await pickOwner(db, args.userId);
+    console.log(`  owner: ${owner.id} (${owner.label})`);
+    const progress = (await must('concept_progress', db.from(TABLES.conceptProgress)
+      .select('concept_id, level').eq('user_id', owner.id).in('concept_id', conceptIds))) as { concept_id: string; level: string }[];
+    const atLeastOne = new Set(progress.filter((p) => Number(p.level) >= 1).map((p) => p.concept_id));
+    toRaise = conceptIds.filter((id) => !atLeastOne.has(id));
+    if (toRaise.length) {
+      await must('concept_progress', db.from(TABLES.conceptProgress).upsert(
+        toRaise.map((id) => ({ user_id: owner.id, concept_id: id, level: '1', updated_at: now })),
+        { onConflict: 'user_id,concept_id' },
+      ));
+    }
 
-  const enrolled = (await must('review_schedule', db.from(TABLES.reviewSchedule)
-    .select('card_id').eq('user_id', owner.id).in('card_id', cardRows.map((c) => c.id)))) as { card_id: string }[];
-  const enrolledIds = new Set(enrolled.map((r) => r.card_id));
-  const newSchedule = cardRows.filter((c) => !enrolledIds.has(c.id)).map((c) => ({
-    user_id: owner.id, card_id: c.id, ease_factor: 2.5, interval_days: 0, repetition_count: 0, streak: 0,
-    correct_count: 0, incorrect_count: 0, next_review_at: now, fsrs_state: 0, fsrs_reps: 0, fsrs_lapses: 0,
-  }));
-  if (newSchedule.length) await must('review_schedule', db.from(TABLES.reviewSchedule).insert(newSchedule));
+    // What the owner already has in the deck, by id and by content (any lesson).
+    const enrolledIds = new Set<string>();
+    for (let from = 0; ; from += 1000) {
+      const page = (await must('review_schedule', db.from(TABLES.reviewSchedule)
+        .select('card_id').eq('user_id', owner.id).order('card_id').range(from, from + 999))) as { card_id: string | null }[];
+      for (const r of page) if (r.card_id) enrolledIds.add(r.card_id); // question reviews have no card
+      if (page.length < 1000) break;
+    }
+    const enrolledKeys = new Set<string>();
+    const ids = [...enrolledIds];
+    for (let i = 0; i < ids.length; i += 200) {
+      const rows = (await must('concept_cards (enrolled)', db.from(TABLES.conceptCards)
+        .select('id, card_type, front_content, back_content').in('id', ids.slice(i, i + 200)))) as
+        { id: string; card_type: string; front_content: unknown; back_content: unknown }[];
+      for (const r of rows) enrolledKeys.add(cardContentKey(r));
+    }
+    const { enroll, duplicates } = selectCardsToEnroll(
+      cardRows.map((c) => ({ id: c.id, key: cardContentKey(c) })), enrolledIds, enrolledKeys,
+    );
+    duplicateCount = duplicates.length;
+    const newSchedule = enroll.map((c) => ({
+      user_id: owner.id, card_id: c.id, ease_factor: 2.5, interval_days: 0, repetition_count: 0, streak: 0,
+      correct_count: 0, incorrect_count: 0, next_review_at: now, fsrs_state: 0, fsrs_reps: 0, fsrs_lapses: 0,
+    }));
+    if (newSchedule.length) await must('review_schedule', db.from(TABLES.reviewSchedule).insert(newSchedule));
+    enrolledCount = newSchedule.length;
+  }
 
   console.log([
     `Done: ${resourceId}`,
     `  concepts ${conceptIds.length} · sections ${sections.length} · quizzes ${quizRows.length} · open ${questionRows.length} · cards ${cardRows.length}`,
     `  drills ${drillRows.length} (${uploaded} with audio uploaded to ${AUDIO_BUCKET}; ${hasSegmentsColumn ? timed : 0} with phrase timings)`,
     `  deactivated stale: quizzes ${staleQuizzes}, questions ${staleQuestions}, cards ${staleCards}; deleted stale: sections ${staleSections.length}, drills ${staleDrills.length}`,
-    `  owner progress raised to 1 on ${toRaise.length} concepts; ${newSchedule.length} cards enrolled in review`,
+    enrollCards
+      ? `  owner progress raised to 1 on ${toRaise.length} concepts; ${enrolledCount} cards enrolled in review; ${duplicateCount} skipped as duplicates of cards already in the deck`
+      : '  review enrollment off (enroll_cards: false or --no-enroll): owner progress and review deck untouched',
     `  open: /learn/${resourceId} · practice: /resource/${resourceId}/practice`,
   ].join('\n'));
 }

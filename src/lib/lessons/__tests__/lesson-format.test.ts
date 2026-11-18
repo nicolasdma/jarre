@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cardContentKey,
   drillSegments,
   LessonSchema,
   mapCard,
@@ -8,6 +9,7 @@ import {
   resolveQuizHeading,
   sectionHeadings,
   segmentsSidecarPath,
+  selectCardsToEnroll,
   stableUuid,
   type DrillSegmentsFile,
   type LessonQuiz,
@@ -93,5 +95,47 @@ describe('lesson format', () => {
       // The lesson's own segments win.
       expect(drillSegments({ text_en: text, segments: three }, null, null).segments).toBe(three);
     });
+  });
+});
+
+describe('review enrollment', () => {
+  const recall = (prompt: string, definition: string) => ({ card_type: 'recall', ...mapCard({ type: 'recall', front: prompt, back: definition, difficulty: 1 }) });
+
+  it('keys a card by content: case, spacing and key order do not matter', () => {
+    expect(cardContentKey(recall('¿Qué es  O(n)?', 'Lineal.'))).toBe(cardContentKey(recall('¿qué es o(n)? ', 'lineal.')));
+    expect(cardContentKey({ card_type: 'connect', front_content: { a: 'X', b: 'Y' }, back_content: {} }))
+      .toBe(cardContentKey({ card_type: 'connect', front_content: { b: 'y', a: 'x' }, back_content: {} }));
+  });
+
+  it('tells apart a different answer, prompt or card type', () => {
+    const base = cardContentKey(recall('Q', 'A'));
+    expect(cardContentKey(recall('Q', 'B'))).not.toBe(base);
+    expect(cardContentKey(recall('Q2', 'A'))).not.toBe(base);
+    expect(cardContentKey({ ...recall('Q', 'A'), card_type: 'true_false' })).not.toBe(base);
+  });
+
+  it('never enrolls a card whose content is already in the deck, nor twice from one lesson', () => {
+    const v1 = { id: 'v1-card', key: cardContentKey(recall('Two Sum: idea', 'Hash map of complements')) };
+    const v2Copy = { id: 'v2-card', key: v1.key }; // re-namespaced lesson, same text
+    const fresh = { id: 'new-card', key: cardContentKey(recall('Kadane', 'Best sum ending here')) };
+    const freshTwice = { id: 'new-card-2', key: fresh.key };
+    const already = { id: 'old', key: cardContentKey(recall('Old', 'Card')) };
+    const r = selectCardsToEnroll([v2Copy, fresh, freshTwice, already], new Set(['v1-card', 'old']), new Set([v1.key, already.key]));
+    expect(r.enroll.map((c) => c.id)).toEqual(['new-card']);
+    expect(r.duplicates.map((c) => c.id)).toEqual(['v2-card', 'new-card-2']);
+    expect(r.alreadyEnrolled.map((c) => c.id)).toEqual(['old']);
+  });
+
+  it('is idempotent: a second run over the same lesson enrolls nothing', () => {
+    const cards = [{ id: 'a', key: 'k1' }, { id: 'b', key: 'k2' }];
+    const first = selectCardsToEnroll(cards, new Set(), new Set());
+    const ids = new Set(first.enroll.map((c) => c.id));
+    const keys = new Set(first.enroll.map((c) => c.key));
+    expect(selectCardsToEnroll(cards, ids, keys).enroll).toEqual([]);
+  });
+
+  it('reads enroll_cards from the lesson (absent means the old behavior)', () => {
+    expect(LessonSchema.parse(sample).enroll_cards).toBeUndefined();
+    expect(LessonSchema.parse({ ...sample, enroll_cards: false }).enroll_cards).toBe(false);
   });
 });

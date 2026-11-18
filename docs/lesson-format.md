@@ -3,12 +3,13 @@
 A lesson is a hand-written resource loaded from one JSON file: concepts with their study section, inline quizzes, open questions and review cards, plus spoken-English **drills** for the Practice view.
 
 ```
-npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run]
+npx tsx scripts/seed-lesson.ts <lesson.json> [--user <uuid>] [--tts] [--dry-run] [--enroll | --no-enroll]
 ```
 
 - `--dry-run` validates the file (schema, quiz headings, audio files) and writes nothing.
 - `--user` picks whose progress is set; without it the loader uses the most recently active row of `user_profiles` and prints the candidates.
 - `--tts` generates audio for drills that have none (Gemini TTS, see below). Off by default: it calls a paid model.
+- `--enroll` / `--no-enroll` override the lesson's `enroll_cards` (see below).
 
 The schema lives in `src/lib/lessons/lesson-format.ts` (Zod); a minimal example is `scripts/fixtures/sample-lesson.json`.
 
@@ -21,6 +22,7 @@ The schema lives in `src/lib/lessons/lesson-format.ts` (Zod); a minimal example 
 | `phase` | `'0'`…`'11'`, `'1.5'` | Default `'1'`. Unlocking only depends on prerequisite concepts, and lesson concepts are never prerequisites, so any phase is unlocked; `'0'` and `'11'` are hidden in the AI library. |
 | `title`, `description` | string | Shown in the library and the learn view. |
 | `language` | string | Language of the sections. Default `es`. |
+| `enroll_cards` | boolean, optional | Default `true`: seeding raises the owner's `concept_progress` to 1 and enrolls the cards in the review deck. A **content pack** (extra material for the feed, e.g. `3y-health-tecnica-repaso`) sets `false`: its cards stay in the lesson and the feed, and the owner's progress and deck are not touched. |
 | `activate` | object, optional | Stored in `resources.activate_data`: `{ summary, sections: [{number,title,description}], keyConcepts: [], insight }`. |
 | `concepts` | array, ≥ 1 | One study section each, in order. |
 | `interview` | object, optional | Interview mock: the situation and the lesson's own interviewers. See below. Stored in `resources.interview`; `null` clears it. |
@@ -153,7 +155,7 @@ A lesson for a live-coding interview adds `interview.coding` (stored with the in
 
 1. Validates the whole file before writing anything, and says which drills with audio have phrase timings (and why the others do not).
 2. Upserts `concepts`, `resources` (core curriculum: `created_by` null, `type: article`, no URL), `resource_concepts`, `resource_sections`, `inline_quizzes`, `question_bank`, `concept_cards`, `lesson_drills`, and uploads the audio.
-3. Sets the owner's `concept_progress` to level 1 (never lowers a higher level) and enrolls the cards in `review_schedule`, like `/api/review/enroll`.
+3. Unless enrollment is off (`enroll_cards: false` or `--no-enroll`), sets the owner's `concept_progress` to level 1 (never lowers a higher level) and enrolls the cards in `review_schedule`, like `/api/review/enroll`. A card is never enrolled twice by content: if the owner already has a card with the same front and back (any lesson, compared case- and spacing-insensitively, `cardContentKey`), or the lesson repeats one of its own cards, it is skipped and counted as a duplicate (2026-11-18: a v2 that re-namespaced v1's concepts added 63 copies to the deck).
 
 Re-running is safe: every row id is derived from the lesson (`stableUuid`), so rows update in place and review progress survives. Quizzes, questions and cards the lesson no longer has are deactivated; sections and drills it no longer has are deleted.
 

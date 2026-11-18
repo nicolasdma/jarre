@@ -103,6 +103,14 @@ export const LessonSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   language: z.string().default('es'),
+  /**
+   * Whether seeding enrolls the lesson's cards in the owner's review deck (and
+   * raises the owner's concept_progress to 1). Default true, as every lesson
+   * did. A content pack (a feed of extra material, e.g. 3y-health-tecnica-repaso)
+   * sets false: its cards stay browsable and in the feed without flooding the
+   * spaced review. `seed-lesson.ts --enroll / --no-enroll` overrides it.
+   */
+  enroll_cards: z.boolean().optional(),
   activate: z.object({
     summary: z.string(),
     sections: z.array(z.object({ number: z.number().int(), title: z.string(), description: z.string() })),
@@ -212,6 +220,64 @@ export function mapCard(card: LessonCard): { front_content: Record<string, unkno
     front_content: typeof card.front === 'string' ? { prompt: card.front } : card.front,
     back_content: typeof card.back === 'string' ? { definition: card.back } : card.back,
   };
+}
+
+/** A string compared as content: Unicode-normalized, lowercase, whitespace collapsed. */
+function normalizeCardText(text: string): string {
+  return text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** Stable JSON of a stored card face with every string normalized and keys sorted. */
+function canonicalCardFace(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(normalizeCardText(value));
+  if (Array.isArray(value)) return `[${value.map(canonicalCardFace).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.keys(value as Record<string, unknown>).sort()
+      .map((k) => `${JSON.stringify(k)}:${canonicalCardFace((value as Record<string, unknown>)[k])}`);
+    return `{${entries.join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+/**
+ * What a card says, as a key: two cards with the same front and back (stored
+ * shape, `mapCard`) get the same key whatever their id, concept or lesson. The
+ * seed uses it so a lesson that repeats another lesson's card (a v2 that
+ * re-namespaces v1's concepts, 2026-11-18: 63 duplicates in the review deck)
+ * never enrolls the same card twice.
+ */
+export function cardContentKey(card: { card_type: string; front_content: unknown; back_content: unknown }): string {
+  return `${card.card_type}\u0000${canonicalCardFace(card.front_content)}\u0000${canonicalCardFace(card.back_content)}`;
+}
+
+/**
+ * Which of a lesson's cards to add to the owner's review deck: not the ones
+ * already enrolled (same id), not one whose content an enrolled card already
+ * has (any lesson), and not a second copy of the same content inside this
+ * lesson. Pure; the seed loads `enrolledIds` and `enrolledKeys` from
+ * review_schedule + concept_cards.
+ */
+export function selectCardsToEnroll<T extends { id: string; key: string }>(
+  cards: T[],
+  enrolledIds: ReadonlySet<string>,
+  enrolledKeys: ReadonlySet<string>,
+): { enroll: T[]; alreadyEnrolled: T[]; duplicates: T[] } {
+  const keys = new Set(enrolledKeys);
+  const enroll: T[] = [];
+  const alreadyEnrolled: T[] = [];
+  const duplicates: T[] = [];
+  for (const c of cards) {
+    if (enrolledIds.has(c.id)) {
+      alreadyEnrolled.push(c);
+      keys.add(c.key);
+    } else if (keys.has(c.key)) {
+      duplicates.push(c);
+    } else {
+      enroll.push(c);
+      keys.add(c.key);
+    }
+  }
+  return { enroll, alreadyEnrolled, duplicates };
 }
 
 /** Storage object path of a drill's audio inside the `lesson-audio` bucket. */
