@@ -37,7 +37,6 @@ import type { LearnProgress } from '@/lib/learn-progress';
 import type { InlineQuiz, VideoSegment } from '@/types';
 import { fetchPracticeDrills } from '@/lib/lessons/drills';
 import type { PracticeDrill } from '@/components/practice/types';
-import { activateSummaryOf } from '@/lib/lessons/activate-summary';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -253,7 +252,6 @@ export default async function LearnPage({ params }: PageProps) {
         resourceUrl={resource.url}
         sections={flowSections}
         activateComponent={renderContent?.()}
-        activateSummary={activateSummaryOf((resource as Record<string, unknown>).activate_data)}
         playgroundHref={practical?.href}
         playgroundLabel={practical?.label}
         practice={practice}

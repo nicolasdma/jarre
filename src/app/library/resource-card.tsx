@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { t, type Language } from '@/lib/translations';
@@ -55,8 +55,6 @@ interface ResourceCardProps {
     evalStats: EvalStats | null;
     relatedUserResources: RelatedUserResource[];
     hasPractice?: boolean;
-    /** The learner's place in the lesson, when they opened it before. */
-    progress?: { activeSection: number; completedSections: number[] } | null;
   };
   isLoggedIn: boolean;
   language: Language;
@@ -77,78 +75,6 @@ function formatRelativeDate(dateString: string, lang: Language): string {
   }
   const months = Math.floor(diffDays / 30);
   return lang === 'es' ? `Hace ${months} mes${months > 1 ? 'es' : ''}` : `${months}mo ago`;
-}
-
-/**
- * The card's secondary actions behind "⋯": the original source and the quick
- * questions. Clicks stay inside the menu (the card itself opens the lesson).
- */
-function MoreActions({
-  language,
-  onSource,
-  onQuickQuiz,
-}: {
-  language: Language;
-  onSource?: () => void;
-  onQuickQuiz?: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', close);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', close);
-    };
-  }, [open]);
-
-  if (!onSource && !onQuickQuiz) return null;
-  const item = 'block w-full px-4 py-3 text-left text-sm text-j-text-secondary hover:bg-j-bg-hover hover:text-j-text min-h-[44px]';
-  const run = (action: () => void) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false);
-    action();
-  };
-
-  return (
-    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={language === 'es' ? 'Más opciones' : 'More options'}
-        className="min-h-[44px] min-w-[44px] font-mono text-sm text-j-text-secondary hover:text-j-accent transition-colors"
-      >
-        ⋯
-      </button>
-      {open && (
-        <div role="menu" className="absolute bottom-full right-0 z-20 mb-1 min-w-[200px] border border-j-border bg-j-bg shadow-lg">
-          {onSource && (
-            <button type="button" role="menuitem" onClick={run(onSource)} className={item}>
-              {language === 'es' ? 'Fuente original' : 'Original source'}
-            </button>
-          )}
-          {onQuickQuiz && (
-            <button type="button" role="menuitem" onClick={run(onQuickQuiz)} className={item}>
-              {language === 'es' ? 'Preguntas rápidas' : 'Quick questions'}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardProps) {
@@ -350,14 +276,35 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
           )}
         </div>
 
-        {/* Action buttons: one primary that says what it does; the rest in ⋯ */}
+        {/* Action buttons */}
         {!isLocked && (
           <div className="flex items-center gap-3">
-            <MoreActions
-              language={language}
-              onSource={resource.url ? () => window.open(resource.url, '_blank') : undefined}
-              onQuickQuiz={resource.conceptsTaught.length > 0 ? () => setShowQuiz(true) : undefined}
-            />
+            {resource.url && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(resource.url, '_blank');
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] text-j-text-secondary uppercase hover:text-j-accent transition-colors min-h-[44px] flex items-center"
+              >
+                {t('common.open', language)}
+              </button>
+            )}
+            {resource.conceptsTaught.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowQuiz(true);
+                }}
+                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 sm:py-1.5 uppercase hover:border-j-accent hover:text-j-accent transition-colors min-h-[44px] flex items-center"
+              >
+                {t('quiz.review', language)}
+              </button>
+            )}
             {resource.hasPractice && (
               <button
                 type="button"
@@ -368,7 +315,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
                 }}
                 className="font-mono text-[10px] tracking-[0.15em] border border-j-accent text-j-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-light transition-colors min-h-[44px] flex items-center"
               >
-                {language === 'es' ? 'Practicar frases' : 'Practice phrases'}
+                {language === 'es' ? 'Practicar' : 'Practice'}
               </button>
             )}
             <button
@@ -380,9 +327,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
               }}
               className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-3 py-2 sm:py-1.5 uppercase hover:bg-j-accent-hover transition-colors min-h-[44px] flex items-center"
             >
-              {resource.progress
-                ? language === 'es' ? 'Seguir' : 'Continue'
-                : language === 'es' ? 'Empezar' : 'Start'}
+              {t('common.evaluate', language)}
             </button>
           </div>
         )}

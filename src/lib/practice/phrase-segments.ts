@@ -22,14 +22,6 @@ export function hasPhraseMarks(text: string): boolean {
   return PHRASE_MARK.test(` ${text}`);
 }
 
-/**
- * The text as the learner reads it: the " / " marks are where the audio modes
- * cut and breathe, never something to show ("means / that" reads "means that").
- */
-export function withoutPhraseMarks(text: string): string {
-  return ` ${text}`.replace(new RegExp(PHRASE_MARK.source, 'g'), '').trim();
-}
-
 /** The drill's phrases, split at every " / " (a text without marks is one phrase). */
 export function drillPhrases(text: string): string[] {
   return ` ${text}`

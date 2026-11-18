@@ -29,7 +29,7 @@ const PUNCT = /[^\p{L}\p{N}\s]/u;
  * It is read, never typed or said: copy and repeat skip it.
  */
 const PAUSE_MARK = '/';
-export const isPauseMark = (chars: readonly string[], i: number): boolean =>
+const isPauseMark = (chars: string[], i: number): boolean =>
   chars[i] === PAUSE_MARK && (i === 0 || /\s/.test(chars[i - 1])) && (i === chars.length - 1 || /\s/.test(chars[i + 1]));
 
 function comparable(ch: string, opts: CompareOptions): string {

@@ -25,7 +25,6 @@ import {
 } from '@/lib/lessons/lesson-format';
 import type { PracticeDrill } from '@/components/practice/types';
 import type { InlineQuiz } from '@/types';
-import { activateSummaryOf, type ActivateSummary } from '@/lib/lessons/activate-summary';
 
 /** The lesson file to measure, or null when the harness is off. */
 export function perfLessonPath(): string | null {
@@ -53,7 +52,6 @@ export interface PerfLessonProps {
   quizzesBySectionId: Record<string, InlineQuiz[]>;
   drills: PracticeDrill[];
   interviewConfig: unknown;
-  activateSummary: ActivateSummary | null;
 }
 
 export function perfLessonProps(lessonPath: string, audioUrl: (drillId: string) => string): PerfLessonProps {
@@ -117,6 +115,5 @@ export function perfLessonProps(lessonPath: string, audioUrl: (drillId: string) 
     quizzesBySectionId: Object.fromEntries(sections.map((s) => [s.id, s.quizzes])),
     drills,
     interviewConfig: lesson.interview ?? null,
-    activateSummary: activateSummaryOf(lesson.activate ?? null),
   };
 }

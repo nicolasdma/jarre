@@ -16,38 +16,32 @@ import { ErrorMessage } from '@/components/error-message';
 type Lang = 'es' | 'en';
 
 const AUTH_STRINGS: Record<string, Record<Lang, string>> = {
-  welcomeBack: { es: 'Hola de nuevo', en: 'Welcome back' },
-  signInSubtitle: { es: 'Entrá para seguir aprendiendo', en: 'Sign in to keep learning' },
-  continueWithGoogle: { es: 'Entrar con Google', en: 'Continue with Google' },
-  orContinueWith: { es: 'o con tu email', en: 'or with your email' },
-  email: { es: 'Email', en: 'Email' },
-  emailPlaceholder: { es: 'tu@email.com', en: 'you@example.com' },
+  welcomeBack: { es: 'Bienvenido de nuevo', en: 'Welcome back' },
+  signInSubtitle: { es: 'Inicia sesión para continuar aprendiendo', en: 'Sign in to continue your learning journey' },
+  continueWithGoogle: { es: 'Continuar con Google', en: 'Continue with Google' },
+  orContinueWith: { es: 'o continúa con email', en: 'or continue with email' },
+  email: { es: 'Correo electrónico', en: 'Email' },
   password: { es: 'Contraseña', en: 'Password' },
-  showPassword: { es: 'Mostrar la contraseña', en: 'Show password' },
-  hidePassword: { es: 'Ocultar la contraseña', en: 'Hide password' },
-  signingIn: { es: 'Entrando…', en: 'Signing in…' },
-  signIn: { es: 'Entrar', en: 'Sign in' },
-  noAccount: { es: '¿No tenés cuenta?', en: "Don't have an account?" },
-  signUp: { es: 'Crear una', en: 'Sign up' },
+  signingIn: { es: 'Iniciando sesión...', en: 'Signing in...' },
+  signIn: { es: 'Iniciar sesión', en: 'Sign in' },
+  noAccount: { es: '¿No tienes cuenta?', en: "Don't have an account?" },
+  signUp: { es: 'Registrarse', en: 'Sign up' },
   forgotPassword: { es: '¿Olvidaste tu contraseña?', en: 'Forgot your password?' },
   loading: { es: 'Cargando...', en: 'Loading...' },
   notAllowed: { es: 'Esta cuenta no tiene acceso a Jarre.', en: 'This account does not have access to Jarre.' },
 };
 
-/**
- * Spanish, the app's language (user_profiles.language defaults to 'es'),
- * whatever the browser says: `?lang=en` asks for English. Reading the URL
- * instead of navigator also renders the same text on the server and the client.
- */
-function pageLanguage(param: string | null): Lang {
-  return param === 'en' ? 'en' : 'es';
+function detectLanguage(): Lang {
+  if (typeof navigator === 'undefined') return 'es';
+  const browserLang = navigator.language?.split('-')[0];
+  return browserLang === 'en' ? 'en' : 'es';
 }
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = safeRedirectPath(searchParams.get('redirect'));
-  const language = useMemo(() => pageLanguage(searchParams.get('lang')), [searchParams]);
+  const language = useMemo(() => detectLanguage(), []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -128,7 +122,7 @@ function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder={s('emailPlaceholder')}
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -158,7 +152,6 @@ function LoginForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-j-text-tertiary hover:text-j-text transition-colors"
-                  aria-label={showPassword ? s('hidePassword') : s('showPassword')}
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

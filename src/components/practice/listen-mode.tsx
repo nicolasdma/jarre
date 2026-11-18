@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { listenedThrough, newListenTrack, trackListen } from '@/lib/practice/drill-progress';
-import { withoutPhraseMarks } from '@/lib/practice/phrase-segments';
 import { AudioBar, Chip } from './controls';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
@@ -43,11 +42,11 @@ export function ListenMode({
   return (
     <div className="space-y-5" data-mode="listen">
       <AudioBar audio={audio} />
-      <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{withoutPhraseMarks(drill.textEn)}</p>
+      <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{drill.textEn}</p>
       {drill.textEs && (
         <div className="space-y-3">
           <Chip active={showEs} onClick={() => setShowEs((v) => !v)}>
-            {showEs ? 'Ocultar el castellano' : 'Ver en castellano'}
+            {showEs ? 'Ocultar traducción' : 'Ver traducción'}
           </Chip>
           {showEs && (
             <p className="border-l-2 border-j-warm pl-4 text-base leading-relaxed text-j-text-em" lang="es">

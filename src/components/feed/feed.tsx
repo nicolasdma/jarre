@@ -384,7 +384,7 @@ export function Feed({
             <TopicStories accounts={accounts} order={order} seen={seen} onJump={jumpTo} />
 
             {!feed ? (
-              <p className="py-24 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500">Armando tu repaso…</p>
+              <p className="py-24 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500">Armando tu feed…</p>
             ) : (
               <div role="feed" aria-label="Feed" aria-busy={false} className="mt-3 flex flex-col sm:mt-4">
                 {feed.base > 0 && (

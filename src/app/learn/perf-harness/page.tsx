@@ -27,7 +27,6 @@ export default function PerfHarnessPage() {
       resourceUrl={null}
       sections={lesson.sections}
       activateComponent={undefined}
-      activateSummary={lesson.activateSummary}
       practice={{ drills: lesson.drills, interviewConfig: lesson.interviewConfig }}
       concepts={lesson.concepts}
       userId="perf-harness"

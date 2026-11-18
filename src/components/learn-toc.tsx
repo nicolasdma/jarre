@@ -77,7 +77,7 @@ export function LearnTOC({
       {/* Steps */}
       <div className="mb-6">
         <p className="font-mono text-[9px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2 px-4">
-          {language === 'es' ? 'Tu lección' : 'Your lesson'}
+          {language === 'es' ? 'Pasos' : 'Steps'}
         </p>
         <ul className="space-y-0.5">
           {steps.map((step) => {
@@ -112,7 +112,7 @@ export function LearnTOC({
       {currentStep === 'learn' && sections.length > 0 && (
         <div>
           <p className="font-mono text-[9px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2 px-4">
-            {language === 'es' ? 'Partes' : 'Parts'}
+            {language === 'es' ? 'Secciones' : 'Sections'}
           </p>
           <ul className="space-y-0.5">
             {sections.map((section, i) => {
@@ -164,12 +164,12 @@ export function LearnTOC({
           <div className="lg:hidden fixed right-0 top-0 bottom-0 z-50 w-[280px] max-w-[85vw] bg-j-bg/95 backdrop-blur-lg border-l border-j-border overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b border-j-border">
               <span className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
-                {language === 'es' ? 'Índice' : 'Contents'}
+                {language === 'es' ? 'Contenido' : 'Contents'}
               </span>
               <button
                 onClick={() => onMobileOpenChange(false)}
                 className="flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px]"
-                aria-label={language === 'es' ? 'Cerrar el índice' : 'Close the contents'}
+                aria-label="Close menu"
               >
                 <span className="block w-5 h-px bg-j-text rotate-45 translate-y-[3.5px] transition-all duration-200" />
                 <span className="block w-5 h-px bg-j-text opacity-0 transition-all duration-200" />

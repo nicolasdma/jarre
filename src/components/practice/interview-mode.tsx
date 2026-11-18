@@ -78,14 +78,14 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
         <h1 className="text-2xl font-bold text-j-text">{presentation ? 'Simulacro de la presentación' : 'Simulacro de entrevista'}</h1>
         <p className="text-sm text-j-text-secondary">
           {presentation
-            ? 'Presentás en inglés tus diapositivas de corrido, sin interrupciones, y después te hacen preguntas sobre el tema, como en la reunión real. Sin ayuda durante el simulacro. Al terminar (cuando cierra quien te escucha o tocás Terminar) te llega un informe escrito: qué estuvo bien, qué faltó y cómo decirlo mejor.'
-            : 'Te entrevistan en inglés sobre esta lección, con preguntas que no preparaste, como en una llamada real. Sin ayuda durante la entrevista. Al terminar (cuando cierra quien te entrevista o tocás Terminar) te llega un informe escrito, pregunta por pregunta: qué estuvo bien, qué faltó y cómo decirlo mejor.'}
+            ? 'Presentas en inglés tus diapositivas de corrido, sin interrupciones; después te hacen unas preguntas sobre el tema, como en la reunión real. Durante el simulacro no hay feedback. Al terminar (cuando cierra quien te escucha o tocas Terminar) aparece el cierre por escrito: la presentación y cada respuesta, qué estuvo bien, qué faltó y cómo decirlo mejor.'
+            : 'Te entrevistan en inglés sobre esta lección y te tiran preguntas que no preparaste, como en una llamada real: durante la entrevista no hay feedback. Al terminar (cuando cierra el entrevistador o tocás Terminar) aparece el cierre por escrito: pregunta por pregunta, qué estuvo bien, qué faltó y cómo decirlo mejor.'}
         </p>
       </div>
 
       <fieldset disabled={live} className="space-y-2 disabled:opacity-60">
-        <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">{presentation ? 'Te escucha' : 'Te entrevista'}</legend>
-        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={presentation ? 'Te escucha' : 'Te entrevista'}>
+        <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">{presentation ? 'Quién te escucha' : 'Quién te entrevista'}</legend>
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={presentation ? 'Quién te escucha' : 'Entrevistador'}>
           {setup.personas.map((p) => (
             <button
               key={p.id}
@@ -106,8 +106,8 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
       </fieldset>
 
       <fieldset disabled={live} className="space-y-2 disabled:opacity-60">
-        <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Dificultad</legend>
-        <div className="flex gap-1" role="radiogroup" aria-label="Dificultad">
+        <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Profundidad</legend>
+        <div className="flex gap-1" role="radiogroup" aria-label="Profundidad">
           {DEPTHS.map((d) => (
             <button
               key={d}
@@ -145,7 +145,9 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
             }}
             className="min-h-[44px] bg-j-accent px-4 font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-on-accent"
           >
-            {session.state === 'done' ? 'Hacer otro' : 'Empezar'}
+            {presentation
+              ? session.state === 'done' ? 'Otro simulacro' : 'Empezar simulacro'
+              : session.state === 'done' ? 'Otra entrevista' : 'Empezar entrevista'}
           </button>
         )}
         <span className="text-sm text-j-text-secondary" aria-live="polite">
@@ -176,7 +178,7 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
           {session.transcript.map((line, i) => (
             <p key={i} className={cn('text-sm leading-relaxed', line.role === 'user' ? 'text-j-text-secondary' : 'text-j-text')}>
               <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">
-                {line.role === 'user' ? 'Vos' : setup.persona.name}
+                {line.role === 'user' ? (presentation ? 'Tú' : 'Vos') : setup.persona.name}
               </span>
               {line.text}
             </p>

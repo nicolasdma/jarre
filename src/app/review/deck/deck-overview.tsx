@@ -49,7 +49,7 @@ export function DeckOverview({ language }: { language: Language }) {
     return (
       <div className="text-center py-16">
         <p className="text-j-text-secondary animate-pulse">
-          {language === 'es' ? 'Cargando…' : 'Loading…'}
+          {language === 'es' ? 'Cargando deck...' : 'Loading deck...'}
         </p>
       </div>
     );
@@ -99,7 +99,7 @@ export function DeckOverview({ language }: { language: Language }) {
           <div className="text-center p-4 border border-j-border">
             <p className="text-3xl font-light text-j-text-secondary">{stats.totalCards}</p>
             <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase mt-1">
-              {language === 'es' ? 'Tarjetas' : 'Cards'}
+              {language === 'es' ? 'Tarjetas totales' : 'Total cards'}
             </p>
           </div>
         </div>

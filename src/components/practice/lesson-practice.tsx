@@ -98,30 +98,26 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 // ---------------------------------------------------------------------------
 
 /**
- * Where a phrase stands, in words: "sin empezar", "en curso" (the approved
- * modes in the title) or "hecha" in the success color.
+ * A drill's approved modes as a plain "3/5", small; "pendiente" until anything
+ * was tried. Complete reads in the success color.
  */
 function ProgressCount({ p }: { p: DrillProgress }) {
   if (!p.started) {
     return (
       <span className="shrink-0 font-mono text-[10px] text-j-text-tertiary" data-testid="drill-pending">
-        sin empezar
+        pendiente
       </span>
     );
   }
   return (
     <span
-      className={cn('shrink-0 font-mono text-[10px]', p.complete ? 'text-j-success' : 'text-j-text-tertiary')}
-      title={modesTitle(p)}
+      className={cn('shrink-0 font-mono text-[10px] tabular-nums', p.complete ? 'text-j-success' : 'text-j-text-tertiary')}
+      title={`${p.done} de ${p.total} modos aprobados`}
       data-testid="drill-progress"
     >
-      {p.complete ? 'hecha' : 'en curso'}
+      {p.done}/{p.total}
     </span>
   );
-}
-
-function modesTitle(p: DrillProgress): string {
-  return `${p.done} de ${p.total} formas de practicar aprobadas`;
 }
 
 /** The section's drills, under its reading: one opens inline with every mode. */
@@ -133,11 +129,11 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
   const complete = group.drills.filter((d) => practice.progressOf(d).complete).length;
 
   return (
-    <section className="mt-8 border-t border-j-border pt-6" aria-label="Para decir en inglés" data-testid="section-drills">
+    <section className="mt-8 border-t border-j-border pt-6" aria-label="Decilo en inglés" data-testid="section-drills">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Para decir en inglés</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Decilo en inglés</p>
         <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary" data-testid="section-complete">
-          {phrasesLine(group.drills.length, complete)}
+          {complete}/{group.drills.length} completas
         </p>
       </div>
       <ul className="space-y-2">
@@ -152,7 +148,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
                 className="flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-left hover:bg-j-bg-alt"
               >
                 <span className="min-w-0 flex-1 text-sm text-j-text">{d.title}</span>
-                {!d.audioUrl && <AutoVoiceTag />}
+                {d.audioUrl && <span className="shrink-0 text-xs text-j-warm" title="Con grabación lista" aria-label="Con grabación lista">★</span>}
                 <ProgressCount p={practice.progressOf(d)} />
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">{open ? 'Cerrar' : 'Practicar'}</span>
               </button>
@@ -182,11 +178,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
 // The Practice step
 // ---------------------------------------------------------------------------
 
-/**
- * The Practice step ("Decirlo"). `onNext` goes on to the next step in order
- * (the voice tutor); `presentation` words it for a talk instead of a call.
- */
-export function PracticeStep({ onNext, presentation = false }: { onNext?: () => void; presentation?: boolean }) {
+export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
   const practice = useLessonPractice();
   if (!practice || practice.drills.length === 0) return null;
   const order = practice.groups.flatMap((g) => g.drills);
@@ -203,39 +195,38 @@ export function PracticeStep({ onNext, presentation = false }: { onNext?: () => 
     <div className="py-16" data-testid="practice-step">
       <header className="mb-8 space-y-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
-          Decirlo · {complete} de {order.length}
+          Practicar · {complete}/{order.length} completas
         </p>
-        <h1 className="text-2xl font-bold text-j-text">{presentation ? 'Tus frases, en inglés' : 'Tus respuestas, en inglés'}</h1>
-        <p className="text-sm text-j-text-secondary" data-testid="practice-intro">
-          {presentation
-            ? 'Cada frase de la presentación: escuchala, copiala, repetila entera o de a partes, y al final decila sin mirar. Elegí cualquiera en el índice o seguí con las flechas.'
-            : 'Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase, y al final respondela solo con la pregunta. Elegí cualquiera en el índice o seguí con las flechas.'}
+        <h1 className="text-2xl font-bold text-j-text">Lo que vas a decir, en inglés</h1>
+        <p className="text-sm text-j-text-secondary">
+          Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase, y al final respondela solo con la pregunta. Elegí cualquiera en el índice, o seguí con las flechas.
         </p>
         {due.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 border border-j-warm bg-j-warm-light px-3 py-2" data-testid="recall-due">
             <p className="flex-1 text-sm text-j-text">
-              {dueLine(due.length, presentation)}
+              {due.length === 1 ? '1 respuesta para repasar hoy' : `${due.length} respuestas para repasar hoy`}
+              <span className="text-j-text-secondary"> · pregunta → respuesta</span>
             </p>
             <button
               type="button"
               onClick={() => practice.select(due.includes(drill) ? drill.slug : due[0].slug, 'recall')}
               className="min-h-[40px] bg-j-accent px-4 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent hover:bg-j-accent-hover"
             >
-              Repasar ahora
+              Repasar
             </button>
           </div>
         )}
         <select
           value={drill.slug}
           onChange={(e) => practice.select(e.target.value)}
-          aria-label={presentation ? 'Elegir frase' : 'Elegir respuesta'}
+          aria-label="Elegir drill"
           className="w-full border border-j-border-input bg-j-bg-white px-3 py-2 text-sm text-j-text lg:hidden"
         >
           {practice.groups.map((g) => (
             <optgroup key={g.id} label={g.title}>
               {g.drills.map((d) => (
                 <option key={d.slug} value={d.slug}>
-                  {optionPrefix(practice.progressOf(d))}{d.title}
+                  {optionPrefix(practice.progressOf(d))}{d.audioUrl ? '★ ' : ''}{d.title}
                 </option>
               ))}
             </optgroup>
@@ -260,16 +251,15 @@ export function PracticeStep({ onNext, presentation = false }: { onNext?: () => 
         onNextDue={reviewing && nextDue ? () => practice.select(nextDue.slug) : undefined}
       />
 
-      {onNext && (
+      {onInterview && (
         <div className="mt-16 border-t border-j-border pt-10 text-center">
-          <p className="mb-4 text-sm text-j-text-secondary">Cuando las tengas, ensayalas con el tutor de voz.</p>
+          <p className="mb-4 text-sm text-j-text-secondary">Cuando lo tengas, probalo en una llamada simulada.</p>
           <button
             type="button"
-            onClick={onNext}
+            onClick={onInterview}
             className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent hover:bg-j-accent-hover"
-            data-testid="practice-next"
           >
-            Siguiente: ensayar con el tutor →
+            Simulacro de entrevista →
           </button>
         </div>
       )}
@@ -308,10 +298,11 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
                     )}
                   >
                     {p.started && (
-                      <span className={cn('mr-1.5 font-mono text-[10px] tabular-nums', p.complete ? 'text-j-success' : 'text-j-text-tertiary')} title={modesTitle(p)}>
-                        {p.complete ? '✓' : `${p.done}/${p.total}`}
+                      <span className={cn('mr-1.5 font-mono text-[10px] tabular-nums', p.complete ? 'text-j-success' : 'text-j-text-tertiary')} title={`${p.done} de ${p.total} modos aprobados`}>
+                        {p.done}/{p.total}
                       </span>
                     )}
+                    {d.audioUrl && <span className="mr-1.5 text-j-warm" aria-label="Con grabación lista">★</span>}
                     {isRecallDue(practice.scores[d.slug]?.recall) && (
                       <span className="mr-1.5 text-j-warm-dark" title="Para repasar hoy">↻</span>
                     )}
@@ -335,27 +326,6 @@ export function usePracticeProgress(): { done: number; total: number } | null {
     done: practice.drills.filter((d) => practice.progressOf(d).complete).length,
     total: practice.drills.length,
   };
-}
-
-/** "4 frases", or "1 de 4 hechas" once any is done. */
-function phrasesLine(total: number, done: number): string {
-  if (done === 0) return total === 1 ? '1 frase' : `${total} frases`;
-  return `${done} de ${total} ${done === 1 && total === 1 ? 'hecha' : 'hechas'}`;
-}
-
-/** "3 frases para repasar hoy" (a talk) or "3 respuestas para repasar hoy" (a call). */
-function dueLine(count: number, presentation: boolean): string {
-  const noun = presentation ? (count === 1 ? 'frase' : 'frases') : count === 1 ? 'respuesta' : 'respuestas';
-  return `${count} ${noun} para repasar hoy`;
-}
-
-/** A phrase with no recording plays in the device's voice: said once, on that phrase only. */
-function AutoVoiceTag() {
-  return (
-    <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-j-text-tertiary" title="Esta frase no tiene grabación: la lee una voz automática">
-      voz automática
-    </span>
-  );
 }
 
 /** The drill picker on a phone: "✓ " complete, "3/5 " started, nothing pending. */

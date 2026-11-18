@@ -67,10 +67,10 @@ export function SpeechLabel() {
   return (
     <span
       className="border border-j-warm px-2 py-1 font-mono text-[9px] uppercase tracking-[0.15em] text-j-warm-dark"
-      title="Esta frase todavía no tiene grabación: la lee una voz automática"
+      title="Este drill todavía no tiene grabación: lo lee la voz del navegador"
       data-testid="speech-label"
     >
-      voz automática
+      voz del navegador
     </span>
   );
 }
@@ -80,17 +80,14 @@ function formatTime(sec: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-const RATES: { rate: PlaybackRate; label: string }[] = [
-  { rate: 0.75, label: 'Más lento' },
-  { rate: 1, label: 'Normal' },
-];
+const RATES: PlaybackRate[] = [0.75, 1];
 
 /** Play/pause, restart, speed and loop. */
 export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLoop?: boolean }) {
   if (!audio.available) {
     return (
       <p className="border border-dashed border-j-border px-3 py-3 font-mono text-[11px] text-j-text-tertiary">
-        Esta frase todavía no tiene audio y el navegador no tiene voz.
+        Este drill todavía no tiene audio y el navegador no tiene voz.
       </p>
     );
   }
@@ -114,16 +111,16 @@ export function AudioBar({ audio, showLoop = true }: { audio: DrillAudio; showLo
           <RotateCcw size={18} />
         </button>
         <div className="flex gap-1">
-          {RATES.map(({ rate, label }) => (
-            <Chip key={rate} active={audio.rate === rate} onClick={() => audio.setRate(rate)} title={`Velocidad ${rate}×`}>
-              {label}
+          {RATES.map((r) => (
+            <Chip key={r} active={audio.rate === r} onClick={() => audio.setRate(r)} title={`Velocidad ${r}×`}>
+              {r}×
             </Chip>
           ))}
         </div>
         {audio.kind === 'speech' && <SpeechLabel />}
         {showLoop && (
-          <Chip active={audio.loop} onClick={() => audio.setLoop(!audio.loop)} title="Repetir el audio sin parar">
-            <span className="flex items-center gap-1.5"><Repeat size={12} /> Repetir sin parar</span>
+          <Chip active={audio.loop} onClick={() => audio.setLoop(!audio.loop)} title="Repetir en loop">
+            <span className="flex items-center gap-1.5"><Repeat size={12} /> Loop</span>
           </Chip>
         )}
       </div>

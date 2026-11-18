@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   accuracyPercent,
-  isPauseMark,
   copyFeedback,
   wordsPerMinute,
   type CharState,
@@ -95,7 +94,7 @@ export function CopyMode({
   return (
     <div className="space-y-4" data-mode="copy">
       <p className="text-lg leading-relaxed sm:text-xl" lang="en" data-testid="copy-target">
-        {targetChars.map((ch, i) => isPauseMark(targetChars, i) ? null : (
+        {targetChars.map((ch, i) => (
           <span
             key={i}
             data-state={feedback.states[i]}
@@ -140,7 +139,7 @@ export function CopyMode({
 
       {!result && (
         <div className="flex flex-wrap items-center gap-3">
-          <PrimaryButton onClick={finish} disabled={!typed.trim()}>Revisar</PrimaryButton>
+          <PrimaryButton onClick={finish} disabled={!typed.trim()}>Revisar · Enter</PrimaryButton>
           <span className="font-mono text-[11px] tabular-nums text-j-text-tertiary">
             {feedback.correct}/{feedback.targetLength}
           </span>
@@ -151,16 +150,16 @@ export function CopyMode({
         <div className="space-y-4" data-testid="type-result">
           <div className="grid grid-cols-2 gap-2">
             <Stat label="Precisión" value={`${result.accuracy}%`} />
-            <Stat label="Palabras por minuto" value={String(result.wpm)} />
+            <Stat label="WPM" value={String(result.wpm)} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <PrimaryButton onClick={onNext}>Siguiente</PrimaryButton>
+            <PrimaryButton onClick={onNext}>Siguiente · Enter</PrimaryButton>
             <button
               type="button"
               onClick={reset}
               className="min-h-[44px] border border-j-border-input px-4 font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-secondary hover:border-j-accent hover:text-j-accent"
             >
-              Volver a intentar
+              Otra vez
             </button>
           </div>
         </div>
