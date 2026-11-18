@@ -114,7 +114,7 @@ const PARTICIPATION_WEIGHTS: Record<Participation, number> = {
 /** Never two active beats within this many posts (keeps them sprinkled, never a floor). */
 const ACTIVE_SPACING = 3;
 /** Seed the pool with a few concepts before interleaving review. */
-const SEED_CONCEPTS = 2;
+const SEED_CONCEPTS = 3;
 /** Force an introduction if none happened in this many posts (coverage). */
 const NEW_FORCE_AFTER = 3;
 /** Spaced re-surface gaps (posts): grow, then cap and cycle. */
@@ -124,6 +124,12 @@ const WEAKNESS_BOOST = 6;
 /** A calm progress reminder about this often; never a stop. */
 const MILESTONE_EVERY = 12;
 const MILESTONE_MIN_INDEX = 8;
+
+const VISUALS: VisualVibe[] = ['polished', 'plain', 'raw'];
+/** How many recent posts an asset (a quiz, a card…) must wait before showing again. */
+const RECENT_ASSETS = 10;
+/** Score penalty for re-surfacing the account of one of the last two posts. */
+const RECENT_CONCEPT_PENALTY = 8;
 
 function gapFor(times: number): number {
   return RESURFACE_GAPS[Math.min(Math.max(times - 1, 0), RESURFACE_GAPS.length - 1)];
@@ -179,6 +185,10 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   const recentKinds: FeedPostKind[] = [];
   const recentParticipation: Participation[] = [];
   const recentEnergy: Energy[] = [];
+  /** Assets shown lately (quiz/card/Big-O/code/say-it ids): not shown again this soon. */
+  const recentAssets: string[] = [];
+  /** Concepts of the last posts: a re-surface prefers another account. */
+  const recentConcepts: (string | null)[] = [];
 
   function note<T>(list: T[], value: T, keep = 3): void {
     list.push(value);
@@ -200,7 +210,9 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
       const weak = 1 - (strength[c.id] ?? 0.5);
       const dueBoost = due.has(c.id) ? 3 : 0;
       // Overdue by how much, plus pull from weakness, plus a little noise for varied order.
-      const score = index - s.lastIndex - gapFor(s.times) + weak * WEAKNESS_BOOST + dueBoost + rng() * 2;
+      // Same account as one of the last two posts: push it back (a feed is many accounts).
+      const justSeen = recentConcepts.includes(c.id) ? RECENT_CONCEPT_PENALTY : 0;
+      const score = index - s.lastIndex - gapFor(s.times) + weak * WEAKNESS_BOOST + dueBoost + rng() * 2 - justSeen;
       if (score > bestScore) {
         bestScore = score;
         best = c;
@@ -213,6 +225,21 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   function rotate<T>(ids: T[], times: number): T | undefined {
     if (!ids.length) return undefined;
     return ids[(times + Math.floor(rng() * ids.length)) % ids.length];
+  }
+
+  /** The rotated asset, skipping ones shown lately; undefined when all were. */
+  function fresh(ids: string[], times: number): string | undefined {
+    if (!ids.length) return undefined;
+    const start = (times + Math.floor(rng() * ids.length)) % ids.length;
+    for (let k = 0; k < ids.length; k++) {
+      const id = ids[(start + k) % ids.length];
+      if (!recentAssets.includes(id)) return id;
+    }
+    return undefined;
+  }
+
+  function lastKind(): FeedPostKind | undefined {
+    return recentKinds[recentKinds.length - 1];
   }
 
   function paletteFor(c: FeedConceptAssets | null, times: number): number {
@@ -244,11 +271,34 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
     return weightedPick(rng, weights);
   }
 
-  function emit(post: Omit<FeedPost, 'key'>): FeedPost {
+  let lastPalette = -1;
+  let lastLook: string | null = null;
+
+  /**
+   * Two consecutive posts never look alike (a real feed is different accounts
+   * posting different things): never the same palette twice in a row, and
+   * never the same kind in the same visual vibe twice in a row. Rotation, no
+   * extra randomness, so the stream stays deterministic.
+   */
+  function vary(post: Omit<FeedPost, 'key'>): Omit<FeedPost, 'key'> {
+    let paletteIndex = post.paletteIndex;
+    if (paletteIndex === lastPalette) paletteIndex = (paletteIndex + 3) % PALETTE_COUNT;
+    let visual = post.profile.visual;
+    if (lastLook === `${post.kind}:${visual}`) visual = VISUALS[(VISUALS.indexOf(visual) + 1) % VISUALS.length];
+    lastPalette = paletteIndex;
+    lastLook = `${post.kind}:${visual}`;
+    return { ...post, paletteIndex, profile: { ...post.profile, visual } };
+  }
+
+  function emit(raw: Omit<FeedPost, 'key'>): FeedPost {
+    const post = vary(raw);
     const key = `${index}-${post.kind}-${post.conceptId ?? 'x'}-${post.pass}`;
     note(recentKinds, post.kind);
     note(recentParticipation, post.profile.participation);
     note(recentEnergy, post.profile.energy);
+    note(recentConcepts, post.conceptId, 2);
+    const asset = post.quizId ?? post.cardId ?? post.complexityId ?? post.codeId ?? (post.kind === 'say-it' ? post.drillSlug : undefined);
+    if (asset) note(recentAssets, asset, RECENT_ASSETS);
     if (post.profile.participation === 'active-optional') sinceActive = 0;
     else sinceActive++;
     // Novelty drives the intro bookkeeping in one place, so callers never double-count.
@@ -341,7 +391,9 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
         return nuggetPost(concepts[0], 'passive', 'resurface');
       }
       // A passive re-view: a light reminder (nugget) or a code read when it has one.
-      if (c.codeIds.length && rng() < 0.4) return codePost(c, 'passive');
+      // After a nugget, a code read is likelier: the stream alternates what it shows.
+      const codeChance = lastKind() === 'nugget' ? 0.8 : 0.5;
+      if (c.codeIds.some((id) => !recentAssets.includes(id)) && rng() < codeChance) return codePost(c, 'passive');
       return nuggetPost(c, 'passive', 'resurface');
     }
 
@@ -361,15 +413,18 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   function tapPost(c: FeedConceptAssets): FeedPost {
     const { pass, times } = markSeen(c);
     const paletteIndex = paletteFor(c, pass);
-    // Prefer a quiz or a Big-O predict; else fall to a nugget you tap to flip.
-    const useComplexity = c.complexityIds.length && (!c.quizIds.length || rng() < 0.4);
-    if (useComplexity) {
-      const complexityId = rotate(c.complexityIds, times)!;
+    // Prefer a quiz or a Big-O predict (one not shown lately, and not the kind
+    // the last post was); else fall to a nugget you tap to flip.
+    const complexityId = fresh(c.complexityIds, times);
+    const quizId = fresh(c.quizIds, times);
+    let useComplexity = Boolean(complexityId) && (!quizId || rng() < 0.55);
+    if (useComplexity && quizId && lastKind() === 'complexity') useComplexity = false;
+    else if (!useComplexity && complexityId && lastKind() === 'tap-quiz') useComplexity = true;
+    if (useComplexity && complexityId) {
       const profile: PostProfile = { participation: 'optional-tap', energy: energyFor('complexity'), visual: visualFor('complexity', paletteIndex), density: 'loose', novelty: 'resurface' };
       return emit({ kind: 'complexity', conceptId: c.id, profile, paletteIndex, pass, complexityId });
     }
-    if (c.quizIds.length) {
-      const quizId = rotate(c.quizIds, times)!;
+    if (quizId) {
       const profile: PostProfile = { participation: 'optional-tap', energy: energyFor('tap-quiz'), visual: visualFor('tap-quiz', paletteIndex), density: 'loose', novelty: 'resurface' };
       return emit({ kind: 'tap-quiz', conceptId: c.id, profile, paletteIndex, pass, quizId });
     }
@@ -380,16 +435,21 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   }
 
   function activePost(c: FeedConceptAssets): FeedPost {
-    const { pass, times } = markSeen(c);
+    const times = (seen.get(c.id)?.times ?? 0) + 1;
+    // Say-it when the concept has a judgeable drill and not too often; else
+    // predict a recall card. Never one shown lately: then a tap post instead.
+    const sayIt = fresh(c.sayItSlugs, times);
+    const cardId = fresh(c.cardIds, times);
+    if (!sayIt && !cardId) return tapPost(c);
+    const { pass } = markSeen(c);
     const paletteIndex = paletteFor(c, pass);
-    // Say-it when the concept has a judgeable drill and not too often; else predict a recall card.
-    const useSayIt = c.sayItSlugs.length && (!c.cardIds.length || rng() < 0.45);
-    if (useSayIt) {
-      const drillSlug = rotate(c.sayItSlugs, times)!;
+    let useSayIt = Boolean(sayIt) && (!cardId || rng() < 0.45);
+    if (useSayIt && cardId && lastKind() === 'say-it') useSayIt = false;
+    if (useSayIt && sayIt) {
+      const drillSlug = sayIt;
       const profile: PostProfile = { participation: 'active-optional', energy: energyFor('say-it'), visual: visualFor('say-it', paletteIndex), density: 'loose', novelty: 'resurface' };
       return emit({ kind: 'say-it', conceptId: c.id, profile, paletteIndex, pass, drillSlug });
     }
-    const cardId = rotate(c.cardIds, times)!;
     const profile: PostProfile = { participation: 'active-optional', energy: energyFor('predict'), visual: visualFor('predict', paletteIndex), density: 'loose', novelty: 'resurface' };
     return emit({ kind: 'predict', conceptId: c.id, profile, paletteIndex, pass, cardId });
   }
@@ -397,7 +457,7 @@ export function createFeedGenerator(graph: FeedGraph, learner: LearnerState, see
   function codePost(c: FeedConceptAssets, participation: Participation): FeedPost {
     const { pass, times } = markSeen(c);
     const paletteIndex = paletteFor(c, pass);
-    const codeId = rotate(c.codeIds, times)!;
+    const codeId = fresh(c.codeIds, times) ?? rotate(c.codeIds, times)!;
     const profile: PostProfile = { participation, energy: energyFor('code'), visual: visualFor('code', paletteIndex), density: 'light', novelty: 'resurface' };
     return emit({ kind: 'code', conceptId: c.id, profile, paletteIndex, pass, codeId });
   }

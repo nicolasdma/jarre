@@ -74,6 +74,12 @@ export interface FeedCode {
   pattern: string;
   statement: string;
   code: string;
+  /** The optimal time complexity, as written in the problem (complexity.time or solution.time). */
+  time: string | null;
+  /** The optimal space complexity, as written. */
+  space: string | null;
+  /** The brute force's time, when the approach text names one ("Brute force: …, O(n²) time"). */
+  brute: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +200,14 @@ export function complexityFromInterview(raw: unknown): FeedComplexity[] {
   return out;
 }
 
+/** The first Big-O in an approach's "Brute force: …" sentence, or null when it names none. */
+export function bruteForceTime(approach: string | null): string | null {
+  if (!approach) return null;
+  const m = approach.match(/brute[- ]force\s*:([^]*?)(?:\.\s|\.$|$)/i);
+  if (!m) return null;
+  return m[1].match(/O\([^)]*\)/)?.[0] ?? null;
+}
+
 /** Coding problems from interview.coding.problems: code is the reference solution, else the starter. */
 export function codeFromInterview(raw: unknown): FeedCode[] {
   const coding = (raw as { coding?: unknown })?.coding as { problems?: unknown } | undefined;
@@ -210,7 +224,18 @@ export function codeFromInterview(raw: unknown): FeedCode[] {
     const solution = o.solution as Record<string, unknown> | undefined;
     const code = asString(solution?.code) ?? asString(o.starter);
     if (!id || !title || !pattern || !statement || !code) continue;
-    out.push({ id, conceptId: asString(o.concept), title, pattern, statement, code });
+    const complexity = o.complexity as { time?: { answer?: unknown }; space?: { answer?: unknown } } | undefined;
+    out.push({
+      id,
+      conceptId: asString(o.concept),
+      title,
+      pattern,
+      statement,
+      code,
+      time: asString(complexity?.time?.answer) ?? asString(solution?.time),
+      space: asString(complexity?.space?.answer) ?? asString(solution?.space),
+      brute: bruteForceTime(asString(solution?.approach)),
+    });
   }
   return out;
 }
@@ -293,27 +318,4 @@ export function buildFeedGraph(input: BuildFeedGraphInput): FeedGraph {
     .filter((c) => c.drillSlugs.length || c.quizIds.length || c.cardIds.length || c.complexityIds.length || c.codeIds.length || c.definition);
 
   return { resourceId: input.resourceId, concepts, drills, quizzes, cards, complexity: complexityById, code: codeById, asks };
-}
-
-/**
- * A few signaling keywords for a concept nugget (Mayer: keywords on screen,
- * not the whole script). The concept name, split into its words, longest
- * first, capped. Pure, so the nugget stays a projection of existing text.
- */
-export function conceptKeywords(name: string, max = 4): string[] {
-  const seen = new Set<string>();
-  const words = name
-    .replace(/[·:]/g, ' ')
-    .split(/\s+/)
-    .map((w) => w.trim())
-    .filter((w) => w.length > 1 && !/^(the|a|an|of|in|on|to|y|e|o|de|la|el|un|una|en|con)$/i.test(w));
-  const out: string[] = [];
-  for (const w of words) {
-    const key = w.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(w);
-    if (out.length >= max) break;
-  }
-  return out.length ? out : [name];
 }

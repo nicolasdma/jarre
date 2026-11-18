@@ -72,6 +72,8 @@ export interface FeedAudioController {
   toggle: () => void;
   play: () => void;
   pause: () => void;
+  /** Play the active recording again from the start (the card's "repeat"). */
+  restart: () => void;
   /** Pause without changing which post is active (e.g. tab hidden, reduced motion). */
   suspend: () => void;
   /** Turn autoplay-on-active on or off at runtime (reduced motion toggled). */
@@ -103,6 +105,8 @@ export function createFeedAudio(options: FeedAudioOptions = {}): FeedAudioContro
   let status: FeedAudioStatus = IDLE;
   const listeners = new Set<() => void>();
   let currentSrc: string | null = null;
+  /** Bumped on every real play request, so a pending unlock never undoes it. */
+  let playGen = 0;
 
   function publish(next: Partial<FeedAudioStatus>): void {
     const merged = { ...status, ...next };
@@ -140,6 +144,8 @@ export function createFeedAudio(options: FeedAudioOptions = {}): FeedAudioContro
     if (!currentSrc) return;
     if (!status.unlocked || !autoplay) return;
     if (el.currentTime !== 0) el.currentTime = 0;
+    playGen++;
+    el.muted = false;
     void Promise.resolve(el.play()).catch(() => undefined);
   }
 
@@ -157,6 +163,7 @@ export function createFeedAudio(options: FeedAudioOptions = {}): FeedAudioContro
       if (key === status.activeKey && src === currentSrc) return;
       // Stop whatever was sounding before anything else: only one plays.
       el.pause();
+      playGen++;
       currentSrc = src;
       time.set(0);
       if (src) {
@@ -173,17 +180,26 @@ export function createFeedAudio(options: FeedAudioOptions = {}): FeedAudioContro
 
     prime() {
       if (status.unlocked) return;
-      const wasMuted = el.muted;
+      publish({ unlocked: true });
+      // A post with a recording is already active: its real play() inside this
+      // gesture IS the unlock. (A muted warm-up play used to run its
+      // pause-and-rewind after this play had started, so the first tap never
+      // made the visible post sound.)
+      if (currentSrc && autoplay) {
+        startActive();
+        return;
+      }
+      // Nothing to play yet: unlock with a muted play, and undo it only if no
+      // real play was asked for in the meantime.
+      const gen = ++playGen;
       el.muted = true;
       const restore = () => {
+        if (gen !== playGen) return;
+        el.muted = false;
         el.pause();
         el.currentTime = 0;
-        el.muted = wasMuted;
       };
       Promise.resolve(el.play()).then(restore, restore);
-      publish({ unlocked: true });
-      // If a post is already active, let it sound now that we are unlocked.
-      startActive();
     },
 
     toggle() {
@@ -194,11 +210,22 @@ export function createFeedAudio(options: FeedAudioOptions = {}): FeedAudioContro
 
     play() {
       if (!currentSrc) return;
+      playGen++;
+      el.muted = false;
       void Promise.resolve(el.play()).catch(() => undefined);
     },
 
     pause() {
       el.pause();
+    },
+
+    restart() {
+      if (!currentSrc) return;
+      el.currentTime = 0;
+      time.set(0);
+      playGen++;
+      el.muted = false;
+      void Promise.resolve(el.play()).catch(() => undefined);
     },
 
     suspend() {

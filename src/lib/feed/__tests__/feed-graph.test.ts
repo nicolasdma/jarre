@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bruteForceTime,
   buildFeedGraph,
   codeFromInterview,
   complexityFromInterview,
-  conceptKeywords,
   type BuildFeedGraphInput,
 } from '../feed-graph';
 import type { PracticeDrill } from '@/components/practice/types';
+import { LessonSchema } from '@/lib/lessons/lesson-format';
+import { lessonFileGraphInput } from '../lesson-file-graph';
 
 const interview = {
   questions: [
@@ -109,9 +111,59 @@ describe('feed graph: build', () => {
   });
 });
 
-describe('feed graph: concept keywords', () => {
-  it('pulls signaling words out of the name, dropping separators and stopwords', () => {
-    expect(conceptKeywords('Big-O · notation')).toEqual(['Big-O', 'notation']);
-    expect(conceptKeywords('Number of islands', 2)).toEqual(['Number', 'islands']);
+describe('feed graph: the cost contrast of a code problem', () => {
+  it('reads the brute force Big-O from its own sentence only', () => {
+    expect(bruteForceTime('Brute force: check every pair, O(n²) time, O(1) space. Optimal: O(n).')).toBe('O(n²)');
+    expect(bruteForceTime('Brute force: try every coin, exponential. Better: O(n · k).')).toBeNull();
+    expect(bruteForceTime('No slow version worth coding.')).toBeNull();
+    expect(bruteForceTime(null)).toBeNull();
+  });
+
+  it('carries the optimal time/space and the brute force into the code post', () => {
+    const [two] = codeFromInterview({
+      coding: {
+        problems: [
+          {
+            id: 'two-sum', title: 'Two Sum', pattern: 'Hash map', concept: 'two-sum', statement: 's',
+            solution: { approach: 'Brute force: every pair, O(n²) time. Optimal: a map.', code: 'f', time: 'O(n)', space: 'O(n)' },
+            complexity: { time: { answer: 'O(n)' }, space: { answer: 'O(n)' } },
+          },
+        ],
+      },
+    });
+    expect(two).toMatchObject({ time: 'O(n)', space: 'O(n)', brute: 'O(n²)' });
+  });
+});
+
+describe('feed graph: a lesson file, without a database', () => {
+  it('maps a lesson JSON the way the seed maps it to the tables', () => {
+    const lesson = LessonSchema.parse({
+      id: 'demo-lesson',
+      track: 'ai',
+      title: 'Demo',
+      description: 'd',
+      concepts: [
+        {
+          id: 'two-sum',
+          name: 'Two Sum: hash map',
+          definition: 'Two Sum: one pass.',
+          section: { title: 'Two Sum', markdown: '## Idea\ntext' },
+          quizzes: [{ format: 'mc', question: 'Q?', options: ['a', 'b'], correct: 1, explanation: 'e' }],
+          cards: [{ type: 'recall', front: 'P', back: 'A' }],
+        },
+      ],
+      drills: [{ id: 'd1', title: 'Drill', priority: 1, text_en: 'Say / it', concept: 'two-sum' }],
+    });
+    const input = lessonFileGraphInput(lesson, (id) => ({ url: id === 'd1' ? '/a/d1' : null, segments: null }));
+    const graph = buildFeedGraph(input);
+    expect(graph.resourceId).toBe('demo-lesson');
+    expect(Object.values(graph.quizzes)[0]).toMatchObject({
+      conceptId: 'two-sum',
+      correctAnswer: 'B',
+      options: [{ label: 'A', text: 'a' }, { label: 'B', text: 'b' }],
+    });
+    expect(Object.values(graph.cards)[0]).toMatchObject({ prompt: 'P', answer: 'A' });
+    expect(graph.drills.d1).toMatchObject({ audioUrl: '/a/d1', conceptId: 'two-sum' });
+    expect(graph.concepts[0].drillSlugs).toEqual(['d1']);
   });
 });

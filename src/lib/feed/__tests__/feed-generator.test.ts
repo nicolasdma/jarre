@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FeedConceptAssets, FeedGraph } from '../feed-graph';
 import { createFeedGenerator, generateFeed, type LearnerState } from '../feed-generator';
-import { isActiveBeat, type FeedPost, type Participation } from '../feed-post';
+import { PALETTE_COUNT, isActiveBeat, type FeedPost, type Participation } from '../feed-post';
 
 // A synthetic lesson graph with varied asset coverage per concept, so the
 // generator has to fall back where a concept lacks an asset kind.
@@ -43,7 +43,7 @@ function makeGraph(): FeedGraph {
     for (const q of c.quizIds) graph.quizzes[q] = { id: q, conceptId: c.id, format: 'mc', question: 'Q?', options: [{ label: 'A', text: 'a' }, { label: 'B', text: 'b' }], correctAnswer: 'A', explanation: 'because' };
     for (const k of c.cardIds) graph.cards[k] = { id: k, conceptId: c.id, prompt: 'P', answer: 'A' };
     for (const x of c.complexityIds) graph.complexity[x] = { id: x, conceptId: c.id, title: x, code: 'code', timeAnswer: 'O(n)', timeOptions: ['O(1)', 'O(n)'], timeWhy: 'why', spaceAnswer: 'O(1)', spaceWhy: 'why', say: 'say' };
-    for (const z of c.codeIds) graph.code[z] = { id: z, conceptId: c.id, title: z, pattern: 'pattern', statement: 'stmt', code: 'function f(){}' };
+    for (const z of c.codeIds) graph.code[z] = { id: z, conceptId: c.id, title: z, pattern: 'pattern', statement: 'stmt', code: 'function f(){}', time: 'O(n)', space: 'O(1)', brute: 'O(n²)' };
   }
   return graph;
 }
@@ -86,7 +86,7 @@ describe('feed generator: infinite', () => {
       expect(['dense', 'loose', 'light']).toContain(p.profile.density);
       expect(['new', 'resurface']).toContain(p.profile.novelty);
       expect(p.paletteIndex).toBeGreaterThanOrEqual(0);
-      expect(p.paletteIndex).toBeLessThan(6);
+      expect(p.paletteIndex).toBeLessThan(PALETTE_COUNT);
     }
   });
 
@@ -146,6 +146,36 @@ describe('feed generator: the matrix is weighted to passive, active is a minorit
     expect(new Set(posts.map((p) => p.profile.energy)).size).toBeGreaterThanOrEqual(2);
     expect(new Set(posts.map((p) => p.profile.visual)).size).toBeGreaterThanOrEqual(2);
     expect(new Set(posts.map((p) => p.kind)).size).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('feed generator: two consecutive posts never look alike', () => {
+  const posts = generateFeed(g, learner, SEED, 500);
+
+  it('never repeats the palette back to back', () => {
+    for (let i = 1; i < posts.length; i++) expect(posts[i].paletteIndex).not.toBe(posts[i - 1].paletteIndex);
+  });
+
+  it('never repeats the same kind in the same visual vibe back to back', () => {
+    for (let i = 1; i < posts.length; i++) {
+      const a = posts[i - 1];
+      const b = posts[i];
+      expect(`${b.kind}:${b.profile.visual}`).not.toBe(`${a.kind}:${a.profile.visual}`);
+    }
+  });
+
+  it('never shows the same quiz, card, Big-O, code or say-it again within 10 posts', () => {
+    const last = new Map<string, number>();
+    posts.forEach((p, i) => {
+      const asset = p.quizId ?? p.cardId ?? p.complexityId ?? p.codeId ?? (p.kind === 'say-it' ? p.drillSlug : undefined);
+      if (!asset) return;
+      if (last.has(asset)) expect(i - last.get(asset)!).toBeGreaterThan(10);
+      last.set(asset, i);
+    });
+  });
+
+  it('uses every palette', () => {
+    expect(new Set(posts.map((p) => p.paletteIndex)).size).toBe(PALETTE_COUNT);
   });
 });
 

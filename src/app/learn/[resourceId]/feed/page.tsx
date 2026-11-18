@@ -135,5 +135,6 @@ export default async function FeedPage({ params }: PageProps) {
   }
 
   const day = new Date().toISOString().slice(0, 10);
-  return <Feed graph={graph} day={day} />;
+  const lessonTitle = typeof (resource as Record<string, unknown>).title === 'string' ? ((resource as Record<string, unknown>).title as string) : null;
+  return <Feed graph={graph} day={day} lessonTitle={lessonTitle} resignAudio />;
 }

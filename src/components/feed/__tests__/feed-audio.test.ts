@@ -86,6 +86,39 @@ describe('feed audio: one element, only the active post sounds', () => {
     expect(el.muted).toBe(false); // prime restored the mute state
   });
 
+  it('the first gesture makes the visible post actually sound (not paused by the unlock)', async () => {
+    const el = new FakeAudio();
+    const audio = createFeedAudio({ element: el });
+    audio.setActive('postA', 'https://cdn/a.m4a');
+    audio.prime();
+    await flush();
+    await flush();
+    expect(el.paused).toBe(false);
+    expect(el.muted).toBe(false);
+    expect(el.src).toBe('https://cdn/a.m4a');
+  });
+
+  it('a play asked right after an unlock with nothing active is not undone by the unlock', async () => {
+    const el = new FakeAudio();
+    const audio = createFeedAudio({ element: el });
+    audio.prime(); // muted warm-up, nothing active yet
+    audio.setActive('postB', 'https://cdn/b.m4a');
+    audio.play();
+    await flush();
+    await flush();
+    expect(el.paused).toBe(false);
+    expect(el.muted).toBe(false);
+  });
+
+  it('an unlock with nothing to play rewinds and unmutes its warm-up', async () => {
+    const el = new FakeAudio();
+    const audio = createFeedAudio({ element: el });
+    audio.prime();
+    await flush();
+    expect(el.paused).toBe(true);
+    expect(el.muted).toBe(false);
+  });
+
   it('a text-only post (no recording) clears the source and never plays', () => {
     const el = new FakeAudio();
     const audio = createFeedAudio({ element: el });

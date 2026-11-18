@@ -47,14 +47,20 @@ const TUTOR_SIDEBAR_ROUTES = [
   '/playground',
 ];
 
+/** Full-bleed surfaces with their own layout: no tutor panel and no floating tutor. */
+function isTutorFree(pathname: string): boolean {
+  return /^\/learn\/[^/]+\/feed(\/|$)/.test(pathname) || pathname.startsWith('/dev/');
+}
+
 function useShouldShowSidebar(): boolean {
   const pathname = usePathname();
-  return TUTOR_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
+  return !isTutorFree(pathname) && TUTOR_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
 }
 
 export function AppShell({ children, language }: AppShellProps) {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const showSidebar = useShouldShowSidebar();
+  const tutorFree = isTutorFree(usePathname());
   const { override } = useTutorContext();
 
   const effectiveMode = override?.mode ?? 'freeform';
@@ -155,9 +161,11 @@ export function AppShell({ children, language }: AppShellProps) {
       </div>
 
       {/* Mobile mini-entity — fixed bottom-right */}
-      <div className="fixed bottom-6 right-6 z-40 lg:hidden">
-        <MiniTutorEntity onStartVoice={startVoice} />
-      </div>
+      {!tutorFree && (
+        <div className="fixed bottom-6 right-6 z-40 lg:hidden">
+          <MiniTutorEntity onStartVoice={startVoice} />
+        </div>
+      )}
 
       {/* Mobile: minimal voice overlay (no sidebar on mobile) */}
       {voiceOpen && (

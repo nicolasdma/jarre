@@ -99,4 +99,4 @@ export function isActiveBeat(post: FeedPost): boolean {
 }
 
 /** How many palettes the feed rotates through. */
-export const PALETTE_COUNT = 6;
+export const PALETTE_COUNT = 8;
