@@ -6,7 +6,15 @@
  * UI actions mid-conversation (BLOCKING mode).
  */
 
-import { Type, type Tool } from '@google/genai';
+import type { Tool, Type as SchemaType } from '@google/genai';
+
+// String values of the SDK's Type enum: a runtime import here would put the
+// whole SDK in the lesson bundle (the SDK loads with the voice session).
+const Type = {
+  OBJECT: 'OBJECT' as unknown as SchemaType,
+  STRING: 'STRING' as unknown as SchemaType,
+  BOOLEAN: 'BOOLEAN' as unknown as SchemaType,
+} as const;
 
 export const TUTOR_TOOLS: Tool[] = [
   {

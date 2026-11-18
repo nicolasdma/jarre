@@ -35,7 +35,8 @@ import { FIGURE_REGISTRY } from '@/lib/figure-registry';
 import type { Language } from '@/lib/translations';
 import type { LearnProgress } from '@/lib/learn-progress';
 import type { InlineQuiz, VideoSegment } from '@/types';
-import { fetchPracticeDrills, resourcesWithDrills } from '@/lib/lessons/drills';
+import { fetchPracticeDrills } from '@/lib/lessons/drills';
+import type { PracticeDrill } from '@/components/practice/types';
 
 interface PageProps {
   params: Promise<{ resourceId: string }>;
@@ -99,6 +100,11 @@ export default async function LearnPage({ params }: PageProps) {
     redirect(`/login?redirect=/learn/${resourceId}`);
   }
 
+  // Drills do not depend on anything below: start them now, alongside the first
+  // batch (they were three round trips in a row after it). A failed read means
+  // a lesson without practice, as resourcesWithDrills already treated it.
+  const drillsPromise = fetchPracticeDrills(supabase, resourceId).catch(() => [] as PracticeDrill[]);
+
   // Get resource + user language + resource sections + learn progress + concepts in parallel
   const [resourceResult, profileResult, sectionsResult, progressResult, conceptsResult] = await Promise.all([
     supabase.from('resources').select('*').eq('id', resourceId).single(),
@@ -152,33 +158,40 @@ export default async function LearnPage({ params }: PageProps) {
   }
 
   const renderContent = EXPLANATION_COMPONENTS[resourceId];
-  const hasDrills = (await resourcesWithDrills(supabase, [resourceId])).has(resourceId);
+  const sectionIds = sections.map((s) => s.id);
+  // Quizzes and video segments need the section ids; they go together, and
+  // the drills started above finish meanwhile.
+  const [drills, quizzesResult, videoSegmentsResult] = await Promise.all([
+    drillsPromise,
+    sections.length > 0
+      ? supabase
+          .from('inline_quizzes')
+          .select('*')
+          .in('section_id', sectionIds)
+          .eq('is_active', true)
+          .order('sort_order')
+      : Promise.resolve({ data: null }),
+    sections.length > 0
+      ? supabase
+          .from('video_segments')
+          .select('*')
+          .in('section_id', sectionIds)
+          .order('sort_order')
+      : Promise.resolve({ data: null }),
+  ]);
+  const hasDrills = drills.length > 0;
   // Lessons with drills practice inline (drills under each section, a Practice
   // step, the interview mock last); the others keep their playground.
   const practical = PRACTICAL_ROUTES[resourceId];
   const practice = hasDrills
-    ? { drills: await fetchPracticeDrills(supabase, resourceId), interviewConfig: (resource as Record<string, unknown>).interview ?? null }
+    ? { drills, interviewConfig: (resource as Record<string, unknown>).interview ?? null }
     : undefined;
   const guidedQuestions = READING_QUESTIONS[resourceId];
 
   // NEW FLOW: If resource has sections in DB, use the ACTIVATE → LEARN → APPLY → EVALUATE sequence
   if (sections.length > 0) {
-    const sectionIds = sections.map((s) => s.id);
-
-    // Fetch inline quizzes for all sections in this resource
-    const { data: quizzesRaw } = await supabase
-      .from('inline_quizzes')
-      .select('*')
-      .in('section_id', sectionIds)
-      .eq('is_active', true)
-      .order('sort_order');
-
-    // Fetch video segments for all sections in this resource
-    const { data: videoSegmentsRaw } = await supabase
-      .from('video_segments')
-      .select('*')
-      .in('section_id', sectionIds)
-      .order('sort_order');
+    const quizzesRaw = quizzesResult.data;
+    const videoSegmentsRaw = videoSegmentsResult.data;
 
     // Group quizzes by section_id
     const quizzesBySectionId: Record<string, InlineQuiz[]> = {};

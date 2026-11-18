@@ -10,8 +10,57 @@ import type { PracticeDrill } from '@/components/practice/types';
 import { segmentsFit, type PhraseSegment } from '@/lib/practice/phrase-segments';
 
 export const LESSON_AUDIO_BUCKET = 'lesson-audio';
-/** Long enough for a practice session; the page re-signs on every load. */
-const SIGNED_URL_TTL_SECONDS = 4 * 60 * 60;
+/**
+ * Signed audio URLs are reused, not re-signed on every load: each signature is
+ * a different URL, so the browser could never hit its cache and downloaded
+ * every drill's audio on every visit. A URL is signed for 3 days and handed out
+ * again while it has at least 12 h left (always longer than a session), per
+ * server instance. Every authenticated user may read the bucket, so one cache
+ * serves all of them.
+ */
+const SIGNED_URL_TTL_SECONDS = 3 * 24 * 60 * 60;
+const SIGNED_URL_MIN_LIFE_MS = 12 * 60 * 60 * 1000;
+const SIGNED_URL_CACHE_MAX = 2_000;
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
+/** Signed URLs for lesson-audio paths, reusing still-fresh ones. Throws on a storage error. */
+export async function signLessonAudio(
+  supabase: SupabaseClient,
+  paths: string[],
+  now: number = Date.now(),
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const missing: string[] = [];
+  for (const path of new Set(paths)) {
+    const hit = signedUrlCache.get(path);
+    if (hit && hit.expiresAt - now >= SIGNED_URL_MIN_LIFE_MS) out.set(path, hit.url);
+    else missing.push(path);
+  }
+  if (missing.length === 0) return out;
+
+  const { data: urls, error } = await supabase.storage
+    .from(LESSON_AUDIO_BUCKET)
+    .createSignedUrls(missing, SIGNED_URL_TTL_SECONDS);
+  if (error) throw new Error(`lesson-audio: ${error.message}`);
+  const expiresAt = now + SIGNED_URL_TTL_SECONDS * 1000;
+  for (const u of urls ?? []) {
+    if (!u.path || !u.signedUrl) continue;
+    out.set(u.path, u.signedUrl);
+    signedUrlCache.delete(u.path);
+    signedUrlCache.set(u.path, { url: u.signedUrl, expiresAt });
+  }
+  while (signedUrlCache.size > SIGNED_URL_CACHE_MAX) {
+    const oldest = signedUrlCache.keys().next().value;
+    if (oldest === undefined) break;
+    signedUrlCache.delete(oldest);
+  }
+  return out;
+}
+
+/** Test hook. */
+export function clearSignedAudioCache(): void {
+  signedUrlCache.clear();
+}
 
 interface DrillRow {
   slug: string;
@@ -45,16 +94,7 @@ export async function fetchPracticeDrills(supabase: SupabaseClient, resourceId: 
   const rows = (data ?? []) as DrillRow[];
 
   const paths = rows.map((r) => r.audio_path).filter((p): p is string => Boolean(p));
-  const signed = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: urls, error: signError } = await supabase.storage
-      .from(LESSON_AUDIO_BUCKET)
-      .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
-    if (signError) throw new Error(`lesson-audio: ${signError.message}`);
-    for (const u of urls ?? []) {
-      if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
-    }
-  }
+  const signed = paths.length > 0 ? await signLessonAudio(supabase, paths) : new Map<string, string>();
 
   return rows.map((r) => ({
     slug: r.slug,

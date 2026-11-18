@@ -20,7 +20,11 @@
  * - 2.5 native audio: dynamic thinking by default, blocking calls.
  */
 
-import { EndSensitivity, type RealtimeInputConfig } from '@google/genai';
+import type { EndSensitivity, RealtimeInputConfig } from '@google/genai';
+
+// The SDK enum's string value, so importing this module (the lesson does) does
+// not pull @google/genai into the page bundle: the SDK loads with the session.
+const END_SENSITIVITY_LOW = 'END_SENSITIVITY_LOW' as unknown as EndSensitivity;
 
 export type VoiceLiveModelId = 'gemini-3.8-live' | 'gemini-2.5-flash-native-audio-preview-12-2025';
 
@@ -84,10 +88,10 @@ export type TurnTaking = 'default' | 'patient' | 'thinking-aloud';
  */
 export const TURN_TAKING: Record<TurnTaking, RealtimeInputConfig> = {
   default: {
-    automaticActivityDetection: { endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW, silenceDurationMs: 1300 },
+    automaticActivityDetection: { endOfSpeechSensitivity: END_SENSITIVITY_LOW, silenceDurationMs: 1300 },
   },
   patient: {
-    automaticActivityDetection: { endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW, silenceDurationMs: 1700 },
+    automaticActivityDetection: { endOfSpeechSensitivity: END_SENSITIVITY_LOW, silenceDurationMs: 1700 },
   },
   /**
    * The coding mock: the candidate thinks aloud while typing, with pauses
@@ -96,6 +100,6 @@ export const TURN_TAKING: Record<TurnTaking, RealtimeInputConfig> = {
    * it ends. Not measured with a probe yet: tune from the owner's sessions.
    */
   'thinking-aloud': {
-    automaticActivityDetection: { endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW, silenceDurationMs: 2500 },
+    automaticActivityDetection: { endOfSpeechSensitivity: END_SENSITIVITY_LOW, silenceDurationMs: 2500 },
   },
 };

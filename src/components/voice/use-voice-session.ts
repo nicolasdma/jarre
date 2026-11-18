@@ -6,6 +6,7 @@ import {
   arrayBufferToBase64,
   type GeminiLiveClientInstance,
   type ConnectionState,
+  preloadGeminiSdk,
 } from '@/lib/voice/gemini-live';
 import { buildLearningSession } from '@/lib/llm/voice-tutor-session';
 import { resolveVoiceLiveModel, TURN_TAKING, type TurnTaking } from '@/lib/voice/live-models';
@@ -219,6 +220,8 @@ export function useVoiceSession({
   // ---- Pre-fetch token + context on mount / sectionId change ----
 
   const prefetchTokenAndContext = useCallback(async () => {
+    // The Live SDK is not in the page bundle (gemini-live.ts): fetch it now.
+    preloadGeminiSdk();
     // Invalidate previous pre-fetch if section changed
     prefetchedTokenRef.current = null;
     prefetchedContextRef.current = null;

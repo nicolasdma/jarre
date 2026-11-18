@@ -10,20 +10,39 @@
  * - VAD and interruption are handled server-side by Gemini
  */
 
-import {
-  GoogleGenAI,
+import type {
   Modality,
   FunctionResponseScheduling,
-  type Session,
-  type Tool,
-  type FunctionCall,
-  type FunctionResponse,
-  type RealtimeInputConfig,
+  Session,
+  Tool,
+  FunctionCall,
+  FunctionResponse,
+  RealtimeInputConfig,
 } from '@google/genai';
 import { createLogger } from '@/lib/logger';
 import { voiceLiveModelProfile } from '@/lib/voice/live-models';
 
 const log = createLogger('GeminiLive');
+
+// The SDK (~90 kB gzip) loads when a session connects, not with the page: the
+// lesson imports this module but most visits never open the voice tutor.
+// preloadGeminiSdk() warms it when the tutor prefetches its token.
+let sdkPromise: Promise<typeof import('@google/genai')> | null = null;
+function loadGeminiSdk(): Promise<typeof import('@google/genai')> {
+  sdkPromise ??= import('@google/genai').catch((err) => {
+    sdkPromise = null;
+    throw err;
+  });
+  return sdkPromise;
+}
+export function preloadGeminiSdk(): void {
+  void loadGeminiSdk().catch(() => {});
+}
+
+// String values of the SDK enums used at runtime here.
+const AUDIO = 'AUDIO' as unknown as Modality;
+const SCHEDULING_SILENT = 'SILENT' as unknown as FunctionResponseScheduling;
+const SCHEDULING_WHEN_IDLE = 'WHEN_IDLE' as unknown as FunctionResponseScheduling;
 
 // ============================================================================
 // Types
@@ -128,6 +147,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
 
       try {
         // Ephemeral tokens (auth_tokens/...) only work on v1alpha's constrained endpoint.
+        const { GoogleGenAI } = await loadGeminiSdk();
         const client = new GoogleGenAI({
           apiKey: ephemeralToken,
           ...(ephemeralToken.startsWith('auth_tokens/') ? { httpOptions: { apiVersion: 'v1alpha' } } : {}),
@@ -136,7 +156,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
         const nextSession = await client.live.connect({
           model: config.model,
           config: {
-            responseModalities: [Modality.AUDIO],
+            responseModalities: [AUDIO],
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
@@ -402,7 +422,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
         const scheduled = voiceLiveModelProfile(lastConfig?.model ?? '')?.toolScheduling
           ? responses.map((r) => ({
               ...r,
-              scheduling: audioInTurn ? FunctionResponseScheduling.SILENT : FunctionResponseScheduling.WHEN_IDLE,
+              scheduling: audioInTurn ? SCHEDULING_SILENT : SCHEDULING_WHEN_IDLE,
             }))
           : responses;
         session.sendToolResponse({ functionResponses: scheduled });
