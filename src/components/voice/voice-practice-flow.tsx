@@ -42,8 +42,6 @@ interface Props {
   resourceId: string;
   concepts: Concept[];
   onComplete: () => void;
-  /** The label of the button that goes on after the tutor ("Siguiente: simulacro"). */
-  nextLabel?: string;
   onSwitchToText: () => void;
   onReviewMaterial: () => void;
   lastPracticeResult?: PracticeResult | null;
@@ -102,7 +100,6 @@ function t(key: keyof typeof tr, lang: Language): string {
 function ResultActions({
   passed,
   language,
-  nextLabel,
   onComplete,
   onAgain,
   onReviewMaterial,
@@ -110,8 +107,6 @@ function ResultActions({
 }: {
   passed: boolean;
   language: Language;
-  /** What the next step is ("Siguiente: simulacro"); the evaluation by default. */
-  nextLabel?: string;
   onComplete: () => void;
   onAgain: () => void;
   onReviewMaterial?: () => void;
@@ -125,7 +120,7 @@ function ResultActions({
       {passed ? (
         <>
           <button type="button" onClick={onComplete} className={primary}>
-            {nextLabel ?? t('continueToEval', language)} →
+            {t('continueToEval', language)} →
           </button>
           <button type="button" onClick={onAgain} className={secondary}>
             {t('practiceAgain', language)}
@@ -236,7 +231,6 @@ export function VoicePracticeFlow({
   resourceId,
   concepts,
   onComplete,
-  nextLabel,
   onSwitchToText,
   onReviewMaterial,
   lastPracticeResult,
@@ -367,7 +361,6 @@ export function VoicePracticeFlow({
           <ResultActions
             passed={passed}
             language={language}
-            nextLabel={nextLabel}
             onComplete={onComplete}
             onAgain={session.start}
             onSwitchToText={onSwitchToText}
@@ -594,7 +587,6 @@ export function VoicePracticeFlow({
         <ResultActions
           passed={passed}
           language={language}
-          nextLabel={nextLabel}
           onComplete={onComplete}
           onAgain={session.start}
           onReviewMaterial={onReviewMaterial}
