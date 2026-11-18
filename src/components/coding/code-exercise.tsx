@@ -20,6 +20,8 @@ import { RunOutput, summarizeRun } from './run-output';
 import { ProblemStatement } from './problem-statement';
 import { clearDraft, loadDraft, saveDraft } from './coding-store';
 import { ComplexityCheck } from './complexity-check';
+import { useCodeTabsEnabled } from './code-tabs-context';
+import { CodeTabsBlock } from './code-tabs-lazy';
 
 interface CodeExerciseProps {
   resourceId: string;
@@ -146,6 +148,7 @@ export function CodeExercise({ resourceId, problem, exercise, solved, onSolved }
 }
 
 export function SolutionPanel({ problem }: { problem: CodingProblem }) {
+  const codeTabs = useCodeTabsEnabled();
   return (
     <div className="space-y-3 border border-j-border bg-j-bg-alt p-3" data-testid="solution-panel">
       <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
@@ -154,7 +157,11 @@ export function SolutionPanel({ problem }: { problem: CodingProblem }) {
       <p className="text-sm text-j-text" lang="en">
         {problem.solution.approach}
       </p>
-      <pre className="overflow-x-auto bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{problem.solution.code}</pre>
+      {codeTabs ? (
+        <CodeTabsBlock code={problem.solution.code} lang="ts" />
+      ) : (
+        <pre className="overflow-x-auto bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{problem.solution.code}</pre>
+      )}
       {problem.pitfalls.length > 0 && (
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Errores típicos</p>

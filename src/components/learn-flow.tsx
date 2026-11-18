@@ -7,7 +7,9 @@ import { InterviewMode } from '@/components/practice/interview-mode';
 import { CodingProvider, useCoding } from '@/components/coding/coding-context';
 import { CodingMock } from '@/components/coding/coding-mock';
 import { SectionExercises } from '@/components/coding/section-exercises';
+import { CodeTabsProvider } from '@/components/coding/code-tabs-context';
 import { parseCodingConfig } from '@/lib/coding/format';
+import { lessonHasCodeTabs } from '@/lib/lessons/code-tabs';
 import {
   LessonPracticeProvider,
   PracticeNav,
@@ -352,7 +354,11 @@ export function LearnFlow(props: LearnFlowProps) {
     () => (props.practice?.drills ?? []).map((d) => ({ slug: d.slug, title: d.title, textEn: d.textEn })),
     [props.practice],
   );
-  const flow = <LearnFlowInner {...props} linkedStep={linkedStep} />;
+  const flow = (
+    <CodeTabsProvider enabled={lessonHasCodeTabs(props.resourceId)}>
+      <LearnFlowInner {...props} linkedStep={linkedStep} />
+    </CodeTabsProvider>
+  );
   if (!props.practice?.drills.length) return flow;
   const withCoding = coding ? (
     <CodingProvider resourceId={props.resourceId} config={coding} drills={codingDrills}>

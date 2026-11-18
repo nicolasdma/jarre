@@ -13,11 +13,14 @@ import { cn } from '@/lib/utils';
 import type { ComplexityDrill } from '@/lib/coding/format';
 import { ComplexityCheck } from './complexity-check';
 import { loadComplexity, type ComplexityResult } from './coding-store';
+import { useCodeTabsEnabled } from './code-tabs-context';
+import { CodeTabsBlock } from './code-tabs-lazy';
 
 const checkIdOf = (itemId: string) => `bigo-${itemId}`;
 const allRight = (r: ComplexityResult | undefined) => Boolean(r && r.right.time && r.right.space && r.right.brute !== false);
 
 export function ComplexityDrillView({ resourceId, drill }: { resourceId: string; drill: ComplexityDrill }) {
+  const codeTabs = useCodeTabsEnabled();
   const [open, setOpen] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ComplexityResult>>({});
   useEffect(() => setResults(loadComplexity(resourceId)), [resourceId]);
@@ -57,7 +60,11 @@ export function ComplexityDrillView({ resourceId, drill }: { resourceId: string;
               </button>
               {isOpen && (
                 <div className="space-y-3 border-t border-j-border p-3">
-                  <pre className="overflow-x-auto border border-j-border bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{item.code}</pre>
+                  {codeTabs ? (
+                    <CodeTabsBlock code={item.code} lang="ts" />
+                  ) : (
+                    <pre className="overflow-x-auto border border-j-border bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{item.code}</pre>
+                  )}
                   <ComplexityCheck
                     resourceId={resourceId}
                     checkId={checkIdOf(item.id)}
