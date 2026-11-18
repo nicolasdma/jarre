@@ -205,6 +205,25 @@ export function RecallMode({
         </div>
       )}
 
+      {/* Before starting, the English text to recite is on screen to review; it
+          hides on Empezar (the countdown) and returns with the result. */}
+      {state.phase === 'ready' && (
+        <div className="space-y-3" data-testid="recall-review">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm-dark">El texto · leelo y después decilo sin mirar</p>
+          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{drill.textEn}</p>
+          {drill.textEs && (
+            <div className="space-y-3">
+              <Chip active={showEs} onClick={() => setShowEs((v) => !v)}>
+                {showEs ? 'Ocultar traducción' : 'Ver traducción'}
+              </Chip>
+              {showEs && (
+                <p className="border-l-2 border-j-warm pl-4 text-base leading-relaxed text-j-text-em" lang="es">{drill.textEs}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {state.phase === 'ready' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
