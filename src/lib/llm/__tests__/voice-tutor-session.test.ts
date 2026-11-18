@@ -53,6 +53,40 @@ describe('interview session', () => {
     expect(instruction).toContain('interview complete');
   });
 
+  it('opens with a realistic arc (greeting + framing + ease-in), never a cold hard question', () => {
+    // The owner (2026-11-17): the mock cold-opened with "Walk me through how you
+    // would solve Two Sum, and the complexity" — not how a real call starts.
+    for (const personaId of ['recruiter', 'tech-lead', 'expert', 'relaxed-founder', 'skeptical-client']) {
+      const { instruction } = buildInterviewSession({ lesson, setup: resolveInterviewSetup(null, { personaId, depth: 2 }) });
+      expect(instruction).toContain('How the interview opens');
+      // arc: greet, then frame the call, then ease into (not cold-dump) a question.
+      expect(instruction).toContain('Greet them as');
+      expect(instruction).toContain('One line that frames the call');
+      expect(instruction).toContain('Never open by dumping a hard problem');
+      expect(instruction).toContain('Do not cold-open with a hard question or a problem to solve');
+      // the old cold first-turn line is gone.
+      expect(instruction).not.toContain('one sentence of greeting as');
+    }
+  });
+
+  it('each persona opens and paces differently from the same lesson', () => {
+    const warm = buildInterviewSession({ lesson, setup: resolveInterviewSetup(null, { personaId: 'recruiter', depth: 1 }) }).instruction;
+    const relaxed = buildInterviewSession({ lesson, setup: resolveInterviewSetup(null, { personaId: 'relaxed-founder', depth: 2 }) }).instruction;
+    const hard = buildInterviewSession({ lesson, setup: resolveInterviewSetup(null, { personaId: 'skeptical-client', depth: 3 }) }).instruction;
+    // Warm, non-technical recruiter builds rapport and eases in.
+    expect(warm).toContain('warm, a word of rapport');
+    expect(warm).toContain('ease into an opening question');
+    expect(warm).not.toContain('go straight to a direct first question');
+    // Relaxed founder makes small talk first, still eases in.
+    expect(relaxed).toContain('a touch of small talk');
+    expect(relaxed).toContain('ease into an opening question');
+    // Skeptical (tough) client skips small talk and goes straight in.
+    expect(hard).toContain('short and dry, no small talk');
+    expect(hard).toContain('go straight to a direct first question');
+    expect(hard).not.toContain('warm, a word of rapport');
+    expect(hard).toContain('Sorry, be specific'); // still cuts vague answers
+  });
+
   const bank = {
     key_terms: ['Valley of Guardians', 'row-level security'],
     personas: [
