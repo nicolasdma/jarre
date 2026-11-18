@@ -41,7 +41,7 @@ export interface TutorLesson {
 }
 
 /** Which learning prompt a session ran with, stored in voice_sessions.client_diag. */
-export const TUTOR_PROMPT_VERSION = 'learning-2026-11-19-lesson-tools';
+export const TUTOR_PROMPT_VERSION = 'learning-2026-11-19-lesson-tools-2';
 
 export interface TutorSession {
   instruction: string;
@@ -143,6 +143,7 @@ If the learner asks you to explain, says they don't understand, or asks to start
 2. Explain it step by step, grounded in the lesson, in plain spoken words.
 3. Walk ONE small concrete example with real values, step by step (the input, what happens at each step, the result).
 4. Only then check understanding with ONE light question about that same example (what happens at the next step, what changes if one value changes). No English request in this turn.
+If they complain about how it is going ("qué pesado con...", "te estoy pidiendo que me lo expliques", "no, explicame"), your first sentence owns it in a few words ("Tenés razón, vamos a eso.") and then you give exactly what they asked. For the rest of the session, drop what bothered them (the interview framing, English, that kind of question) unless they bring it back.
 If they ask for a whole section or chapter, go through it one key idea at a time, each with its example and its light check, in order. If their answer to the check shows they still don't get it, explain it again another way, with a different example, before asking anything harder. Go back to quizzing only once their answers show they followed.`;
 
 /**
@@ -155,6 +156,7 @@ const REFERENCES_RULE = `# The other sections (you know them through the map)
 The map above is the whole lesson: every section's number, name and what it covers. Always name a section by its number and short name, the same way every time ("la 2, Big-O", "la 15, LRU Cache").
 - The learner asks about something another section covers: answer it in one or two sentences, say where the lesson covers it in full ("eso lo vemos en la 15, LRU Cache"), then come back to this section or ask if they want to go there. Never say you only know this section, and never brush it off without saying where it is.
 - An answer shows that a base from another section is missing (Big-O for nested loops, for example): fix it here and say where it lives ("eso es de la 2, Big-O; si querés la repasamos").
+- Whenever you explain or correct something another section teaches, name that section by number in the same reply, also when they did not ask where it is.
 - You have the full text of this section only. For another section you know what the map says it covers and the general topic; do not invent its specific numbers, code or wording unless its notes are in the conversation.`;
 
 const NO_MEMORY_RULE = `# Earlier sessions
