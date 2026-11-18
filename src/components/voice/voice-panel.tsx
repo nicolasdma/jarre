@@ -85,8 +85,8 @@ export function VoicePanel({
   const lesson = useMemo(() => {
     const sections = override?.lessonSections;
     if (!sections?.length || !sections.some((s) => s.id === sectionId)) return null;
-    return { title: override?.resourceTitle, sections };
-  }, [override?.lessonSections, override?.resourceTitle, sectionId]);
+    return { title: override?.resourceTitle, sections, resourceId: override?.resourceId };
+  }, [override?.lessonSections, override?.resourceTitle, override?.resourceId, sectionId]);
 
   const {
     connectionState,
@@ -106,6 +106,9 @@ export function VoicePanel({
     endPolicy: 'learning',
     lessonTitle: lesson?.title,
     lessonSections: lesson?.sections,
+    // Memory is per lesson: the session is stored with its lesson, and the
+    // context brings the learner's evidence for all of it.
+    resourceId: lesson?.resourceId,
   });
 
   const audioLevel = useAudioLevel(stream);

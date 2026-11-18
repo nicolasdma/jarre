@@ -1050,6 +1050,30 @@ async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<{ in
   return buildLessonArm(mod, lesson, c);
 }
 
+/**
+ * The brief the new tutor opens with after a94efc5c: the digest's recorded
+ * answer for that transcript (src/lib/tutor/__tests__/fixtures/a94efc5c.ts),
+ * mapped to this lesson's sections, through the same builder the app uses.
+ */
+async function a94Brief(lesson: LessonData): Promise<string | null> {
+  const { A94_DIGEST, A94_TRANSCRIPT } = await import('../src/lib/tutor/__tests__/fixtures/a94efc5c');
+  const { digestToRows } = await import('../src/lib/tutor/evidence-digest');
+  const { buildLearnerBrief } = await import('../src/lib/tutor/learner-brief');
+  const { buildLessonMap } = await import('../src/lib/tutor/lesson-map');
+  const sections = lesson.sections.map((x, i) => ({ n: i + 1, id: x.id, conceptId: x.conceptId ?? null, title: x.title }));
+  const rows = digestToRows(A94_DIGEST, { userId: 'probe', resourceId: RESOURCE, sessionId: 'a94efc5c', sections, focusN: TUTOR_FOCUS + 1, transcript: A94_TRANSCRIPT });
+  return buildLearnerBrief({
+    map: buildLessonMap(lesson.sections),
+    focusIndex: TUTOR_FOCUS,
+    evidence: rows.map((r) => ({
+      sessionId: r.session_id as string, sectionId: r.section_id as string | null, conceptId: r.concept_id as string | null,
+      kind: r.kind as never, verdict: r.verdict as never, resolved: r.resolved as boolean | null,
+      statement: r.statement as string, quote: r.quote as string | null, at: r.at as string,
+    })),
+    now: Date.parse('2026-11-18T21:07:00Z'),
+  });
+}
+
 /** The new section tutor: the lesson map, the focus section in full, its memory. */
 async function buildLessonArm(
   mod: typeof import('../src/lib/llm/voice-tutor-session'),
@@ -1060,7 +1084,7 @@ async function buildLessonArm(
     language: 'es',
     lesson: { title: lesson.title, sections: lesson.sections },
     focusSectionIndex: TUTOR_FOCUS,
-    previousSummary: c.memory === 'a94efc5c' ? A94_SUMMARY_PROSE : null,
+    learnerBrief: c.memory === 'a94efc5c' ? await a94Brief(lesson) : null,
     bilingual: true,
   });
   return { instruction: s.instruction, opener: s.opener, tools: false, onTool: null };

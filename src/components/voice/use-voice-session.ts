@@ -25,6 +25,10 @@ import {
   type OutboxStore,
 } from '@/lib/voice/transcript-outbox';
 import { SessionTimeline } from '@/lib/voice/session-timeline';
+import { buildLessonMap } from '@/lib/tutor/lesson-map';
+import { buildLearnerBrief } from '@/lib/tutor/learner-brief';
+import { recentTalkBlock, rememberTalk } from '@/lib/tutor/recent-talk';
+import type { EvidenceRow } from '@/lib/tutor/evidence';
 
 const log = createLogger('VoiceSession');
 
@@ -132,6 +136,14 @@ interface UseVoiceSessionParams {
 
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
+
+/** GET /api/voice/session/context. */
+interface VoiceContext {
+  summary?: string;
+  learnerMemory?: LearnerConceptMemory[];
+  practicesEnglish?: boolean;
+  lessonMemory?: { evidence: EvidenceRow[]; preferences: EvidenceRow[] };
+}
 
 interface TranscriptEntry {
   role: 'user' | 'model';
@@ -252,7 +264,7 @@ export function useVoiceSession({
   // When the prefetched token was minted: past PREFETCHED_TOKEN_MAX_AGE_MS it is
   // dropped, because a Live token only opens a socket for 10 min (live-token.ts).
   const prefetchedTokenAtRef = useRef(0);
-  const prefetchedContextRef = useRef<{ summary?: string; learnerMemory?: LearnerConceptMemory[] } | null>(null);
+  const prefetchedContextRef = useRef<VoiceContext | null>(null);
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
@@ -281,6 +293,7 @@ export function useVoiceSession({
     // For evaluation sessions, skip context fetching (no section memory needed)
     const contextUrl = new URL('/api/voice/session/context', window.location.origin);
     contextUrl.searchParams.set('sectionId', currentSectionId);
+    if (resourceId && sessionType === 'teaching') contextUrl.searchParams.set('resourceId', resourceId);
     if (conceptIds?.length) {
       contextUrl.searchParams.set('conceptIds', conceptIds.join(','));
     }
@@ -309,7 +322,7 @@ export function useVoiceSession({
       prefetchedTokenAtRef.current = Date.now();
     }
     if (contextData) prefetchedContextRef.current = contextData;
-  }, [sectionId, sessionType, conceptIds]);
+  }, [sectionId, sessionType, conceptIds, resourceId]);
 
   // Skip prefetch when systemInstructionOverride is provided — the caller
   // (e.g. useUnifiedVoiceSession) manages its own context fetching and will
@@ -653,6 +666,18 @@ export function useVoiceSession({
     return `CONVERSATION SO FAR:\n${transcript}\n\n${instruction}`;
   }, [compressConversation]);
 
+  /** The page keeps the end of a lesson talk for the next session, until its digest lands (recent-talk.ts). */
+  const keepRecentTalk = useCallback((sid: string | null) => {
+    const { resourceId: resId, sessionType: sessType, sectionTitle: st, lessonSections: ls, sectionId: secId } = paramsRef.current;
+    if (!sid || !resId || sessType !== 'teaching') return;
+    const n = (ls?.findIndex((s) => s.id === secId) ?? -1) + 1;
+    rememberTalk(resId, {
+      sessionId: sid,
+      sectionLabel: n > 0 ? `section ${n} (${st})` : st,
+      lines: transcriptBufferRef.current.map(({ role, text }) => ({ role, text })),
+    });
+  }, []);
+
   // ---- Connect ----
 
   const connect = useCallback(async () => {
@@ -700,13 +725,14 @@ export function useVoiceSession({
       // Use pre-fetched context if available, otherwise fetch fresh.
       // When systemInstructionOverride is set, the caller already built the prompt
       // with its own context — skip fetching here to avoid duplicate requests.
-      const contextPromise: Promise<{ summary?: string; learnerMemory?: LearnerConceptMemory[]; practicesEnglish?: boolean }> = sysOverride
+      const contextPromise: Promise<VoiceContext> = sysOverride
         ? Promise.resolve({})
         : prefetchedContextRef.current
           ? Promise.resolve(prefetchedContextRef.current)
           : (() => {
               const ctxUrl = new URL('/api/voice/session/context', window.location.origin);
               ctxUrl.searchParams.set('sectionId', secId);
+              if (resId && sessType === 'teaching') ctxUrl.searchParams.set('resourceId', resId);
               if (cIds?.length) ctxUrl.searchParams.set('conceptIds', cIds.join(','));
               return fetch(ctxUrl.toString())
                 .then((r) => (r.ok ? r.json() : {}))
@@ -782,12 +808,24 @@ export function useVoiceSession({
         const sections = ls?.length ? ls : [{ id: secId, title: st, content: sc }];
         const byId = sections.findIndex((s) => 'id' in s && s.id === secId);
         const focus = Math.max(0, byId >= 0 ? byId : sections.findIndex((s) => s.title === st));
+        // What earlier sessions on this lesson showed (learner-brief.ts), plus
+        // the talk that just ended in this page if its digest is not in yet.
+        const lm = context?.lessonMemory;
+        const brief = lm
+          ? buildLearnerBrief({ map: buildLessonMap(sections), focusIndex: focus, evidence: lm.evidence, preferences: lm.preferences })
+          : null;
+        const recent = resId ? recentTalkBlock(resId, new Set((lm?.evidence ?? []).map((e) => e.sessionId ?? ''))) : null;
+        const learnerBrief = [brief, recent].filter(Boolean).join('\n\n') || null;
+        timeline.facts.briefChars = learnerBrief?.length ?? 0;
+        timeline.facts.lessonSections = sections.length;
         const session = buildLearningSession({
           language: lang,
           lesson: { title: lt || st, sections },
           focusSectionIndex: focus,
           learnerNotes: formatMemoryForPrompt(learnerMemory, lang) || null,
-          previousSummary: summary ?? null,
+          // The prose summary only when there is no evidence to brief from (not migrated, or nothing yet).
+          previousSummary: learnerBrief ? null : summary ?? null,
+          learnerBrief,
           bilingual: bi || context?.practicesEnglish === true,
         });
         systemInstruction = session.instruction;
@@ -1049,6 +1087,7 @@ export function useVoiceSession({
     commitUtterance();
     const outbox = transcriptOutboxRef.current;
     const diag = timelineRef.current.toDiag('disconnect');
+    keepRecentTalk(sid);
 
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
@@ -1143,6 +1182,7 @@ export function useVoiceSession({
       const writeToken = sessionWriteTokenRef.current;
       const outbox = transcriptOutboxRef.current;
       transcriptOutboxRef.current = null;
+      keepRecentTalk(sid);
       if (sid) void finishSession(sid, writeToken, outbox, timelineRef.current.toDiag('unmount'));
 
       stopMic();

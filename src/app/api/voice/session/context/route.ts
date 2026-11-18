@@ -1,5 +1,5 @@
 /**
- * GET /api/voice/session/context?sectionId=xxx[&conceptIds=id1,id2,...]
+ * GET /api/voice/session/context?sectionId=xxx[&resourceId=lesson][&conceptIds=id1,id2,...]
  * GET /api/voice/session/context?userResourceId=xxx[&conceptIds=id1,id2,...]
  *
  * Returns cached conversation summary + learner concept memory
@@ -8,7 +8,8 @@
  *
  * For exploration sessions: returns user resource data + concept links instead.
  *
- * Response: { summary?: string, learnerMemory?: LearnerConceptMemory[], practicesEnglish?: true }
+ * Response: { summary?: string, learnerMemory?: LearnerConceptMemory[], practicesEnglish?: true,
+ *   lessonMemory?: { evidence, preferences } (with resourceId: the learner's evidence for the lesson) }
  * (`practicesEnglish`: the section's lesson has English drills, so the
  * learning tutor works each idea in Spanish and then in English.)
  *        or { resource, links, learnerMemory? }
@@ -19,6 +20,8 @@ import { withAuth } from '@/lib/api/middleware';
 import { createAdminClient } from '@/lib/supabase/server';
 import { recoverUserSessions, runSessionDigest } from '@/lib/voice/session-digest';
 import '@/lib/voice/digest-steps';
+import { isMissingSchema } from '@/lib/voice/transcript-store';
+import type { EvidenceRow } from '@/lib/tutor/evidence';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
 import { getLearnerConceptMemory, type LearnerConceptMemory } from '@/lib/learner-memory';
@@ -110,17 +113,25 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     }
   });
 
+  // The memory is per lesson, not per section: with `resourceId`, the last
+  // summary of any section of the lesson, and the learner's evidence.
+  const resourceId = url.searchParams.get('resourceId');
+  let lessonSectionIds: string[] | null = null;
+  if (resourceId) {
+    const { data: rows } = await supabase.from(TABLES.resourceSections).select('id').eq('resource_id', resourceId);
+    lessonSectionIds = (rows ?? []).map((r: { id: string }) => r.id);
+    if (sectionId && !lessonSectionIds.includes(sectionId)) lessonSectionIds = null;
+  }
+
   // Fetch conversation summary and learner memory in parallel
-  const summaryPromise = supabase
+  let summaryQuery = supabase
     .from(TABLES.voiceSessions)
     .select('cached_summary')
     .eq('user_id', user.id)
-    .eq('section_id', sectionId)
     .not('ended_at', 'is', null)
-    .not('cached_summary', 'is', null)
-    .order('started_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .not('cached_summary', 'is', null);
+  summaryQuery = lessonSectionIds?.length ? summaryQuery.in('section_id', lessonSectionIds) : summaryQuery.eq('section_id', sectionId);
+  const summaryPromise = summaryQuery.order('started_at', { ascending: false }).limit(1).maybeSingle();
 
   let memoryPromise: Promise<LearnerConceptMemory[]> = Promise.resolve([]);
   if (conceptIdsParam) {
@@ -130,10 +141,11 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     }
   }
 
-  const [summaryResult, learnerMemory, practicesEnglish] = await Promise.all([
+  const [summaryResult, learnerMemory, practicesEnglish, lessonMemory] = await Promise.all([
     summaryPromise,
     memoryPromise,
     sectionPracticesEnglish(supabase, sectionId),
+    lessonSectionIds ? readLessonMemory(supabase, user.id, resourceId!) : Promise.resolve(null),
   ]);
 
   const summary = summaryResult.data?.cached_summary || null;
@@ -152,8 +164,74 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     ...(summary ? { summary } : {}),
     ...(learnerMemory.length > 0 ? { learnerMemory } : {}),
     ...(practicesEnglish ? { practicesEnglish: true } : {}),
+    ...(lessonMemory ? { lessonMemory } : {}),
   });
 });
+
+const EVIDENCE_COLUMNS = 'session_id, section_id, concept_id, kind, verdict, resolved, statement, quote, at';
+const MAX_LESSON_EVIDENCE = 150;
+const MAX_PREFERENCES = 10;
+
+type EvidenceDbRow = {
+  session_id: string | null;
+  section_id: string | null;
+  concept_id: string | null;
+  kind: EvidenceRow['kind'];
+  verdict: EvidenceRow['verdict'];
+  resolved: boolean | null;
+  statement: string;
+  quote: string | null;
+  at: string;
+};
+
+const toEvidence = (r: EvidenceDbRow): EvidenceRow => ({
+  sessionId: r.session_id,
+  sectionId: r.section_id,
+  conceptId: r.concept_id,
+  kind: r.kind,
+  verdict: r.verdict,
+  resolved: r.resolved,
+  statement: r.statement,
+  quote: r.quote,
+  at: r.at,
+});
+
+/**
+ * The learner's evidence for this lesson (the brief the tutor opens with is
+ * built from it in the browser, src/lib/tutor/learner-brief.ts) and the
+ * preferences stated anywhere. RLS: the user's own rows only. Null when
+ * learner_evidence is not migrated: the tutor uses the prose summary.
+ */
+async function readLessonMemory(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[1]['supabase'],
+  userId: string,
+  resourceId: string,
+): Promise<{ evidence: EvidenceRow[]; preferences: EvidenceRow[] } | null> {
+  const [lesson, prefs] = await Promise.all([
+    supabase
+      .from('learner_evidence')
+      .select(EVIDENCE_COLUMNS)
+      .eq('user_id', userId)
+      .eq('resource_id', resourceId)
+      .order('at', { ascending: false })
+      .limit(MAX_LESSON_EVIDENCE),
+    supabase
+      .from('learner_evidence')
+      .select(EVIDENCE_COLUMNS)
+      .eq('user_id', userId)
+      .eq('kind', 'preference')
+      .order('at', { ascending: false })
+      .limit(MAX_PREFERENCES),
+  ]);
+  if (lesson.error) {
+    if (!isMissingSchema(lesson.error)) log.error('Failed to read learner evidence:', lesson.error.message);
+    return null;
+  }
+  return {
+    evidence: ((lesson.data ?? []) as EvidenceDbRow[]).map(toEvidence),
+    preferences: ((prefs.data ?? []) as EvidenceDbRow[]).map(toEvidence),
+  };
+}
 
 /** Whether the section belongs to a lesson with English drills (hand-written lessons). */
 async function sectionPracticesEnglish(
