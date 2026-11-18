@@ -127,8 +127,10 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       retryCount = 0;
 
       try {
+        // Ephemeral tokens (auth_tokens/...) only work on v1alpha's constrained endpoint.
         const client = new GoogleGenAI({
           apiKey: ephemeralToken,
+          ...(ephemeralToken.startsWith('auth_tokens/') ? { httpOptions: { apiVersion: 'v1alpha' } } : {}),
         });
 
         const nextSession = await client.live.connect({

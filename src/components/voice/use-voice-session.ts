@@ -113,6 +113,8 @@ interface VoiceSession {
 // ============================================================================
 
 const VOICE_NAME = 'Kore';
+/** Under the token's 10-minute window to open a socket (src/lib/voice/live-token.ts). */
+const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
 const MIC_CHUNK_INTERVAL_MS = 100;
 const TRANSCRIPT_FLUSH_INTERVAL_MS = 500;
 const TRANSCRIPT_BATCH_SIZE = 40;
@@ -197,6 +199,9 @@ export function useVoiceSession({
 
   // Pre-fetch refs
   const prefetchedTokenRef = useRef<string | null>(null);
+  // When the prefetched token was minted: past PREFETCHED_TOKEN_MAX_AGE_MS it is
+  // dropped, because a Live token only opens a socket for 10 min (live-token.ts).
+  const prefetchedTokenAtRef = useRef(0);
   const prefetchedContextRef = useRef<{ summary?: string; learnerMemory?: LearnerConceptMemory[] } | null>(null);
   const prefetchSectionIdRef = useRef<string | null>(null);
 
@@ -238,7 +243,7 @@ export function useVoiceSession({
       fetchWithKeys('/api/voice/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'prefetch', sessionType }),
+        body: JSON.stringify({ reason: 'prefetch', sessionType, model: resolveVoiceLiveModel() }),
       })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
@@ -247,7 +252,10 @@ export function useVoiceSession({
 
     // Only store if sectionId hasn't changed while fetching
     if (prefetchSectionIdRef.current !== currentSectionId) return;
-    if (tokenData?.token) prefetchedTokenRef.current = tokenData.token;
+    if (tokenData?.token) {
+      prefetchedTokenRef.current = tokenData.token;
+      prefetchedTokenAtRef.current = Date.now();
+    }
     if (contextData) prefetchedContextRef.current = contextData;
   }, [sectionId, sessionType, conceptIds]);
 
@@ -731,12 +739,13 @@ export function useVoiceSession({
       const { sectionId: secId, sectionContent: sc, sectionTitle: st, language: lang, systemInstructionOverride: sysOverride, sessionType: sessType, resourceId: resId, initialMessage: initMsg, conceptIds: cIds } = paramsRef.current;
 
       // Use pre-fetched token if available, otherwise fetch fresh
-      const tokenPromise = prefetchedTokenRef.current
+      const prefetchedFresh = Date.now() - prefetchedTokenAtRef.current < PREFETCHED_TOKEN_MAX_AGE_MS;
+      const tokenPromise = prefetchedTokenRef.current && prefetchedFresh
         ? Promise.resolve(prefetchedTokenRef.current)
         : fetchWithKeys('/api/voice/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason: 'connect', sessionType: sessType }),
+            body: JSON.stringify({ reason: 'connect', sessionType: sessType, model: resolveVoiceLiveModel() }),
           })
             .then((r) => {
               if (!r.ok) throw new Error('Failed to get voice token');
@@ -902,7 +911,7 @@ export function useVoiceSession({
               const res = await fetchWithKeys('/api/voice/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: 'goaway_reconnect', sessionType: paramsRef.current.sessionType }),
+                body: JSON.stringify({ reason: 'goaway_reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
               });
               if (!res.ok) throw new Error('Failed to get token for proactive reconnect');
               const { token: freshToken } = await res.json();
@@ -944,7 +953,7 @@ export function useVoiceSession({
               const res = await fetchWithKeys('/api/voice/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: 'reconnect', sessionType: paramsRef.current.sessionType }),
+                body: JSON.stringify({ reason: 'reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
               });
               if (!res.ok) throw new Error('Failed to get fresh token for reconnect');
               const { token: freshToken } = await res.json();
@@ -970,7 +979,7 @@ export function useVoiceSession({
                   const res2 = await fetchWithKeys('/api/voice/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: 'reconnect_layer2', sessionType: paramsRef.current.sessionType }),
+                    body: JSON.stringify({ reason: 'reconnect_layer2', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
                   });
                   if (!res2.ok) throw new Error('Failed to get token for Layer 2');
                   const { token: freshToken2 } = await res2.json();
