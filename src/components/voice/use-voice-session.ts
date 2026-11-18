@@ -17,8 +17,31 @@ import type { Language } from '@/lib/translations';
 import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 import { decideSessionEnd, type SessionEndPolicy } from '@/lib/voice/session-end';
+import { TranscriptOutbox, postTranscriptBatch } from '@/lib/voice/transcript-outbox';
 
 const log = createLogger('VoiceSession');
+
+/** Drains a session's transcript outbox, then closes the session server-side. */
+async function finishSession(
+  sessionId: string,
+  writeToken: string | null,
+  outbox: TranscriptOutbox | null,
+  diag: Record<string, string | number>,
+): Promise<void> {
+  if (outbox) {
+    const drained = await outbox.drain({ keepalive: true }).catch(() => false);
+    if (!drained) log.error(`[Disconnect] ${outbox.pending} transcript event(s) not stored sid=${sessionId}`);
+  }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (writeToken) headers['X-Voice-Session-Token'] = writeToken;
+  await fetch('/api/voice/session/end', {
+    method: 'POST',
+    keepalive: true,
+    headers,
+    body: JSON.stringify({ sessionId, writeToken, diag }),
+  }).catch(() => {});
+  log.info('[Disconnect] /api/voice/session/end fired');
+}
 
 // ============================================================================
 // Types
@@ -77,14 +100,6 @@ interface TranscriptEntry {
   text: string;
 }
 
-interface QueuedTranscriptEvent {
-  turnId: string;
-  seq: number;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: string;
-}
-
 interface VoiceSession {
   connectionState: ConnectionState;
   tutorState: TutorState;
@@ -117,9 +132,6 @@ const VOICE_NAME = 'Kore';
 /** Under the token's 10-minute window to open a socket (src/lib/voice/live-token.ts). */
 const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
 const MIC_CHUNK_INTERVAL_MS = 100;
-const TRANSCRIPT_FLUSH_INTERVAL_MS = 500;
-const TRANSCRIPT_BATCH_SIZE = 40;
-const TRANSCRIPT_MAX_RETRY_DELAY_MS = 4000;
 // What ends a session on its own: src/lib/voice/session-end.ts.
 const SESSION_END_WINDOW_CHARS = 320;
 
@@ -167,11 +179,10 @@ export function useVoiceSession({
   const sessionIdRef = useRef<string | null>(null);
   const sessionWriteTokenRef = useRef<string | null>(null);
   const transcriptSeqRef = useRef(0);
-  const transcriptQueueRef = useRef<QueuedTranscriptEvent[]>([]);
-  const transcriptFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const transcriptFlushInFlightRef = useRef(false);
-  const transcriptRetryDelayRef = useRef(250);
-  const transcriptFlushPromiseRef = useRef<Promise<boolean> | null>(null);
+  /** The current session's transcript outbox (src/lib/voice/transcript-outbox.ts). */
+  const transcriptOutboxRef = useRef<TranscriptOutbox | null>(null);
+  /** What the client saw, sent with /session/end so a lost turn can be traced. */
+  const sessionDiagRef = useRef({ userFragments: 0, modelFragments: 0, audioChunksSent: 0, stored: 0, lastError: '' });
 
   // Session end keyword detection — debounce to prevent multiple disconnects
   const sessionEndDetectedRef = useRef(false);
@@ -389,6 +400,7 @@ export function useVoiceSession({
       pcmBuffer = [];
 
       client.sendAudio(arrayBufferToBase64(merged.buffer));
+      sessionDiagRef.current.audioChunksSent += 1;
     }, MIC_CHUNK_INTERVAL_MS);
 
     source.connect(workletNode);
@@ -441,114 +453,6 @@ export function useVoiceSession({
   // Ref for disconnect so saveTranscript can call it without circular dependency
   const disconnectRef = useRef<() => void>(() => {});
 
-  // ---- Transcript queue + flushing ----
-
-  const flushTranscriptQueue = useCallback(
-    async (opts?: {
-      keepalive?: boolean;
-      forceAll?: boolean;
-      reason?: string;
-      sessionId?: string;
-      writeToken?: string;
-    }): Promise<boolean> => {
-      if (transcriptFlushInFlightRef.current) return false;
-
-      const sid = opts?.sessionId ?? sessionIdRef.current;
-      const writeToken = opts?.writeToken ?? sessionWriteTokenRef.current;
-      if (!sid || !writeToken) return false;
-      if (transcriptQueueRef.current.length === 0) return true;
-
-      transcriptFlushInFlightRef.current = true;
-      const forceAll = !!opts?.forceAll;
-      let sentAny = false;
-
-      try {
-        do {
-          const batch = transcriptQueueRef.current.slice(0, TRANSCRIPT_BATCH_SIZE);
-          if (batch.length === 0) break;
-
-          const res = await fetch('/api/voice/session/transcript', {
-            method: 'POST',
-            keepalive: !!opts?.keepalive,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Voice-Session-Token': writeToken,
-            },
-            body: JSON.stringify({
-              sessionId: sid,
-              writeToken,
-              events: batch.map((event) => ({
-                turnId: event.turnId,
-                seq: event.seq,
-                role: event.role,
-                text: event.text,
-                timestamp: event.timestamp,
-              })),
-            }),
-          });
-
-          if (!res.ok) {
-            if (res.status === 401) {
-              log.warn(
-                `[TranscriptFlush] Unauthorized sid=${sid} reason=${opts?.reason ?? 'unknown'}`,
-              );
-            }
-            throw new Error(`Transcript flush failed with ${res.status}`);
-          }
-
-          transcriptQueueRef.current.splice(0, batch.length);
-          transcriptRetryDelayRef.current = 250;
-          sentAny = true;
-        } while (forceAll && transcriptQueueRef.current.length > 0);
-
-        if (transcriptQueueRef.current.length > 0 && !transcriptFlushTimerRef.current) {
-          transcriptFlushTimerRef.current = setTimeout(() => {
-            transcriptFlushTimerRef.current = null;
-            const pending = flushTranscriptQueue({ reason: 'follow_up' });
-            transcriptFlushPromiseRef.current = pending;
-            pending.catch(() => {});
-          }, 0);
-        }
-
-        return sentAny;
-      } catch (err) {
-        const delay = transcriptRetryDelayRef.current;
-        transcriptRetryDelayRef.current = Math.min(
-          TRANSCRIPT_MAX_RETRY_DELAY_MS,
-          delay * 2,
-        );
-        if (!transcriptFlushTimerRef.current) {
-          transcriptFlushTimerRef.current = setTimeout(() => {
-            transcriptFlushTimerRef.current = null;
-            const pending = flushTranscriptQueue({ reason: 'retry' });
-            transcriptFlushPromiseRef.current = pending;
-            pending.catch(() => {});
-          }, delay);
-        }
-        log.warn(
-          `[TranscriptFlush] Failed sid=${sid} reason=${opts?.reason ?? 'unknown'} queue=${transcriptQueueRef.current.length} err=${err instanceof Error ? err.message : String(err)}`,
-        );
-        return false;
-      } finally {
-        transcriptFlushInFlightRef.current = false;
-        transcriptFlushPromiseRef.current = null;
-      }
-    },
-    [],
-  );
-
-  const scheduleTranscriptFlush = useCallback((delayMs = TRANSCRIPT_FLUSH_INTERVAL_MS) => {
-    if (transcriptFlushTimerRef.current) return;
-    if (transcriptQueueRef.current.length === 0) return;
-
-    transcriptFlushTimerRef.current = setTimeout(() => {
-      transcriptFlushTimerRef.current = null;
-      const pending = flushTranscriptQueue({ reason: 'scheduled' });
-      transcriptFlushPromiseRef.current = pending;
-      pending.catch(() => {});
-    }, delayMs);
-  }, [flushTranscriptQueue]);
-
   // ---- Transcript saving (queued + batched) ----
   //
   // The Live API streams transcriptions in fragments of a few characters, each
@@ -561,7 +465,8 @@ export function useVoiceSession({
 
   const persistUtterance = useCallback((role: 'user' | 'model', text: string) => {
     const sid = sessionIdRef.current;
-    if (!sid) return;
+    const outbox = transcriptOutboxRef.current;
+    if (!sid || !outbox) return;
 
     const preview = text.length > 140 ? `${text.slice(0, 140)}...` : text;
     log.info(`[Transcript] role=${role} sid=${sid} text="${preview}"`);
@@ -570,22 +475,15 @@ export function useVoiceSession({
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
     const seq = ++transcriptSeqRef.current;
-    transcriptQueueRef.current.push({
+    sessionDiagRef.current.stored += 1;
+    outbox.push({
       turnId: `${sid}-${seq}`,
       seq,
       role,
       text,
       timestamp: new Date().toISOString(),
     });
-
-    if (transcriptQueueRef.current.length >= TRANSCRIPT_BATCH_SIZE) {
-      const pending = flushTranscriptQueue({ reason: 'batch_full' });
-      transcriptFlushPromiseRef.current = pending;
-      pending.catch(() => {});
-    } else {
-      scheduleTranscriptFlush();
-    }
-  }, [flushTranscriptQueue, scheduleTranscriptFlush]);
+  }, []);
 
   /** Close the utterance being transcribed and store it. */
   const commitUtterance = useCallback(() => {
@@ -598,6 +496,8 @@ export function useVoiceSession({
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
     if (!sessionIdRef.current) return;
+    if (role === 'user') sessionDiagRef.current.userFragments += 1;
+    else sessionDiagRef.current.modelFragments += 1;
 
     if (utteranceRef.current && utteranceRef.current.role !== role) commitUtterance();
     const starting = !utteranceRef.current;
@@ -720,14 +620,11 @@ export function useVoiceSession({
     resumptionHandleRef.current = null;
     compressedSummaryRef.current = null;
     transcriptBufferRef.current = [];
-    transcriptQueueRef.current = [];
+    // A previous session's outbox keeps draining on its own; never clear it here.
+    transcriptOutboxRef.current = null;
     transcriptSeqRef.current = 0;
-    transcriptRetryDelayRef.current = 250;
+    sessionDiagRef.current = { userFragments: 0, modelFragments: 0, audioChunksSent: 0, stored: 0, lastError: '' };
     sessionWriteTokenRef.current = null;
-    if (transcriptFlushTimerRef.current) {
-      clearTimeout(transcriptFlushTimerRef.current);
-      transcriptFlushTimerRef.current = null;
-    }
     setTranscript([]);
     utteranceRef.current = null;
     modelTranscriptWindowRef.current = '';
@@ -806,6 +703,15 @@ export function useVoiceSession({
       }
       sessionIdRef.current = sid;
       sessionWriteTokenRef.current = writeToken;
+      transcriptOutboxRef.current = new TranscriptOutbox({
+        target: { sessionId: sid, writeToken },
+        send: postTranscriptBatch,
+        onError: (err, pending) => {
+          const message = err instanceof Error ? err.message : String(err);
+          sessionDiagRef.current.lastError = message.slice(0, 120);
+          log.warn(`[TranscriptFlush] Failed sid=${sid} pending=${pending} err=${message}`);
+        },
+      });
       setSessionId(sid);
 
       const summary = context?.summary;
@@ -864,6 +770,7 @@ export function useVoiceSession({
         },
         onConnectionStateChange: setConnectionState,
         onError: (err) => {
+          sessionDiagRef.current.lastError = `live: ${String(err)}`.slice(0, 120);
           logTransition('idle', `error: ${err}`);
           setError(err);
           setTutorState('idle');
@@ -1066,6 +973,8 @@ export function useVoiceSession({
     const writeToken = sessionWriteTokenRef.current;
     log.info(`[Disconnect] Requested sid=${sid ?? 'none'}`);
     commitUtterance();
+    const outbox = transcriptOutboxRef.current;
+    const diag = { ...sessionDiagRef.current, endReason: 'disconnect' };
 
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
@@ -1073,12 +982,9 @@ export function useVoiceSession({
       reconnectTimerRef.current = null;
     }
 
-    if (transcriptFlushTimerRef.current) {
-      clearTimeout(transcriptFlushTimerRef.current);
-      transcriptFlushTimerRef.current = null;
-    }
-
     // Freeze session refs immediately so no more transcript events are queued.
+    // The outbox keeps its own session and drains below.
+    transcriptOutboxRef.current = null;
     sessionIdRef.current = null;
     sessionWriteTokenRef.current = null;
     setSessionId(null);
@@ -1105,40 +1011,12 @@ export function useVoiceSession({
     setConnectionState('disconnected');
     setError(null);
 
-    // Flush pending transcript queue + end session in backend (best effort).
-    if (sid) {
-      (async () => {
-        if (transcriptQueueRef.current.length > 0 && writeToken) {
-          const pending = flushTranscriptQueue({
-            keepalive: true,
-            forceAll: true,
-            reason: 'disconnect',
-            sessionId: sid,
-            writeToken,
-          });
-          transcriptFlushPromiseRef.current = pending;
-          await pending.catch(() => false);
-        }
-
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (writeToken) {
-          headers['X-Voice-Session-Token'] = writeToken;
-        }
-        await fetch('/api/voice/session/end', {
-          method: 'POST',
-          keepalive: true,
-          headers,
-          body: JSON.stringify({ sessionId: sid, writeToken }),
-        }).catch(() => {});
-        log.info('[Disconnect] /api/voice/session/end fired');
-      })();
-    } else {
-      transcriptQueueRef.current = [];
-    }
+    // Drain the transcript outbox, then end the session in the backend (best effort).
+    if (sid) void finishSession(sid, writeToken, outbox, diag);
 
     // NOTE: manual disconnect does NOT call onSessionComplete.
     // Only AI-driven completion (via transcript detection) unlocks the quiz.
-  }, [commitUtterance, flushTranscriptQueue, logTransition, stopMic, stopPlayback, stopTimer]);
+  }, [commitUtterance, logTransition, stopMic, stopPlayback, stopTimer]);
 
   // Keep disconnectRef in sync so saveTranscript can call it
   disconnectRef.current = disconnect;
@@ -1152,6 +1030,22 @@ export function useVoiceSession({
     clientRef.current?.sendText(text, options?.respond ?? false);
   }, []);
 
+  // ---- Tab closed or navigated away: store what was said ----
+  //
+  // React cleanups do not run when the page unloads, so a learner's answer the
+  // model had not answered yet (still an open utterance) and the last 500 ms of
+  // queue were lost on close or reload. The first request starts synchronously.
+
+  useEffect(() => {
+    const onPageHide = () => {
+      if (!sessionIdRef.current) return;
+      commitUtterance();
+      void transcriptOutboxRef.current?.flush({ keepalive: true });
+    };
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
+  }, [commitUtterance]);
+
   // ---- Cleanup on unmount ----
 
   useEffect(() => {
@@ -1160,35 +1054,13 @@ export function useVoiceSession({
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
-      if (transcriptFlushTimerRef.current) {
-        clearTimeout(transcriptFlushTimerRef.current);
-        transcriptFlushTimerRef.current = null;
-      }
 
       commitUtterance();
       const sid = sessionIdRef.current;
       const writeToken = sessionWriteTokenRef.current;
-      if (sid) {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (writeToken) {
-          headers['X-Voice-Session-Token'] = writeToken;
-        }
-
-        void flushTranscriptQueue({
-          keepalive: true,
-          forceAll: true,
-          reason: 'unmount',
-          sessionId: sid,
-          writeToken: writeToken ?? undefined,
-        }).finally(() => {
-          fetch('/api/voice/session/end', {
-            method: 'POST',
-            keepalive: true,
-            headers,
-            body: JSON.stringify({ sessionId: sid, writeToken }),
-          }).catch(() => {});
-        });
-      }
+      const outbox = transcriptOutboxRef.current;
+      transcriptOutboxRef.current = null;
+      if (sid) void finishSession(sid, writeToken, outbox, { ...sessionDiagRef.current, endReason: 'unmount' });
 
       stopMic();
       stopPlayback();
@@ -1198,7 +1070,7 @@ export function useVoiceSession({
         clientRef.current = null;
       }
     };
-  }, [commitUtterance, flushTranscriptQueue, stopMic, stopPlayback, stopTimer]);
+  }, [commitUtterance, stopMic, stopPlayback, stopTimer]);
 
   return {
     connectionState,

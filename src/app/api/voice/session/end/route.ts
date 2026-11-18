@@ -6,7 +6,7 @@
  * - Session write token (preferred for reliability in teardown paths)
  * - Cookie session (fallback)
  *
- * Body: { sessionId: string, writeToken?: string }
+ * Body: { sessionId: string, writeToken?: string, diag?: client counters (logged only) }
  * Response: { ok: true }
  */
 
@@ -17,6 +17,7 @@ import { generateConversationSummary } from '@/lib/voice/memory';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { verifyVoiceSessionWriteToken } from '@/lib/voice/session-write-token';
+import { formatClientDiag } from '@/lib/voice/session-diag';
 
 const log = createLogger('VoiceSession');
 
@@ -98,7 +99,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     log.info(
-      `Voice session ended: ${sessionId} (${durationSeconds}s, ${count ?? 0} turns)`,
+      `Voice session ended: ${sessionId} (${durationSeconds}s, ${count ?? 0} turns)${formatClientDiag(body?.diag)}`,
     );
 
     // Generate summary in background (skip exploration sessions).
