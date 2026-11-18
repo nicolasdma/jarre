@@ -29,6 +29,7 @@ import { buildLessonMap } from '@/lib/tutor/lesson-map';
 import { buildLearnerBrief } from '@/lib/tutor/learner-brief';
 import { recentTalkBlock, rememberTalk } from '@/lib/tutor/recent-talk';
 import type { EvidenceRow } from '@/lib/tutor/evidence';
+import { MUTE_AFTER_TOOL_MS } from '@/lib/tutor/section-tools';
 
 const log = createLogger('VoiceSession');
 
@@ -131,6 +132,12 @@ interface UseVoiceSessionParams {
   bilingual?: boolean;
   /** After a dropped connection is restored (the coding mock re-sends what the model must see). */
   onReconnected?: () => void;
+  /** Learning: the connection declares the lesson tools (src/lib/tutor/section-tools.ts) and the prompt explains them. */
+  lessonTools?: boolean;
+  /** Every utterance, once complete (the section tutor detects the sections the learner names). */
+  onUtterance?: (role: 'user' | 'model', text: string) => void;
+  /** The tutor finished a turn: the moment to add context for the next one. */
+  onModelTurnComplete?: () => void;
 }
 
 
@@ -172,6 +179,8 @@ interface VoiceSession {
    * otherwise it is context for its next turn. No-op when not connected.
    */
   sendText: (text: string, options?: { respond?: boolean }) => void;
+  /** The learner's memory for this lesson, as the context request brought it (null before connect or without it). */
+  lessonMemory: VoiceContext['lessonMemory'] | null;
 }
 
 // ============================================================================
@@ -208,6 +217,9 @@ export function useVoiceSession({
   endPolicy = 'default',
   bilingual = false,
   onReconnected,
+  lessonTools = false,
+  onUtterance,
+  onModelTurnComplete,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -216,6 +228,11 @@ export function useVoiceSession({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [lessonMemory, setLessonMemory] = useState<VoiceContext['lessonMemory'] | null>(null);
+  /** Audio arrived in the reply being generated (for the mute-after-tool nudge). */
+  const audioInTurnRef = useRef(false);
+  const muteNudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const muteNudgedThisTurnRef = useRef(false);
 
   const clientRef = useRef<GeminiLiveClientInstance | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -268,8 +285,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete };
 
   const onReconnectedRef = useRef(onReconnected);
   onReconnectedRef.current = onReconnected;
@@ -528,6 +545,8 @@ export function useVoiceSession({
 
     // Accumulate in local buffer for Layer 2 fallback context
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
+
+    paramsRef.current.onUtterance?.(role, text);
 
     const seq = ++transcriptSeqRef.current;
     timelineRef.current.counters.stored += 1;
@@ -826,8 +845,10 @@ export function useVoiceSession({
           // The prose summary only when there is no evidence to brief from (not migrated, or nothing yet).
           previousSummary: learnerBrief ? null : summary ?? null,
           learnerBrief,
+          sectionTools: paramsRef.current.lessonTools,
           bilingual: bi || context?.practicesEnglish === true,
         });
+        setLessonMemory(lm ?? null);
         systemInstruction = session.instruction;
         opener = session.opener;
       }
@@ -836,6 +857,11 @@ export function useVoiceSession({
       const client = createGeminiLiveClient({
         onAudioResponse: (audioChunk) => {
           timeline.audio();
+          audioInTurnRef.current = true;
+          if (muteNudgeTimerRef.current) {
+            clearTimeout(muteNudgeTimerRef.current);
+            muteNudgeTimerRef.current = null;
+          }
           setTutorState((prev) => {
             if (prev !== 'speaking') logTransition('speaking', 'first_audio_chunk');
             return 'speaking';
@@ -845,11 +871,15 @@ export function useVoiceSession({
         onTurnComplete: () => {
           timeline.turnComplete();
           commitUtterance();
+          audioInTurnRef.current = false;
+          muteNudgedThisTurnRef.current = false;
+          paramsRef.current.onModelTurnComplete?.();
           logTransition('listening', 'turn_complete');
           setTutorState('listening');
         },
         onInterrupted: () => {
           timeline.mark('interrupted');
+          audioInTurnRef.current = false;
           commitUtterance();
           stopPlayback();
           logTransition('listening', 'interrupted');
@@ -1089,6 +1119,11 @@ export function useVoiceSession({
     const diag = timelineRef.current.toDiag('disconnect');
     keepRecentTalk(sid);
 
+    if (muteNudgeTimerRef.current) {
+      clearTimeout(muteNudgeTimerRef.current);
+      muteNudgeTimerRef.current = null;
+    }
+
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
@@ -1134,9 +1169,22 @@ export function useVoiceSession({
   // Keep disconnectRef in sync so saveTranscript can call it
   disconnectRef.current = disconnect;
 
-  // Expose sendToolResponse for tool-use pipeline
+  // Expose sendToolResponse for tool-use pipeline. A tool answered before the
+  // first word can leave the reply mute on 3.8 (the landing's measurement): if
+  // no audio comes within MUTE_AFTER_TOOL_MS, one text turn asks for the voice.
   const sendToolResponse = useCallback((responses: FunctionResponse[]) => {
-    clientRef.current?.sendToolResponse(responses);
+    const client = clientRef.current;
+    if (!client) return;
+    client.sendToolResponse(responses);
+    if (audioInTurnRef.current || muteNudgedThisTurnRef.current || muteNudgeTimerRef.current) return;
+    muteNudgeTimerRef.current = setTimeout(() => {
+      muteNudgeTimerRef.current = null;
+      if (audioInTurnRef.current || clientRef.current !== client) return;
+      muteNudgedThisTurnRef.current = true;
+      timelineRef.current.mark('mute_nudge');
+      const lang = paramsRef.current.language;
+      client.sendText(lang === 'es' ? 'Respondé ahora en voz alta, desde donde estabas.' : 'Answer now, out loud, from where you were.');
+    }, MUTE_AFTER_TOOL_MS);
   }, []);
 
   const sendText = useCallback((text: string, options?: { respond?: boolean }) => {
@@ -1208,5 +1256,6 @@ export function useVoiceSession({
     sendToolResponse,
     playbackAnalyser: playbackAnalyserRef.current,
     sendText,
+    lessonMemory,
   };
 }

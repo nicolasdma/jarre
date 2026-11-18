@@ -23,6 +23,7 @@
 
 import type { Language } from '@/lib/translations';
 import { buildLessonMap, renderLessonMap } from '@/lib/tutor/lesson-map';
+import { SECTION_TOOLS_RULE } from '@/lib/tutor/section-tools';
 import {
   DEFAULT_CURVEBALLS,
   INTERVIEW_DEPTHS,
@@ -40,7 +41,7 @@ export interface TutorLesson {
 }
 
 /** Which learning prompt a session ran with, stored in voice_sessions.client_diag. */
-export const TUTOR_PROMPT_VERSION = 'learning-2026-11-19-lesson-map';
+export const TUTOR_PROMPT_VERSION = 'learning-2026-11-19-lesson-tools';
 
 export interface TutorSession {
   instruction: string;
@@ -95,6 +96,8 @@ export interface LearningSessionParams {
    * src/lib/tutor/learner-brief.ts (≤ 600 tokens). Replaces `previousSummary`.
    */
   learnerBrief?: string | null;
+  /** The connection declares the lesson tools (src/lib/tutor/section-tools.ts). */
+  sectionTools?: boolean;
   /**
    * The lesson also practices English (it has drills): each idea is worked in
    * Spanish first, then the learner says it in English and gets one or two
@@ -152,7 +155,7 @@ const REFERENCES_RULE = `# The other sections (you know them through the map)
 The map above is the whole lesson: every section's number, name and what it covers. Always name a section by its number and short name, the same way every time ("la 2, Big-O", "la 15, LRU Cache").
 - The learner asks about something another section covers: answer it in one or two sentences, say where the lesson covers it in full ("eso lo vemos en la 15, LRU Cache"), then come back to this section or ask if they want to go there. Never say you only know this section, and never brush it off without saying where it is.
 - An answer shows that a base from another section is missing (Big-O for nested loops, for example): fix it here and say where it lives ("eso es de la 2, Big-O; si querés la repasamos").
-- You have the full text of this section only. For another section you know what the map says it covers and the general topic; do not invent its specific numbers, code or wording.`;
+- You have the full text of this section only. For another section you know what the map says it covers and the general topic; do not invent its specific numbers, code or wording unless its notes are in the conversation.`;
 
 const NO_MEMORY_RULE = `# Earlier sessions
 You have no record of any earlier session with this learner. If they say you talked before or ask what they told you, say plainly that you do not have it and ask them to tell you again; never invent or agree to anything they supposedly said.`;
@@ -173,6 +176,7 @@ export function buildLearningSession({
   learnerNotes,
   previousSummary,
   learnerBrief,
+  sectionTools = false,
   bilingual = false,
 }: LearningSessionParams): TutorSession {
   const lang: 'es' | 'en' = language === 'en' ? 'en' : 'es';
@@ -202,7 +206,7 @@ The section above is your answer key. For the idea you are on, check each answer
 Keep track of what the learner has already shown they know and what they got wrong. Never ask again about something they already explained.
 
 ${REFERENCES_RULE}
-${memory}${learnerNotes ? `\n# Known about this learner\n${learnerNotes}\nProbe a known misconception early, with a fresh angle.\n` : ''}
+${sectionTools ? `\n${SECTION_TOOLS_RULE}\n` : ''}${memory}${learnerNotes ? `\n# Known about this learner\n${learnerNotes}\nProbe a known misconception early, with a fresh angle.\n` : ''}
 ${TEACH_RULE}
 
 ${twoLanguages ? `${BILINGUAL_RULE}\n\n` : ''}# How every turn works (for as long as the session lasts)

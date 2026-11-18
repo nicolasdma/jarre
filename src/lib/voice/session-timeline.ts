@@ -27,6 +27,7 @@ export type TimelineKind =
   | 'interrupted'
   | 'tool_call'
   | 'notes_injected'
+  | 'mute_nudge'
   | 'socket_close'
   | 'reconnected'
   | 'error';

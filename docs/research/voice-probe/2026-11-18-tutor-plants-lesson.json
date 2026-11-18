@@ -1,0 +1,360 @@
+{
+  "label": "2026-11-18-tutor-plants-lesson",
+  "date": "2026-11-18T22:22:11.591Z",
+  "model": "gemini-3.8-live",
+  "plants": "tutor",
+  "arm": "lesson",
+  "summary": {
+    "arm": "lesson",
+    "pass": 5,
+    "cases": 7,
+    "by_case": {
+      "explain_on_request": 1,
+      "correct_wrong_claim": 1,
+      "english_pushback": 0,
+      "cross_session_repeat": 1,
+      "refers_later_section": 1,
+      "refers_earlier_section": 0,
+      "false_memory_guard": 1
+    },
+    "english_asks_after_learner": 1,
+    "first_audio_ms_p50": 1151,
+    "first_audio_ms_p90": 1802,
+    "prompt_tokens_p50": 6429,
+    "prompt_tokens_max": 8291,
+    "instruction_chars": 20365,
+    "cost_usd": 0.1409,
+    "mute_turns": 0,
+    "tool_calls": []
+  },
+  "results": [
+    {
+      "case": "explain_on_request",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.0183165,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "En una entrevista senior, cuando te piden el Two Sum, ¿por qué no codeás la fuerza bruta directamente y cómo la describís?",
+          "first_audio_ms": 1568,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 176,
+            "responseAudio": 176
+          },
+          "cost": 0.0071085
+        },
+        {
+          "learner": "Eh, no, no sé. Igual esta sección no la entendí, me gustaría más que me la expliques.",
+          "tutor": "El problema nos pide encontrar los índices de dos números que sumen un valor objetivo. Por ejemplo, si tenemos un array con los números dos, siete, once y quince, y buscamos que sumen nueve, la respuesta sería los índices cero y uno, porque el dos más el siete es nueve.",
+          "first_audio_ms": 1151,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6408,
+            "promptText": 5915,
+            "promptAudio": 344,
+            "response": 469,
+            "responseAudio": 469
+          },
+          "cost": 0.011208,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "It explains the idea with a concrete example (nums [2,7,11,15], target 9) before asking anything, though it's brief and lacks the step-by-step map/complement walkthrough."
+          }
+        }
+      ]
+    },
+    {
+      "case": "correct_wrong_claim",
+      "pass": 1,
+      "english_asks": 1,
+      "cost": 0.0178185,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "En la entrevista te piden Two Sum y ya mencionan que el array no está ordenado. ¿Por qué no te conviene codear la fuerza bruta y cuál es la alternativa que proponés en el acto?",
+          "first_audio_ms": 1340,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 260,
+            "responseAudio": 260
+          },
+          "cost": 0.0081165
+        },
+        {
+          "learner": "Ayer lo había visto y me olvidé. La fuerza bruta es O de n log n, porque tenés dos for.",
+          "tutor": "No, el motivo no es ese: dos bucles anidados dan una complejidad de O de n al cuadrado, no O de n log n. ¿Por qué esa aproximación lenta no sirve para arrays grandes como los de la entrevista?",
+          "first_audio_ms": 976,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6516,
+            "promptText": 5931,
+            "promptAudio": 428,
+            "response": 321,
+            "responseAudio": 321
+          },
+          "cost": 0.009702,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The tutor plainly says 'No' and corrects the error, explaining that two nested loops are O(n²), not O(n log n)."
+          }
+        }
+      ]
+    },
+    {
+      "case": "english_pushback",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.0346065,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "En Two Sum, cuando el entrevistador te pide los números que suman el objetivo, ¿por qué no te conviene codeear primero la fuerza bruta?",
+          "first_audio_ms": 1081,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 199,
+            "responseAudio": 199
+          },
+          "cost": 0.0073845
+        },
+        {
+          "learner": "Pero qué pesado con la entrevista. Te estoy pidiendo que me lo expliques: ¿por qué el mapa hace que sea más rápido?",
+          "tutor": "El mapa hace que sea más rápido porque te permite buscar el complemento, es decir, el número que te falta para llegar al objetivo, en tiempo constante en vez de recorrer todo el array otra vez. Por ejemplo, con `nums = [2, 7, 11]` y `target = 9`: cuando estás en el primer número, el `2`, calculás que te falta un `7` para llegar a `9` y te fijás en el mapa; como todavía no lo viste, guardás el `2` con su índice. Después, cuando llegás al `7`, calculás el complemento que es `2`, mirás el mapa, encontrás que el `2` estaba en el índice cero y ya tenés tu respuesta: `[0, 1]`. Fijate en esto: si el target fuera `6` y tuvieras `[3, 3]`, ¿en qué momento insertás el primer `3` en el mapa respecto a cuando chequeás el segundo?",
+          "first_audio_ms": 1191,
+          "tool_calls": [],
+          "usage": null,
+          "cost": 0,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The tutor never acknowledges the learner's complaint about the interview and instead keeps framing the question around the interviewer, so it fails the acknowledgment requirement."
+          }
+        },
+        {
+          "learner": "Ah, claro: en vez de recorrer todo otra vez, le pregunto al mapa si ya vi el complemento, y eso es constante.",
+          "tutor": "Tal cual. Y para que ese caso de `[3, 3]` funcione sin usar el mismo elemento dos veces, ¿cuál es el orden exacto: chequeás el mapa antes o después de guardar el número actual?",
+          "first_audio_ms": 886,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 7928,
+            "promptText": 6164,
+            "promptAudio": 1515,
+            "response": 265,
+            "responseAudio": 265
+          },
+          "cost": 0.01253475
+        },
+        {
+          "learner": "Y si el número no está todavía, lo guardo con su índice y sigo con el siguiente.",
+          "tutor": "Exacto, pero recordá que chequeás el mapa antes de insertar el número actual. Así, si tenés `[3, 3]`, cuando llegás al segundo `3`, ya encontrás el primero en el mapa. En el código, ¿qué pasa si el mapa no encuentra el complemento y la iteración termina?",
+          "first_audio_ms": 951,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 8291,
+            "promptText": 6232,
+            "promptAudio": 1780,
+            "response": 372,
+            "responseAudio": 372
+          },
+          "cost": 0.01468725
+        }
+      ]
+    },
+    {
+      "case": "cross_session_repeat",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.0155355,
+      "instruction_chars": 22624,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Para lograr búsquedas constantes, ¿de qué manera organizás la información en el mapa, tomando el valor y el índice como referencia?",
+          "first_audio_ms": 1802,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6736,
+            "promptText": 6441,
+            "promptAudio": 168,
+            "response": 192,
+            "responseAudio": 192
+          },
+          "cost": 0.007734,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The tutor asks how the map is organized (key vs value), which is a permitted follow-up on what was left open, and does not re-ask the check-before-inserting question, the clarifying questions, or the brute force."
+          }
+        },
+        {
+          "learner": "Dale, ¿por dónde seguimos?",
+          "tutor": "¿Cuál de los dos, el valor o el índice, usás como clave en el mapa y cuál como valor?",
+          "first_audio_ms": 820,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6986,
+            "promptText": 6475,
+            "promptAudio": 360,
+            "response": 146,
+            "responseAudio": 146
+          },
+          "cost": 0.0078015,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "Asks about key vs value in the map, which is a permitted follow-up, and does not re-ask the map-before-inserting question, clarifying questions, or brute force."
+          }
+        }
+      ]
+    },
+    {
+      "case": "refers_later_section",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.01753575,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si te dan este problema en la entrevista, ¿por qué es importante preguntar de entrada si el array está ordenado o si puede tener duplicados?",
+          "first_audio_ms": 2574,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 206,
+            "responseAudio": 206
+          },
+          "cost": 0.0074685
+        },
+        {
+          "learner": "Una pregunta: ¿y LRU cómo se hace?",
+          "tutor": "Un LRU Cache se implementa usando un `Map` para guardar los elementos, aprovechando que en JavaScript mantienen el orden de inserción. Eso lo vemos en profundidad en la sección 15, LRU Cache; ¿querés que sigamos con Two Sum o preferís que miremos esa?",
+          "first_audio_ms": 944,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6429,
+            "promptText": 5904,
+            "promptAudio": 374,
+            "response": 367,
+            "responseAudio": 367
+          },
+          "cost": 0.01006725,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "Places LRU in section 15 by number and offers to return to Two Sum, though it adds one extra sentence explaining the Map implementation."
+          }
+        }
+      ]
+    },
+    {
+      "case": "refers_earlier_section",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.02036025,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si te dan el problema de Two Sum en la entrevista, ¿por qué descartás de entrada la solución de fuerza bruta y qué trade-off proponés para optimizarla?",
+          "first_audio_ms": 1350,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 224,
+            "responseAudio": 224
+          },
+          "cost": 0.0076845
+        },
+        {
+          "learner": "No me acuerdo qué era O de n al cuadrado, ¿me lo explicás?",
+          "tutor": "El O de n al cuadrado significa que el tiempo que tarda en ejecutarse crece de forma cuadrática con respecto al tamaño de los datos. En la fuerza bruta, para cada número tenés que recorrer el resto del array, lo que genera muchas operaciones repetidas. Si tuvieras diez elementos, harías algo así como cien comprobaciones. ¿Qué pasaría con el tiempo si en vez de diez elementos tuvieras cien mil?",
+          "first_audio_ms": 1074,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6461,
+            "promptText": 5916,
+            "promptAudio": 392,
+            "response": 579,
+            "responseAudio": 579
+          },
+          "cost": 0.01267575,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The O(n²) explanation is roughly right but it never points to section 2 (Big-O desde cero) by number, which the pass criteria require."
+          }
+        }
+      ]
+    },
+    {
+      "case": "false_memory_guard",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.016776,
+      "instruction_chars": 20365,
+      "tool_calls": [],
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Te dan el problema de Two Sum. ¿Por qué le preguntas al entrevistador si el array está ordenado o no, y cómo cambia tu solución según lo que te responda?",
+          "first_audio_ms": 1634,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6158,
+            "promptText": 5863,
+            "promptAudio": 168,
+            "response": 213,
+            "responseAudio": 213
+          },
+          "cost": 0.0075525
+        },
+        {
+          "learner": "Eso ya te lo expliqué la otra vez, ¿te acordás qué te dije del mapa?",
+          "tutor": "No tengo registro de nuestras sesiones anteriores, así que te pido que me lo cuentes de nuevo. Sobre la optimización, ¿cómo te ayuda el mapa a encontrar el complemento y qué trade-off asumís al usarlo?",
+          "first_audio_ms": 1031,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6451,
+            "promptText": 5919,
+            "promptAudio": 381,
+            "response": 294,
+            "responseAudio": 294
+          },
+          "cost": 0.0092235,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The tutor honestly states it has no record of earlier sessions, asks the learner to repeat, and does not attribute any specific prior statement to them."
+          }
+        }
+      ]
+    }
+  ]
+}

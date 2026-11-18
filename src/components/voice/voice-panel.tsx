@@ -7,6 +7,8 @@ import { useAudioLevel } from './use-audio-level';
 import { useTutorFrequency } from './use-tutor-frequency';
 import type { Language } from '@/lib/translations';
 import { useTutorContext } from '@/lib/tutor-context';
+import { SECTION_TOOLS } from '@/lib/tutor/section-tools';
+import { useLessonOnDemand } from './use-lesson-on-demand';
 
 // ============================================================================
 // Types
@@ -88,6 +90,9 @@ export function VoicePanel({
     return { title: override?.resourceTitle, sections, resourceId: override?.resourceId };
   }, [override?.lessonSections, override?.resourceTitle, override?.resourceId, sectionId]);
 
+  // Other sections on demand, the lesson tools and the "Ir a la sección N" chip.
+  const onDemand = useLessonOnDemand(lesson, sectionId);
+
   const {
     connectionState,
     tutorState,
@@ -97,6 +102,10 @@ export function VoicePanel({
     disconnect,
     stream,
     playbackAnalyser,
+    sessionId: liveSessionId,
+    sendText,
+    sendToolResponse,
+    lessonMemory,
   } = useVoiceSession({
     sectionId,
     sectionContent,
@@ -109,7 +118,29 @@ export function VoicePanel({
     // Memory is per lesson: the session is stored with its lesson, and the
     // context brings the learner's evidence for all of it.
     resourceId: lesson?.resourceId,
+    ...(onDemand.enabled
+      ? {
+          lessonTools: true,
+          tools: SECTION_TOOLS,
+          onToolCall: onDemand.onToolCall,
+          onUtterance: onDemand.onUtterance,
+          onModelTurnComplete: onDemand.onModelTurnComplete,
+          onReconnected: onDemand.reset,
+        }
+      : {}),
   });
+
+  const { bind: bindOnDemand, reset: resetOnDemand } = onDemand;
+  useEffect(() => {
+    bindOnDemand({ sendText, sendToolResponse, lessonMemory: lessonMemory ?? null });
+  }, [bindOnDemand, sendText, sendToolResponse, lessonMemory]);
+  // A new session starts with none of the notes in its context. Only on a new
+  // session: the lesson object can change identity mid-call (learn-flow
+  // republishes it), and that must not resend notes already sent.
+  useEffect(() => {
+    if (liveSessionId) resetOnDemand();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveSessionId]);
 
   const audioLevel = useAudioLevel(stream);
   const frequencyBands = useTutorFrequency(playbackAnalyser);
@@ -226,6 +257,24 @@ export function VoicePanel({
           {formatTime(elapsed)}
         </span>
       </div>
+
+      {/* A section the tutor pointed to: opening it is the learner's call (it ends this talk). */}
+      {onDemand.chip && override?.goToSection && (
+        <button
+          type="button"
+          onClick={() => {
+            const n = onDemand.chip!.n;
+            onDemand.clearChip();
+            override.goToSection?.(n - 1);
+          }}
+          className="mb-5 min-h-[44px] px-4 py-2 rounded-full border border-j-accent/40 text-sm text-j-accent hover:bg-j-accent hover:text-j-text-on-accent transition-colors"
+          data-testid="tutor-section-chip"
+        >
+          {language === 'es'
+            ? `Ir a la sección ${onDemand.chip.n} · ${onDemand.chip.short} →`
+            : `Go to section ${onDemand.chip.n} · ${onDemand.chip.short} →`}
+        </button>
+      )}
 
       {/* Stop button */}
       <button

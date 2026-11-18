@@ -1034,7 +1034,16 @@ function turnCost(u: TurnResult['usage']): number {
   return (textIn * PRICE.text + u.promptAudio * PRICE.audioIn + u.responseAudio * PRICE.audioOut) / 1e6;
 }
 
-async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
+interface PlantSession {
+  instruction: string;
+  opener: string;
+  tools: import('@google/genai').Tool[] | false;
+  onTool: ToolAnswer | null;
+  /** The new arm's notes on demand: the sections a learner line names, sent as context after the reply. */
+  notesAfter?: (learnerLine: string) => string | null;
+}
+
+async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<PlantSession> {
   const mod = await import('../src/lib/llm/voice-tutor-session');
   const focus = lesson.sections[TUTOR_FOCUS];
   if (ARM === 'section') {
@@ -1055,23 +1064,19 @@ async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<{ in
  * answer for that transcript (src/lib/tutor/__tests__/fixtures/a94efc5c.ts),
  * mapped to this lesson's sections, through the same builder the app uses.
  */
-async function a94Brief(lesson: LessonData): Promise<string | null> {
+async function a94Memory(lesson: LessonData): Promise<{ brief: string | null; rows: import('../src/lib/tutor/evidence').EvidenceRow[] }> {
   const { A94_DIGEST, A94_TRANSCRIPT } = await import('../src/lib/tutor/__tests__/fixtures/a94efc5c');
   const { digestToRows } = await import('../src/lib/tutor/evidence-digest');
   const { buildLearnerBrief } = await import('../src/lib/tutor/learner-brief');
   const { buildLessonMap } = await import('../src/lib/tutor/lesson-map');
   const sections = lesson.sections.map((x, i) => ({ n: i + 1, id: x.id, conceptId: x.conceptId ?? null, title: x.title }));
-  const rows = digestToRows(A94_DIGEST, { userId: 'probe', resourceId: RESOURCE, sessionId: 'a94efc5c', sections, focusN: TUTOR_FOCUS + 1, transcript: A94_TRANSCRIPT });
-  return buildLearnerBrief({
-    map: buildLessonMap(lesson.sections),
-    focusIndex: TUTOR_FOCUS,
-    evidence: rows.map((r) => ({
-      sessionId: r.session_id as string, sectionId: r.section_id as string | null, conceptId: r.concept_id as string | null,
-      kind: r.kind as never, verdict: r.verdict as never, resolved: r.resolved as boolean | null,
-      statement: r.statement as string, quote: r.quote as string | null, at: r.at as string,
-    })),
-    now: Date.parse('2026-11-18T21:07:00Z'),
-  });
+  const rows = digestToRows(A94_DIGEST, { userId: 'probe', resourceId: RESOURCE, sessionId: 'a94efc5c', sections, focusN: TUTOR_FOCUS + 1, transcript: A94_TRANSCRIPT }).map((r) => ({
+    sessionId: r.session_id as string, sectionId: r.section_id as string | null, conceptId: r.concept_id as string | null,
+    kind: r.kind as never, verdict: r.verdict as never, resolved: r.resolved as boolean | null,
+    statement: r.statement as string, quote: r.quote as string | null, at: r.at as string,
+  }));
+  const brief = buildLearnerBrief({ map: buildLessonMap(lesson.sections), focusIndex: TUTOR_FOCUS, evidence: rows, now: Date.parse('2026-11-18T21:07:00Z') });
+  return { brief, rows };
 }
 
 /** The new section tutor: the lesson map, the focus section in full, its memory. */
@@ -1079,15 +1084,31 @@ async function buildLessonArm(
   mod: typeof import('../src/lib/llm/voice-tutor-session'),
   lesson: LessonData,
   c: TutorCase,
-): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
+): Promise<PlantSession> {
+  const { SECTION_TOOLS, LessonOnDemand } = await import('../src/lib/tutor/section-tools');
+  const { buildLessonMap, sectionsNamedIn } = await import('../src/lib/tutor/lesson-map');
+  const memory = c.memory === 'a94efc5c' ? await a94Memory(lesson) : null;
   const s = mod.buildLearningSession({
     language: 'es',
     lesson: { title: lesson.title, sections: lesson.sections },
     focusSectionIndex: TUTOR_FOCUS,
-    learnerBrief: c.memory === 'a94efc5c' ? await a94Brief(lesson) : null,
+    learnerBrief: memory?.brief ?? null,
+    sectionTools: true,
     bilingual: true,
   });
-  return { instruction: s.instruction, opener: s.opener, tools: false, onTool: null };
+  const map = buildLessonMap(lesson.sections);
+  const onDemand = new LessonOnDemand(map, lesson.sections.map((x) => x.content), TUTOR_FOCUS, () => memory?.rows ?? []);
+  return {
+    instruction: s.instruction,
+    opener: s.opener,
+    tools: SECTION_TOOLS,
+    onTool: (call) => (onDemand.answer([call as import('@google/genai').FunctionCall]).responses[0]?.response ?? { ok: true }) as Record<string, unknown>,
+    notesAfter: (line) => {
+      onDemand.learnerNamed(sectionsNamedIn(line, map).filter((n) => n !== TUTOR_FOCUS + 1));
+      const notes = onDemand.takePendingNotes();
+      return notes.length ? notes.map((x) => x.text).join('\n\n') : null;
+    },
+  };
 }
 
 async function runTutorPlants() {
@@ -1110,6 +1131,9 @@ async function runTutorPlants() {
     for (const line of c.turns) {
       if (probe.closed) break;
       const r = await probe.ask(line);
+      // As the app does: the sections the learner named go in as context when the reply ends.
+      const notes = built.notesAfter?.(line);
+      if (notes && !probe.closed) probe.note(notes);
       history.push(`LEARNER: ${line}`, `TUTOR: ${r.text}`);
       turns.push({ learner: line, tutor: r.text, first_audio_ms: r.firstAudioMs, tool_calls: r.toolCalls, usage: r.usage, cost: turnCost(r.usage) });
     }
@@ -1127,7 +1151,7 @@ async function runTutorPlants() {
     const pass = judged.every((t) => Number(t.judge?.pass ?? 0) === 1) && (!c.englishFree || englishAsks === 0) ? 1 : 0;
     const cost = turns.reduce((a, t) => a + t.cost, 0);
     console.log(`  ${c.id}: pass=${pass} english_asks=${englishAsks} cost=$${cost.toFixed(4)} ${judged.map((t) => t.judge?.note).join(' | ')}`);
-    results.push({ case: c.id, pass, english_asks: englishAsks, cost, instruction_chars: built.instruction.length, turns });
+    results.push({ case: c.id, pass, english_asks: englishAsks, cost, instruction_chars: built.instruction.length, tool_calls: turns.flatMap((t) => t.tool_calls), turns });
   }
   const latencies = results.flatMap((r) => r.turns.map((t) => t.first_audio_ms)).filter((x): x is number => x !== null);
   const prompts = results.flatMap((r) => r.turns.map((t) => t.usage?.prompt ?? 0)).filter(Boolean);
@@ -1144,6 +1168,7 @@ async function runTutorPlants() {
     instruction_chars: results[0]?.instruction_chars ?? null,
     cost_usd: Number(results.reduce((a, r) => a + r.cost, 0).toFixed(4)),
     mute_turns: results.flatMap((r) => r.turns).filter((t) => !t.tutor).length,
+    tool_calls: results.flatMap((r) => r.tool_calls),
   };
   const dir = join(process.cwd(), 'docs/research/voice-probe');
   mkdirSync(dir, { recursive: true });
