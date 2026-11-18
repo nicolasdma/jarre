@@ -111,7 +111,7 @@ interface UseVoiceSessionParams {
    * lesson is just this section.
    */
   lessonTitle?: string;
-  lessonSections?: { title: string; content: string }[];
+  lessonSections?: { id?: string; conceptId?: string; title: string; content: string }[];
   /**
    * How long a pause ends the learner's turn. 'patient' is for answers in a
    * second language, where people stop to find the word.
@@ -779,8 +779,9 @@ export function useVoiceSession({
         systemInstruction = sysOverride;
       } else {
         const { lessonTitle: lt, lessonSections: ls, bilingual: bi } = paramsRef.current;
-        const sections = ls?.length ? ls : [{ title: st, content: sc }];
-        const focus = Math.max(0, sections.findIndex((s) => s.title === st));
+        const sections = ls?.length ? ls : [{ id: secId, title: st, content: sc }];
+        const byId = sections.findIndex((s) => 'id' in s && s.id === secId);
+        const focus = Math.max(0, byId >= 0 ? byId : sections.findIndex((s) => s.title === st));
         const session = buildLearningSession({
           language: lang,
           lesson: { title: lt || st, sections },

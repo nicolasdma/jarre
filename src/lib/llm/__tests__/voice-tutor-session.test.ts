@@ -16,10 +16,11 @@ const lesson = {
 };
 
 describe('learning session', () => {
-  it('carries the whole lesson with the studied section marked, and the language anchor last', () => {
+  it('carries the map of the lesson, the studied section in full, and the language anchor last', () => {
     const { instruction, opener, language } = buildLearningSession({ language: 'es', lesson, focusSectionIndex: 1 });
-    for (const s of lesson.sections) expect(instruction).toContain(s.content);
-    expect(instruction).toContain('Signed URLs (THE SECTION BEING STUDIED NOW)');
+    for (const s of lesson.sections) expect(instruction).toContain(s.title);
+    expect(instruction).toContain(lesson.sections[1].content);
+    expect(instruction).toContain('2. Signed URLs  ← THE SECTION BEING STUDIED NOW');
     expect(instruction.trim().endsWith('as an Argentine developer says them.')).toBe(true);
     expect(language).toBe('es');
     expect(opener).toMatch(/lección/);

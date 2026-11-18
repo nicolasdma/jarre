@@ -457,6 +457,8 @@ function LearnFlowInner({
 
   // Announce tutor context for sidebar voice session
   const { setOverride } = useTutorContext();
+  /** The section tutor's "Ir a la sección N" (navigateToSection is declared below). */
+  const goToSectionRef = useRef<(index: number) => void>(() => {});
   useEffect(() => {
     const tutorMode = STEP_TO_TUTOR_MODE[currentStep];
     log.info(`[TutorOverride] Setting override: mode=${tutorMode}, step=${currentStep}, resourceId=${resourceId}, concepts=${concepts.length}, title=${resourceTitle}`);
@@ -472,7 +474,8 @@ function LearnFlowInner({
       sectionId: sections[activeSection]?.id,
       sectionContent: sections[activeSection]?.contentMarkdown,
       sectionTitle: sections[activeSection]?.sectionTitle,
-      lessonSections: sections.map((s) => ({ title: s.sectionTitle, content: s.contentMarkdown })),
+      lessonSections: sections.map((s) => ({ id: s.id, conceptId: s.conceptId, title: s.sectionTitle, content: s.contentMarkdown })),
+      goToSection: (index: number) => goToSectionRef.current(index),
     });
   }, [resourceId, concepts, resourceTitle, setOverride, currentStep, sections, activeSection]);
 
@@ -608,6 +611,9 @@ function LearnFlowInner({
     },
     [resourceId, buildProgress]
   );
+  useEffect(() => {
+    goToSectionRef.current = navigateToSection;
+  }, [navigateToSection]);
 
   const handleSectionComplete = useCallback(
     (index: number) => {

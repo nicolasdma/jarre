@@ -14,12 +14,15 @@
  *   back to them", every response a net new addition.
  * - The tutor only saw one section, so it quoted "the text" and re-asked what
  *   the learner had already said ("ya te lo dije, no me estás escuchando").
- *   It now gets the whole lesson, with the section being studied first.
+ *   The learning tutor now gets a map of the whole lesson and the section
+ *   being studied in full (docs/tutor/02-arquitectura.md §3.2); the interview
+ *   still gets `lessonForPrompt`.
  * - Order follows the Live API guide: persona, conversational rules,
  *   guardrails; the language anchor goes last.
  */
 
 import type { Language } from '@/lib/translations';
+import { buildLessonMap, renderLessonMap } from '@/lib/tutor/lesson-map';
 import {
   DEFAULT_CURVEBALLS,
   INTERVIEW_DEPTHS,
@@ -31,13 +34,13 @@ import {
 
 export interface TutorLesson {
   title: string;
-  sections: { title: string; content: string }[];
+  sections: { title: string; content: string; id?: string; conceptId?: string }[];
   /** `slug` links a must-know question to its canonical drill. */
   drills?: { slug?: string; title: string; text_en: string }[];
 }
 
 /** Which learning prompt a session ran with, stored in voice_sessions.client_diag. */
-export const TUTOR_PROMPT_VERSION = 'learning-2026-11-18-teach';
+export const TUTOR_PROMPT_VERSION = 'learning-2026-11-19-lesson-map';
 
 export interface TutorSession {
   instruction: string;
@@ -75,17 +78,6 @@ export function lessonForPrompt(lesson: TutorLesson, focusSectionIndex: number):
   return blocks.join('\n\n');
 }
 
-function keyIdeas(lesson: TutorLesson, focusSectionIndex: number): string {
-  const n = lesson.sections.length;
-  if (n === 0) return '';
-  const order = [...lesson.sections.keys()].sort((a, b) => {
-    const da = (a - focusSectionIndex + n) % n;
-    const db = (b - focusSectionIndex + n) % n;
-    return da - db;
-  });
-  return order.map((i, k) => `${k + 1}. ${lesson.sections[i].title}`).join('\n');
-}
-
 // ---------------------------------------------------------------------------
 // Learning: quiz the learner on the lesson
 // ---------------------------------------------------------------------------
@@ -96,8 +88,13 @@ export interface LearningSessionParams {
   focusSectionIndex: number;
   /** What earlier sessions learned about this learner (misconceptions, strengths). */
   learnerNotes?: string | null;
-  /** Summary of the previous conversation on this section, if any. */
+  /** Summary of the previous conversation on this lesson, if any. */
   previousSummary?: string | null;
+  /**
+   * What earlier sessions on this lesson showed about the learner, built by
+   * src/lib/tutor/learner-brief.ts (≤ 600 tokens). Replaces `previousSummary`.
+   */
+  learnerBrief?: string | null;
   /**
    * The lesson also practices English (it has drills): each idea is worked in
    * Spanish first, then the learner says it in English and gets one or two
@@ -145,6 +142,23 @@ If the learner asks you to explain, says they don't understand, or asks to start
 4. Only then check understanding with ONE light question about that same example (what happens at the next step, what changes if one value changes). No English request in this turn.
 If they ask for a whole section or chapter, go through it one key idea at a time, each with its example and its light check, in order. If their answer to the check shows they still don't get it, explain it again another way, with a different example, before asking anything harder. Go back to quizzing only once their answers show they followed.`;
 
+/**
+ * docs/tutor/01-estado-del-arte.md §4.6. On 2026-11-18 the section tutor saw
+ * only its own section: "¿y LRU cómo se hace?" got "por ahora estamos con Two
+ * Sum" (probe 2026-11-18-tutor-plants-head), and "ayer lo había visto y me
+ * olvidé" (Big-O) could not be pointed to the section that teaches it.
+ */
+const REFERENCES_RULE = `# The other sections (you know them through the map)
+The map above is the whole lesson: every section's number, name and what it covers. Always name a section by its number and short name, the same way every time ("la 2, Big-O", "la 15, LRU Cache").
+- The learner asks about something another section covers: answer it in one or two sentences, say where the lesson covers it in full ("eso lo vemos en la 15, LRU Cache"), then come back to this section or ask if they want to go there. Never say you only know this section, and never brush it off without saying where it is.
+- An answer shows that a base from another section is missing (Big-O for nested loops, for example): fix it here and say where it lives ("eso es de la 2, Big-O; si querés la repasamos").
+- You have the full text of this section only. For another section you know what the map says it covers and the general topic; do not invent its specific numbers, code or wording.`;
+
+const NO_MEMORY_RULE = `# Earlier sessions
+You have no record of any earlier session with this learner. If they say you talked before or ask what they told you, say plainly that you do not have it and ask them to tell you again; never invent or agree to anything they supposedly said.`;
+
+const MEMORY_USE_RULE = `Use this to choose what to work on and to avoid repeating yourself: never ask again a question listed as already asked, start from what is still wrong or open, and respect the preferences they stated. When you bring up something they said before, say it as a question with their own words ("la otra vez me dijiste que la clave era el índice; ¿lo seguís viendo así?"), never as a greeting or a list, and never claim they said anything that is not here.`;
+
 const LANGUAGE_ANCHOR: Record<'es' | 'en' | 'es-en', string> = {
   es: 'RESPOND IN RIOPLATENSE SPANISH (vos, "dale", "fijate"; never "vale", "tío" or "vosotros"). YOU MUST RESPOND UNMISTAKABLY IN SPANISH. Technical terms (RLS, signed URL, webhook, postMessage) stay in English, as an Argentine developer says them.',
   /** Spanish with English practice: the English is only what the learner says and the corrections you quote. */
@@ -158,24 +172,37 @@ export function buildLearningSession({
   focusSectionIndex,
   learnerNotes,
   previousSummary,
+  learnerBrief,
   bilingual = false,
 }: LearningSessionParams): TutorSession {
   const lang: 'es' | 'en' = language === 'en' ? 'en' : 'es';
   const twoLanguages = bilingual && lang === 'es';
-  const focusTitle = lesson.sections[focusSectionIndex]?.title ?? lesson.title;
+  const focus = Math.min(Math.max(0, focusSectionIndex), Math.max(0, lesson.sections.length - 1));
+  const focusSection = lesson.sections[focus];
+  const focusTitle = focusSection?.title ?? lesson.title;
+  const map = buildLessonMap(lesson.sections);
+  const memory = learnerBrief
+    ? `\n# What earlier sessions on this lesson showed\n${learnerBrief}\n${MEMORY_USE_RULE}\n`
+    : previousSummary
+      ? `\n# Last time on this lesson\n${previousSummary}\nBuild on it without announcing it. If it says they got something wrong that was not clearly corrected, correct it first, plainly, with the right version; do not quiz them on it cold again. ${MEMORY_USE_RULE}\n`
+      : `\n${NO_MEMORY_RULE}\n`;
 
   const instruction = `# Who you are
 You are a senior engineer working through a lesson with a colleague, out loud, right after they studied it: "${lesson.title}". Your job is to make sure they really understand it and to make it stick. Your default is retrieval practice: they do the remembering and the reasoning, you listen and steer. But you are also their teacher: when they ask you to explain, you explain (see below), and when they get something wrong, you say so and fix it. You are a person on a call, not an assistant: direct, curious, warm, a bit of dry humor.
 
-# The lesson (you know all of it)
-${lessonForPrompt(lesson, focusSectionIndex)}
+# The lesson: the map (${map.length} sections)
+${renderLessonMap(map, focus)}
 
-# What to cover, in this order
-Start with the section being studied, "${focusTitle}", then the others:
-${keyIdeas(lesson, focusSectionIndex)}
-The lesson is your answer key. For the idea you are on, check each answer against everything the lesson says about it: the mechanism, the numbers, the steps, the reason. Stay on an idea until their answers have covered what the lesson says about it, or three exchanges have passed; then move on.
+# The section being studied now, in full: ${focus + 1}. ${focusTitle}
+${focusSection?.content.trim() ?? ''}
+
+# What to cover
+Work on section ${focus + 1}, "${focusTitle}": its key ideas in order. Other sections only when the learner goes there or when one is the base for something they got wrong.
+The section above is your answer key. For the idea you are on, check each answer against everything the lesson says about it: the mechanism, the numbers, the steps, the reason. Stay on an idea until their answers have covered what the lesson says about it, or three exchanges have passed; then move on.
 Keep track of what the learner has already shown they know and what they got wrong. Never ask again about something they already explained.
-${previousSummary ? `\n# Last time on this lesson\n${previousSummary}\nBuild on it without announcing it. If it says they got something wrong that was not clearly corrected, correct it first, plainly, with the right version; do not quiz them on it cold again.\n` : ''}${learnerNotes ? `\n# Known about this learner\n${learnerNotes}\nProbe a known misconception early, with a fresh angle.\n` : ''}
+
+${REFERENCES_RULE}
+${memory}${learnerNotes ? `\n# Known about this learner\n${learnerNotes}\nProbe a known misconception early, with a fresh angle.\n` : ''}
 ${TEACH_RULE}
 
 ${twoLanguages ? `${BILINGUAL_RULE}\n\n` : ''}# How every turn works (for as long as the session lasts)
@@ -212,7 +239,7 @@ The session has no time limit. You never end it on your own judgment.
 - Never say "session complete" in any other moment, never as a joke or a quote, and never say goodbye ("chau", "nos vemos", "bye") before they chose to finish.
 
 # First turn
-The learner will say they read the lesson. Do not greet and do not introduce the session: ask your first question about "${focusTitle}", a question that makes them retrieve and explain, not repeat a definition.
+The learner will say they read the lesson. Do not greet and do not introduce the session: ask your first question about "${focusTitle}", a question that makes them retrieve and explain, not repeat a definition${learnerBrief || previousSummary ? ', and not one they already answered' : ''}.
 
 ${LANGUAGE_ANCHOR[twoLanguages ? 'es-en' : lang]}`;
 

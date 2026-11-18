@@ -968,6 +968,8 @@ interface TutorCase {
   pass: string;
   /** Replies judged: the first after the learner's first line (default), all of them, or the opener too. */
   judge?: 'first' | 'all' | 'opener_and_all';
+  /** Also fails if any reply after the first learner line asks for English or brings up the interview. */
+  englishFree?: boolean;
 }
 
 const TUTOR_CASES: TutorCase[] = [
@@ -991,8 +993,8 @@ const TUTOR_CASES: TutorCase[] = [
       'Ah, claro: en vez de recorrer todo otra vez, le pregunto al mapa si ya vi el complemento, y eso es constante.',
       'Y si el número no está todavía, lo guardo con su índice y sigo con el siguiente.',
     ],
-    pass: 'After the learner complained about the interview/English, the tutor acknowledges it briefly and explains what was asked; in THIS reply it never asks the learner to say anything in English and never brings up the interview. Fail if it asks for English or mentions the interview.',
-    judge: 'all',
+    pass: 'After the learner complained about the interview/English, the tutor acknowledges it briefly and explains what was asked; it never asks the learner to say anything in English and never brings up the interview. Fail if it asks for English or mentions the interview. (The later replies are checked for English requests separately.)',
+    englishFree: true,
   },
   {
     id: 'cross_session_repeat',
@@ -1048,10 +1050,20 @@ async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<{ in
   return buildLessonArm(mod, lesson, c);
 }
 
-/** The new section tutor: filled in with the whole-lesson builder. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function buildLessonArm(mod: typeof import('../src/lib/llm/voice-tutor-session'), lesson: LessonData, c: TutorCase): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
-  throw new Error('--arm lesson needs the whole-lesson section tutor');
+/** The new section tutor: the lesson map, the focus section in full, its memory. */
+async function buildLessonArm(
+  mod: typeof import('../src/lib/llm/voice-tutor-session'),
+  lesson: LessonData,
+  c: TutorCase,
+): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
+  const s = mod.buildLearningSession({
+    language: 'es',
+    lesson: { title: lesson.title, sections: lesson.sections },
+    focusSectionIndex: TUTOR_FOCUS,
+    previousSummary: c.memory === 'a94efc5c' ? A94_SUMMARY_PROSE : null,
+    bilingual: true,
+  });
+  return { instruction: s.instruction, opener: s.opener, tools: false, onTool: null };
 }
 
 async function runTutorPlants() {
@@ -1087,8 +1099,8 @@ async function runTutorPlants() {
         0,
       );
     }
-    const pass = judged.every((t) => Number(t.judge?.pass ?? 0) === 1) ? 1 : 0;
-    const englishAsks = turns.slice(1).filter((t) => /\b(en ingl[eé]s|in english)\b/i.test(t.tutor)).length;
+    const englishAsks = turns.slice(1).filter((t) => /\b(en ingl[eé]s|in english)\b|entrevista/i.test(t.tutor)).length;
+    const pass = judged.every((t) => Number(t.judge?.pass ?? 0) === 1) && (!c.englishFree || englishAsks === 0) ? 1 : 0;
     const cost = turns.reduce((a, t) => a + t.cost, 0);
     console.log(`  ${c.id}: pass=${pass} english_asks=${englishAsks} cost=$${cost.toFixed(4)} ${judged.map((t) => t.judge?.note).join(' | ')}`);
     results.push({ case: c.id, pass, english_asks: englishAsks, cost, instruction_chars: built.instruction.length, turns });

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useVoiceSession } from './use-voice-session';
 import { VoiceAuraOverlay } from './voice-aura';
 import { useAudioLevel } from './use-audio-level';
 import { useTutorFrequency } from './use-tutor-frequency';
 import type { Language } from '@/lib/translations';
+import { useTutorContext } from '@/lib/tutor-context';
 
 // ============================================================================
 // Types
@@ -78,6 +79,15 @@ export function VoicePanel({
   onSessionComplete,
   onSkip,
 }: VoicePanelProps) {
+  // The whole lesson, published by learn-flow: the tutor gets its map and
+  // knows every section, not only this one (docs/tutor/02-arquitectura.md §1.2).
+  const { override } = useTutorContext();
+  const lesson = useMemo(() => {
+    const sections = override?.lessonSections;
+    if (!sections?.length || !sections.some((s) => s.id === sectionId)) return null;
+    return { title: override?.resourceTitle, sections };
+  }, [override?.lessonSections, override?.resourceTitle, sectionId]);
+
   const {
     connectionState,
     tutorState,
@@ -87,7 +97,16 @@ export function VoicePanel({
     disconnect,
     stream,
     playbackAnalyser,
-  } = useVoiceSession({ sectionId, sectionContent, sectionTitle, language, onSessionComplete, endPolicy: 'learning' });
+  } = useVoiceSession({
+    sectionId,
+    sectionContent,
+    sectionTitle,
+    language,
+    onSessionComplete,
+    endPolicy: 'learning',
+    lessonTitle: lesson?.title,
+    lessonSections: lesson?.sections,
+  });
 
   const audioLevel = useAudioLevel(stream);
   const frequencyBands = useTutorFrequency(playbackAnalyser);
