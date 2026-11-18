@@ -1,5 +1,6 @@
 'use client';
 
+import { isValidElement } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -7,6 +8,9 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { ConceptVisual, hasConceptVisual } from './concept-visuals';
 import { InlineQuiz } from './inline-quiz';
+import { useCodeTabsEnabled } from './coding/code-tabs-context';
+import { CodeTabsBlock } from './coding/code-tabs-lazy';
+import { langFromClassName, isTsDisplayLang } from '@/lib/coding/code-lang';
 import { useVideoSeek } from '@/lib/video-seek-context';
 import { injectFigures } from '@/lib/figure-injector';
 import { splitAtBoldHeadings } from '@/lib/markdown-splitter';
@@ -20,6 +24,37 @@ interface SectionContentProps {
   figures?: FigureRegistry;
   inlineQuizzes?: InlineQuizType[];
   videoSegments?: VideoSegmentType[];
+}
+
+/** The default styled code block, used for every language except tabbed TypeScript. */
+const PRE_CLASS =
+  'overflow-x-auto bg-j-bg-alt border border-j-border rounded-lg p-4 mb-6 text-sm whitespace-pre [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0 [&_code]:rounded-none [&_code]:text-j-text';
+
+/** Read the fence language and raw text out of the `<code>` inside a `<pre>`. */
+function extractFencedCode(children: React.ReactNode): { lang?: string; code: string } | null {
+  const child = Array.isArray(children) ? children[0] : children;
+  if (!isValidElement(child)) return null;
+  const props = child.props as { className?: string; children?: React.ReactNode };
+  const raw = props.children;
+  const code = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('') : '';
+  if (!code.trim()) return null;
+  return { lang: langFromClassName(props.className), code };
+}
+
+/**
+ * Fenced code in a lesson's reading. In a tabbed lesson, a TypeScript block
+ * becomes JS | TS tabs (JS the generated default); every other block, and
+ * every other lesson, renders exactly as before.
+ */
+function MarkdownPre({ children }: { children?: React.ReactNode }) {
+  const codeTabs = useCodeTabsEnabled();
+  if (codeTabs) {
+    const fenced = extractFencedCode(children);
+    if (fenced && isTsDisplayLang(fenced.lang)) {
+      return <CodeTabsBlock code={fenced.code} lang="ts" />;
+    }
+  }
+  return <pre className={PRE_CLASS}>{children}</pre>;
 }
 
 /**
@@ -69,11 +104,7 @@ const markdownComponents = {
       {children}
     </li>
   ),
-  pre: ({ children }: { children?: React.ReactNode }) => (
-    <pre className="overflow-x-auto bg-j-bg-alt border border-j-border rounded-lg p-4 mb-6 text-sm whitespace-pre [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0 [&_code]:rounded-none [&_code]:text-j-text">
-      {children}
-    </pre>
-  ),
+  pre: MarkdownPre,
   code: ({ children }: { children?: React.ReactNode }) => (
     <code className="bg-j-bg-alt border border-j-border px-1.5 py-0.5 rounded font-mono text-sm text-j-accent">
       {children}
