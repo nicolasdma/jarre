@@ -243,7 +243,7 @@ const translations = {
   'learn.step.activate': { es: 'Activar', en: 'Activate' },
   'learn.step.learn': { es: 'Aprender', en: 'Learn' },
   'learn.step.apply': { es: 'Playground', en: 'Playground' },
-  'learn.step.practiceEval': { es: 'Práctica', en: 'Practice' },
+  'learn.step.practiceEval': { es: 'Tutor de voz', en: 'Voice tutor' },
   'learn.step.evaluate': { es: 'Evaluar', en: 'Evaluate' },
   'learn.step.interview': { es: 'Entrevista', en: 'Interview' },
   'learn.step.coding': { es: 'Coding en vivo', en: 'Live coding' },

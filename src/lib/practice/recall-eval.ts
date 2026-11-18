@@ -15,7 +15,7 @@
  */
 
 import { z } from 'zod';
-import type { RecallRating } from './recall';
+import { drillOwnAsks, type RecallRating } from './recall';
 
 /** Fewer words than this is not an answer to judge (noise, a false start). */
 export const MIN_ANSWER_WORDS = 3;
@@ -164,21 +164,23 @@ export async function evaluateRecallAnswer(input: RecallEvalInput, model: Recall
 
 /**
  * The interview's question and key points for a drill, from the lesson's
- * stored `interview` block (the first question linked to the drill wins,
- * as in drillAsksFromInterview). Anything malformed is skipped.
+ * stored `interview` block: the first question linked to the drill gives the
+ * key points, and the drill's own `drill_asks` entry, if any, the wording (as
+ * in drillAsksFromInterview). Anything malformed is skipped.
  */
 export function drillQuestionFromInterview(raw: unknown, drill: string): { ask: string; keyPoints: string[] } | null {
   if (!raw || typeof raw !== 'object') return null;
+  const own = drillOwnAsks(raw)[drill];
   const list = (raw as { questions?: unknown }).questions;
-  if (!Array.isArray(list)) return null;
-  for (const q of list) {
+  for (const q of Array.isArray(list) ? list : []) {
     if (!q || typeof q !== 'object') continue;
     const { drill: slug, ask, key_points } = q as { drill?: unknown; ask?: unknown; key_points?: unknown };
     if (slug !== drill || typeof ask !== 'string' || !ask.trim()) continue;
     const keyPoints = Array.isArray(key_points) ? key_points.filter((p): p is string => typeof p === 'string' && !!p.trim()) : [];
-    return { ask: ask.trim(), keyPoints };
+    return { ask: own ?? ask.trim(), keyPoints };
   }
-  return null;
+  // A drill with only its own question (interview.drill_asks): no key points, the reference is the drill text.
+  return own ? { ask: own, keyPoints: [] } : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -253,7 +253,7 @@ export function SayIt({ post, active, reducedMotion }: { post: FeedPost; active:
         onRepeat: state.phase === 'ready' ? undefined : again,
         lessonHref: lessonHrefFor(graph.resourceId, post),
       }}
-      caption={<Caption handle={account?.handle}>{drill.title}</Caption>}
+      caption={<Caption handle={account?.name}>{drill.title}</Caption>}
     />
   );
 }

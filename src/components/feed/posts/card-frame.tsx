@@ -282,8 +282,10 @@ export function CardFrame({
         <AccountAvatar account={account} ring={post.profile.novelty === 'new'} />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[14px] text-neutral-900 dark:text-neutral-100">
-            <span className="font-semibold">{account?.handle ?? 'jarre'}</span>
-            {account && <span className="text-neutral-500 dark:text-neutral-400"> · {account.family}</span>}
+            <span className="font-semibold">{account?.name ?? 'jarre'}</span>
+            {account && account.family.toLowerCase() !== account.name.toLowerCase() && (
+              <span className="text-neutral-500 dark:text-neutral-400"> · {account.family}</span>
+            )}
           </p>
           <p className="truncate text-[12px] text-neutral-500 dark:text-neutral-400">{kindLabel}</p>
         </div>

@@ -34,8 +34,14 @@ export type AccountIcon =
 
 export interface FeedAccount {
   conceptId: string;
-  /** Short, lowercase handle: the concept id without the lesson's shared prefix. */
+  /** Short, lowercase handle: the concept id without the lesson's shared prefix. Stable key, not shown. */
   handle: string;
+  /**
+   * What the stories and card headers show: the concept's title when short
+   * ("Two Sum"), else its family in words ("Método", with its accent), else the
+   * handle in words ("Search rotated"). Never a raw slug like "metodo".
+   */
+  name: string;
   /** What kind of topic it is: the coding pattern, or a family from the name. */
   family: string;
   icon: AccountIcon;
@@ -98,6 +104,18 @@ function iconFor(text: string): AccountIcon {
   return 'spark';
 }
 
+/** Longest concept title shown as is; a longer one ("La ronda de 30 minutos…") gives way to a short label. */
+export const NAME_MAX = 22;
+
+const capitalize = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+/** The display name of an account (see FeedAccount.name). */
+export function displayName(c: Pick<FeedConceptAssets, 'id' | 'name'>, title: string, handle: string): string {
+  if (title && title.length <= NAME_MAX) return title;
+  for (const [re, family] of FAMILY_RULES) if (re.test(c.name) || re.test(c.id)) return capitalize(family);
+  return capitalize(handle.replace(/[-_.]+/g, ' ').trim());
+}
+
 function familyFor(c: FeedConceptAssets, pattern: string | null): string {
   if (pattern) return pattern.toLowerCase();
   for (const [re, family] of FAMILY_RULES) if (re.test(c.name) || re.test(c.id)) return family;
@@ -115,6 +133,7 @@ export function feedAccounts(graph: FeedGraph): Record<string, FeedAccount> {
     out[c.id] = {
       conceptId: c.id,
       handle,
+      name: displayName(c, title, handle),
       family: familyFor(c, pattern),
       icon: iconFor(`${pattern ?? ''} ${c.id} ${c.name}`),
       avatarIndex: i % AVATAR_COLORS,

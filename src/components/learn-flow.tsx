@@ -203,6 +203,7 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
       videoSegments={videoSegmentsBySectionId?.[section.id]}
       exercises={exercises}
       afterContent={drills}
+      number={index + 1}
     />
   );
 });
@@ -695,7 +696,7 @@ function LearnFlowInner({
 
       {/* LIVE CODING — the timed mock with the voice interviewer; wide: editor, problem and guide side by side */}
       {currentStep === 'coding' && hasCoding && (
-        <div className="lg:pl-[220px]">
+        <div className="px-4 sm:px-8 lg:pl-[220px] lg:pr-0">
           <CodingMock
             resourceTitle={resourceTitle}
             onPracticeDrill={(slug) => {
@@ -707,7 +708,7 @@ function LearnFlowInner({
       )}
 
       {/* Step content — centered in the band to the right of the 220px fixed TOC (the right tutor panel was removed) */}
-      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-274px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
+      <div className={`max-w-3xl px-4 sm:px-8 mx-auto lg:ml-[calc(50vw-274px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
         {/* STEP 3 with drills: PRACTICE — every answer of the call, every mode */}
         {currentStep === 'apply' && hasPractice && <PracticeStep onInterview={() => changeStep('interview')} />}
 
@@ -784,7 +785,8 @@ function LearnFlowInner({
                     type="button"
                     onClick={() => navigateToSection(activeSection - 1)}
                     disabled={activeSection === 0}
-                    className="font-mono text-sm text-j-text-tertiary hover:text-j-text transition-colors disabled:opacity-30 disabled:cursor-default"
+                    aria-label={language === 'es' ? 'Sección anterior' : 'Previous section'}
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-mono text-sm text-j-text-tertiary hover:text-j-text transition-colors disabled:opacity-30 disabled:cursor-default"
                   >
                     ←
                   </button>
@@ -796,7 +798,8 @@ function LearnFlowInner({
                     type="button"
                     onClick={() => navigateToSection(activeSection + 1)}
                     disabled={activeSection === sections.length - 1}
-                    className="font-mono text-sm text-j-text-tertiary hover:text-j-text transition-colors disabled:opacity-30 disabled:cursor-default"
+                    aria-label={language === 'es' ? 'Sección siguiente' : 'Next section'}
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-mono text-sm text-j-text-tertiary hover:text-j-text transition-colors disabled:opacity-30 disabled:cursor-default"
                   >
                     →
                   </button>
@@ -810,14 +813,22 @@ function LearnFlowInner({
                     key={section.id}
                     type="button"
                     onClick={() => navigateToSection(i)}
-                    className={`h-1 flex-1 transition-colors cursor-pointer hover:opacity-80 ${
-                      completedSections.has(i)
-                        ? 'bg-j-accent'
-                        : i === activeSection
-                          ? 'bg-j-warm'
-                          : 'bg-j-border'
-                    }`}
-                  />
+                    aria-label={`${i + 1}. ${section.sectionTitle}`}
+                    aria-current={i === activeSection ? 'step' : undefined}
+                    className="flex-1 py-2.5 cursor-pointer hover:opacity-80"
+                  >
+                    {/* A 4px bar inside a 24px target. */}
+                    <span
+                      aria-hidden
+                      className={`block h-1 w-full transition-colors ${
+                        completedSections.has(i)
+                          ? 'bg-j-accent'
+                          : i === activeSection
+                            ? 'bg-j-warm'
+                            : 'bg-j-border'
+                      }`}
+                    />
+                  </button>
                 ))}
               </div>
             </header>

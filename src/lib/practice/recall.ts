@@ -35,19 +35,33 @@ export interface RecallPrompt {
 }
 
 /**
- * The English question the interview mock asks for each drill: the lesson's
- * `interview.questions[].ask`, keyed by its `drill` (the first one wins).
+ * The English question the interviewer asks for each drill: the lesson's
+ * `interview.drill_asks[slug]` when it has one, else the
+ * `interview.questions[].ask` linked by its `drill` (the first one wins).
  * Read from the stored block as is; anything malformed is skipped.
  */
 export function drillAsksFromInterview(raw: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (!raw || typeof raw !== 'object') return out;
   const list = (raw as { questions?: unknown }).questions;
-  if (!Array.isArray(list)) return out;
-  for (const q of list) {
-    if (!q || typeof q !== 'object') continue;
-    const { drill, ask } = q as { drill?: unknown; ask?: unknown };
-    if (typeof drill === 'string' && typeof ask === 'string' && ask.trim() && !(drill in out)) out[drill] = ask.trim();
+  if (Array.isArray(list)) {
+    for (const q of list) {
+      if (!q || typeof q !== 'object') continue;
+      const { drill, ask } = q as { drill?: unknown; ask?: unknown };
+      if (typeof drill === 'string' && typeof ask === 'string' && ask.trim() && !(drill in out)) out[drill] = ask.trim();
+    }
+  }
+  Object.assign(out, drillOwnAsks(raw));
+  return out;
+}
+
+/** `interview.drill_asks`, the per-drill questions, with blanks and non-strings dropped. */
+export function drillOwnAsks(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  const own = raw && typeof raw === 'object' ? (raw as { drill_asks?: unknown }).drill_asks : null;
+  if (!own || typeof own !== 'object' || Array.isArray(own)) return out;
+  for (const [drill, ask] of Object.entries(own as Record<string, unknown>)) {
+    if (typeof ask === 'string' && ask.trim()) out[drill] = ask.trim();
   }
   return out;
 }

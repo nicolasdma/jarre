@@ -108,7 +108,7 @@ export function CodeSnippet({ post, active, reducedMotion }: { post: FeedPost; a
       media={media}
       actions={{ lessonHref: lessonHrefFor(graph.resourceId, post) }}
       caption={
-        <Caption handle={account?.handle} lang="en">
+        <Caption handle={account?.name} lang="en">
           {firstSentence(problem.statement)}
         </Caption>
       }

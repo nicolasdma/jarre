@@ -39,6 +39,12 @@ interface ConceptSectionProps {
   exercises?: Exercise[];
   /** Rendered right after the reading (e.g. the section's spoken-English drills). */
   afterContent?: React.ReactNode;
+  /**
+   * 1-based position shown before the title, the same number the table of
+   * contents shows. Without it, sortOrder + 1 (lessons seeded with a 1-based
+   * sort_order then showed "02" for the first section while the index said "01").
+   */
+  number?: number;
 }
 
 type Phase = 'pre-question' | 'content' | 'exercise' | 'post-test' | 'completed';
@@ -68,7 +74,9 @@ export const ConceptSection = memo(function ConceptSection({
   videoSegments,
   exercises,
   afterContent,
+  number,
 }: ConceptSectionProps) {
+  const label = String(number ?? section.sortOrder + 1).padStart(2, '0');
   const hasExercises = exercises && exercises.length > 0;
   const [phase, setPhase] = useState<Phase>(initialState?.phase ?? 'pre-question');
   const [preQuestion, setPreQuestion] = useState<QuestionData | null>(null);
@@ -308,7 +316,7 @@ export const ConceptSection = memo(function ConceptSection({
       >
         <div className="flex items-center gap-3">
           <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-            {String(section.sortOrder + 1).padStart(2, '0')}
+            {label}
           </span>
           <span className="text-sm text-j-text-secondary">{section.sectionTitle}</span>
         </div>
@@ -344,7 +352,7 @@ export const ConceptSection = memo(function ConceptSection({
       {/* Section header */}
       <div className="flex items-center gap-3 mb-6">
         <span className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase font-medium">
-          {String(section.sortOrder + 1).padStart(2, '0')}
+          {label}
         </span>
         <span className="text-sm font-medium text-j-text">
           {section.sectionTitle}

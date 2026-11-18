@@ -96,7 +96,7 @@ export function Complexity({ post, active, reducedMotion }: { post: FeedPost; ac
       media={media}
       actions={{ onRepeat: revealed ? () => setPicked(null) : undefined, lessonHref: lessonHrefFor(graph.resourceId, post) }}
       caption={
-        <Caption handle={account?.handle} lang={revealed ? undefined : 'es'}>
+        <Caption handle={account?.name} lang={revealed ? undefined : 'es'}>
           {revealed ? (
             <>
               <span lang="es">{item.timeWhy} {item.spaceWhy}</span>{' '}

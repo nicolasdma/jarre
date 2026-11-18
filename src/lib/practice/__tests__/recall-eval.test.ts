@@ -191,6 +191,16 @@ describe("the drill's question in the interview block", () => {
     expect(drillQuestionFromInterview(null, '02-rules')).toBeNull();
     expect(drillQuestionFromInterview({ questions: 'x' }, '02-rules')).toBeNull();
   });
+
+  it("uses the drill's own question (drill_asks): its wording, the linked question's key points", () => {
+    const interview = {
+      questions: [{ id: 'q', kind: 'core', ask: QUESTION, drill: '02-rules', key_points: ['a real incident'] }],
+      drill_asks: { '02-rules': 'Which rule came from a mistake?', solo: 'Make sense?' },
+    };
+    expect(drillQuestionFromInterview(interview, '02-rules')).toEqual({ ask: 'Which rule came from a mistake?', keyPoints: ['a real incident'] });
+    expect(drillQuestionFromInterview(interview, 'solo')).toEqual({ ask: 'Make sense?', keyPoints: [] });
+    expect(drillQuestionFromInterview({ drill_asks: { solo: 'Make sense?' } }, 'solo')).toEqual({ ask: 'Make sense?', keyPoints: [] });
+  });
 });
 
 describe('what the mode gets (the client)', () => {

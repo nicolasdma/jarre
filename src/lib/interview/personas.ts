@@ -92,6 +92,13 @@ export const InterviewConfigSchema = z.object({
   /** The lesson's question bank; a curveball with a default's id overrides it. */
   questions: z.array(InterviewQuestionSchema).default([]),
   /**
+   * The interviewer's English question for a drill, by drill slug: what
+   * Pregunta → respuesta shows (src/lib/practice/recall.ts). Wins over the ask
+   * of a question linked to the drill; a drill with neither falls back to its
+   * title. It is never asked by the voice interviewer.
+   */
+  drill_asks: z.record(z.string(), z.string().min(1)).optional(),
+  /**
    * The live-coding round: problems with tests, their code exercises and the
    * timed mock with the AI interviewer (src/lib/coding/format.ts).
    */

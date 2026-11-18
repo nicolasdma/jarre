@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import type { FeedPost } from '@/lib/feed/feed-post';
-import { hashtags, leadLine } from '@/lib/feed/feed-identity';
+import { firstSentence, hashtags, leadLine, phrasesOf } from '@/lib/feed/feed-identity';
 import { useFeedContext } from '../feed-context';
 import { CardFrame, Caption, Media, lessonHrefFor, participationHint } from './card-frame';
 import { KaraokeCaption, VoiceStrip } from './audio-bits';
@@ -54,7 +54,10 @@ export function ConceptNugget({ post, active, reducedMotion }: { post: FeedPost;
   if (!concept || !account) return null;
 
   const title = account.title;
-  const lead = leadLine(concept.definition, title);
+  // With a recording, the line in big type is the one being said: the drill's
+  // first sentence, not the concept's definition (a method card showed the
+  // round's description while the audio said "The brute force is…").
+  const lead = drill ? firstSentence(phrasesOf(drill.textEn).join(' ')) : leadLine(concept.definition, title);
   const audio = audioUrl(post.drillSlug);
   const keywords = hashtags(account.subtitle ?? concept.name);
   const vibe = post.profile.visual;
@@ -188,7 +191,7 @@ export function ConceptNugget({ post, active, reducedMotion }: { post: FeedPost;
       media={media}
       actions={{ audioSrc: audio, onRepeat: repeat, lessonHref: lessonHrefFor(graph.resourceId, post) }}
       caption={
-        <Caption handle={account.handle} lang="en">
+        <Caption handle={account.name} lang="en">
           {drill ? <KaraokeCaption postKey={post.key} text={drill.textEn} segments={drill.segments} controller={controller} /> : concept.definition}
         </Caption>
       }

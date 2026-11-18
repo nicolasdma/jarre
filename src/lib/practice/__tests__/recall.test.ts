@@ -49,6 +49,16 @@ describe('recall prompt', () => {
     expect(drillAsksFromInterview({ questions: 'nope' })).toEqual({});
   });
 
+  it("takes a drill's own question (drill_asks) over a linked one, and without any question bank", () => {
+    const interview = {
+      questions: [{ id: 'q', kind: 'core', ask: 'Walk me through Two Sum.', drill: 'tt-01b', key_points: ['x'] }],
+      drill_asks: { 'tt-01b': 'How would you solve Two Sum?', 'tt-f9': 'Make sense?', blank: '  ', bad: 3 },
+    };
+    expect(drillAsksFromInterview(interview)).toEqual({ 'tt-01b': 'How would you solve Two Sum?', 'tt-f9': 'Make sense?' });
+    expect(drillAsksFromInterview({ drill_asks: { a: 'Q?' } })).toEqual({ a: 'Q?' });
+    expect(drillAsksFromInterview({ drill_asks: ['nope'] })).toEqual({});
+  });
+
   it('keeps a parenthesis that is not a length', () => {
     expect(recallPrompt('Trabajar con usuarios no técnicos (clínicos)').question).toBe('Trabajar con usuarios no técnicos (clínicos)');
   });

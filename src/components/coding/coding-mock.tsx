@@ -49,6 +49,9 @@ interface CodingMockProps {
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 const DIFFICULTY_LABEL = { easy: 'Fácil', medium: 'Medio', hard: 'Difícil' } as const;
+const TIER_LABEL = { core: 'Núcleo', safety_net: 'Red de seguridad' } as const;
+/** Core problems first, then by difficulty; the input order breaks ties. */
+const TIER_ORDER = { core: 0, safety_net: 1 } as const;
 
 const STATE_LABEL: Record<string, string> = {
   idle: '',
@@ -109,13 +112,21 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const coding = useCoding()!;
   const { config, resourceId } = coding;
   const problemsSorted = useMemo(
-    () => [...config.problems].sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]),
+    () =>
+      [...config.problems].sort(
+        (a, b) =>
+          TIER_ORDER[a.tier ?? 'core'] - TIER_ORDER[b.tier ?? 'core'] ||
+          DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty],
+      ),
     [config.problems],
   );
   const [attempts, setAttempts] = useState<MockAttempt[]>([]);
   useEffect(() => setAttempts(loadAttempts(resourceId)), [resourceId]);
 
-  const [problemId, setProblemId] = useState(() => (problemsSorted.find((p) => p.difficulty === 'medium') ?? problemsSorted[0]).id);
+  // A core medium, like the round: never a safety-net problem the lesson says not to write from scratch.
+  const [problemId, setProblemId] = useState(
+    () => (problemsSorted.find((p) => p.difficulty === 'medium' && p.tier !== 'safety_net') ?? problemsSorted[0]).id,
+  );
   const problem = findProblem(config, problemId) ?? problemsSorted[0];
   const [minutes, setMinutes] = useState(config.minutes);
   const durationMs = minutes * 60_000;
@@ -432,6 +443,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
                 >
                   <span className="block text-sm font-medium text-j-text">{p.title}</span>
                   <span className="block text-xs text-j-text-secondary">
+                    {p.tier ? `${TIER_LABEL[p.tier]} · ` : ''}
                     {DIFFICULTY_LABEL[p.difficulty]} · {p.pattern}
                     {tries ? ` · ${tries} intento${tries > 1 ? 's' : ''}` : ''}
                   </span>

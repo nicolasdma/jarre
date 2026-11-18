@@ -47,7 +47,7 @@ export function TopicStories({
                     </span>
                   </span>
                 )}
-                <span className="w-full truncate text-center text-[11px] text-neutral-700 dark:text-neutral-300">{a.handle}</span>
+                <span className="w-full truncate text-center text-[11px] text-neutral-700 dark:text-neutral-300">{a.name}</span>
               </button>
             </li>
           );

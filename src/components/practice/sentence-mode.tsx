@@ -388,12 +388,18 @@ export function SentenceMode({
                     title={s}
                     aria-label={`Frase ${i + 1}`}
                     aria-current={i === index}
-                    className={cn(
-                      'block h-2 w-full',
-                      r.passed ? (r.tries > 1 ? 'bg-j-warm' : 'bg-j-success') : r.tries > 0 ? 'bg-j-error' : 'bg-j-border',
-                      i === index && 'outline outline-2 outline-offset-2 outline-j-accent',
-                    )}
-                  />
+                    className="block w-full py-2"
+                  >
+                    {/* The bar stays 8px; the button around it is a 24px target. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'block h-2 w-full',
+                        r.passed ? (r.tries > 1 ? 'bg-j-warm' : 'bg-j-success') : r.tries > 0 ? 'bg-j-error' : 'bg-j-border',
+                        i === index && 'outline outline-2 outline-offset-2 outline-j-accent',
+                      )}
+                    />
+                  </button>
                 </li>
               );
             })}

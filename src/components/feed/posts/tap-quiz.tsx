@@ -97,7 +97,7 @@ export function TapQuiz({ post, active, reducedMotion }: { post: FeedPost; activ
       media={media}
       actions={{ onRepeat: revealed ? () => setPicked(null) : undefined, lessonHref: lessonHrefFor(graph.resourceId, post) }}
       caption={
-        <Caption handle={account?.handle}>
+        <Caption handle={account?.name}>
           {revealed ? <InlineText text={quiz.explanation} /> : 'Elegí una, o seguí de largo. La explicación aparece acá.'}
         </Caption>
       }

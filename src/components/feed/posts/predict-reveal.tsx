@@ -82,7 +82,7 @@ export function PredictReveal({ post, active, reducedMotion }: { post: FeedPost;
       media={media}
       actions={{ onRepeat: flipped ? () => setFlipped(false) : undefined, lessonHref: lessonHrefFor(graph.resourceId, post) }}
       caption={
-        <Caption handle={account?.handle}>
+        <Caption handle={account?.name}>
           {flipped ? `Si te salió parecido, ya está. ${account?.title ?? ''}` : 'Respondé en tu cabeza, después dala vuelta.'}
         </Caption>
       }

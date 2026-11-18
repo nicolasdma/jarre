@@ -53,6 +53,9 @@ describe('feed identity: one honest account per topic', () => {
     expect(a['3yt-v2-two-sum']).toMatchObject({ handle: 'two-sum', family: 'hash map', icon: 'hash', title: 'Two Sum', subtitle: 'hash map de complementos' });
     expect(a['3yt-v2-big-o']).toMatchObject({ handle: 'big-o', family: 'complejidad', icon: 'curve' });
     expect(a['3yt-v2-metodo']).toMatchObject({ handle: 'metodo', family: 'método', icon: 'clock', subtitle: null });
+    // What the feed shows: a name in words, never the slug.
+    expect(a['3yt-v2-two-sum'].name).toBe('Two Sum');
+    expect(a['3yt-v2-metodo'].name).toBe('Método');
     expect(a['3yt-v2-longest-substring']).toMatchObject({ family: 'sliding window', icon: 'window' });
   });
 

@@ -87,6 +87,12 @@ export const CodingProblemSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']),
   /** The pattern it practices, e.g. "Hash map", "Sliding window". */
   pattern: z.string().min(1),
+  /**
+   * `core`: the lesson asks to write it from a blank page; `safety_net`: read
+   * it and say its complexity. The mock starts on a core problem and labels
+   * each card. Absent: the lesson does not tier its problems.
+   */
+  tier: z.enum(['core', 'safety_net']).optional(),
   /** Lesson concept whose reading section shows the exercises. */
   concept: z.string().optional(),
   /** Minutes the interviewer budgets for it in the mock. */
