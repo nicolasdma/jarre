@@ -27,11 +27,25 @@ export const PRACTICE_MODES: { id: PracticeMode; label: string }[] = [
   { id: 'repeat', label: 'Repetir' },
   { id: 'sentences', label: 'Frase por frase' },
   // Last of the drill steps: answer from the question alone (recall.ts).
-  { id: 'recall', label: 'Pregunta → respuesta' },
+  { id: 'recall', label: 'Sin mirar' },
   { id: 'interview', label: 'Entrevista' },
 ];
 
 export const DRILL_MODES = PRACTICE_MODES.filter((m): m is { id: DrillMode; label: string } => m.id !== 'interview');
+
+/**
+ * Decirlo walks each phrase in three steps: hear it, say it along, say it
+ * without looking. Copiar and Frase por frase stay, as "more ways to practice".
+ */
+export const GUIDED_MODES: readonly DrillMode[] = ['listen', 'repeat', 'recall'];
+export const EXTRA_MODES: readonly { id: DrillMode; label: string }[] = [
+  { id: 'copy', label: 'Copiar escribiendo' },
+  { id: 'sentences', label: 'Frase por frase' },
+];
+
+export function modeLabel(mode: DrillMode): string {
+  return DRILL_MODES.find((m) => m.id === mode)?.label ?? mode;
+}
 
 export function isDrillMode(value: string | null | undefined): value is DrillMode {
   return DRILL_MODES.some((m) => m.id === value);

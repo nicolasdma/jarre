@@ -113,7 +113,7 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 // ---------------------------------------------------------------------------
 
 function modesTitle(p: DrillProgress): string {
-  return `${p.done} de ${p.total} formas de practicar aprobadas`;
+  return `${p.done} de ${p.total} pasos hechos`;
 }
 
 /**
@@ -178,8 +178,8 @@ export function PracticeStep({ onNext, presentation = false }: { onNext?: () => 
         <h1 className="text-2xl font-bold text-j-text">{presentation ? 'Tus frases, en inglés' : 'Tus respuestas, en inglés'}</h1>
         <p className="text-sm text-j-text-secondary" data-testid="practice-intro">
           {presentation
-            ? 'Cada frase de la presentación: escuchala, copiala, repetila entera o de a partes, y al final decila sin mirar. Elegí cualquiera en el índice o seguí con las flechas.'
-            : 'Cada respuesta de la llamada: escuchala, copiala, repetila entera o frase por frase, y al final respondela solo con la pregunta. Elegí cualquiera en el índice o seguí con las flechas.'}
+            ? 'Cada frase en tres pasos: escucharla, repetirla en voz alta y decirla sin mirar. Seguí con las flechas o elegí otra en el índice.'
+            : 'Cada respuesta de la llamada en tres pasos: escucharla, repetirla en voz alta y responderla sin mirar. Seguí con las flechas o elegí otra en el índice.'}
         </p>
         {due.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 border border-j-warm bg-j-warm-light px-3 py-2" data-testid="recall-due">
@@ -254,14 +254,35 @@ export function PracticeStep({ onNext, presentation = false }: { onNext?: () => 
 /** Drill groups and what is practiced, for the lesson's side navigation. */
 export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
   const practice = useLessonPractice();
+  // Groups the learner opened by hand; the one with the current phrase is always open.
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   if (!practice || practice.drills.length === 0) return null;
   return (
     <div className="mb-6" data-testid="practice-nav">
-      {practice.groups.map((g) => (
-        <div key={g.id} className="mb-3">
-          <p className="mb-1 truncate px-4 font-mono text-[9px] uppercase tracking-[0.2em] text-j-text-tertiary" title={g.title}>
-            {g.title}
-          </p>
+      {practice.groups.map((g) => {
+        const current = g.drills.some((d) => d.slug === practice.selectedSlug);
+        const open = current || opened.has(g.id);
+        const done = g.drills.filter((d) => practice.progressOf(d).complete).length;
+        return (
+        <div key={g.id} className="mb-2">
+          <button
+            type="button"
+            onClick={() => setOpened((prev) => {
+              const next = new Set(prev);
+              if (next.has(g.id)) next.delete(g.id);
+              else next.add(g.id);
+              return next;
+            })}
+            aria-expanded={open}
+            disabled={current}
+            title={g.title}
+            className="flex min-h-[32px] w-full items-center gap-2 px-4 text-left font-mono text-[9px] uppercase tracking-[0.2em] text-j-text-tertiary hover:text-j-text-secondary disabled:cursor-default"
+          >
+            <span aria-hidden>{open ? '▾' : '▸'}</span>
+            <span className="min-w-0 flex-1 truncate">{g.title}</span>
+            <span className="tabular-nums normal-case tracking-normal">{done}/{g.drills.length}</span>
+          </button>
+          {open && (
           <ul className="space-y-0.5">
             {g.drills.map((d) => {
               const active = d.slug === practice.selectedSlug;
@@ -291,8 +312,10 @@ export function PracticeNav({ onPick }: { onPick: (slug: string) => void }) {
               );
             })}
           </ul>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
