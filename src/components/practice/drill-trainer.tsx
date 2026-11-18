@@ -52,12 +52,12 @@ function isTyping(el: Element | null): boolean {
 export function bestLine(best: DrillBest | undefined): string | null {
   if (!best) return null;
   const parts: string[] = [];
-  if (best.copy) parts.push(`copiar ${best.copy.score}%${best.copy.wpm ? ` · ${best.copy.wpm} wpm` : ''}`);
-  if (best.repeat) parts.push(`repetir ${best.repeat.score}%`);
-  if (best.sentencesWell) parts.push(`frases ${best.sentencesWell.score}% bien${best.sentences ? ` · ${best.sentences.score}% a la primera` : ''}`);
-  else if (best.sentences) parts.push(`frases ${best.sentences.score}% a la primera`);
+  if (best.copy) parts.push(`copiar ${best.copy.score} %`);
+  if (best.repeat) parts.push(`repetir ${best.repeat.score} %`);
+  if (best.sentencesWell) parts.push(`frase por frase ${best.sentencesWell.score} % bien${best.sentences ? `, ${best.sentences.score} % a la primera` : ''}`);
+  else if (best.sentences) parts.push(`frase por frase ${best.sentences.score} % a la primera`);
   else if (best.shadowed) parts.push(`frase por frase ×${best.shadowed}`);
-  if (best.recall) parts.push(`pregunta ${best.recall.got}/${best.recall.tries} · repaso ${dueLabel(best.recall)}`);
+  if (best.recall) parts.push(`sin mirar ${best.recall.got} de ${best.recall.tries} · repaso ${dueLabel(best.recall)}`);
   return parts.length ? parts.join(' · ') : null;
 }
 
@@ -121,17 +121,17 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-base font-medium text-j-text" data-testid="drill-title">{drill.title}</p>
-          {best && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-accent">Mejor: {best}</p>}
-          {!drill.audioUrl && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Voz del navegador</p>}
+          {best && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-accent">Tu mejor intento: {best}</p>}
+          {!drill.audioUrl && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Voz automática (sin grabación)</p>}
         </div>
         {(onPrev || onNext) && (
           <div className="flex shrink-0 items-center gap-1">
-            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Drill anterior"
+            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Frase anterior"
               className="flex h-11 w-11 items-center justify-center border border-j-border-input text-j-text-secondary hover:border-j-accent disabled:opacity-30">
               <ChevronLeft size={16} />
             </button>
             {position && <span className="w-12 text-center font-mono text-[11px] tabular-nums text-j-text-secondary">{position}</span>}
-            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Drill siguiente"
+            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Frase siguiente"
               className="flex h-11 w-11 items-center justify-center border border-j-border-input text-j-text-secondary hover:border-j-accent disabled:opacity-30">
               <ChevronRight size={16} />
             </button>

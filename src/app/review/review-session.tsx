@@ -14,6 +14,7 @@ import { categorizeError } from '@/lib/utils/categorize-error';
 import { t, type Language } from '@/lib/translations';
 import type { UnifiedReviewCard, ReviewSubmitResponse } from '@/types';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
+import { SELF_RATING_LABELS, type SelfRating } from '@/components/review/fsrs-rating-bar';
 
 type SessionPhase = 'start' | 'card' | 'feedback' | 'summary';
 
@@ -82,12 +83,12 @@ function CompactDimensionDots({ scores }: { scores: Record<string, number> }) {
 
 function FormatBadge({ format }: { format: string }) {
   const labels: Record<string, string> = {
-    mc: 'Opcion multiple',
+    mc: 'Opción múltiple',
     tf: 'Verdadero/Falso',
-    recall: 'Recall',
-    fill_blank: 'Fill Blank',
+    recall: 'De memoria',
+    fill_blank: 'Completar',
     true_false: 'V/F',
-    connect: 'Conexion',
+    connect: 'Conexión',
     scenario_micro: 'Escenario',
   };
   const label = labels[format];
@@ -100,21 +101,23 @@ function FormatBadge({ format }: { format: string }) {
 }
 
 // ============================================================================
-// Self-Rating Bar (FSRS: Again/Hard/Good/Easy)
+// Self-Rating Bar (the scheduler's four ratings, in plain words)
 // ============================================================================
 
 function SelfRatingBar({
   onRate,
   disabled,
+  language,
 }: {
-  onRate: (rating: 'wrong' | 'hard' | 'good' | 'easy') => void;
+  onRate: (rating: SelfRating) => void;
   disabled: boolean;
+  language: Language;
 }) {
-  const buttons = [
-    { rating: 'wrong' as const, label: 'Again', color: 'text-j-error border-j-error hover:bg-j-error/10' },
-    { rating: 'hard' as const, label: 'Hard', color: 'text-j-warm border-j-warm hover:bg-j-warm/10' },
-    { rating: 'good' as const, label: 'Good', color: 'text-j-accent border-j-accent hover:bg-j-accent/10' },
-    { rating: 'easy' as const, label: 'Easy', color: 'text-green-600 border-green-600 hover:bg-green-600/10' },
+  const buttons: { rating: SelfRating; color: string }[] = [
+    { rating: 'wrong', color: 'text-j-error border-j-error hover:bg-j-error/10' },
+    { rating: 'hard', color: 'text-j-warm border-j-warm hover:bg-j-warm/10' },
+    { rating: 'good', color: 'text-j-accent border-j-accent hover:bg-j-accent/10' },
+    { rating: 'easy', color: 'text-green-600 border-green-600 hover:bg-green-600/10' },
   ];
 
   return (
@@ -126,7 +129,7 @@ function SelfRatingBar({
           disabled={disabled}
           className={`font-mono text-[11px] tracking-[0.1em] uppercase px-3 sm:px-4 py-2.5 sm:py-2 border min-h-[44px] ${btn.color} transition-colors disabled:opacity-50`}
         >
-          {btn.label}
+          {SELF_RATING_LABELS[btn.rating][language]}
         </button>
       ))}
     </div>
@@ -650,9 +653,9 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
                 </div>
 
                 <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase text-center mb-4">
-                  {language === 'es' ? 'Como fue tu recall?' : 'How was your recall?'}
+                  {language === 'es' ? '¿Te acordaste?' : 'Did you remember it?'}
                 </p>
-                <SelfRatingBar onRate={submitSelfRating} disabled={isLoading} />
+                <SelfRatingBar onRate={submitSelfRating} disabled={isLoading} language={language} />
               </div>
             )}
           </div>

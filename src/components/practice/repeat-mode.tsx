@@ -191,7 +191,7 @@ export function RepeatMode({
       <div className="flex flex-wrap items-center gap-2">
         {!listening ? (
           <PrimaryButton onClick={start} className="flex min-w-[8.5rem] items-center justify-center gap-2">
-            <Mic size={14} /> {Ctor ? 'Hablar' : 'Grabarme'}
+            <Mic size={14} /> {Ctor ? 'Repetir en voz alta' : 'Grabarme'}
           </PrimaryButton>
         ) : (
           <PrimaryButton onClick={stop} className="flex min-w-[8.5rem] items-center justify-center gap-2 bg-j-error hover:bg-j-error">
@@ -199,13 +199,13 @@ export function RepeatMode({
           </PrimaryButton>
         )}
         {canRecord && Ctor && (
-          <Chip active={keepTake} onClick={() => setKeepTake(!keepTake)} disabled={listening} title="Guardar tu toma para escucharla">
-            Guardar mi toma
+          <Chip active={keepTake} onClick={() => setKeepTake(!keepTake)} disabled={listening} title="Guardar tu grabación para escucharla">
+            Guardar mi grabación
           </Chip>
         )}
         {hasRespellings && (
           <Chip active={showRespelling} onClick={() => setShowRespelling(!showRespelling)} title="Cómo suenan los nombres y términos clave">
-            Mostrar pronunciación
+            Cómo se pronuncia
           </Chip>
         )}
         <span className={cn('font-mono text-[11px] text-j-error', !listening && 'invisible')} aria-hidden={!listening}>● escuchando…</span>

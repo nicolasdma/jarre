@@ -116,18 +116,18 @@ export function VoicePanel({
     return (
       <div className="flex flex-col items-center py-10">
         <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2">
-          {language === 'es' ? 'Antes del quiz' : 'Before the quiz'}
+          {language === 'es' ? 'Charlalo con el tutor' : 'Talk it through with the tutor'}
         </p>
         <p className="text-sm text-j-text-secondary mb-6 text-center max-w-sm">
           {language === 'es'
-            ? 'Conversá con el tutor sobre lo que leíste. Te va a desafiar con preguntas.'
-            : 'Talk to the tutor about what you read. They\'ll challenge you with questions.'}
+            ? 'Contale al tutor lo que entendiste de esta parte: te hace preguntas. Es opcional.'
+            : 'Tell the tutor what you understood from this part: they ask you questions. It is optional.'}
         </p>
 
         <MicButton onClick={connect} disabled={false} language={language} />
 
         <p className="font-mono text-[10px] text-j-text-tertiary mt-4">
-          {language === 'es' ? 'Toca para hablar' : 'Tap to speak'}
+          {language === 'es' ? 'Tocá para hablar' : 'Tap to speak'}
         </p>
 
         {error && (
@@ -140,7 +140,7 @@ export function VoicePanel({
             onClick={onSkip}
             className="mt-6 font-mono text-[10px] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
           >
-            {language === 'es' ? 'Saltar al quiz' : 'Skip to quiz'}
+            {language === 'es' ? 'Saltar a la pregunta final' : 'Skip to the last question'}
           </button>
         )}
       </div>
@@ -165,9 +165,9 @@ export function VoicePanel({
       return language === 'es' ? 'Reconectando...' : 'Reconnecting...';
     }
     switch (tutorState) {
-      case 'listening': return language === 'es' ? 'Tu turno — hablá' : 'Your turn — speak';
+      case 'listening': return language === 'es' ? 'Tu turno' : 'Your turn';
       case 'thinking': return language === 'es' ? 'Pensando...' : 'Thinking...';
-      case 'speaking': return language === 'es' ? 'Tutor hablando...' : 'Tutor speaking...';
+      case 'speaking': return language === 'es' ? 'Habla el tutor…' : 'The tutor is speaking…';
       default: return '';
     }
   })();

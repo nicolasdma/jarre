@@ -43,6 +43,8 @@ interface ResourceWithStatus {
   evalStats: EvalStats | null;
   relatedUserResources: RelatedUserResource[];
   hasPractice?: boolean;
+  /** The learner's place in the lesson, when they opened it before. */
+  progress?: { activeSection: number; completedSections: number[] } | null;
 }
 
 interface ProjectWithDetails {

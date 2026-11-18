@@ -206,22 +206,22 @@ export const INTERVIEW_DEPTHS: Record<
   { label: string; blurb: string; questions: number; curveballs: number; rule: string }
 > = {
   1: {
-    label: 'Nivel 1',
-    blurb: 'Preguntas directas, una sorpresa, poca repregunta.',
+    label: 'Tranquila',
+    blurb: 'Preguntas directas, una pregunta inesperada y casi sin volver sobre lo que dijiste.',
     questions: 6,
     curveballs: 1,
     rule: 'Ask standard questions. Accept a reasonable answer and move on; at most one short follow-up in the whole interview.',
   },
   2: {
-    label: 'Nivel 2',
-    blurb: 'Repregunta sobre lo que dijiste y tira dos sorpresas.',
+    label: 'Normal',
+    blurb: 'Te pregunta sobre lo que dijiste y suma dos preguntas inesperadas.',
     questions: 10,
     curveballs: 2,
     rule: 'Alternate: after the answer to a new topic, your next question is a follow-up on THAT answer, built on the candidate\'s OWN words: quote what they said and push on it ("You said X. What happens if Y?"). Change topic only after that follow-up is answered. A vague answer always gets a follow-up that asks for the exact missing thing.',
   },
   3: {
-    label: 'Nivel 3',
-    blurb: 'Te corta si sos vago, va a los bordes y tira cuatro sorpresas.',
+    label: 'Exigente',
+    blurb: 'Te interrumpe si la respuesta es vaga, va a los casos límite y suma cuatro preguntas inesperadas.',
     questions: 12,
     curveballs: 4,
     rule: 'Dig: after each answer, ask up to two follow-ups built on the candidate\'s own words that push on edge cases, failure modes or the "why", before moving to a new topic. If an answer is vague (no mechanism, no number, filler), cut in right away: "Sorry, be specific: ..." with the exact thing missing (how many seconds, who verifies it, which week).',

@@ -9,7 +9,8 @@
  * Unlike VoiceEvaluationFlow:
  * - 7 min max (vs 10)
  * - Results show neededHelp/understood indicators per concept
- * - Gate: >=70% unlocks evaluation, <70% shows "practice again" or "review material"
+ * - >=70% leads on to the next step; below it "rehearse again" leads and the next
+ *   step stays a quiet link (nothing is locked: the steps open from the index)
  * - Score is NOT saved to evaluations
  */
 
@@ -52,47 +53,99 @@ interface Props {
 // ============================================================================
 
 const tr = {
-  practiceTitle: { es: 'Practica guiada', en: 'Guided practice' },
+  practiceTitle: { es: 'Ensayar con el tutor', en: 'Rehearse with the tutor' },
   introDesc: {
-    es: 'Vamos a repasar juntos estos conceptos. Te voy a guiar — esto NO es la evaluacion final.',
-    en: 'Let\'s review these concepts together. I\'ll guide you — this is NOT the final evaluation.',
+    es: 'Te pregunto sobre la lección y te ayudo si te trabás. No es un examen: es para practicar en voz alta.',
+    en: 'I ask you about the lesson and help when you get stuck. It is not an exam: it is practice out loud.',
   },
-  conceptsToPractice: { es: 'Conceptos a practicar', en: 'Concepts to practice' },
-  startPractice: { es: 'Comenzar practica', en: 'Start practice' },
+  conceptsToPractice: { es: 'De qué vamos a hablar', en: 'What we will talk about' },
+  startPractice: { es: 'Empezar', en: 'Start' },
   preferText: { es: 'Prefiero escribir', en: 'I prefer writing' },
-  yourTurn: { es: 'Tu turno — habla', en: 'Your turn — speak' },
+  yourTurn: { es: 'Tu turno', en: 'Your turn' },
   thinking: { es: 'Pensando...', en: 'Thinking...' },
-  speaking: { es: 'Mentor hablando...', en: 'Mentor speaking...' },
+  speaking: { es: 'Habla el tutor…', en: 'The tutor is speaking…' },
   endSession: { es: 'Terminar', en: 'End session' },
   escToEnd: { es: 'Esc para terminar', en: 'Esc to end' },
-  scoring: { es: 'Analizando tu practica...', en: 'Analyzing your practice...' },
-  scoringEstimate: { es: 'Esto suele tomar ~15 segundos', en: 'This usually takes ~15 seconds' },
-  resultsTitle: { es: 'Resultado de la practica', en: 'Practice Results' },
-  overallScore: { es: 'Puntuacion General', en: 'Overall Score' },
-  readyForEval: { es: 'Listo para la evaluacion', en: 'Ready for evaluation' },
-  needsMorePractice: { es: 'Necesitas mas practica', en: 'Needs more practice' },
-  concept: { es: 'Concepto', en: 'Concept' },
-  feedback: { es: 'Retroalimentacion', en: 'Feedback' },
-  neededHelp: { es: 'Necesito guia', en: 'Needed guidance' },
-  independent: { es: 'Independiente', en: 'Independent' },
+  scoring: { es: 'Armando tu devolución…', en: 'Putting your feedback together…' },
+  scoringEstimate: { es: 'Unos 15 segundos', en: 'About 15 seconds' },
+  resultsTitle: { es: 'Cómo te fue', en: 'How it went' },
+  overallScore: { es: 'Resultado', en: 'Result' },
+  readyForEval: { es: 'Listo para seguir', en: 'Ready to move on' },
+  needsMorePractice: { es: 'Conviene practicar un poco más', en: 'Worth a bit more practice' },
+  concept: { es: 'Tema', en: 'Topic' },
+  feedback: { es: 'Qué mejorar', en: 'What to improve' },
+  neededHelp: { es: 'Necesitó ayuda', en: 'Needed help' },
+  independent: { es: 'Sin ayuda', en: 'No help' },
   understood: { es: 'Comprendido', en: 'Understood' },
   notUnderstood: { es: 'No comprendido', en: 'Not understood' },
-  continueToEval: { es: 'Continuar a evaluacion', en: 'Continue to evaluation' },
-  reviewMaterial: { es: 'Repasar material', en: 'Review material' },
-  practiceAgain: { es: 'Practicar de nuevo', en: 'Practice again' },
-  maxDuration: { es: 'Maximo 7 minutos', en: 'Maximum 7 minutes' },
-  gateMessage: {
-    es: 'Necesitas >=70% para avanzar a la evaluacion',
-    en: 'You need >=70% to advance to the evaluation',
-  },
-  consolidation: { es: 'Consolidacion', en: 'Consolidation' },
+  continueToEval: { es: 'Siguiente: evaluación por voz', en: 'Next: voice evaluation' },
+  reviewMaterial: { es: 'Volver a leer', en: 'Read it again' },
+  practiceAgain: { es: 'Ensayar de nuevo', en: 'Rehearse again' },
+  maxDuration: { es: 'Unos 7 minutos', en: 'About 7 minutes' },
+  moveOnAnyway: { es: 'Seguir igual', en: 'Move on anyway' },
+  consolidation: { es: 'Para fijarlo', en: 'To make it stick' },
   idealAnswer: { es: 'Respuesta ideal', en: 'Ideal answer' },
-  whatToReview: { es: 'Que repasar', en: 'What to review' },
-  lastResultTitle: { es: 'Ultimo resultado', en: 'Last result' },
+  whatToReview: { es: 'Qué repasar', en: 'What to review' },
+  lastResultTitle: { es: 'Último resultado', en: 'Last result' },
 } as const;
 
 function t(key: keyof typeof tr, lang: Language): string {
   return tr[key]?.[lang] || tr[key]?.en || key;
+}
+
+/**
+ * After a result, one primary action: the next step when it went well,
+ * rehearsing again when not (the next step then stays a quiet link).
+ */
+function ResultActions({
+  passed,
+  language,
+  onComplete,
+  onAgain,
+  onReviewMaterial,
+  onSwitchToText,
+}: {
+  passed: boolean;
+  language: Language;
+  onComplete: () => void;
+  onAgain: () => void;
+  onReviewMaterial?: () => void;
+  onSwitchToText: () => void;
+}) {
+  const primary = 'min-h-[44px] font-mono text-[10px] tracking-[0.15em] px-6 py-2 uppercase transition-colors bg-j-accent text-j-text-on-accent hover:bg-j-accent-hover';
+  const secondary = 'min-h-[44px] font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors';
+  const quiet = 'min-h-[44px] font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2';
+  return (
+    <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-j-border pt-10">
+      {passed ? (
+        <>
+          <button type="button" onClick={onComplete} className={primary}>
+            {t('continueToEval', language)} →
+          </button>
+          <button type="button" onClick={onAgain} className={secondary}>
+            {t('practiceAgain', language)}
+          </button>
+        </>
+      ) : (
+        <>
+          <button type="button" onClick={onAgain} className={primary}>
+            {t('practiceAgain', language)}
+          </button>
+          {onReviewMaterial && (
+            <button type="button" onClick={onReviewMaterial} className={secondary}>
+              {t('reviewMaterial', language)}
+            </button>
+          )}
+          <button type="button" onClick={onComplete} className={quiet}>
+            {t('moveOnAnyway', language)} →
+          </button>
+        </>
+      )}
+      <button type="button" onClick={onSwitchToText} className={quiet}>
+        {t('preferText', language)}
+      </button>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -305,28 +358,13 @@ export function VoicePracticeFlow({
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
-            {passed && (
-              <button
-                onClick={onComplete}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-              >
-                {t('continueToEval', language)} →
-              </button>
-            )}
-            <button
-              onClick={session.start}
-              className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
-            >
-              {t('practiceAgain', language)}
-            </button>
-            <button
-              onClick={onSwitchToText}
-              className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
-            >
-              {t('preferText', language)}
-            </button>
-          </div>
+          <ResultActions
+            passed={passed}
+            language={language}
+            onComplete={onComplete}
+            onAgain={session.start}
+            onSwitchToText={onSwitchToText}
+          />
         </div>
       );
     }
@@ -356,11 +394,8 @@ export function VoicePracticeFlow({
           </ul>
         </div>
 
-        <p className="font-mono text-[10px] text-j-text-tertiary mb-2">
-          {t('maxDuration', language)}
-        </p>
         <p className="font-mono text-[10px] text-j-text-tertiary mb-6">
-          {t('gateMessage', language)}
+          {t('maxDuration', language)}
         </p>
 
         {error && (
@@ -549,37 +584,14 @@ export function VoicePracticeFlow({
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-4 mt-10 pt-10 border-t border-j-border">
-          {passed ? (
-            <button
-              onClick={onComplete}
-              className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2 uppercase hover:bg-j-accent-hover transition-colors"
-            >
-              {t('continueToEval', language)} →
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={session.start}
-                className="font-mono text-[10px] tracking-[0.15em] bg-j-warm text-white px-6 py-2 uppercase hover:bg-j-warm/90 transition-colors"
-              >
-                {t('practiceAgain', language)}
-              </button>
-              <button
-                onClick={onReviewMaterial}
-                className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-4 py-2 uppercase hover:border-j-accent transition-colors"
-              >
-                {t('reviewMaterial', language)}
-              </button>
-              <button
-                onClick={onSwitchToText}
-                className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
-              >
-                {t('preferText', language)}
-              </button>
-            </>
-          )}
-        </div>
+        <ResultActions
+          passed={passed}
+          language={language}
+          onComplete={onComplete}
+          onAgain={session.start}
+          onReviewMaterial={onReviewMaterial}
+          onSwitchToText={onSwitchToText}
+        />
       </div>
     );
   }

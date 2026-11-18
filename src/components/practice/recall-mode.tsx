@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { withoutPhraseMarks } from '@/lib/practice/phrase-segments';
 import {
   RECALL_RATINGS,
   RECALL_SECONDS,
@@ -210,11 +211,11 @@ export function RecallMode({
       {state.phase === 'ready' && (
         <div className="space-y-3" data-testid="recall-review">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm-dark">El texto · leelo y después decilo sin mirar</p>
-          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{drill.textEn}</p>
+          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{withoutPhraseMarks(drill.textEn)}</p>
           {drill.textEs && (
             <div className="space-y-3">
               <Chip active={showEs} onClick={() => setShowEs((v) => !v)}>
-                {showEs ? 'Ocultar traducción' : 'Ver traducción'}
+                {showEs ? 'Ocultar el castellano' : 'Ver en castellano'}
               </Chip>
               {showEs && (
                 <p className="border-l-2 border-j-warm pl-4 text-base leading-relaxed text-j-text-em" lang="es">{drill.textEs}</p>
@@ -227,7 +228,7 @@ export function RecallMode({
       {state.phase === 'ready' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Tiempo</span>
+            <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Tiempo para responder</span>
             {RECALL_SECONDS.map((s) => (
               <Chip
                 key={s}
@@ -305,11 +306,11 @@ export function RecallMode({
             )}
           </div>
           <AudioBar audio={audio} showLoop={false} />
-          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en" data-testid="recall-answer">{drill.textEn}</p>
+          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en" data-testid="recall-answer">{withoutPhraseMarks(drill.textEn)}</p>
           {drill.textEs && (
             <div className="space-y-3">
               <Chip active={showEs} onClick={() => setShowEs((v) => !v)}>
-                {showEs ? 'Ocultar traducción' : 'Ver traducción'}
+                {showEs ? 'Ocultar el castellano' : 'Ver en castellano'}
               </Chip>
               {showEs && (
                 <p className="border-l-2 border-j-warm pl-4 text-base leading-relaxed text-j-text-em" lang="es">{drill.textEs}</p>
@@ -363,7 +364,7 @@ export function RecallMode({
             {next && (
               <PrimaryButton onClick={next}>{onNextDue ? 'Siguiente para repasar →' : 'Siguiente →'}</PrimaryButton>
             )}
-            <Chip active={false} onClick={again}>Otra vez</Chip>
+            <Chip active={false} onClick={again}>Volver a intentar</Chip>
             {next && <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Enter</span>}
           </div>
         </div>

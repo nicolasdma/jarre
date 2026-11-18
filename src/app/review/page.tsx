@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/header';
-import { SectionLabel } from '@/components/ui/section-label';
 import { t, type Language } from '@/lib/translations';
 import { REVIEW_SESSION_CAP, todayStart } from '@/lib/review-scoring';
 import { ReviewSession } from './review-session';
@@ -66,7 +65,6 @@ export default async function ReviewPage() {
 
       <main className="mx-auto max-w-3xl px-4 sm:px-8 py-8 sm:py-12">
         <div className="mb-8">
-          <SectionLabel>FSRS</SectionLabel>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-j-text mb-2 font-[family-name:var(--j-font-display)]">
             {t('review.title', lang)}
           </h1>

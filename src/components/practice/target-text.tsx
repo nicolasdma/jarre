@@ -135,6 +135,8 @@ export function TargetText({ words, terms, colored, showRespelling = false, repl
       {runs.map((run, r) => {
         const space = r < runs.length - 1 ? ' ' : null;
         const first = words[run[0]];
+        // A " / " phrase mark is for the audio modes: it is never shown (the spaces around it collapse).
+        if (run.length === 1 && first.word === '/') return null;
         const term = first.term !== null ? terms[first.term] ?? null : null;
         const swap = replaced?.get(run[0]);
         if (swap) {

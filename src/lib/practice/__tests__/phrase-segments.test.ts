@@ -7,6 +7,7 @@ import {
   placePhrases,
   segmentsFit,
   tokens,
+  withoutPhraseMarks,
   type TimedWord,
 } from '../phrase-segments';
 import type { AudioPauses } from '../sentence-timing';
@@ -42,6 +43,13 @@ describe('drill phrases', () => {
     expect(hasPhraseMarks('CI/CD every day. Twice.')).toBe(false);
     expect(drillPhrases('CI/CD every day. Twice.')).toEqual(['CI/CD every day. Twice.']);
     expect(hasPhraseMarks('one / two')).toBe(true);
+  });
+
+  it('shows the text without its marks, and keeps a slash inside a word', () => {
+    expect(withoutPhraseMarks('Data integrity means / that clinical-trial data / is reliable. /')).toBe(
+      'Data integrity means that clinical-trial data is reliable.',
+    );
+    expect(withoutPhraseMarks('CI/CD every day.')).toBe('CI/CD every day.');
   });
 
   it('accepts segments only when there is one per phrase, in order', () => {

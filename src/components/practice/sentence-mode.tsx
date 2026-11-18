@@ -363,7 +363,7 @@ export function SentenceMode({
   if (!audio.available) {
     return (
       <p className="border border-dashed border-j-border px-3 py-3 font-mono text-[11px] text-j-text-tertiary" data-mode="sentences">
-        Frase por frase necesita audio: este drill no tiene grabación y el navegador no tiene voz.
+        Frase por frase necesita audio: esta frase no tiene grabación y el navegador no tiene voz.
       </p>
     );
   }
@@ -371,7 +371,8 @@ export function SentenceMode({
   const colored = phase === 'passed' || phase === 'result' || (phase === 'listening' && heard !== '');
   const current = results[index];
   const missed = phase === 'result' ? wordsToPractice(alignment, terms) : [];
-  const approximate = status === 'ready' || status === 'error';
+  // Cuts read from the audio's pauses are a detail for whoever writes the lesson; only a failed analysis is told.
+  const approximate = status === 'error';
   const unit = marked ? 'frase' : 'oración';
   const left = leftoverPhrases(state);
   const skippedHere = (i: number) => state.skipped.includes(i) && !results[i].passed;
@@ -391,11 +392,7 @@ export function SentenceMode({
       )}
       {approximate && (
         <p className="border border-dashed border-j-border px-3 py-2 font-mono text-[10px] text-j-text-tertiary" data-testid="sentences-approximate">
-          {status === 'error'
-            ? `No pude analizar el audio: cada ${unit} se corta por aproximación y puede empezar o terminar un poco corrida.`
-            : marked
-              ? 'Este drill todavía no tiene los tiempos de cada frase: la corto en las pausas del audio, así que algún corte puede quedar corrido.'
-              : 'Este drill no marca frases con " / ": va por oraciones, cortadas en las pausas del audio.'}
+          No pude analizar el audio: cada {unit} se corta por aproximación y puede empezar o terminar un poco corrida.
         </p>
       )}
 

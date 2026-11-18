@@ -463,7 +463,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase">
-          Verifica tu comprensión
+          ¿Lo entendiste?
         </p>
         {isMc2 && (
           <span className="font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 border border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300">

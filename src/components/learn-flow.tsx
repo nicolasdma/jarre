@@ -28,6 +28,7 @@ import type { PracticeResult } from '@/components/voice/use-unified-voice-sessio
 import { ConceptSection } from './concept-section';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
+import type { ActivateSummary } from '@/lib/lessons/activate-summary';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
@@ -86,6 +87,11 @@ interface LearnFlowProps {
   resourceUrl?: string | null;
   sections: Section[];
   activateComponent: React.ReactNode;
+  /**
+   * The lesson's own overview (resources.activate_data, lesson JSON `activate`):
+   * what a lesson without a hand-made chapter shows on its first screen.
+   */
+  activateSummary?: ActivateSummary | null;
   playgroundHref?: string;
   playgroundLabel?: string;
   /**
@@ -254,6 +260,15 @@ function StickyHeader({
   }, [currentStep]);
 
   const isFocusMode = currentStep === 'learn' && scrolledPast200;
+  const label = (step: Step) => stepLabels?.[step] ?? t(STEP_LABELS[step].key, language);
+  const stepNumber = steps.indexOf(currentStep) + 1;
+  const stepPosition = [
+    stepNumber > 0 ? (language === 'es' ? `Paso ${stepNumber} de ${steps.length}` : `Step ${stepNumber} of ${steps.length}`) : null,
+    label(currentStep),
+    currentStep === 'learn' && sectionsCount > 0
+      ? language === 'es' ? `parte ${activeSection + 1} de ${sectionsCount}` : `part ${activeSection + 1} of ${sectionsCount}`
+      : null,
+  ].filter(Boolean).join(' · ');
 
   return (
     // Solid, not a 90% wash with backdrop blur: the blur was re-filtered on every scroll frame.
@@ -294,7 +309,7 @@ function StickyHeader({
                         : 'text-j-text-tertiary hover:text-j-text-secondary'
                   }`}
                 >
-                  {stepLabels?.[step] ?? t(STEP_LABELS[step].key, language)}
+                  {label(step)}
                 </button>
               </div>
             );
@@ -304,7 +319,7 @@ function StickyHeader({
         {/* Whisper toggle — disabled, feature toggled off */}
         {/* <WhisperToggle language={language} /> */}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Resource title + step info on desktop (lg+) */}
           <div className="hidden lg:flex items-center gap-3">
             <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
@@ -312,11 +327,11 @@ function StickyHeader({
             </span>
             <span className="text-j-border">·</span>
             <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-              {stepLabels?.[currentStep] ?? t(STEP_LABELS[currentStep].key, language)}
+              {label(currentStep)}
             </span>
             {currentStep === 'learn' && (
               <span className="font-mono text-[10px] text-j-text-tertiary">
-                {activeSection + 1}/{sectionsCount}
+                {language === 'es' ? `parte ${activeSection + 1} de ${sectionsCount}` : `part ${activeSection + 1} of ${sectionsCount}`}
               </span>
             )}
           </div>
@@ -328,17 +343,70 @@ function StickyHeader({
             {t('learn.feedMode', language)}
           </Link>
           <button
+            type="button"
             onClick={onTocOpen}
-            className="lg:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px] group"
-            aria-label="Table of contents"
+            className="lg:hidden flex min-h-[44px] items-center px-1 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:text-j-text"
+            aria-label={language === 'es' ? 'Abrir el índice' : 'Open the contents'}
           >
-            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
-            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
-            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
+            {language === 'es' ? 'Índice' : 'Contents'}
           </button>
         </div>
       </div>
+
+      {/* Below lg: the lesson and where you are in it (on lg the sidebar and the line above say it). */}
+      {!isFocusMode && (
+        <div className="mx-auto flex max-w-6xl items-baseline gap-2 px-4 pb-3 sm:px-8 lg:hidden" data-testid="learn-position">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-j-text">{resourceTitle}</span>
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">
+            {stepPosition}
+          </span>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ============================================================================
+// Lesson summary — the first screen of a lesson without a hand-made chapter
+// ============================================================================
+
+/** "Empezar: Entender, parte 1", or "Seguir: …" back in a lesson already started. */
+function startLabel(language: Language, resuming: boolean, part: number): string {
+  const step = t('learn.step.learn', language);
+  if (language === 'es') return `${resuming ? 'Seguir' : 'Empezar'}: ${step}, parte ${part}`;
+  return `${resuming ? 'Continue' : 'Start'}: ${step}, part ${part}`;
+}
+
+function LessonSummary({ title, summary, language }: { title: string; summary: ActivateSummary; language: Language }) {
+  const parts = summary.sections ?? [];
+  return (
+    <section className="py-12 sm:py-16" data-testid="lesson-summary">
+      <SectionLabel className="mb-4">{t('learn.step.activate', language)}</SectionLabel>
+      <h1 className="mb-6 text-2xl font-bold leading-tight text-j-text sm:text-3xl">{title}</h1>
+      <div className="space-y-4 text-base leading-relaxed text-j-text-body">
+        {summary.summary.split(/\n{2,}/).map((paragraph, i) => (
+          <p key={i}>{paragraph}</p>
+        ))}
+      </div>
+      {parts.length > 0 && (
+        <div className="mt-10">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
+            {language === 'es' ? `La lección, en ${parts.length} partes` : `The lesson, in ${parts.length} parts`}
+          </p>
+          <ol className="space-y-3">
+            {parts.map((part) => (
+              <li key={part.number} className="flex gap-3">
+                <span className="font-mono text-[11px] tabular-nums text-j-warm">{String(part.number).padStart(2, '0')}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-j-text">{part.title}</span>
+                  {part.description && <span className="block text-sm text-j-text-secondary">{part.description}</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -402,6 +470,7 @@ function LearnFlowInner({
   resourceUrl,
   sections,
   activateComponent,
+  activateSummary,
   playgroundHref,
   playgroundLabel,
   practice: practiceData,
@@ -586,7 +655,9 @@ function LearnFlowInner({
         : undefined,
     [hasPractice, language, isPresentation],
   );
-  const stepNotes = practiceProgress ? { apply: `${practiceProgress.done}/${practiceProgress.total}` } : undefined;
+  const stepNotes = practiceProgress
+    ? { apply: language === 'es' ? `${practiceProgress.done} de ${practiceProgress.total}` : `${practiceProgress.done} of ${practiceProgress.total}` }
+    : undefined;
 
   /** Called by ConceptSection when its state changes */
   const handleSectionStateChange = useCallback(
@@ -710,7 +781,9 @@ function LearnFlowInner({
       {/* Step content — centered in the band to the right of the 220px fixed TOC (the right tutor panel was removed) */}
       <div className={`max-w-3xl px-4 sm:px-8 mx-auto lg:ml-[calc(50vw-274px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
         {/* STEP 3 with drills: PRACTICE — every answer of the call, every mode */}
-        {currentStep === 'apply' && hasPractice && <PracticeStep onInterview={() => changeStep('interview')} />}
+        {currentStep === 'apply' && hasPractice && (
+          <PracticeStep presentation={isPresentation} onNext={() => changeStep('practice-eval')} />
+        )}
 
         {/* STEP 6: INTERVIEW — the mock call, last: everything learned, out loud, in English */}
         {currentStep === 'interview' && hasPractice && (
@@ -727,19 +800,17 @@ function LearnFlowInner({
             />
             {hasCoding && (
               <div className="mt-16 border-t border-j-border pt-12 text-center">
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
-                  {language === 'es' ? 'Último paso' : 'Last step'}
-                </p>
-                <p className="mx-auto mb-6 max-w-md text-sm text-j-text-secondary">
+                <p className="mx-auto mb-4 max-w-md text-sm text-j-text-secondary">
                   {language === 'es'
-                    ? 'La ronda entera: el entrevistador te presenta un problema, vos codeás y explicás, y al final el informe escrito.'
-                    : 'The whole round: the interviewer presents a problem, you code and explain, and a written scorecard at the end.'}
+                    ? 'Después: la ronda entera con código. El entrevistador te presenta un problema, vos codeás y explicás, y al final, el informe escrito.'
+                    : 'Next: the whole round with code. The interviewer presents a problem, you code and explain, and a written scorecard at the end.'}
                 </p>
                 <button
+                  type="button"
                   onClick={() => changeStep('coding')}
-                  className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent transition-colors hover:bg-j-accent-hover"
+                  className="min-h-[44px] border border-j-border-input px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-accent hover:text-j-accent"
                 >
-                  {language === 'es' ? 'Simulacro de coding en vivo' : 'Live coding mock'} →
+                  {language === 'es' ? 'Siguiente: simulacro con código' : 'Next: live coding mock'} →
                 </button>
               </div>
             )}
@@ -749,19 +820,19 @@ function LearnFlowInner({
         {/* STEP 1: ACTIVATE — Advance organizer */}
         {currentStep === 'activate' && (
           <div>
-            {activateComponent}
+            {activateComponent ?? (activateSummary && (
+              <LessonSummary title={resourceTitle} summary={activateSummary} language={language} />
+            ))}
 
             {/* CTA to learn */}
             <div className="pb-16 text-center">
-              <div className="border-t border-j-border pt-12">
-                <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-4">
-                  {language === 'es' ? 'Siguiente paso' : 'Next step'}
-                </p>
+              <div className={activateComponent || activateSummary ? 'border-t border-j-border pt-12' : 'pt-16'}>
                 <button
+                  type="button"
                   onClick={() => changeStep('learn')}
-                  className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
+                  className="min-h-[44px] font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
                 >
-                  {t('learn.step.learn', language)} →
+                  {startLabel(language, activeSection > 0 || completedSections.size > 0, activeSection + 1)} →
                 </button>
               </div>
             </div>
@@ -866,15 +937,20 @@ function LearnFlowInner({
                   {t('learn.section.complete', language)}
                 </p>
                 <p className="text-sm text-j-text-secondary mb-6">
-                  {language === 'es'
-                    ? 'Has completado todas las secciones de este capítulo.'
-                    : 'You have completed all sections in this chapter.'}
+                  {hasPractice
+                    ? language === 'es'
+                      ? 'Terminaste de leer. Ahora, a decirlo en voz alta.'
+                      : 'You finished reading. Now, say it out loud.'
+                    : language === 'es'
+                      ? 'Terminaste de leer todas las partes.'
+                      : 'You finished reading every part.'}
                 </p>
                 <button
+                  type="button"
                   onClick={() => changeStep('apply')}
-                  className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
+                  className="min-h-[44px] font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
                 >
-                  {hasPractice ? (language === 'es' ? 'Continuar a Practicar' : 'Continue to Practice') : t('learn.continueToApply', language)} →
+                  {hasPractice ? `${language === 'es' ? 'Siguiente' : 'Next'}: ${t('learn.step.drills', language)}` : t('learn.continueToApply', language)} →
                 </button>
               </div>
             )}
@@ -904,7 +980,7 @@ function LearnFlowInner({
                     onClick={() => setPracticeMode('voice')}
                     className="font-mono text-[10px] text-j-text-tertiary hover:text-j-warm transition-colors underline underline-offset-2"
                   >
-                    ← {language === 'es' ? 'Volver a practica de voz' : 'Back to voice practice'}
+                    ← {language === 'es' ? 'Volver a ensayar con la voz' : 'Back to voice rehearsal'}
                   </button>
                 </div>
                 <PracticeEvalStep
@@ -944,27 +1020,24 @@ function LearnFlowInner({
                 onCancel={() => changeStep('practice-eval')}
               />
             )}
+            {/* The way on to the mock, quiet: the evaluation's own button is this screen's only primary. */}
             {hasPractice && (
-              <div className="mt-16 border-t border-j-border pt-12 text-center">
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-j-text-tertiary">
-                  {language === 'es' ? 'Último paso' : 'Last step'}
-                </p>
-                <p className="mx-auto mb-6 max-w-md text-sm text-j-text-secondary">
+              <div className="mt-16 border-t border-j-border pt-10 text-center">
+                <p className="mx-auto mb-4 max-w-md text-sm text-j-text-secondary">
                   {isPresentation
                     ? language === 'es'
-                      ? 'Un simulacro de la presentación, en inglés: la presentas completa, después te hacen preguntas sobre el tema, y al final un reporte con lo que debes practicar.'
-                      : 'A rehearsal of the talk, in English: you give it whole, then you get questions on the topic, and a report of what to practice.'
+                      ? 'Después: el simulacro de la presentación, en inglés. La presentás de corrido, te hacen preguntas y al final te llega un informe escrito.'
+                      : 'Next: the rehearsal of the talk, in English. You give it whole, you get questions, and a written report at the end.'
                     : language === 'es'
-                      ? 'Un simulacro de la llamada, en inglés: preguntas que no preparaste, repreguntas sobre lo que digas y un reporte con lo que tenés que practicar.'
-                      : 'A mock of the call, in English: questions you did not prepare, follow-ups on what you say, and a report of what to practice.'}
+                      ? 'Después: el simulacro de la llamada, en inglés. Preguntas que no preparaste, repreguntas sobre lo que digas y un informe escrito al final.'
+                      : 'Next: the mock call, in English. Questions you did not prepare, follow-ups on what you say, and a written report at the end.'}
                 </p>
                 <button
+                  type="button"
                   onClick={() => changeStep('interview')}
-                  className="min-h-[44px] bg-j-accent px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent transition-colors hover:bg-j-accent-hover"
+                  className="min-h-[44px] border border-j-border-input px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-accent hover:text-j-accent"
                 >
-                  {isPresentation
-                    ? language === 'es' ? 'Simulacro de la presentación' : 'Rehearse the talk'
-                    : language === 'es' ? 'Simulacro de entrevista' : 'Mock interview'} →
+                  {language === 'es' ? 'Siguiente: simulacro' : isPresentation ? 'Next: rehearsal' : 'Next: mock interview'} →
                 </button>
               </div>
             )}

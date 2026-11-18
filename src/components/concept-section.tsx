@@ -413,7 +413,7 @@ export const ConceptSection = memo(function ConceptSection({
           {!preLoading && !preQuestion && (
             <div>
               <p className="text-xs text-j-text-tertiary mb-3">
-                No hay preguntas disponibles para este concepto.
+                {t('learn.question.none', language)}
               </p>
               <button
                 onClick={skipToContent}
@@ -434,7 +434,7 @@ export const ConceptSection = memo(function ConceptSection({
               <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-j-warm">
                 {t('learn.preQuestion.attempted', language)}
               </span>
-              <span className="ml-2">— lee la sección y compara con tu respuesta.</span>
+              <span className="ml-2">{language === 'es' ? 'Comparala mientras leés.' : 'Compare it as you read.'}</span>
             </div>
           )}
 
@@ -486,12 +486,12 @@ export const ConceptSection = memo(function ConceptSection({
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                   <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-1">
-                    {language === 'es' ? 'Sesión completada' : 'Session complete'}
+                    {language === 'es' ? 'Charla terminada' : 'Talk finished'}
                   </p>
                   <p className="text-sm text-j-text-secondary mb-6">
                     {language === 'es'
-                      ? 'Ahora comprobá lo que aprendiste.'
-                      : 'Now test what you learned.'}
+                      ? 'Te queda una pregunta para cerrar esta parte.'
+                      : 'One question left to close this part.'}
                   </p>
                   <button
                     onClick={handleContentDone}
@@ -560,7 +560,7 @@ export const ConceptSection = memo(function ConceptSection({
                 >
                   {postLoading === 'evaluating'
                     ? t('review.evaluating', language)
-                    : t('review.verify', language)}
+                    : t('learn.postTest.submit', language)}
                 </button>
                 <button
                   onClick={handleComplete}
@@ -577,7 +577,7 @@ export const ConceptSection = memo(function ConceptSection({
           {!postLoading && !postQuestion && (
             <div>
               <p className="text-xs text-j-text-tertiary mb-3">
-                No hay preguntas disponibles para este concepto.
+                {t('learn.question.none', language)}
               </p>
               <button
                 onClick={handleComplete}
