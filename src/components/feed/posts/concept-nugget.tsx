@@ -146,8 +146,14 @@ export function ConceptNugget({ post, active, reducedMotion }: { post: FeedPost;
         )}
         <div className={`relative flex h-full flex-col justify-end px-6 pt-8 ${pad}`}>
           {account.subtitle && (
-            <p className="mb-2 max-w-[85%] text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--fp-soft)' }}>
-              {account.subtitle}
+            // On a phone the kicker can climb into the disc (a long subtitle, or
+            // the voice strip pushing the text up). Each of its lines sits on a
+            // band of the block's own color, invisible on the plain block and a
+            // clean cut-out where it crosses the disc, so it always reads.
+            <p className="-ml-1 mb-2 max-w-[85%] text-[13px] font-semibold uppercase leading-[1.55] tracking-[0.14em]" style={{ color: 'var(--fp-soft)' }}>
+              <span className="rounded-[3px] px-1 py-px [-webkit-box-decoration-break:clone] [box-decoration-break:clone]" style={{ background: 'var(--fp-bg)' }}>
+                {account.subtitle}
+              </span>
             </p>
           )}
           <h2 className={`font-black leading-[0.95] tracking-[-0.03em] ${titleSize(title)}`} style={{ color: 'var(--fp-ink)' }}>

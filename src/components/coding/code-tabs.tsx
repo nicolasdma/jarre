@@ -10,8 +10,9 @@
  * (it is already plain JS), it renders a single code block with no tabs.
  *
  * Reusable on its own: pass a TS `code` string and, optionally, the fence
- * `lang`. The lesson view loads it lazily (code-tabs-lazy.tsx); the feed, built
- * elsewhere, can adopt the same component later.
+ * `lang`. The lesson view loads it lazily (code-tabs-lazy.tsx). The feed's code
+ * card draws the same two variants in its editor window (use-code-variants.ts)
+ * and shares the remembered choice (code-tabs-pref.ts).
  *
  * Accessible as an ARIA tablist: Left/Right/Home/End move between tabs, the
  * panel is labelled by its tab, and the chosen variant is remembered for the
@@ -20,30 +21,12 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { codeTabsModel } from '@/lib/coding/code-tabs-model';
+import { readCodeVariantPref, writeCodeVariantPref, type CodeVariant } from '@/lib/coding/code-tabs-pref';
 import { CODE_BLOCK_CLASS } from './code-block';
 
-type Variant = 'js' | 'ts';
+type Variant = CodeVariant;
 const ORDER: Variant[] = ['js', 'ts'];
 const LABEL: Record<Variant, string> = { js: 'JS', ts: 'TS' };
-const PREF_KEY = 'jarre.codeTabs.pref';
-
-function readPref(): Variant {
-  try {
-    const v = sessionStorage.getItem(PREF_KEY);
-    if (v === 'js' || v === 'ts') return v;
-  } catch {
-    /* sessionStorage can throw in private mode; default to JS */
-  }
-  return 'js';
-}
-
-function writePref(v: Variant): void {
-  try {
-    sessionStorage.setItem(PREF_KEY, v);
-  } catch {
-    /* ignore */
-  }
-}
 
 export default function CodeTabs({ code, lang }: { code: string; lang?: string }) {
   const model = codeTabsModel(code, lang);
@@ -54,12 +37,12 @@ export default function CodeTabs({ code, lang }: { code: string; lang?: string }
   const tabsRef = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
-    if (model.tabs) setActive(readPref());
+    if (model.tabs) setActive(readCodeVariantPref());
   }, [model.tabs]);
 
   const select = useCallback((v: Variant) => {
     setActive(v);
-    writePref(v);
+    writeCodeVariantPref(v);
   }, []);
 
   const onKeyDown = useCallback(

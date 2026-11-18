@@ -6,27 +6,55 @@
  * snippet), and under it the cost in big numbers: brute force → optimal when
  * the problem's approach names the brute force, else time · space. Passive: a
  * calm read. The caption is the problem in one line.
+ *
+ * In a lesson with JS | TS tabs (lessonHasCodeTabs, the same gate as the lesson
+ * view) the editor window carries two file tabs, JS open by default and the
+ * reader's session choice shared with the lesson.
  */
 
+import { useState } from 'react';
 import type { FeedPost } from '@/lib/feed/feed-post';
+import { lessonHasCodeTabs } from '@/lib/lessons/code-tabs';
+import { readCodeVariantPref, writeCodeVariantPref, type CodeVariant } from '@/lib/coding/code-tabs-pref';
 import { bigOParts, firstSentence } from '@/lib/feed/feed-identity';
 import { useFeedContext } from '../feed-context';
 import { CardFrame, Caption, Media, lessonHrefFor } from './card-frame';
-import { CodeImage } from './code-image';
+import { CodeImage, type CodeImageTabs } from './code-image';
+import { useCodeVariants } from '../use-code-variants';
 
-function fileName(id: string): string {
-  return `${id}.ts`;
+function fileName(id: string, ext: CodeVariant = 'ts'): string {
+  return `${id}.${ext}`;
 }
 
 export function CodeSnippet({ post, active, reducedMotion }: { post: FeedPost; active: boolean; reducedMotion: boolean }) {
   const { graph, accounts } = useFeedContext();
   const problem = post.codeId ? graph.code[post.codeId] : undefined;
+  const variants = useCodeVariants(problem?.code ?? '', !!problem && lessonHasCodeTabs(graph.resourceId));
+  // Cards only ever render on the client (the feed builds its posts after
+  // mount), so the session's choice can seed the state directly. JS otherwise.
+  const [variant, setVariant] = useState<CodeVariant>(readCodeVariantPref);
   if (!problem) return null;
   const account = post.conceptId ? accounts[post.conceptId] : undefined;
   const time = problem.time ? bigOParts(problem.time).big : null;
   const space = problem.space ? bigOParts(problem.space).big : null;
   const brute = problem.brute && problem.brute !== time ? problem.brute : null;
   const paper = post.profile.visual === 'raw';
+  const tabs: CodeImageTabs | undefined = variants
+    ? {
+        label: 'Variante del código',
+        items: [
+          { id: 'js', filename: fileName(problem.id, 'js') },
+          { id: 'ts', filename: fileName(problem.id, 'ts') },
+        ],
+        active: variant,
+        onSelect: (id) => {
+          const v: CodeVariant = id === 'ts' ? 'ts' : 'js';
+          setVariant(v);
+          writeCodeVariantPref(v);
+        },
+      }
+    : undefined;
+  const shownCode = variants ? variants[variant] : problem.code;
 
   const media = (
     <Media post={post} className="px-4 pb-5 pt-5 sm:px-5">
@@ -36,7 +64,7 @@ export function CodeSnippet({ post, active, reducedMotion }: { post: FeedPost; a
         </span>
         <span className="text-[13px] font-bold" style={{ color: 'var(--fp-ink)' }}>{problem.title}</span>
       </div>
-      <CodeImage code={problem.code} filename={fileName(problem.id)} theme={paper ? 'paper' : 'dark'} maxLines={13} />
+      <CodeImage code={shownCode} filename={fileName(problem.id)} tabs={tabs} theme={paper ? 'paper' : 'dark'} maxLines={13} />
       {(time || brute) && (
         <div className="mt-4 flex items-end justify-between gap-3 px-1">
           {brute ? (

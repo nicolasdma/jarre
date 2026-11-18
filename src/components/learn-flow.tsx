@@ -215,6 +215,7 @@ ConceptSectionWrapper.displayName = 'ConceptSectionWrapper';
 
 interface StickyHeaderProps {
   language: Language;
+  resourceId: string;
   currentStep: Step;
   resourceTitle: string;
   activeSection: number;
@@ -227,6 +228,7 @@ interface StickyHeaderProps {
 
 function StickyHeader({
   language,
+  resourceId,
   currentStep,
   resourceTitle,
   activeSection,
@@ -301,30 +303,39 @@ function StickyHeader({
         {/* Whisper toggle — disabled, feature toggled off */}
         {/* <WhisperToggle language={language} /> */}
 
-        {/* Right side: resource title + step info on desktop (lg+) */}
-        <div className="hidden lg:flex items-center gap-3">
-          <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
-            {resourceTitle}
-          </span>
-          <span className="text-j-border">·</span>
-          <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
-            {stepLabels?.[currentStep] ?? t(STEP_LABELS[currentStep].key, language)}
-          </span>
-          {currentStep === 'learn' && (
-            <span className="font-mono text-[10px] text-j-text-tertiary">
-              {activeSection + 1}/{sectionsCount}
+        <div className="flex items-center gap-3">
+          {/* Resource title + step info on desktop (lg+) */}
+          <div className="hidden lg:flex items-center gap-3">
+            <span className="font-mono text-[10px] text-j-text-tertiary truncate max-w-[300px]">
+              {resourceTitle}
             </span>
-          )}
+            <span className="text-j-border">·</span>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
+              {stepLabels?.[currentStep] ?? t(STEP_LABELS[currentStep].key, language)}
+            </span>
+            {currentStep === 'learn' && (
+              <span className="font-mono text-[10px] text-j-text-tertiary">
+                {activeSection + 1}/{sectionsCount}
+              </span>
+            )}
+          </div>
+          {/* The feed: the same lesson as a relaxed scroll of cards, on every screen. */}
+          <Link
+            href={`/learn/${encodeURIComponent(resourceId)}/feed`}
+            className="flex min-h-[32px] items-center border border-j-border px-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-text hover:text-j-text"
+          >
+            {t('learn.feedMode', language)}
+          </Link>
+          <button
+            onClick={onTocOpen}
+            className="lg:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px] group"
+            aria-label="Table of contents"
+          >
+            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
+            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
+            <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
+          </button>
         </div>
-        <button
-          onClick={onTocOpen}
-          className="lg:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 min-h-[44px] group"
-          aria-label="Table of contents"
-        >
-          <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
-          <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
-          <span className="block w-5 h-px bg-j-text-tertiary group-hover:bg-j-text transition-all duration-200" />
-        </button>
       </div>
     </div>
   );
@@ -625,6 +636,7 @@ function LearnFlowInner({
       {/* Sticky step navigator — owns its own scroll state */}
       <StickyHeader
         language={language}
+        resourceId={resourceId}
         currentStep={currentStep}
         resourceTitle={resourceTitle}
         activeSection={activeSection}

@@ -5,7 +5,9 @@
  * a social feed (no full-screen snap pages), endlessly extended. The rest mode
  * (owner, 2026-11-18): mostly passive, varied, occasionally inviting a recall,
  * never forcing one, never ending. On top, the lesson's topics as a stories
- * row; on wide screens, a quiet side rail.
+ * row. No side rail and no study chrome on any screen (owner, 2026-11-18: it
+ * should feel like a relaxed social feed, not a study page); the keyboard
+ * shortcuts work without a visible legend.
  *
  * Kept light for a machine that overheats (doc 03 §3.4):
  * - ONE audio element + ONE clock (feed-audio.ts): only the active post sounds,
@@ -48,11 +50,12 @@ import {
 } from '@/lib/feed/feed-window';
 import { useFeedAudio, useFeedAudioStatus } from './use-feed-audio';
 import { FeedContext, type FeedContextValue } from './feed-context';
-import { createSavedStore, useSavedVersion, type SavedStore } from './feed-saved';
+import { createSavedStore, type SavedStore } from './feed-saved';
 import { PostCard, feedAudioSrc } from './posts/post-card';
 import type { FeedStats } from './posts/milestone';
 import { TopicStories } from './topic-stories';
-import { FeedRail } from './feed-rail';
+import { lessonHasCodeTabs } from '@/lib/lessons/code-tabs';
+import { warmCodeVariants } from './use-code-variants';
 
 const INITIAL_BATCH = 10;
 const EXTEND_BY = 8;
@@ -103,12 +106,10 @@ interface FeedState extends StreamWindow {
 export function Feed({
   graph,
   day,
-  lessonTitle = null,
   resignAudio = false,
 }: {
   graph: FeedGraph;
   day: string;
-  lessonTitle?: string | null;
   /** Re-sign recordings ahead of their URLs' expiry (the real, signed-URL feed). */
   resignAudio?: boolean;
 }) {
@@ -135,7 +136,6 @@ export function Feed({
   const [saved, setSaved] = useState<SavedStore | null>(null);
   const [resigned, setResigned] = useState<Record<string, string>>({});
   const [seen, setSeen] = useState<ReadonlySet<string>>(() => new Set());
-  const savedVersion = useSavedVersion(saved);
 
   const newGenerator = useCallback(
     () => createFeedGenerator(graph, learnerRef.current, { resourceId: graph.resourceId, day }),
@@ -151,6 +151,12 @@ export function Feed({
     setFeed({ base: 0, posts: genRef.current.take(INITIAL_BATCH), spacer: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A lesson with JS | TS tabs: fetch the type-stripper before a code card
+  // needs it, so the card opens on JS instead of flashing the TS first.
+  useEffect(() => {
+    if (lessonHasCodeTabs(graph.resourceId)) void warmCodeVariants();
+  }, [graph.resourceId]);
 
   // Extend ahead (infinite), drop far behind (bounded), rebuild on the way back.
   useEffect(() => {
@@ -354,7 +360,7 @@ export function Feed({
 
         {/* The top bar: a quiet way back, the name of the place, and the sound. */}
         <header className="sticky top-0 z-20 border-b border-black/[0.08] bg-[#fafafa]/90 backdrop-blur-md dark:border-white/[0.09] dark:bg-black/85">
-          <div className="mx-auto flex h-14 max-w-[470px] items-center gap-2 px-3 lg:max-w-[818px]">
+          <div className="mx-auto flex h-14 max-w-[470px] items-center gap-2 px-3">
             <Link
               href={`/learn/${encodeURIComponent(graph.resourceId)}`}
               className="-ml-1.5 flex h-10 items-center gap-0.5 rounded-full pl-1 pr-2.5 text-[13px] text-neutral-700 hover:bg-black/5 dark:text-neutral-300 dark:hover:bg-white/10"
@@ -379,8 +385,8 @@ export function Feed({
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-[470px] justify-center gap-12 lg:max-w-[818px]">
-          <main className="w-full max-w-[470px] px-2.5 pb-24 pt-2.5 sm:px-0 sm:pt-4">
+        <div className="mx-auto flex max-w-[470px] justify-center">
+          <main className="w-full min-w-0 max-w-[470px] px-2.5 pb-24 pt-2.5 sm:px-0 sm:pt-4">
             <TopicStories accounts={accounts} order={order} seen={seen} onJump={jumpTo} />
 
             {!feed ? (
@@ -418,11 +424,6 @@ export function Feed({
             )}
           </main>
 
-          <aside className="hidden w-[300px] shrink-0 lg:block">
-            <div className="sticky top-[88px] pt-6">
-              <FeedRail resourceId={graph.resourceId} lessonTitle={lessonTitle} stats={stats} savedCount={saved && savedVersion >= 0 ? saved.count() : 0} />
-            </div>
-          </aside>
         </div>
       </div>
     </FeedContext.Provider>

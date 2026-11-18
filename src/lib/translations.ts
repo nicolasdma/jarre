@@ -261,6 +261,7 @@ const translations = {
   'learn.continueToApply': { es: 'Continuar a Playground', en: 'Continue to Playground' },
   'learn.continueToEvaluate': { es: 'Continuar a Evaluar', en: 'Continue to Evaluate' },
   'learn.backToLibrary': { es: 'Volver a la Biblioteca', en: 'Back to Library' },
+  'learn.feedMode': { es: 'Modo feed', en: 'Feed mode' },
   'learn.guidedQuestions': { es: 'Preguntas Guía', en: 'Guided Questions' },
   'learn.guidedQuestionsDesc': { es: 'Reflexiona sobre lo que aprendiste con estas preguntas', en: 'Reflect on what you learned with these questions' },
 

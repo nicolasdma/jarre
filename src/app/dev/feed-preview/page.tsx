@@ -48,5 +48,5 @@ export default async function FeedPreviewPage({ searchParams }: { searchParams: 
   const { day } = await searchParams;
   const seedDay = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : new Date().toISOString().slice(0, 10);
 
-  return <Feed graph={graph} day={seedDay} lessonTitle={loaded.lesson.title} />;
+  return <Feed graph={graph} day={seedDay} />;
 }
