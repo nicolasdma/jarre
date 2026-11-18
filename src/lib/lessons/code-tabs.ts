@@ -6,7 +6,7 @@
  * read the same set) to turn the tabs on for it.
  */
 
-export const CODE_TABS_LESSON_IDS = new Set<string>(['3y-health-tecnica-v2']);
+export const CODE_TABS_LESSON_IDS = new Set<string>(['3y-health-tecnica-v2', '3y-health-tecnica-repaso']);
 
 /** True when `resourceId`'s code snippets should render as JS | TS tabs. */
 export function lessonHasCodeTabs(resourceId: string | undefined): boolean {
