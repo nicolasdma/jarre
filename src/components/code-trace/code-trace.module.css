@@ -1,0 +1,57 @@
+/* A trace's layout and its one animation. Mobile: caption, state, code, stacked.
+   From 900px: the code on the left, caption and state on the right. */
+
+.layout {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'caption'
+    'state'
+    'code';
+}
+
+@media (min-width: 900px) {
+  .layout {
+    gap: 1rem 1.25rem;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'code caption'
+      'code state';
+  }
+}
+
+.caption {
+  grid-area: caption;
+}
+.state {
+  grid-area: state;
+}
+.code {
+  grid-area: code;
+}
+
+/* The entry just written flashes once, then keeps its highlight. */
+.flash {
+  animation: ct-flash 900ms ease-out 1;
+}
+
+@keyframes ct-flash {
+  0% {
+    box-shadow: 0 0 0 4px var(--j-warm);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
+}
+
+.reduced .flash {
+  animation: none;
+}

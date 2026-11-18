@@ -22,6 +22,7 @@ import { clearDraft, loadDraft, saveDraft } from './coding-store';
 import { ComplexityCheck } from './complexity-check';
 import { useCodeTabsEnabled } from './code-tabs-context';
 import { CodeTabsBlock } from './code-tabs-lazy';
+import { TraceLauncher } from '../code-trace/trace-launcher';
 
 interface CodeExerciseProps {
   resourceId: string;
@@ -162,6 +163,7 @@ export function SolutionPanel({ problem }: { problem: CodingProblem }) {
       ) : (
         <pre className="overflow-x-auto bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{problem.solution.code}</pre>
       )}
+      <TraceLauncher code={problem.solution.code} className={codeTabs ? '-mt-4' : ''} />
       {problem.pitfalls.length > 0 && (
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Errores típicos</p>

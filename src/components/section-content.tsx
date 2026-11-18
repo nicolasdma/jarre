@@ -10,6 +10,7 @@ import { ConceptVisual, hasConceptVisual } from './concept-visuals';
 import { InlineQuiz } from './inline-quiz';
 import { useCodeTabsEnabled } from './coding/code-tabs-context';
 import { CodeTabsBlock } from './coding/code-tabs-lazy';
+import { TraceLauncher } from './code-trace/trace-launcher';
 import { langFromClassName, isTsDisplayLang } from '@/lib/coding/code-lang';
 import { useVideoSeek } from '@/lib/video-seek-context';
 import { injectFigures } from '@/lib/figure-injector';
@@ -51,7 +52,12 @@ function MarkdownPre({ children }: { children?: React.ReactNode }) {
   if (codeTabs) {
     const fenced = extractFencedCode(children);
     if (fenced && isTsDisplayLang(fenced.lang)) {
-      return <CodeTabsBlock code={fenced.code} lang="ts" />;
+      return (
+        <>
+          <CodeTabsBlock code={fenced.code} lang="ts" />
+          <TraceLauncher code={fenced.code} className="-mt-4 mb-6" />
+        </>
+      );
     }
   }
   return <pre className={PRE_CLASS}>{children}</pre>;
