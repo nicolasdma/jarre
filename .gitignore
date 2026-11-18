@@ -72,3 +72,8 @@ scripts/seed-inline-quizzes-*.ts
 scripts/seed-horace-*.ts
 scripts/seed-video-segments-*.ts
 scripts/process-ddia-*.py
+
+# e2e harness (e2e/README.md)
+/e2e/report/
+/e2e/supabase/.temp/
+/e2e/supabase/.branches/

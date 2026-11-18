@@ -1,0 +1,77 @@
+# Local Supabase stack for the e2e harness ONLY (`npm run e2e:up`).
+#
+# The real Jarre database is the hosted project shared by local dev and
+# production; this config never touches it. `supabase start` builds an isolated
+# stack in Docker from supabase/migrations, on ports 554xx so it can run next to
+# other local stacks (54321..54329 are taken by other projects).
+# Workdir: e2e/ (`supabase --workdir e2e ...`), so it never sees the link to the hosted
+# project in supabase/.temp. migrations/ is a symlink to supabase/migrations.
+# Never run `supabase db push` / `supabase link` from the harness. See e2e/README.md.
+
+project_id = "jarre-e2e"
+
+[api]
+enabled = true
+port = 55421
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 55422
+shadow_port = 55420
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 55429
+
+[db.migrations]
+# Off: the migrations are not replayable from an empty database (some insert
+# rows that reference curriculum data only the hosted project has). They are
+# applied one by one by e2e/scripts/migrate.mjs, which records what failed.
+enabled = false
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+port = 55423
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = false
+port = 55424
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3107"
+additional_redirect_urls = ["http://localhost:3107", "http://127.0.0.1:3107"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# The harness creates its one user through the local admin API; nobody signs up.
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+# true = the email/password PROVIDER is on (GoTrue reads this as "email logins
+# enabled"); account creation stays closed by [auth] enable_signup = false.
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
+port = 55427

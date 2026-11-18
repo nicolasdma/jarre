@@ -22,7 +22,11 @@
     "engine:dev": "tsx watch engine/src/server.ts",
     "test": "vitest run",
     "curriculum:audit": "tsx scripts/audit-curriculum.ts",
-    "curriculum:export-template": "tsx scripts/export-curriculum-template.ts"
+    "curriculum:export-template": "tsx scripts/export-curriculum-template.ts",
+    "e2e:up": "node e2e/scripts/up.mjs",
+    "e2e:down": "node e2e/scripts/down.mjs",
+    "e2e:server": "node e2e/scripts/server.mjs",
+    "e2e:local": "node e2e/scripts/run.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -70,6 +74,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
