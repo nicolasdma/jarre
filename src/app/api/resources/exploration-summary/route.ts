@@ -40,9 +40,21 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
   if (!budget.allowed) {
     return NextResponse.json(
-      { error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit },
+      { error: budget.message, reason: budget.reason, used: budget.used, limit: budget.limit },
       { status: 429 },
     );
+  }
+
+  // The session must be this user's: transcripts are read with the admin
+  // client below, so RLS does not guard them (same check as voice/session/end).
+  const { data: ownedSession } = await supabase
+    .from(TABLES.voiceSessions)
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!ownedSession) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
   }
 
   const admin = createAdminClient();
@@ -199,7 +211,8 @@ Return valid JSON matching the schema.`,
   await admin
     .from(TABLES.voiceSessions)
     .update({ cached_summary: parsed.summary })
-    .eq('id', sessionId);
+    .eq('id', sessionId)
+    .eq('user_id', user.id);
 
   log.info(`Exploration summary for session ${sessionId}: ${parsed.discoveredConnections.length} new connections, ${parsed.openQuestions.length} open questions`);
 

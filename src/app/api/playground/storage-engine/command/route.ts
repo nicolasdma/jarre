@@ -16,6 +16,10 @@ const TIMEOUT_MS = ENGINE_COMMAND_TIMEOUT_MS;
  * sends it to the engine via TCP (RESP inline), returns the response.
  */
 export async function POST(request: Request) {
+  // A bridge to an engine on this machine's loopback: development only.
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   try {
     const body = await request.json();
     const { command } = body;

@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiError, errorResponse } from './errors';
 import type { User } from '@supabase/supabase-js';
+import { isAllowedUser } from './allow-list';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -49,6 +50,12 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
 
       if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      // A session is not enough: every route behind withAuth either spends the
+      // owner's API keys or reads study data (allow-list.ts).
+      if (!isAllowedUser(user.id)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
       const params = routeContext?.params

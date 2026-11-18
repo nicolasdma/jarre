@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/header';
 import { LanguageSelector } from '@/components/language-selector';
@@ -60,6 +61,9 @@ export default async function LibraryPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // The catalog is only readable signed in (RLS, migration 20261118010000).
+  if (!user) redirect('/login?redirect=/library');
 
   let lang: Language = 'es';
   let userCurrentPhase = '1';

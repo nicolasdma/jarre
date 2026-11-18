@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { safeRedirectPath } from '@/lib/safe-redirect';
+import { signupOpen } from '@/lib/api/allow-list';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +28,7 @@ const AUTH_STRINGS: Record<string, Record<Lang, string>> = {
   signUp: { es: 'Registrarse', en: 'Sign up' },
   forgotPassword: { es: '¿Olvidaste tu contraseña?', en: 'Forgot your password?' },
   loading: { es: 'Cargando...', en: 'Loading...' },
+  notAllowed: { es: 'Esta cuenta no tiene acceso a Jarre.', en: 'This account does not have access to Jarre.' },
 };
 
 function detectLanguage(): Lang {
@@ -34,23 +37,18 @@ function detectLanguage(): Lang {
   return browserLang === 'en' ? 'en' : 'es';
 }
 
-function sanitizeRedirect(redirect: string | null): string {
-  if (!redirect) return '/';
-  // Only allow relative paths, block protocol-based redirects
-  if (!redirect.startsWith('/') || redirect.includes('://')) return '/';
-  return redirect;
-}
-
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = sanitizeRedirect(searchParams.get('redirect'));
+  const redirect = safeRedirectPath(searchParams.get('redirect'));
   const language = useMemo(() => detectLanguage(), []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get('error') === 'not_allowed' ? AUTH_STRINGS.notAllowed[language] : null,
+  );
   const [loading, setLoading] = useState(false);
 
   const s = (key: string) => AUTH_STRINGS[key]?.[language] ?? AUTH_STRINGS[key]?.en ?? key;
@@ -168,12 +166,14 @@ function LoginForm() {
             </JarreButton>
           </form>
 
-          <p className="mt-4 text-center text-sm text-j-text-secondary">
-            {s('noAccount')}{' '}
-            <Link href="/signup" className="font-medium text-j-text hover:underline">
-              {s('signUp')}
-            </Link>
-          </p>
+          {signupOpen() && (
+            <p className="mt-4 text-center text-sm text-j-text-secondary">
+              {s('noAccount')}{' '}
+              <Link href="/signup" className="font-medium text-j-text hover:underline">
+                {s('signUp')}
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

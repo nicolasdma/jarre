@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAllowedUser, signupOpen } from '@/lib/api/allow-list';
 
 export async function proxy(request: NextRequest) {
   const passthroughPaths = new Set([
@@ -43,6 +44,27 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const path = request.nextUrl.pathname;
+
+  if (path.startsWith('/signup') && !signupOpen()) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
+  // Signed in but not on the allow-list (allow-list.ts): every page but the
+  // auth ones sends them to /login. API routes answer 403 in withAuth.
+  const authPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/'];
+  const isAuthPath = authPaths.some((p) => path.startsWith(p));
+  if (user && !isAllowedUser(user.id)) {
+    if (isAuthPath || path.startsWith('/api/')) return supabaseResponse;
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '?error=not_allowed';
+    return NextResponse.redirect(url);
+  }
+
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/evaluate'];
   const isProtectedPath = protectedPaths.some((path) =>
@@ -56,13 +78,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect logged-in users away from auth pages
-  const authPaths = ['/login', '/signup'];
-  const isAuthPath = authPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isAuthPath && user) {
+  // Redirect logged-in users away from login and sign-up
+  if (user && (path.startsWith('/login') || path.startsWith('/signup'))) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);

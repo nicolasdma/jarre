@@ -14,6 +14,10 @@ const TIMEOUT_MS = ENGINE_DEBUG_TIMEOUT_MS;
  * Returns the engine's internal state as JSON.
  */
 export async function GET() {
+  // A bridge to an engine on this machine's loopback: development only.
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
