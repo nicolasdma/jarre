@@ -63,37 +63,35 @@ describe('approval per mode', () => {
 
 describe('drillProgress', () => {
   it('a drill never tried is pending', () => {
-    expect(drillProgress(undefined, ALL)).toEqual({ approved: [], done: 0, total: 3, complete: false, started: false });
+    expect(drillProgress(undefined, ALL)).toEqual({ approved: [], done: 0, total: 5, complete: false, started: false });
   });
 
-  it('counts the three guided steps: Escuchar, Repetir, Sin mirar', () => {
-    expect(ALL).toEqual(['listen', 'repeat', 'recall']);
-  });
-
-  it('copy and Frase por frase do not count: copy 100 and repeat 98 is 1/3', () => {
-    const p = drillProgress({ copy: { score: 100, at }, repeat: { score: 98, at }, sentences: { score: 90, at } }, ALL);
-    expect(p).toMatchObject({ approved: ['repeat'], done: 1, total: 3, complete: false, started: true });
+  it('the old 5/5 case: copy 100 and repeat 98 is 2/5, not complete', () => {
+    const p = drillProgress({ copy: { score: 100, at }, repeat: { score: 98, at } }, ALL);
+    expect(p).toMatchObject({ approved: ['copy', 'repeat'], done: 2, total: 5, complete: false, started: true });
   });
 
   it('a try below the bar is started but adds nothing', () => {
     expect(drillProgress({ repeat: { score: 60, at } }, ALL)).toMatchObject({ done: 0, started: true });
   });
 
-  it('counts approved steps in order, and complete with the three', () => {
+  it('counts approved modes in tab order, and complete with all of them', () => {
     const all: DrillBest = {
       listened: at,
+      copy: { score: 95, at },
       repeat: { score: 82, at },
+      sentences: { score: 86, at },
       recall: recall('got', 1),
     };
-    expect(drillProgress(all, ALL)).toMatchObject({ approved: ['listen', 'repeat', 'recall'], done: 3, complete: true });
-    expect(drillProgress({ ...all, repeat: { score: 50, at } }, ALL)).toMatchObject({ done: 2, total: 3, complete: false });
+    expect(drillProgress(all, ALL)).toMatchObject({ approved: ['listen', 'copy', 'repeat', 'sentences', 'recall'], done: 5, complete: true });
+    expect(drillProgress({ ...all, sentences: { score: 50, at } }, ALL)).toMatchObject({ done: 4, total: 5, complete: false });
   });
 
-  it('a drill without audio has two steps (nothing to hear): 2/2 is complete', () => {
+  it('a drill without audio has three modes: 3/3 is complete', () => {
     const modes = drillModes(false);
-    expect(modes).toEqual(['repeat', 'recall']);
-    const p = drillProgress({ repeat: { score: 80, at }, recall: recall('got', 2) }, modes);
-    expect(p).toMatchObject({ done: 2, total: 2, complete: true });
+    expect(modes).toEqual(['copy', 'repeat', 'recall']);
+    const p = drillProgress({ listened: at, copy: { score: 90, at }, repeat: { score: 80, at }, recall: recall('got', 2) }, modes);
+    expect(p).toMatchObject({ done: 3, total: 3, complete: true });
   });
 });
 

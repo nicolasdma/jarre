@@ -68,8 +68,6 @@ export function RecallMode({
   const [state, dispatch] = useReducer(recallReducer, undefined, () => initialRecallState());
   const [now, setNow] = useState(() => Date.now());
   const [showEs, setShowEs] = useState(false);
-  // The text to say is out of sight before the try too: "Ver el texto antes" brings it to review.
-  const [showText, setShowText] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const prompt = recallPrompt(drill.title, ask);
   const answer = useRecallAnswer(resourceId, drill.slug);
@@ -191,7 +189,7 @@ export function RecallMode({
       {state.phase !== 'thinking' && (
         <div className="border border-j-border bg-j-bg-white px-4 py-5 sm:px-6" data-testid="recall-prompt-card">
           <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.15em]">
-            <span className="text-j-warm-dark">{prompt.source === 'ask' ? 'La pregunta' : 'Decí sin mirar'}</span>
+            <span className="text-j-warm-dark">Pregunta</span>
             {prompt.tag && <span className="text-j-text-tertiary">{prompt.tag}</span>}
             {prompt.target && <span className="text-j-text-tertiary">objetivo {prompt.target}</span>}
           </div>
@@ -212,12 +210,8 @@ export function RecallMode({
           hides on Empezar (the countdown) and returns with the result. */}
       {state.phase === 'ready' && (
         <div className="space-y-3" data-testid="recall-review">
-          <Chip active={showText} onClick={() => setShowText((v) => !v)}>
-            {showText ? 'Ocultar el texto' : 'Ver el texto antes'}
-          </Chip>
-          {showText && (
-            <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{withoutPhraseMarks(drill.textEn)}</p>
-          )}
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm-dark">El texto · leelo y después decilo sin mirar</p>
+          <p className="text-lg leading-relaxed text-j-text-body sm:text-xl" lang="en">{withoutPhraseMarks(drill.textEn)}</p>
           {drill.textEs && (
             <div className="space-y-3">
               <Chip active={showEs} onClick={() => setShowEs((v) => !v)}>

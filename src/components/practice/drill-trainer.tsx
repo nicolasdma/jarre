@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * One drill (a phrase to say) in three guided steps: hear it, repeat it out
- * loud, say it without looking. Copiar and Frase por frase are there too, as
- * "more ways to practice". Lives in the lesson's Decirlo step; best scores are
- * kept per device (best-scores.ts).
+ * One drill with every way to practice it: listen, copy, repeat,
+ * sentence by sentence, and last, answer from the question alone. Lives inside the learn view, under the section the drill
+ * belongs to and in the lesson's Practice step; best scores are kept per
+ * device (best-scores.ts).
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { recordListened, recordRecall, recordScore, recordShadowed, type BestScores, type DrillBest } from './best-scores';
@@ -21,16 +21,7 @@ import { CopyMode, type CopyResult } from './copy-mode';
 import { useDrillAudio } from './use-drill-audio';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 import type { SentencesResult } from '@/lib/practice/phrase-drill';
-import { EXTRA_MODES, GUIDED_MODES, modeLabel, type DrillMode, type PracticeDrill } from './types';
-
-/** One line that says what to do in each step, right above it. */
-const STEP_HINT: Record<DrillMode, string> = {
-  listen: 'Escuchala entera una vez, leyendo el texto.',
-  repeat: 'Decila en voz alta, entera: te marco en verde las palabras que dijiste.',
-  recall: 'Ahora sin mirar el texto: decila de memoria, en voz alta.',
-  copy: 'Escribila copiando el texto: ayuda a fijar cómo se escribe cada palabra.',
-  sentences: '',
-};
+import { DRILL_MODES, type DrillMode, type PracticeDrill } from './types';
 
 interface DrillTrainerProps {
   resourceId: string;
@@ -77,6 +68,18 @@ export function isPracticed(best: DrillBest | undefined): boolean {
 
 export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeChange, onScores, scores, onPrev, onNext, position, onNextDue }: DrillTrainerProps) {
   const audio = useDrillAudio(drill.audioUrl, drill.textEn);
+  const tabsRef = useRef<HTMLElement>(null);
+
+  // On a phone the mode tabs scroll sideways: keep the chosen one in view
+  // (Pregunta → respuesta, the last, starts out of view).
+  useEffect(() => {
+    const nav = tabsRef.current;
+    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!nav || !tab) return;
+    const n = nav.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    if (t.left < n.left || t.right > n.right) nav.scrollLeft += t.left - n.left - (n.width - t.width) / 2;
+  }, [mode]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,10 +114,7 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
   );
   const next = onNext ?? (() => {});
   const best = bestLine(scores[drill.slug]);
-  const steps = GUIDED_MODES.filter((m) => drillModes(audio.available).includes(m));
-  const stepIndex = steps.indexOf(mode);
-  const nextStep = stepIndex >= 0 && stepIndex < steps.length - 1 ? steps[stepIndex + 1] : null;
-  const approved = (m: DrillMode) => isModeApproved(scores[drill.slug], m);
+  const modes = drillModes(audio.available);
 
   return (
     <div className="space-y-4" data-drill-trainer data-testid="drill-trainer">
@@ -139,36 +139,29 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
         )}
       </div>
 
-      {/* The three steps, in order: a stepper, not five equal tabs. */}
-      <nav className="grid grid-cols-3 gap-1" aria-label="Pasos de la frase" data-testid="drill-steps">
-        {steps.map((m, i) => (
+      <nav ref={tabsRef} className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Modo de práctica">
+        {DRILL_MODES.map((m) => (
           <button
-            key={m}
+            key={m.id}
             type="button"
-            onClick={() => onModeChange(m)}
-            aria-current={mode === m ? 'step' : undefined}
+            role="tab"
+            aria-selected={mode === m.id}
+            onClick={() => onModeChange(m.id)}
             className={cn(
-              'flex min-h-[44px] items-center justify-center gap-1.5 border px-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors',
-              mode === m ? 'border-j-accent bg-j-accent text-j-text-on-accent' : 'border-j-border-input text-j-text-secondary hover:border-j-accent',
+              'min-h-[40px] shrink-0 border px-3 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors',
+              mode === m.id ? 'border-j-accent bg-j-accent text-j-text-on-accent' : 'border-j-border-input text-j-text-secondary hover:border-j-accent',
             )}
           >
-            <span className="tabular-nums">{i + 1}</span>
-            <span className="truncate">{modeLabel(m)}</span>
-            {approved(m) && (
-              <span className={cn(mode !== m && 'text-j-success')} data-testid="mode-approved">
+            {m.label}
+            {modes.includes(m.id) && isModeApproved(scores[drill.slug], m.id) && (
+              <span className={cn('ml-1.5', mode !== m.id && 'text-j-success')} title="Aprobado" data-testid="mode-approved">
                 <span aria-hidden>✓</span>
-                <span className="sr-only"> (hecho)</span>
+                <span className="sr-only"> (aprobado)</span>
               </span>
             )}
           </button>
         ))}
       </nav>
-
-      {STEP_HINT[mode] && (
-        <p className="text-sm text-j-text-secondary" data-testid="step-hint">
-          {STEP_HINT[mode]}
-        </p>
-      )}
 
       {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} onListened={onListened} />}
       {mode === 'copy' && <CopyMode key={`copy-${drill.slug}`} drill={drill} audio={audio} onResult={onCopyResult} onNext={next} />}
@@ -187,38 +180,6 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
           onNextDue={onNextDue}
         />
       )}
-
-      {nextStep && approved(mode) && (
-        <div className="border-t border-j-border pt-4">
-          <button
-            type="button"
-            onClick={() => onModeChange(nextStep)}
-            className="min-h-[44px] bg-j-accent px-5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-on-accent hover:bg-j-accent-hover"
-            data-testid="next-step"
-          >
-            Listo: ahora {modeLabel(nextStep).toLowerCase()} →
-          </button>
-        </div>
-      )}
-
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-j-border pt-4 text-sm text-j-text-tertiary" data-testid="more-ways">
-        <span>Más formas de practicar:</span>
-        {EXTRA_MODES.filter((m) => m.id !== 'sentences' || audio.available).map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => onModeChange(m.id)}
-            aria-current={mode === m.id ? 'true' : undefined}
-            className={cn(
-              'min-h-[44px] underline underline-offset-4 transition-colors',
-              mode === m.id ? 'text-j-accent' : 'text-j-text-secondary hover:text-j-text',
-            )}
-          >
-            {m.label}
-            {approved(m.id) && <span className="ml-1 text-j-success" aria-label="(aprobado)">✓</span>}
-          </button>
-        ))}
-      </p>
     </div>
   );
 }

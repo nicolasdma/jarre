@@ -1,9 +1,5 @@
 /**
- * A drill's progress in Decirlo. Since 2026-11-18 (the UX audit's plan, approved
- * by the owner) a phrase is done with its three guided steps: Escuchar, Repetir
- * and Sin mirar (Pregunta → respuesta). Copiar and Frase por frase still keep
- * and show their approval, under "más formas de practicar", but no longer
- * count. Before that, every mode counted: how many of its modes are
+ * A drill's progress in "Decilo en inglés": how many of its modes are
  * approved (owner, 2026-11-17: "cada ejercicio tiene que ir contando a medida
  * que termine y se apruebe … marcarlo solo en aprobado, no siempre … si hago
  * 3/4 quedan 3/4"). Replaces the 1-to-5 grade, which took the best score of
@@ -43,11 +39,11 @@ export const APPROVAL_PERCENT = { copy: 90, repeat: 80, sentences: 80 } as const
 /** Share of the audio that has to be played for Escuchar. */
 export const LISTEN_COVERAGE = 0.9;
 
-const STEPS: readonly DrillMode[] = ['listen', 'repeat', 'recall'];
+const ORDER: readonly DrillMode[] = ['listen', 'copy', 'repeat', 'sentences', 'recall'];
 
-/** The steps that make a phrase done: Escuchar needs audio (a recording or the browser voice). */
+/** The modes a drill can approve: Escuchar and Frase por frase need audio (a recording or the browser voice). */
 export function drillModes(hasAudio: boolean): DrillMode[] {
-  return hasAudio ? [...STEPS] : STEPS.filter((m) => m !== 'listen');
+  return hasAudio ? [...ORDER] : ORDER.filter((m) => m !== 'listen' && m !== 'sentences');
 }
 
 export function isModeApproved(best: DrillBest | undefined, mode: DrillMode): boolean {
@@ -66,11 +62,11 @@ export function isModeApproved(best: DrillBest | undefined, mode: DrillMode): bo
 }
 
 export interface DrillProgress {
-  /** Approved steps, in order. */
+  /** Approved modes, in tab order. */
   approved: DrillMode[];
   done: number;
   total: number;
-  /** Every step it has is approved. */
+  /** Every mode it has is approved. */
   complete: boolean;
   /** Anything was tried, approved or not. */
   started: boolean;
