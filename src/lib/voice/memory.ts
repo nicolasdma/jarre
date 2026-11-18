@@ -38,10 +38,12 @@ export async function generateConversationSummary(
         {
           role: 'system',
           content: `You summarize past tutoring conversations for a voice tutor's memory.
-Output 3-5 bullet points capturing:
+Output 3-6 bullet points capturing:
 - Key topics discussed
 - What the student understood well
 - What the student struggled with or got wrong
+- Any wrong or incomplete claim of the student the tutor did not clearly correct, with the correct version (so the next session corrects it first)
+- How the student wants to work, if they said it (e.g. asked to be taught step by step, did not want English practice)
 - Where the conversation left off
 
 Be concise. Each bullet should be one sentence. Output plain text with "- " bullets, no markdown headers.`,

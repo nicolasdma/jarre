@@ -162,8 +162,8 @@ describe('learning session: who ends it, and Spanish then English', () => {
 
   it('works each idea in Spanish and then in English when the lesson practices English', () => {
     const { instruction } = buildLearningSession({ language: 'es', lesson, focusSectionIndex: 0, bilingual: true });
-    const es = instruction.indexOf('Work it in Spanish');
-    const en = instruction.indexOf('say that same idea in English');
+    const es = instruction.indexOf('Work the idea in Spanish');
+    const en = instruction.indexOf('Ask for English only after their OWN answers in Spanish showed they understood');
     expect(es).toBeGreaterThan(0);
     expect(en).toBeGreaterThan(es);
     expect(instruction).toContain('"you said ..., say ..."');
@@ -174,6 +174,63 @@ describe('learning session: who ends it, and Spanish then English', () => {
   it('ignores the bilingual flag for an English session', () => {
     const { instruction } = buildLearningSession({ language: 'en', lesson, focusSectionIndex: 0, bilingual: true });
     expect(instruction).not.toContain('Spanish first, then English');
+  });
+});
+
+// The owner's three sessions of 2026-11-18 (~/Desktop/_revisar/jarre-tutor/2026-11-18-charlas.md).
+describe('learning session: teaches on request, corrects every wrong claim, English only when earned', () => {
+  const es = buildLearningSession({ language: 'es', lesson, focusSectionIndex: 0, bilingual: true }).instruction;
+  const en = buildLearningSession({ language: 'en', lesson, focusSectionIndex: 0 }).instruction;
+
+  it('teaches when asked, step by step with a concrete example, then one light check (ac028b04: "Acá no explicamos")', () => {
+    for (const instruction of [es, en]) {
+      expect(instruction).toContain('When they ask you to explain (this always wins over quizzing)');
+      expect(instruction).toContain('"explicame", "no entiendo"');
+      expect(instruction).toContain('"empecemos desde el principio"');
+      expect(instruction).toContain('Never refuse, never say the session is only for practice');
+      expect(instruction).toContain('ONE small concrete example with real values');
+      expect(instruction).toContain('Only then check understanding with ONE light question');
+      // The quiz-only framing that produced the refusal is gone.
+      expect(instruction).not.toMatch(/never lecture/i);
+      expect(instruction).not.toContain('directly and briefly');
+    }
+    // The explanation comes before the turn rules, so it overrides "ask ONE question".
+    expect(es.indexOf('When they ask you to explain')).toBeLessThan(es.indexOf('# How every turn works'));
+  });
+
+  it('asks for English only after understanding, once per idea, never after an explanation, and stops after push-back', () => {
+    expect(es).toContain('never right after they asked you to explain or said they don\'t understand');
+    expect(es).toContain('Never ask for English in the same turn as an explanation');
+    expect(es).toContain('At most once per key idea');
+    expect(es).toContain('"qué pesado con la entrevista"');
+    expect(es).toContain('stop asking for English for the rest of the session');
+    // The old "for every key idea" cadence is gone.
+    expect(es).not.toContain('(for every key idea)');
+    expect(es).toContain('No English request in this turn.');
+  });
+
+  it('corrects every wrong or partly wrong claim before moving on (a94efc5c: the "stale number" reason passed)', () => {
+    for (const instruction of [es, en]) {
+      expect(instruction).toContain('Every wrong or partly wrong claim gets corrected explicitly before anything else');
+      expect(instruction).toContain('also when the same turn asks you something or asks you to explain');
+      expect(instruction).toContain('A reason that sounds plausible but is not the lesson\'s reason is wrong');
+      expect(instruction).toContain('never let it pass in silence');
+      expect(instruction).toContain('That ban is on praise, not on corrections');
+    }
+  });
+
+  it('corrects first what last time left uncorrected, instead of re-quizzing it cold (d14a09c0)', () => {
+    const { instruction } = buildLearningSession({
+      language: 'es',
+      lesson,
+      focusSectionIndex: 0,
+      previousSummary: '- Said the map is checked first to avoid a stale number; not corrected.',
+    });
+    expect(instruction).toContain('correct it first, plainly, with the right version; do not quiz them on it cold again');
+  });
+
+  it('keeps repeating simpler on request', () => {
+    expect(es).toContain('They ask you to repeat: repeat the question in fewer, simpler words.');
   });
 });
 
