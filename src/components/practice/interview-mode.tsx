@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUnifiedVoiceSession } from '@/components/voice/use-unified-voice-session';
+import { useMicPrimer } from '@/components/help/first-time';
 import { INTERVIEW_DEPTHS, resolveInterviewSetup, type InterviewDepth } from '@/lib/interview/personas';
 import { hasAnswers } from '@/lib/interview/report';
 import type { TutorLesson } from '@/lib/llm/voice-tutor-session';
@@ -50,6 +51,7 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
   const interview = useMemo(() => ({ lesson, setup }), [lesson, setup]);
   const presentation = setup.mode === 'presentation';
 
+  const { run: micRun, prompt: micPrompt } = useMicPrimer();
   const session = useUnifiedVoiceSession({
     mode: 'interview',
     language: 'en',
@@ -139,10 +141,12 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
         ) : (
           <button
             type="button"
-            onClick={() => {
-              setRound((n) => n + 1);
-              void session.start();
-            }}
+            onClick={() =>
+              micRun(() => {
+                setRound((n) => n + 1);
+                void session.start();
+              })
+            }
             className="min-h-[44px] bg-j-accent px-4 font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-on-accent"
           >
             {session.state === 'done' ? 'Hacer otro' : 'Empezar'}
@@ -156,6 +160,8 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
               : ''}
         </span>
       </div>
+
+      {micPrompt}
 
       {session.error && <p className="text-sm text-red-600">{session.error}</p>}
 

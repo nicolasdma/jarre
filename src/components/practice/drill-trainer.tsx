@@ -19,6 +19,7 @@ import { RepeatMode } from './repeat-mode';
 import { SentenceMode } from './sentence-mode';
 import { CopyMode, type CopyResult } from './copy-mode';
 import { useDrillAudio } from './use-drill-audio';
+import { Hint } from '@/components/help/first-time';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 import type { SentencesResult } from '@/lib/practice/phrase-drill';
 import { EXTRA_MODES, GUIDED_MODES, modeLabel, type DrillMode, type PracticeDrill } from './types';
@@ -164,10 +165,11 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
         ))}
       </nav>
 
+      {/* What to do in this step: a line the first time, a "?" after "Entendido". */}
       {STEP_HINT[mode] && (
-        <p className="text-sm text-j-text-secondary" data-testid="step-hint">
+        <Hint id={`decirlo-${mode}`} key={mode}>
           {STEP_HINT[mode]}
-        </p>
+        </Hint>
       )}
 
       {mode === 'listen' && <ListenMode key={drill.slug} drill={drill} audio={audio} onListened={onListened} />}

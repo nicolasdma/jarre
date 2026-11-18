@@ -16,6 +16,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useUnifiedVoiceSession, type PracticeResult } from './use-unified-voice-session';
+import { useMicPrimer } from '@/components/help/first-time';
 import { useAudioLevel } from './use-audio-level';
 import { useTutorFrequency } from './use-tutor-frequency';
 import {
@@ -242,6 +243,7 @@ export function VoicePracticeFlow({
   lastPracticeResult,
   lastPracticeDate,
 }: Props) {
+  const { run: micRun, prompt: micPrompt } = useMicPrimer();
   const session = useUnifiedVoiceSession({
     mode: 'practice',
     language,
@@ -409,14 +411,16 @@ export function VoicePracticeFlow({
           <p className="text-xs text-j-error mb-4 max-w-xs">{error}</p>
         )}
 
+        {micPrompt && <div className="mb-6">{micPrompt}</div>}
+
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={session.start}
+            onClick={() => micRun(session.start)}
             className="group relative w-16 h-16 flex items-center justify-center rounded-full bg-j-warm text-white hover:bg-j-warm/90 transition-all duration-300"
             aria-label={t('startPractice', language)}
           >
-            <span className="absolute inset-0 rounded-full border-2 border-j-warm animate-ping opacity-20 group-hover:opacity-40" />
+            <span className="absolute inset-0 rounded-full border-2 border-j-warm motion-safe:animate-ping opacity-20 group-hover:opacity-40" />
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="9" y="1" width="6" height="11" rx="3" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />

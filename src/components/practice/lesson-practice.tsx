@@ -213,6 +213,12 @@ export function PracticeStep({ onNext, presentation = false }: { onNext?: () => 
         </select>
       </header>
 
+      {!order.some((d) => practice.progressOf(d).started) && (
+        <p className="mb-6 border border-dashed border-j-border px-4 py-3 text-sm text-j-text-secondary" data-testid="practice-empty">
+          {presentation ? 'Todavía no practicaste ninguna frase.' : 'Todavía no practicaste ninguna respuesta.'} Empezá por la primera, abajo: unos 30 segundos.
+        </p>
+      )}
+
       {group && <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.15em] text-j-warm">{group.title}</p>}
       <DrillTrainer
         key={drill.slug}

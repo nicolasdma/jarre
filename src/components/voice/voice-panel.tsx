@@ -6,6 +6,7 @@ import { VoiceAuraOverlay } from './voice-aura';
 import { useAudioLevel } from './use-audio-level';
 import { useTutorFrequency } from './use-tutor-frequency';
 import type { Language } from '@/lib/translations';
+import { useMicPrimer } from '@/components/help/first-time';
 
 // ============================================================================
 // Types
@@ -91,6 +92,7 @@ export function VoicePanel({
 
   const audioLevel = useAudioLevel(stream);
   const frequencyBands = useTutorFrequency(playbackAnalyser);
+  const { run: micRun, prompt: micPrompt } = useMicPrimer();
 
   const handleDisconnect = useCallback(() => {
     disconnect();
@@ -124,7 +126,9 @@ export function VoicePanel({
             : 'Tell the tutor what you understood from this part: they ask you questions. It is optional.'}
         </p>
 
-        <MicButton onClick={connect} disabled={false} language={language} />
+        <MicButton onClick={() => micRun(connect)} disabled={false} language={language} />
+
+        {micPrompt && <div className="mt-4 w-full max-w-sm">{micPrompt}</div>}
 
         <p className="font-mono text-[10px] text-j-text-tertiary mt-4">
           {language === 'es' ? 'Tocá para hablar' : 'Tap to speak'}
