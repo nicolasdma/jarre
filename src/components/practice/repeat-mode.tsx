@@ -8,7 +8,6 @@ import { pronunciationFor, wordsToPractice } from '@/lib/practice/pronunciation'
 import { PASS_SCORE } from '@/lib/practice/phrase-drill';
 import { alignWords } from '@/lib/practice/scoring';
 import { AudioBar, Chip, PrimaryButton, Stat } from './controls';
-import { useMicPrimer } from '@/components/help/first-time';
 import { useShowRespelling } from './show-respelling';
 import { TargetLegend, TargetText } from './target-text';
 import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
@@ -93,7 +92,6 @@ export function RepeatMode({
     if (takeUrl) URL.revokeObjectURL(takeUrl);
   }, [takeUrl]);
 
-  const mic = useMicPrimer();
   const start = async () => {
     setError(null);
     setDone(false);
@@ -192,7 +190,7 @@ export function RepeatMode({
       {/* Everything in this row is always there (the indicator only turns invisible), so the text below never jumps. */}
       <div className="flex flex-wrap items-center gap-2">
         {!listening ? (
-          <PrimaryButton onClick={() => mic.run(() => void start())} className="flex min-w-[8.5rem] items-center justify-center gap-2">
+          <PrimaryButton onClick={start} className="flex min-w-[8.5rem] items-center justify-center gap-2">
             <Mic size={14} /> {Ctor ? 'Repetir en voz alta' : 'Grabarme'}
           </PrimaryButton>
         ) : (
@@ -212,8 +210,6 @@ export function RepeatMode({
         )}
         <span className={cn('font-mono text-[11px] text-j-error', !listening && 'invisible')} aria-hidden={!listening}>● escuchando…</span>
       </div>
-
-      {mic.prompt}
 
       <TargetText
         words={alignment.words}

@@ -18,7 +18,6 @@ import {
   type RecallRecord,
 } from '@/lib/practice/recall';
 import { AudioBar, Chip, PrimaryButton } from './controls';
-import { useMicPrimer } from '@/components/help/first-time';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
 import { useRecallAnswer, type RecallAnswer } from './use-recall-answer';
@@ -125,7 +124,6 @@ export function RecallMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase]);
 
-  const { run: micRun, prompt: micPrompt } = useMicPrimer();
   const start = useCallback(() => {
     audio.prime();
     touchedRef.current = false;
@@ -168,7 +166,7 @@ export function RecallMode({
       if (!key) return;
       e.preventDefault();
       switch (key.do) {
-        case 'start': micRun(start); break;
+        case 'start': start(); break;
         case 'skip': dispatch({ type: 'skip', now: Date.now() }); break;
         case 'toggle-audio': audio.toggle(); break;
         case 'select': touchedRef.current = true; dispatch({ type: 'select', rating: key.rating }); break;
@@ -180,7 +178,7 @@ export function RecallMode({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [audio, judging, micRun, next, rate, start, state.phase]);
+  }, [audio, judging, next, rate, start, state.phase]);
 
   const left = remainingSeconds(state, now);
   const fraction = remainingFraction(state, now);
@@ -255,10 +253,9 @@ export function RecallMode({
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <PrimaryButton onClick={() => micRun(start)} className="px-6">Empezar · {state.seconds} s</PrimaryButton>
+            <PrimaryButton onClick={start} className="px-6">Empezar · {state.seconds} s</PrimaryButton>
             <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Espacio</span>
           </div>
-          {micPrompt}
           {record && (
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">
               Última vez: {RATING_LABEL[record.last]} · repaso {dueLabel(record)}

@@ -29,7 +29,6 @@ import { ConceptSection } from './concept-section';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
 import type { ActivateSummary } from '@/lib/lessons/activate-summary';
-import { Hint } from '@/components/help/first-time';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
@@ -449,15 +448,6 @@ function RehearseChooser({
   return (
     <section aria-label={es ? 'Ensayar' : 'Rehearse'} data-testid="rehearse-chooser">
       <SectionLabel className="mb-4">{es ? 'Ensayar' : 'Rehearse'}</SectionLabel>
-      <Hint id="ensayar" className="mb-4">
-        {withMock
-          ? es
-            ? 'Empezá con el tutor: te ayuda mientras hablás. El simulacro es como el día real, sin ayuda. Podés hacer los dos, las veces que quieras.'
-            : 'Start with the tutor: it helps while you talk. The mock is like the real day, with no help. Do both, as many times as you like.'
-          : es
-            ? 'Empezá con el tutor: te ayuda mientras hablás. La evaluación mide qué te quedó y queda guardada.'
-            : 'Start with the tutor: it helps while you talk. The evaluation measures what stayed with you and is saved.'}
-      </Hint>
       <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={es ? 'Cómo ensayar' : 'How to rehearse'}>
         {main.map((step, i) => {
           const c = copy[step];
