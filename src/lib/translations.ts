@@ -238,7 +238,7 @@ const translations = {
   'project.milestone': { es: 'Proyecto de Fase', en: 'Phase Project' },
 
   // Learn Flow
-  'learn.step.activate': { es: 'Portada', en: 'Cover' },
+  'learn.step.activate': { es: 'Resumen', en: 'Overview' },
   'learn.step.learn': { es: 'Entender', en: 'Understand' },
   'learn.step.apply': { es: 'Playground', en: 'Playground' },
   'learn.step.practiceEval': { es: 'Ensayar con el tutor', en: 'Rehearse with the tutor' },
