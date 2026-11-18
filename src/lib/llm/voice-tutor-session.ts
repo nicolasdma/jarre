@@ -36,6 +36,9 @@ export interface TutorLesson {
   drills?: { slug?: string; title: string; text_en: string }[];
 }
 
+/** Which learning prompt a session ran with, stored in voice_sessions.client_diag. */
+export const TUTOR_PROMPT_VERSION = 'learning-2026-11-18-teach';
+
 export interface TutorSession {
   instruction: string;
   /** First user turn, sent as text right after connecting. */

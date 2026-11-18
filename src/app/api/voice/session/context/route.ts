@@ -14,13 +14,20 @@
  *        or { resource, links, learnerMemory? }
  */
 
+import { after } from 'next/server';
 import { withAuth } from '@/lib/api/middleware';
+import { createAdminClient } from '@/lib/supabase/server';
+import { recoverUserSessions, runSessionDigest } from '@/lib/voice/session-digest';
+import '@/lib/voice/digest-steps';
 import { badRequest, jsonOk } from '@/lib/api/errors';
 import { TABLES } from '@/lib/db/tables';
 import { getLearnerConceptMemory, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('VoiceContext');
+
+/** Recovery digests run after the response, inside this function's lifetime. */
+export const maxDuration = 60;
 
 export const GET = withAuth(async (request, { supabase, user }) => {
   const url = new URL(request.url);
@@ -93,6 +100,15 @@ export const GET = withAuth(async (request, { supabase, user }) => {
       ...(memoryResult.length > 0 ? { learnerMemory: memoryResult } : {}),
     });
   }
+
+  // Sessions the client never ended, and digests that did not finish, are
+  // closed and re-run after this response (src/lib/voice/session-digest.ts).
+  after(async () => {
+    const admin = createAdminClient();
+    for (const d of await recoverUserSessions(admin, user.id)) {
+      await runSessionDigest(admin, d.sessionId, user.id, { durable: d.durable });
+    }
+  });
 
   // Fetch conversation summary and learner memory in parallel
   const summaryPromise = supabase

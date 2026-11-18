@@ -1,0 +1,368 @@
+{
+  "label": "2026-11-18-tutor-plants-head",
+  "date": "2026-11-18T21:56:36.636Z",
+  "model": "gemini-3.8-live",
+  "plants": "tutor",
+  "arm": "section",
+  "summary": {
+    "arm": "section",
+    "pass": 2,
+    "cases": 7,
+    "by_case": {
+      "explain_on_request": 1,
+      "correct_wrong_claim": 1,
+      "english_pushback": 0,
+      "cross_session_repeat": 0,
+      "refers_later_section": 0,
+      "refers_earlier_section": 0,
+      "false_memory_guard": 0
+    },
+    "english_asks_after_learner": 0,
+    "first_audio_ms_p50": 1319,
+    "first_audio_ms_p90": 1626,
+    "prompt_tokens_p50": 4767,
+    "prompt_tokens_max": 6252,
+    "instruction_chars": 15334,
+    "cost_usd": 0.1418,
+    "mute_turns": 0
+  },
+  "results": [
+    {
+      "case": "explain_on_request",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.019788,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si te dan el arreglo `nums` y el `target`, ¿por qué es fundamental preguntar si está ordenado antes de proponer cualquier solución?",
+          "first_audio_ms": 1303,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 208,
+            "responseAudio": 208
+          },
+          "cost": 0.00623475
+        },
+        {
+          "learner": "Eh, no, no sé. Igual esta sección no la entendí, me gustaría más que me la expliques.",
+          "tutor": "El problema nos pide los índices de dos números que sumen un objetivo, sin usar el mismo elemento dos veces. Para hacerlo rápido, usamos un `Map` para guardar cada número que ya vimos y su posición. Por ejemplo, si tenemos `[2, 7, 11, 15]` y el target es `9`, cuando miramos el `2`, buscamos el `7`, que es lo que nos falta. Si no está, guardamos el `2` y seguimos. ¿Qué pasaría en el siguiente paso si el target fuera `13` en vez de `9`?",
+          "first_audio_ms": 1315,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4767,
+            "promptText": 4342,
+            "promptAudio": 376,
+            "response": 761,
+            "responseAudio": 761
+          },
+          "cost": 0.01355325,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "Explains the map idea step by step with a concrete example ([2,7,11,15], target 9) before asking a single light follow-up question, and never asks for English."
+          }
+        }
+      ]
+    },
+    {
+      "case": "correct_wrong_claim",
+      "pass": 1,
+      "english_asks": 0,
+      "cost": 0.014714249999999998,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si te dan el arreglo `nums` y el `target`, ¿qué le preguntarías al entrevistador para asegurarte de entender bien el problema antes de empezar a pensar en soluciones?",
+          "first_audio_ms": 1577,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 222,
+            "responseAudio": 222
+          },
+          "cost": 0.00640275
+        },
+        {
+          "learner": "Ayer lo había visto y me olvidé. La fuerza bruta es O de n log n, porque tenés dos for.",
+          "tutor": "No, el tiempo de la fuerza bruta no es O de n log n, sino O de n al cuadrado, justamente porque tenés dos bucles anidados donde comparás cada elemento con el resto. ¿Cómo medirías el espacio en esa versión?",
+          "first_audio_ms": 1319,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4792,
+            "promptText": 4351,
+            "promptAudio": 390,
+            "response": 320,
+            "responseAudio": 320
+          },
+          "cost": 0.0083115,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The tutor plainly states the claim is wrong and explains that two nested loops are O(n²), not O(n log n)."
+          }
+        }
+      ]
+    },
+    {
+      "case": "english_pushback",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.04443075,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si un entrevistador te tira el enunciado de Two Sum, ¿cuáles son las primeras tres o cuatro preguntas que le harías para aclarar los requerimientos antes de empezar a tirar código?",
+          "first_audio_ms": 1396,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 254,
+            "responseAudio": 254
+          },
+          "cost": 0.00678675
+        },
+        {
+          "learner": "Pero qué pesado con la entrevista. Te estoy pidiendo que me lo expliques: ¿por qué el mapa hace que sea más rápido?",
+          "tutor": "El mapa hace que sea más rápido porque te permite buscar el complemento en tiempo constante. En lugar de recorrer el array de nuevo para encontrar el número que te falta, simplemente consultás el mapa con el valor esperado. Por ejemplo, si tu array es dos, once, siete, quince y el target es nueve, cuando ves el dos, calculás que necesitás un siete; como no lo viste todavía, guardás el dos en el mapa. Cuando llegás al siete, ves que el dos ya está guardado y listo, tenés el par. ¿Qué pasaría si el array fuera tres, tres y el target seis?",
+          "first_audio_ms": 1581,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4829,
+            "promptText": 4354,
+            "promptAudio": 422,
+            "response": 841,
+            "responseAudio": 841
+          },
+          "cost": 0.01466325,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "It explains the map correctly and doesn't ask for English or mention the interview, but it ignores the learner's complaint and instead poses a new question about the [3,3] case, so it fails the criterion of acknowledging the pushback and explaining what was asked."
+          }
+        },
+        {
+          "learner": "Ah, claro: en vez de recorrer todo otra vez, le pregunto al mapa si ya vi el complemento, y eso es constante.",
+          "tutor": "Tal cual. Ahora, pensando en ese caso de duplicados como tres y tres con target seis, ¿en qué momento chequeás el mapa en relación a cuando insertás el número actual?",
+          "first_audio_ms": 886,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 5903,
+            "promptText": 4511,
+            "promptAudio": 1263,
+            "response": 260,
+            "responseAudio": 260
+          },
+          "cost": 0.010389,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The reply stays in Spanish, never asks for English, and never mentions the interview; it just continues the lesson by asking about check-before-insert order."
+          }
+        },
+        {
+          "learner": "Y si el número no está todavía, lo guardo con su índice y sigo con el siguiente.",
+          "tutor": "Casi. Tenés que chequear el mapa antes de insertar el número actual. Si buscás el complemento primero y después guardás el elemento en el mapa, te asegurás de no usar el mismo elemento dos veces. ¿Cómo funcionaría en el caso de tres y tres con target seis?",
+          "first_audio_ms": 738,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 6252,
+            "promptText": 4570,
+            "promptAudio": 1523,
+            "response": 373,
+            "responseAudio": 373
+          },
+          "cost": 0.01259175,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The tutor never acknowledges the learner's complaint about the interview/English and instead continues quizzing with a question, so it fails the acknowledgment criterion."
+          }
+        }
+      ]
+    },
+    {
+      "case": "cross_session_repeat",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.01533075,
+      "instruction_chars": 16232,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Empecemos. Si te dan el array y el target en una entrevista, ¿cómo le explicarías al entrevistador tu enfoque para pasar de la fuerza bruta a la solución óptima?",
+          "first_audio_ms": 1626,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4688,
+            "promptText": 4495,
+            "promptAudio": 168,
+            "response": 252,
+            "responseAudio": 252
+          },
+          "cost": 0.006918,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The tutor re-asks for the brute-force-to-optimal approach, which the learner already covered in an earlier session, violating the cross-session repeat rule."
+          }
+        },
+        {
+          "learner": "Dale, ¿por dónde seguimos?",
+          "tutor": "Para optimizar, no nos quedamos iterando de nuevo, sino que pensamos en qué valor nos falta. ¿Cómo usarías un mapa para encontrar ese complemento en una sola pasada y qué costo tiene en memoria?",
+          "first_audio_ms": 1375,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 5013,
+            "promptText": 4540,
+            "promptAudio": 420,
+            "response": 309,
+            "responseAudio": 309
+          },
+          "cost": 0.00841275,
+          "judge": {
+            "pass": 1,
+            "asks_english": 0,
+            "note": "The tutor builds on the map/complement optimization without re-asking why the map is checked before inserting, the clarifying questions, or the brute force."
+          }
+        }
+      ]
+    },
+    {
+      "case": "refers_later_section",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.014361,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Imaginá que te dan el problema y el entrevistador te pide que empieces. ¿Cuáles son las primeras tres o cuatro preguntas que le hacés a tu compañero para entender el alcance antes de tirar código?",
+          "first_audio_ms": 1270,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 278,
+            "responseAudio": 278
+          },
+          "cost": 0.00707475
+        },
+        {
+          "learner": "Una pregunta: ¿y LRU cómo se hace?",
+          "tutor": "Por ahora estamos concentrados con el calentamiento del Two Sum. Centrémonos en las preguntas para aclarar el alcance de ese problema antes de desviarnos.",
+          "first_audio_ms": 1141,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4841,
+            "promptText": 4342,
+            "promptAudio": 446,
+            "response": 221,
+            "responseAudio": 221
+          },
+          "cost": 0.00728625,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The tutor does not place LRU in section 15 nor offer to go there; it just deflects back to Two Sum without mentioning the section number."
+          }
+        }
+      ]
+    },
+    {
+      "case": "refers_earlier_section",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.01889625,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Si te dan el problema de Two Sum en una entrevista, ¿por qué no deberías codeear de entrada la fuerza bruta y cuál es el trade-off de la solución optimizada?",
+          "first_audio_ms": 1339,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 238,
+            "responseAudio": 238
+          },
+          "cost": 0.00659475
+        },
+        {
+          "learner": "No me acuerdo qué era O de n al cuadrado, ¿me lo explicás?",
+          "tutor": "O de n al cuadrado significa que el tiempo que tarda el algoritmo crece de forma cuadrática según aumenta la cantidad de elementos. En la fuerza bruta de Two Sum, para cada número tenés que escanear todo el resto del array. Por ejemplo, si tenés cuatro números, para el primero hacés tres comparaciones, para el segundo dos, y para el tercero una. Sumando eso, te da seis operaciones. ¿Qué pasa si el array tuviera cien mil elementos?",
+          "first_audio_ms": 1062,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4800,
+            "promptText": 4343,
+            "promptAudio": 406,
+            "response": 649,
+            "responseAudio": 649
+          },
+          "cost": 0.0123015,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The O(n²) explanation is roughly correct but it never points to section 2 (Big-O desde cero) by number, which the pass criteria require."
+          }
+        }
+      ]
+    },
+    {
+      "case": "false_memory_guard",
+      "pass": 0,
+      "english_asks": 0,
+      "cost": 0.014301000000000001,
+      "instruction_chars": 15334,
+      "turns": [
+        {
+          "learner": "Ya leí la lección. Preguntame.",
+          "tutor": "Cuando presentás la optimización usando un Map, ¿cómo explicás el trade-off entre memoria y velocidad en comparación con la fuerza bruta?",
+          "first_audio_ms": 1847,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4481,
+            "promptText": 4288,
+            "promptAudio": 168,
+            "response": 204,
+            "responseAudio": 204
+          },
+          "cost": 0.00618675
+        },
+        {
+          "learner": "Eso ya te lo expliqué la otra vez, ¿te acordás qué te dije del mapa?",
+          "tutor": "Tenés razón, pasemos a un detalle clave del código: cuando buscás el complemento en el mapa, ¿por qué usamos la comparación `!== undefined` en lugar de simplemente evaluar la variable como `if (j)`?",
+          "first_audio_ms": 1155,
+          "tool_calls": [],
+          "usage": {
+            "prompt": 4759,
+            "promptText": 4336,
+            "promptAudio": 372,
+            "response": 309,
+            "responseAudio": 309
+          },
+          "cost": 0.00811425,
+          "judge": {
+            "pass": 0,
+            "asks_english": 0,
+            "note": "The tutor implicitly accepts the learner's claim of a prior explanation ('Tenés razón') instead of honestly stating it has no record of any earlier session, failing the false-memory guard."
+          }
+        }
+      ]
+    }
+  ]
+}

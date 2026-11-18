@@ -43,6 +43,18 @@ export interface TranscriptOutboxOptions {
   /** Waits between the final drain's attempts after a failure. */
   drainBackoffMs?: number[];
   onError?: (err: unknown, pending: number) => void;
+  /**
+   * Where what is still unsent survives the page: a crash or a killed tab
+   * loses the in-memory queue, and the next page load resends it
+   * (`resendStoredOutboxes`).
+   */
+  store?: OutboxStore;
+}
+
+/** Keeps a session's unsent events across page loads. */
+export interface OutboxStore {
+  save(target: TranscriptOutboxTarget, events: TranscriptEvent[]): void;
+  clear(sessionId: string): void;
 }
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -61,6 +73,7 @@ export class TranscriptOutbox {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private retryDelayMs = 250;
   private closed = false;
+  private readonly store?: OutboxStore;
 
   constructor(opts: TranscriptOutboxOptions) {
     this.target = opts.target;
@@ -70,6 +83,17 @@ export class TranscriptOutbox {
     this.maxRetryDelayMs = opts.maxRetryDelayMs ?? 4000;
     this.drainBackoffMs = opts.drainBackoffMs ?? [250, 1000, 2000];
     this.onError = opts.onError;
+    this.store = opts.store;
+  }
+
+  private persist(): void {
+    if (!this.store) return;
+    try {
+      if (this.queue.length) this.store.save(this.target, this.queue);
+      else this.store.clear(this.target.sessionId);
+    } catch {
+      // Storage full or blocked: the in-memory queue still works.
+    }
   }
 
   get pending(): number {
@@ -78,6 +102,7 @@ export class TranscriptOutbox {
 
   push(event: TranscriptEvent): void {
     this.queue.push(event);
+    this.persist();
     if (this.closed) {
       // A late event after the drain started: send it on its own.
       if (!this.inFlight) void this.flush({ keepalive: true });
@@ -125,6 +150,7 @@ export class TranscriptOutbox {
         await this.send(batch, this.target, { keepalive });
         this.queue.splice(0, batch.length);
         this.retryDelayMs = 250;
+        this.persist();
       }
       return true;
     } catch (err) {
@@ -175,3 +201,72 @@ export const postTranscriptBatch: SendTranscriptBatch = async (events, target, {
   });
   if (!res.ok) throw new Error(`Transcript flush failed with ${res.status}`);
 };
+
+// ---------------------------------------------------------------------------
+// Surviving the page (localStorage)
+// ---------------------------------------------------------------------------
+
+const STORE_PREFIX = 'jarre.voice.outbox.v1.';
+/** The write token lasts 8 h (session-write-token.ts): older leftovers cannot be sent. */
+const STORED_MAX_AGE_MS = 7.5 * 60 * 60 * 1000;
+
+interface StoredOutbox {
+  target: TranscriptOutboxTarget;
+  events: TranscriptEvent[];
+  savedAt: number;
+}
+
+/** A store over Web Storage (localStorage in the app, a fake in tests). */
+export function webStorageOutboxStore(storage: Storage, now: () => number = Date.now): OutboxStore {
+  return {
+    save(target, events) {
+      const value: StoredOutbox = { target, events, savedAt: now() };
+      storage.setItem(STORE_PREFIX + target.sessionId, JSON.stringify(value));
+    },
+    clear(sessionId) {
+      storage.removeItem(STORE_PREFIX + sessionId);
+    },
+  };
+}
+
+/**
+ * Sends what earlier pages left unsent (a crash, a killed tab), then closes
+ * those sessions. `skipSessionId` is a session live in this page. Returns the
+ * sessions resent.
+ */
+export async function resendStoredOutboxes(
+  storage: Storage,
+  send: SendTranscriptBatch,
+  end: (target: TranscriptOutboxTarget) => Promise<void>,
+  opts: { now?: number; skipSessionId?: string | null } = {},
+): Promise<string[]> {
+  const now = opts.now ?? Date.now();
+  const found: StoredOutbox[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (!key?.startsWith(STORE_PREFIX)) continue;
+    try {
+      found.push(JSON.parse(storage.getItem(key) ?? '') as StoredOutbox);
+    } catch {
+      storage.removeItem(key);
+    }
+  }
+  const resent: string[] = [];
+  for (const item of found) {
+    const sid = item?.target?.sessionId;
+    if (!sid || sid === opts.skipSessionId) continue;
+    if (!Array.isArray(item.events) || now - (item.savedAt ?? 0) > STORED_MAX_AGE_MS) {
+      storage.removeItem(STORE_PREFIX + sid);
+      continue;
+    }
+    const store = webStorageOutboxStore(storage);
+    const outbox = new TranscriptOutbox({ target: item.target, send, store, drainBackoffMs: [500] });
+    for (const event of item.events) outbox.push(event);
+    if (await outbox.drain()) {
+      store.clear(sid);
+      await end(item.target).catch(() => {});
+      resent.push(sid);
+    }
+  }
+  return resent;
+}

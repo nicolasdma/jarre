@@ -1,7 +1,8 @@
 /**
  * POST /api/voice/session/transcript
  *
- * Durable transcript ingestion endpoint with idempotent turn IDs.
+ * Durable transcript ingestion endpoint with idempotent turn IDs
+ * (src/lib/voice/transcript-store.ts).
  * Supports:
  * - Legacy single event body
  * - Batched events body
@@ -17,6 +18,7 @@ import { TABLES } from '@/lib/db/tables';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { verifyVoiceSessionWriteToken } from '@/lib/voice/session-write-token';
+import { isMissingSchema, storeTranscriptRows, type TranscriptRow } from '@/lib/voice/transcript-store';
 
 const log = createLogger('VoiceTranscriptIngest');
 
@@ -96,7 +98,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw badRequest(`Too many events (max ${MAX_EVENTS_PER_REQUEST})`);
     }
 
-    const rows = events.map((event, index) => {
+    const rows: TranscriptRow[] = events.map((event, index) => {
       if (!event || typeof event !== 'object') {
         throw badRequest(`Invalid event at index ${index}`);
       }
@@ -123,34 +125,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     const admin = createAdminClient();
-    const { error: upsertError } = await admin
-      .from(TABLES.voiceTranscripts)
-      .upsert(rows, {
-        onConflict: 'session_id,client_turn_id',
-        ignoreDuplicates: true,
-      });
-
-    // Fallback for environments where the unique index isn't migrated yet.
-    if (upsertError?.message?.includes('there is no unique or exclusion constraint')) {
-      const legacyRows = rows.map((row) => ({
-        session_id: row.session_id,
-        role: row.role,
-        text: row.text,
-        timestamp: row.timestamp,
-      }));
-
-      const { error: insertError } = await admin
-        .from(TABLES.voiceTranscripts)
-        .insert(legacyRows);
-      if (insertError) {
-        log.error(
-          `Failed transcript insert fallback sid=${sessionId}: ${insertError.message}`,
-        );
-        throw new Error('Failed to persist transcript events');
-      }
-    } else if (upsertError) {
-      log.error(`Failed transcript upsert sid=${sessionId}: ${upsertError.message}`);
+    try {
+      await storeTranscriptRows(admin, rows);
+    } catch (err) {
+      log.error(`Failed transcript store sid=${sessionId}: ${err instanceof Error ? err.message : String(err)}`);
       throw new Error('Failed to persist transcript events');
+    }
+
+    // When anything last happened: lets the next context request close a
+    // session the client never ended (tab killed, crash). Best effort.
+    const { error: touchError } = await admin
+      .from(TABLES.voiceSessions)
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq('id', sessionId)
+      .eq('user_id', tokenPayload.uid);
+    if (touchError && !isMissingSchema(touchError)) {
+      log.warn(`last_activity_at not updated sid=${sessionId}: ${touchError.message}`);
     }
 
     return jsonOk({ ok: true, accepted: rows.length });

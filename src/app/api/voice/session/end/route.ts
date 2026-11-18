@@ -1,25 +1,30 @@
 /**
  * POST /api/voice/session/end
  *
- * Finalizes a voice session: sets ended_at, duration, and turn_count.
+ * Finalizes a voice session (src/lib/voice/session-digest.ts): ended_at,
+ * duration, turn_count, the client's diagnostics, and the digest after the response.
  * Supports auth via:
  * - Session write token (preferred for reliability in teardown paths)
  * - Cookie session (fallback)
  *
- * Body: { sessionId: string, writeToken?: string, diag?: client counters (logged only) }
+ * Body: { sessionId: string, writeToken?: string, diag?: client counters, timeline and usage
+ *   (stored in voice_sessions.client_diag, never conversation text) }
  * Response: { ok: true }
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { badRequest, errorResponse, jsonOk } from '@/lib/api/errors';
-import { TABLES } from '@/lib/db/tables';
-import { generateConversationSummary } from '@/lib/voice/memory';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { verifyVoiceSessionWriteToken } from '@/lib/voice/session-write-token';
-import { formatClientDiag } from '@/lib/voice/session-diag';
+import { formatClientDiag, sanitizeClientDiag } from '@/lib/voice/session-diag';
+import { finalizeSession, runSessionDigest } from '@/lib/voice/session-digest';
+import '@/lib/voice/digest-steps';
 
 const log = createLogger('VoiceSession');
+
+/** The digest (DeepSeek) runs inside this function's lifetime, after the response. */
+export const maxDuration = 60;
 
 async function resolveUserIdFromRequest(
   request: Request,
@@ -59,53 +64,24 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const admin = createAdminClient();
-
-    // Get current session state first (idempotent close behavior).
-    const { data: session, error: sessionError } = await admin
-      .from(TABLES.voiceSessions)
-      .select('started_at, section_id, session_type, ended_at')
-      .eq('id', sessionId)
-      .eq('user_id', userId)
-      .single();
-
-    if (sessionError || !session) {
+    const diag = sanitizeClientDiag(body?.diag);
+    let result;
+    try {
+      result = await finalizeSession(admin, { sessionId, userId, diag });
+    } catch (err) {
+      log.error('Failed to end voice session:', err instanceof Error ? err.message : err);
       throw badRequest('Session not found');
     }
 
-    // Count transcripts for this session.
-    const { count } = await admin
-      .from(TABLES.voiceTranscripts)
-      .select('id', { count: 'exact', head: true })
-      .eq('session_id', sessionId);
+    log.info(`Voice session ended: ${sessionId}${formatClientDiag(body?.diag)}`);
 
-    const durationSeconds = Math.max(
-      0,
-      Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000),
-    );
-
-    const { error: updateError } = await admin
-      .from(TABLES.voiceSessions)
-      .update({
-        ended_at: session.ended_at || new Date().toISOString(),
-        duration_seconds: durationSeconds,
-        turn_count: count ?? 0,
-      })
-      .eq('id', sessionId)
-      .eq('user_id', userId);
-
-    if (updateError) {
-      log.error('Failed to end voice session:', updateError.message);
-      throw new Error('Failed to end voice session');
-    }
-
-    log.info(
-      `Voice session ended: ${sessionId} (${durationSeconds}s, ${count ?? 0} turns)${formatClientDiag(body?.diag)}`,
-    );
-
-    // Generate summary in background (skip exploration sessions).
-    if (session.session_type !== 'exploration') {
-      generateSummaryCached(sessionId, session.section_id, userId).catch((err) => {
-        log.error('Background summary generation failed:', err);
+    // The digest (summary, learner memory) runs after the response, inside the
+    // function's lifetime (`after`), not as a floating promise that a
+    // serverless runtime may kill: ac028b04 (2026-11-18) closed without one.
+    if (result.digest) {
+      const durable = result.durable;
+      after(async () => {
+        await runSessionDigest(admin, sessionId, userId, { durable });
       });
     }
 
@@ -113,60 +89,4 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     return errorResponse(error);
   }
-}
-
-/**
- * Background task: summarize the session transcript and cache it on voice_sessions.
- */
-async function generateSummaryCached(
-  sessionId: string,
-  sectionId: string | null,
-  userId: string,
-): Promise<void> {
-  const admin = createAdminClient();
-
-  const { data: transcripts, error: txError } = await admin
-    .from(TABLES.voiceTranscripts)
-    .select('role, text, timestamp')
-    .eq('session_id', sessionId)
-    .order('timestamp', { ascending: true });
-
-  if (txError || !transcripts || transcripts.length === 0) {
-    log.info(`No transcripts to summarize for session ${sessionId}`);
-    return;
-  }
-
-  let sectionTitle = 'Unknown section';
-  if (sectionId) {
-    const { data: section } = await admin
-      .from(TABLES.resourceSections)
-      .select('section_title')
-      .eq('id', sectionId)
-      .single();
-    sectionTitle = section?.section_title ?? sectionTitle;
-  }
-
-  const summary = await generateConversationSummary(
-    transcripts.map((t) => ({ role: t.role as 'user' | 'model', text: t.text })),
-    sectionTitle,
-    userId,
-  );
-
-  if (!summary) {
-    log.info(`Summary generation returned null for session ${sessionId}`);
-    return;
-  }
-
-  const { error: cacheError } = await admin
-    .from(TABLES.voiceSessions)
-    .update({ cached_summary: summary })
-    .eq('id', sessionId)
-    .eq('user_id', userId);
-
-  if (cacheError) {
-    log.error('Failed to save cached_summary:', cacheError.message);
-    return;
-  }
-
-  log.info(`Cached summary saved for session ${sessionId} (${summary.length} chars)`);
 }

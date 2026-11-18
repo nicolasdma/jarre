@@ -12,6 +12,12 @@
  *   npx tsx scripts/probe-voice-tutor.ts --mode learning --bilingual --closing --label <label>
  *     (who ends the session, and the Spanish then English alternation)
  *
+ *   npx tsx scripts/probe-voice-tutor.ts --plants tutor --arm section|lesson --label <label> \
+ *     [--source local] [--cases explain_on_request,refers_later_section]
+ *     (the section tutor's planted cases from the owner's charlas of 2026-11-18,
+ *     docs/tutor/02-arquitectura.md §7: one short Live session per case, scripted
+ *     learner lines, a DeepSeek judge per case, usageMetadata for the cost)
+ *
  * Interview runs use `--plan hard` by default: the plants reproduce the owner's
  * real mock of 2026-11-11 (mangled name, subtle misconceptions, vague answer,
  * milestones not known, must-say left out) and rubric v2 scores precision and
@@ -95,18 +101,34 @@ if (!GEMINI_KEY || !DEEPSEEK_KEY) throw new Error('GEMINI_API_KEY and DEEPSEEK_A
 interface LessonData {
   title: string;
   description: string;
-  sections: { id: string; title: string; content: string }[];
+  sections: { id: string; title: string; content: string; conceptId?: string }[];
   drills: { slug: string; title: string; text_en: string; text_es: string | null }[];
   interview: unknown;
 }
 
+/** `--source local`: read the lesson from the local e2e stack (.env.e2e.local), never the hosted project. */
+function lessonDb() {
+  if (arg('source') === 'local') {
+    const env = Object.fromEntries(
+      readFileSync('.env.e2e.local', 'utf8')
+        .split('\n')
+        .map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/))
+        .filter((m): m is RegExpMatchArray => !!m)
+        .map((m) => [m[1], m[2]]),
+    );
+    if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(env.NEXT_PUBLIC_SUPABASE_URL ?? '')) throw new Error('local source is not loopback');
+    return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY);
+  }
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+}
+
 async function loadLesson(resourceId: string): Promise<LessonData> {
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+  const sb = lessonDb();
   const { data: resource, error } = await sb.from('resources').select('*').eq('id', resourceId).single();
   if (error || !resource) throw new Error(`resource ${resourceId}: ${error?.message}`);
   const { data: sections } = await sb
     .from('resource_sections')
-    .select('id, section_title, content_markdown, sort_order')
+    .select('id, section_title, content_markdown, sort_order, concept_id')
     .eq('resource_id', resourceId)
     .order('sort_order');
   const { data: drills } = await sb
@@ -117,7 +139,7 @@ async function loadLesson(resourceId: string): Promise<LessonData> {
   return {
     title: resource.title,
     description: resource.description ?? '',
-    sections: (sections ?? []).map((s) => ({ id: s.id, title: s.section_title, content: s.content_markdown })),
+    sections: (sections ?? []).map((s) => ({ id: s.id, title: s.section_title, content: s.content_markdown, conceptId: s.concept_id })),
     drills: drills ?? [],
     interview: INTERVIEW_JSON
       ? JSON.parse(readFileSync(INTERVIEW_JSON, 'utf8')).interview ?? null
@@ -410,15 +432,21 @@ interface TurnResult {
   audioBytes: number;
   toolCalls: string[];
   timedOut: boolean;
+  /** The last usageMetadata of the turn (the Live API re-reads the whole context each turn). */
+  usage: { prompt: number; promptText: number; promptAudio: number; response: number; responseAudio: number } | null;
 }
+
+type ToolAnswer = (call: { name?: string; args?: Record<string, unknown> }) => Record<string, unknown>;
 
 class LiveProbe {
   private session: Session | null = null;
   private waiter: ((m: LiveServerMessage) => void) | null = null;
   private queue: LiveServerMessage[] = [];
   closed: string | null = null;
+  /** Answers tool calls (plants mode); without it every call gets `{ success: true }`. */
+  onTool: ToolAnswer | null = null;
 
-  async open(instruction: string, voiceTools: boolean): Promise<void> {
+  async open(instruction: string, voiceTools: boolean | import('@google/genai').Tool[]): Promise<void> {
     const ai = new GoogleGenAI({ apiKey: GEMINI_KEY! });
     this.session = await ai.live.connect({
       model: MODEL,
@@ -428,7 +456,7 @@ class LiveProbe {
         systemInstruction: { parts: [{ text: instruction }] },
         inputAudioTranscription: {},
         outputAudioTranscription: {},
-        ...(voiceTools ? { tools: TUTOR_TOOLS } : {}),
+        ...(Array.isArray(voiceTools) ? { tools: voiceTools } : voiceTools ? { tools: TUTOR_TOOLS } : {}),
         ...(PROMPT === 'current' ? { realtimeInputConfig: TURN_TAKING[MODE === 'interview' ? 'patient' : 'default'] } : {}),
       },
       callbacks: {
@@ -461,10 +489,15 @@ class LiveProbe {
     });
   }
 
+  /** Context the model reads on its next turn, without answering now (notes on demand). */
+  note(text: string): void {
+    this.session!.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete: false });
+  }
+
   async ask(text: string): Promise<TurnResult> {
     const t0 = Date.now();
     this.session!.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true });
-    const result: TurnResult = { text: '', firstAudioMs: null, doneMs: 0, audioBytes: 0, toolCalls: [], timedOut: false };
+    const result: TurnResult = { text: '', firstAudioMs: null, doneMs: 0, audioBytes: 0, toolCalls: [], timedOut: false, usage: null };
     for (;;) {
       if (this.closed) break;
       const m = await this.next(Math.max(1, TURN_TIMEOUT_MS - (Date.now() - t0)));
@@ -484,6 +517,18 @@ class LiveProbe {
           result.audioBytes += Math.floor((part.inlineData.data.length * 3) / 4);
         }
       }
+      if (m.usageMetadata) {
+        const u = m.usageMetadata;
+        const by = (d: { modality?: string; tokenCount?: number }[] | undefined, mod: string) =>
+          (d ?? []).filter((x) => x.modality === mod).reduce((a, x) => a + (x.tokenCount ?? 0), 0);
+        result.usage = {
+          prompt: u.promptTokenCount ?? 0,
+          promptText: by(u.promptTokensDetails, 'TEXT'),
+          promptAudio: by(u.promptTokensDetails, 'AUDIO'),
+          response: u.responseTokenCount ?? 0,
+          responseAudio: by(u.responseTokensDetails, 'AUDIO'),
+        };
+      }
       const out = m.serverContent?.outputTranscription?.text;
       if (out) result.text += out;
       if (m.toolCall?.functionCalls?.length) {
@@ -492,7 +537,7 @@ class LiveProbe {
           return {
             id: c.id,
             name: c.name,
-            response: { output: { success: true } },
+            response: this.onTool ? this.onTool({ name: c.name, args: c.args as Record<string, unknown> }) : { output: { success: true } },
             // What src/lib/voice/gemini-live.ts sends on 3.8.
             ...(MODEL === 'gemini-3.8-live'
               ? { scheduling: result.audioBytes > 0 ? FunctionResponseScheduling.SILENT : FunctionResponseScheduling.WHEN_IDLE }
@@ -814,6 +859,10 @@ async function main() {
     console.log(JSON.stringify(saved.summary, null, 2));
     return;
   }
+  if (arg('plants') === 'tutor') {
+    await runTutorPlants();
+    return;
+  }
   const lesson = await loadLesson(RESOURCE);
   if (SCORE_TRANSCRIPT) {
     await scoreTranscript(lesson, SCORE_TRANSCRIPT);
@@ -878,6 +927,194 @@ async function scoreTranscript(lesson: LessonData, file: string) {
   writeFileSync(out, JSON.stringify({ label: LABEL, date: new Date().toISOString(), source: file, mode: MODE, resource: RESOURCE, summary, runs }, null, 2));
   console.log(JSON.stringify(summary, null, 2));
   console.log(`saved ${out}`);
+}
+
+
+// ---------------------------------------------------------------------------
+// Planted cases for the section tutor (--plants tutor)
+// ---------------------------------------------------------------------------
+//
+// Each case is one short Live session on the section the owner was studying
+// (Two Sum, the 3rd of 3y-health-tecnica-v2), with learner lines taken from his
+// charlas of 2026-11-18 (~/Desktop/_revisar/jarre-tutor/2026-11-18-charlas.md).
+// Arms: `section` is what HEAD gave VoicePanel (that one section, the prose
+// summary of the last session on it); `lesson` is the new section tutor (the
+// lesson map, the section in full, the learner brief, the section tools).
+
+const TUTOR_FOCUS = 2; // Two Sum
+const TUTOR_CASES_FILTER = arg('cases')?.split(',');
+const ARM = (arg('arm') ?? 'lesson') as 'section' | 'lesson';
+
+/**
+ * What HEAD's memory had after a94efc5c: a prose summary of the kind
+ * src/lib/voice/memory.ts writes. It does not list the questions the tutor
+ * asked, which is how d14a09c0 re-asked "why check the map before inserting"
+ * seven minutes later.
+ */
+const A94_SUMMARY_PROSE = `- Discussed Two Sum: clarifying questions, the brute force, the hash map optimization and the memory/speed trade-off.
+- Understood the problem statement once it was explained from the start, and described the brute force correctly.
+- Struggled with Big-O: said "O(n log n) because there are two for loops" and that the time "grows exponentially"; the tutor corrected both to quadratic.
+- Swapped key and value in the map (said the key is the index); the tutor corrected it: the key is the number, the value its index.
+- Asked to be taught step by step and pushed back on the English practice ("qué pesado con la entrevista").
+- Left off at how the map lookup finds the complement.`;
+
+interface TutorCase {
+  id: string;
+  /** Memory the session opens with. */
+  memory: 'a94efc5c' | 'none';
+  /** Learner lines after the tutor's first question. */
+  turns: string[];
+  /** What the judge checks, on every tutor reply after the first learner line (or the opener when there are no turns). */
+  pass: string;
+  /** Replies judged: the first after the learner's first line (default), all of them, or the opener too. */
+  judge?: 'first' | 'all' | 'opener_and_all';
+}
+
+const TUTOR_CASES: TutorCase[] = [
+  {
+    id: 'explain_on_request',
+    memory: 'none',
+    turns: ['Eh, no, no sé. Igual esta sección no la entendí, me gustaría más que me la expliques.'],
+    pass: 'The tutor TEACHES: it explains the idea step by step with one concrete example with real values (e.g. nums [2, 7, 11, 15], target 9) BEFORE asking anything, and asks at most one light question at the end. Fail if it answers with a question instead of the explanation, gives only one or two sentences, refuses, or asks for English.',
+  },
+  {
+    id: 'correct_wrong_claim',
+    memory: 'none',
+    turns: ['Ayer lo había visto y me olvidé. La fuerza bruta es O de n log n, porque tenés dos for.'],
+    pass: 'The tutor says plainly that this is WRONG (not "casi", "cerca", "más o menos") and why: two NESTED loops over the input are O(n²); O(n log n) is what sorting costs. Fail if it accepts it, calls it almost right, or moves on without correcting.',
+  },
+  {
+    id: 'english_pushback',
+    memory: 'none',
+    turns: [
+      'Pero qué pesado con la entrevista. Te estoy pidiendo que me lo expliques: ¿por qué el mapa hace que sea más rápido?',
+      'Ah, claro: en vez de recorrer todo otra vez, le pregunto al mapa si ya vi el complemento, y eso es constante.',
+      'Y si el número no está todavía, lo guardo con su índice y sigo con el siguiente.',
+    ],
+    pass: 'After the learner complained about the interview/English, the tutor acknowledges it briefly and explains what was asked; in THIS reply it never asks the learner to say anything in English and never brings up the interview. Fail if it asks for English or mentions the interview.',
+    judge: 'all',
+  },
+  {
+    id: 'cross_session_repeat',
+    memory: 'a94efc5c',
+    turns: ['Dale, ¿por dónde seguimos?'],
+    pass: 'In an earlier session the learner already answered "why check the map before inserting the current number" ("estarías mirando un número desactualizado"), the clarifying questions and the brute force. The tutor must NOT ask any of those again. Building on what was left wrong or open (Big-O of nested loops, key vs value in the map, how the lookup finds the complement) is good. Fail if the reply asks why the map is checked before inserting, or re-asks the clarifying questions or the brute force.',
+    judge: 'opener_and_all',
+  },
+  {
+    id: 'refers_later_section',
+    memory: 'none',
+    turns: ['Una pregunta: ¿y LRU cómo se hace?'],
+    pass: 'LRU Cache is section 15 of this lesson. The tutor answers in at most about two sentences, says it is covered in section 15 (by number, "la 15", "la sección 15"), and comes back to Two Sum or offers to go there. Fail if it does not place it in section 15, explains LRU at length, or says it does not know what LRU is in this lesson.',
+  },
+  {
+    id: 'refers_earlier_section',
+    memory: 'none',
+    turns: ['No me acuerdo qué era O de n al cuadrado, ¿me lo explicás?'],
+    pass: 'Big-O is section 2 of this lesson ("Big-O desde cero"). The tutor explains O(n²) correctly (a loop inside a loop: double n, four times the steps) and says it is from section 2 (by number). Fail if the explanation is wrong or it does not point to section 2.',
+  },
+  {
+    id: 'false_memory_guard',
+    memory: 'none',
+    turns: ['Eso ya te lo expliqué la otra vez, ¿te acordás qué te dije del mapa?'],
+    pass: 'The tutor has NO record of any earlier session. It must not invent what the learner said; it says honestly it does not have it (or asks them to tell it again) and moves on. Fail if it attributes any specific earlier statement to the learner.',
+  },
+];
+
+const JUDGE_PLANT = `You grade one reply of an AI voice tutor (rioplatense Spanish) that works through a lesson with a learner. Be strict and literal. Return JSON {"pass": 0|1, "asks_english": 0|1, "note": "one sentence"}. "asks_english" is 1 if the reply asks the learner to say something in English or brings up the interview.`;
+
+/** USD per million tokens, gemini-3.8-live paid tier (docs/tutor/02-arquitectura.md §2). */
+const PRICE = { text: 0.75, audioIn: 3.0, audioOut: 12.0 };
+
+function turnCost(u: TurnResult['usage']): number {
+  if (!u) return 0;
+  const textIn = Math.max(0, u.prompt - u.promptAudio);
+  return (textIn * PRICE.text + u.promptAudio * PRICE.audioIn + u.responseAudio * PRICE.audioOut) / 1e6;
+}
+
+async function buildPlantSession(lesson: LessonData, c: TutorCase): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
+  const mod = await import('../src/lib/llm/voice-tutor-session');
+  const focus = lesson.sections[TUTOR_FOCUS];
+  if (ARM === 'section') {
+    const s = mod.buildLearningSession({
+      language: 'es',
+      lesson: { title: focus.title, sections: [{ title: focus.title, content: focus.content }] },
+      focusSectionIndex: 0,
+      previousSummary: c.memory === 'a94efc5c' ? A94_SUMMARY_PROSE : null,
+      bilingual: true,
+    });
+    return { instruction: s.instruction, opener: s.opener, tools: false, onTool: null };
+  }
+  return buildLessonArm(mod, lesson, c);
+}
+
+/** The new section tutor: filled in with the whole-lesson builder. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function buildLessonArm(mod: typeof import('../src/lib/llm/voice-tutor-session'), lesson: LessonData, c: TutorCase): Promise<{ instruction: string; opener: string; tools: import('@google/genai').Tool[] | false; onTool: ToolAnswer | null }> {
+  throw new Error('--arm lesson needs the whole-lesson section tutor');
+}
+
+async function runTutorPlants() {
+  const lesson = await loadLesson('3y-health-tecnica-v2');
+  const focus = lesson.sections[TUTOR_FOCUS];
+  const map = lesson.sections.map((s, i) => `${i + 1}. ${s.title}`).join('\n');
+  const cases = TUTOR_CASES.filter((c) => !TUTOR_CASES_FILTER || TUTOR_CASES_FILTER.includes(c.id));
+  console.log(`plants tutor: arm=${ARM} model=${MODEL} cases=${cases.map((c) => c.id).join(',')}`);
+  const results = [];
+  for (const c of cases) {
+    const built = await buildPlantSession(lesson, c);
+    const probe = new LiveProbe();
+    probe.onTool = built.onTool;
+    await probe.open(built.instruction, built.tools);
+    const turns: { learner: string; tutor: string; first_audio_ms: number | null; tool_calls: string[]; usage: TurnResult['usage']; cost: number; judge?: Record<string, unknown> }[] = [];
+    const history: string[] = [];
+    const opener = await probe.ask(built.opener);
+    turns.push({ learner: built.opener, tutor: opener.text, first_audio_ms: opener.firstAudioMs, tool_calls: opener.toolCalls, usage: opener.usage, cost: turnCost(opener.usage) });
+    history.push(`LEARNER: ${built.opener}`, `TUTOR: ${opener.text}`);
+    for (const line of c.turns) {
+      if (probe.closed) break;
+      const r = await probe.ask(line);
+      history.push(`LEARNER: ${line}`, `TUTOR: ${r.text}`);
+      turns.push({ learner: line, tutor: r.text, first_audio_ms: r.firstAudioMs, tool_calls: r.toolCalls, usage: r.usage, cost: turnCost(r.usage) });
+    }
+    probe.close();
+    const judged = c.judge === 'all' ? turns.slice(1) : c.judge === 'opener_and_all' ? turns : turns.slice(1, 2);
+    for (const t of judged) {
+      const upTo = history.slice(0, history.indexOf(`TUTOR: ${t.tutor}`) + 1).join('\n');
+      t.judge = await deepseek(
+        JUDGE_PLANT,
+        `LESSON MAP (section numbers):\n${map}\n\nTHE SECTION BEING STUDIED (${TUTOR_FOCUS + 1}. ${focus.title}):\n${focus.content}\n\nCASE: ${c.id}\nPASS CRITERIA: ${c.pass}\n\nCONVERSATION:\n${upTo}\n\nTHE REPLY TO GRADE IS THE LAST TUTOR TURN ABOVE.`,
+        0,
+      );
+    }
+    const pass = judged.every((t) => Number(t.judge?.pass ?? 0) === 1) ? 1 : 0;
+    const englishAsks = turns.slice(1).filter((t) => /\b(en ingl[eé]s|in english)\b/i.test(t.tutor)).length;
+    const cost = turns.reduce((a, t) => a + t.cost, 0);
+    console.log(`  ${c.id}: pass=${pass} english_asks=${englishAsks} cost=$${cost.toFixed(4)} ${judged.map((t) => t.judge?.note).join(' | ')}`);
+    results.push({ case: c.id, pass, english_asks: englishAsks, cost, instruction_chars: built.instruction.length, turns });
+  }
+  const latencies = results.flatMap((r) => r.turns.map((t) => t.first_audio_ms)).filter((x): x is number => x !== null);
+  const prompts = results.flatMap((r) => r.turns.map((t) => t.usage?.prompt ?? 0)).filter(Boolean);
+  const summary = {
+    arm: ARM,
+    pass: results.filter((r) => r.pass).length,
+    cases: results.length,
+    by_case: Object.fromEntries(results.map((r) => [r.case, r.pass])),
+    english_asks_after_learner: results.reduce((a, r) => a + r.english_asks, 0),
+    first_audio_ms_p50: percentile(latencies, 50),
+    first_audio_ms_p90: percentile(latencies, 90),
+    prompt_tokens_p50: percentile(prompts, 50),
+    prompt_tokens_max: prompts.length ? Math.max(...prompts) : null,
+    instruction_chars: results[0]?.instruction_chars ?? null,
+    cost_usd: Number(results.reduce((a, r) => a + r.cost, 0).toFixed(4)),
+    mute_turns: results.flatMap((r) => r.turns).filter((t) => !t.tutor).length,
+  };
+  const dir = join(process.cwd(), 'docs/research/voice-probe');
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, `${LABEL}.json`);
+  writeFileSync(file, JSON.stringify({ label: LABEL, date: new Date().toISOString(), model: MODEL, plants: 'tutor', arm: ARM, summary, results }, null, 2));
+  console.log(JSON.stringify(summary, null, 2));
+  console.log(`saved ${file}`);
 }
 
 main().catch((err) => {

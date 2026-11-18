@@ -8,7 +8,7 @@ import {
   type ConnectionState,
   preloadGeminiSdk,
 } from '@/lib/voice/gemini-live';
-import { buildLearningSession } from '@/lib/llm/voice-tutor-session';
+import { buildLearningSession, TUTOR_PROMPT_VERSION } from '@/lib/llm/voice-tutor-session';
 import { resolveVoiceLiveModel, TURN_TAKING, type TurnTaking } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { createLogger } from '@/lib/logger';
@@ -17,7 +17,14 @@ import type { Language } from '@/lib/translations';
 import type { Tool, FunctionCall, FunctionResponse } from '@google/genai';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
 import { decideSessionEnd, type SessionEndPolicy } from '@/lib/voice/session-end';
-import { TranscriptOutbox, postTranscriptBatch } from '@/lib/voice/transcript-outbox';
+import {
+  TranscriptOutbox,
+  postTranscriptBatch,
+  resendStoredOutboxes,
+  webStorageOutboxStore,
+  type OutboxStore,
+} from '@/lib/voice/transcript-outbox';
+import { SessionTimeline } from '@/lib/voice/session-timeline';
 
 const log = createLogger('VoiceSession');
 
@@ -26,21 +33,52 @@ async function finishSession(
   sessionId: string,
   writeToken: string | null,
   outbox: TranscriptOutbox | null,
-  diag: Record<string, string | number>,
+  diag: Record<string, unknown>,
 ): Promise<void> {
   if (outbox) {
     const drained = await outbox.drain({ keepalive: true }).catch(() => false);
     if (!drained) log.error(`[Disconnect] ${outbox.pending} transcript event(s) not stored sid=${sessionId}`);
   }
+  await postSessionEnd(sessionId, writeToken, diag).catch(() => {});
+  log.info('[Disconnect] /api/voice/session/end fired');
+}
+
+function postSessionEnd(sessionId: string, writeToken: string | null, diag: Record<string, unknown>): Promise<void> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (writeToken) headers['X-Voice-Session-Token'] = writeToken;
-  await fetch('/api/voice/session/end', {
+  return fetch('/api/voice/session/end', {
     method: 'POST',
     keepalive: true,
     headers,
     body: JSON.stringify({ sessionId, writeToken, diag }),
-  }).catch(() => {});
-  log.info('[Disconnect] /api/voice/session/end fired');
+  }).then(() => undefined);
+}
+
+function browserOutboxStore(): OutboxStore | undefined {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? webStorageOutboxStore(window.localStorage) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Once per page load: send what a killed tab or a crash left unsent, and close those sessions. */
+let storedOutboxesResent = false;
+function resendLeftovers(liveSessionId: string | null): void {
+  if (storedOutboxesResent || typeof window === 'undefined') return;
+  storedOutboxesResent = true;
+  try {
+    void resendStoredOutboxes(
+      window.localStorage,
+      postTranscriptBatch,
+      (target) => postSessionEnd(target.sessionId, target.writeToken, { endReason: 'resent' }),
+      { skipSessionId: liveSessionId },
+    ).then((ids) => {
+      if (ids.length) log.info(`[Outbox] Resent ${ids.length} session(s) left by an earlier page`);
+    }).catch(() => {});
+  } catch {
+    // Storage blocked.
+  }
 }
 
 // ============================================================================
@@ -181,8 +219,8 @@ export function useVoiceSession({
   const transcriptSeqRef = useRef(0);
   /** The current session's transcript outbox (src/lib/voice/transcript-outbox.ts). */
   const transcriptOutboxRef = useRef<TranscriptOutbox | null>(null);
-  /** What the client saw, sent with /session/end so a lost turn can be traced. */
-  const sessionDiagRef = useRef({ userFragments: 0, modelFragments: 0, audioChunksSent: 0, stored: 0, lastError: '' });
+  /** What the client saw, sent with /session/end and stored with the session (session-timeline.ts). */
+  const timelineRef = useRef(new SessionTimeline());
 
   // Session end keyword detection — debounce to prevent multiple disconnects
   const sessionEndDetectedRef = useRef(false);
@@ -282,6 +320,10 @@ export function useVoiceSession({
       prefetchTokenAndContext();
     }
   }, [prefetchTokenAndContext, systemInstructionOverride]);
+
+  useEffect(() => {
+    resendLeftovers(sessionIdRef.current);
+  }, []);
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 
@@ -400,7 +442,7 @@ export function useVoiceSession({
       pcmBuffer = [];
 
       client.sendAudio(arrayBufferToBase64(merged.buffer));
-      sessionDiagRef.current.audioChunksSent += 1;
+      timelineRef.current.counters.audioChunksSent += 1;
     }, MIC_CHUNK_INTERVAL_MS);
 
     source.connect(workletNode);
@@ -475,7 +517,7 @@ export function useVoiceSession({
     transcriptBufferRef.current.push({ role, text, ts: Date.now() });
 
     const seq = ++transcriptSeqRef.current;
-    sessionDiagRef.current.stored += 1;
+    timelineRef.current.counters.stored += 1;
     outbox.push({
       turnId: `${sid}-${seq}`,
       seq,
@@ -496,8 +538,8 @@ export function useVoiceSession({
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
     if (!sessionIdRef.current) return;
-    if (role === 'user') sessionDiagRef.current.userFragments += 1;
-    else sessionDiagRef.current.modelFragments += 1;
+    if (role === 'user') timelineRef.current.userFragment();
+    else timelineRef.current.counters.modelFragments += 1;
 
     if (utteranceRef.current && utteranceRef.current.role !== role) commitUtterance();
     const starting = !utteranceRef.current;
@@ -623,7 +665,9 @@ export function useVoiceSession({
     // A previous session's outbox keeps draining on its own; never clear it here.
     transcriptOutboxRef.current = null;
     transcriptSeqRef.current = 0;
-    sessionDiagRef.current = { userFragments: 0, modelFragments: 0, audioChunksSent: 0, stored: 0, lastError: '' };
+    const timeline = new SessionTimeline();
+    timeline.mark('mic_click');
+    timelineRef.current = timeline;
     sessionWriteTokenRef.current = null;
     setTranscript([]);
     utteranceRef.current = null;
@@ -683,9 +727,18 @@ export function useVoiceSession({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(startBody),
+        }).then((r) => {
+          timeline.mark('session_started');
+          return r;
         }),
-        tokenPromise,
-        contextPromise,
+        tokenPromise.then((t) => {
+          timeline.mark('token_ready');
+          return t;
+        }),
+        contextPromise.then((c) => {
+          timeline.mark('context_ready');
+          return c;
+        }),
       ]);
 
       // Consume pre-fetched data (one-time use)
@@ -706,9 +759,10 @@ export function useVoiceSession({
       transcriptOutboxRef.current = new TranscriptOutbox({
         target: { sessionId: sid, writeToken },
         send: postTranscriptBatch,
+        store: browserOutboxStore(),
         onError: (err, pending) => {
           const message = err instanceof Error ? err.message : String(err);
-          sessionDiagRef.current.lastError = message.slice(0, 120);
+          timeline.counters.lastError = message.slice(0, 120);
           log.warn(`[TranscriptFlush] Failed sid=${sid} pending=${pending} err=${message}`);
         },
       });
@@ -742,6 +796,7 @@ export function useVoiceSession({
       // 3. Create Gemini Live client
       const client = createGeminiLiveClient({
         onAudioResponse: (audioChunk) => {
+          timeline.audio();
           setTutorState((prev) => {
             if (prev !== 'speaking') logTransition('speaking', 'first_audio_chunk');
             return 'speaking';
@@ -749,11 +804,13 @@ export function useVoiceSession({
           playAudioChunk(audioChunk);
         },
         onTurnComplete: () => {
+          timeline.turnComplete();
           commitUtterance();
           logTransition('listening', 'turn_complete');
           setTutorState('listening');
         },
         onInterrupted: () => {
+          timeline.mark('interrupted');
           commitUtterance();
           stopPlayback();
           logTransition('listening', 'interrupted');
@@ -770,13 +827,15 @@ export function useVoiceSession({
         },
         onConnectionStateChange: setConnectionState,
         onError: (err) => {
-          sessionDiagRef.current.lastError = `live: ${String(err)}`.slice(0, 120);
+          timeline.counters.lastError = `live: ${String(err)}`.slice(0, 120);
+          timeline.mark('error');
           logTransition('idle', `error: ${err}`);
           setError(err);
           setTutorState('idle');
         },
         onTranscript: saveTranscript,
         onToolCall: (functionCalls) => {
+          for (const call of functionCalls) timeline.mark('tool_call', { name: call.name ?? '?' });
           log.info(
             `[ToolCall] Forwarding ${functionCalls.length} call(s): ${functionCalls
               .map((call) => call.name || 'unknown')
@@ -784,6 +843,8 @@ export function useVoiceSession({
           );
           paramsRef.current.onToolCall?.(functionCalls);
         },
+        onUsage: (usage) => timeline.addUsage(usage),
+        onSocketClose: (code) => timeline.mark('socket_close', { code }),
         onResumptionUpdate: (handle, resumable) => {
           // A handle sent mid-generation cannot resume the session: keep the last resumable one.
           if (!resumable) return;
@@ -831,6 +892,7 @@ export function useVoiceSession({
               c.resetRetryCount();
               log.info('[Reconnect] Proactive GoAway succeeded (session resumed)');
               onReconnectedRef.current?.();
+              timeline.mark('reconnected');
               logTransition('listening', 'goaway_reconnect');
               setTutorState('listening');
             } catch (err) {
@@ -879,6 +941,7 @@ export function useVoiceSession({
                   c.resetRetryCount();
                   log.info('[Reconnect] Layer 1 succeeded (session resumed with handle)');
               onReconnectedRef.current?.();
+              timeline.mark('reconnected');
                   logTransition('listening', 'layer1_reconnect');
                   setTutorState('listening');
                   return;
@@ -902,6 +965,7 @@ export function useVoiceSession({
                   }
                   log.info('[Reconnect] Layer 2 succeeded (context reconstructed from buffer)');
               onReconnectedRef.current?.();
+              timeline.mark('reconnected');
                   logTransition('listening', 'layer2_reconnect');
                   setTutorState('listening');
                   return;
@@ -917,6 +981,7 @@ export function useVoiceSession({
               }
               log.info('[Reconnect] Layer 2 succeeded (no handle, context from buffer)');
               onReconnectedRef.current?.();
+              timeline.mark('reconnected');
               logTransition('listening', 'layer2_reconnect');
               setTutorState('listening');
             } catch (err) {
@@ -936,6 +1001,10 @@ export function useVoiceSession({
       });
       clientRef.current = client;
 
+      timeline.facts.model = resolveVoiceLiveModel();
+      timeline.facts.instructionChars = systemInstruction.length;
+      timeline.facts.promptVersion = TUTOR_PROMPT_VERSION;
+
       // 4. Connect WebSocket
       await client.connect(token, {
         model: resolveVoiceLiveModel(),
@@ -945,14 +1014,18 @@ export function useVoiceSession({
         ...(paramsRef.current.tools ? { tools: paramsRef.current.tools } : {}),
       });
 
+      timeline.mark('socket_ready');
+
       // 5. Start mic
       await startMic(client);
+      timeline.mark('mic_capturing');
       logTransition('listening', 'session_started');
       setTutorState('listening');
 
       // 6. Send initial message — the model should jump straight to a question
       const prompt = initMsg ?? opener ?? (lang === 'es' ? 'Estoy listo.' : "I'm ready.");
       client.sendText(prompt);
+      timeline.openerSent();
 
       // 7. Start session timer (display only — no auto-disconnect)
       startTimer();
@@ -974,7 +1047,7 @@ export function useVoiceSession({
     log.info(`[Disconnect] Requested sid=${sid ?? 'none'}`);
     commitUtterance();
     const outbox = transcriptOutboxRef.current;
-    const diag = { ...sessionDiagRef.current, endReason: 'disconnect' };
+    const diag = timelineRef.current.toDiag('disconnect');
 
     // Cancel any pending reconnect attempt
     if (reconnectTimerRef.current) {
@@ -1037,10 +1110,19 @@ export function useVoiceSession({
   // queue were lost on close or reload. The first request starts synchronously.
 
   useEffect(() => {
-    const onPageHide = () => {
-      if (!sessionIdRef.current) return;
+    const onPageHide = (event: PageTransitionEvent) => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
       commitUtterance();
-      void transcriptOutboxRef.current?.flush({ keepalive: true });
+      const outbox = transcriptOutboxRef.current;
+      if (!event.persisted) {
+        // The page is going away for good: close the session now, so it is
+        // digested and in the memory of the next one (what is still unsent
+        // stays in localStorage for the next page load).
+        void finishSession(sid, sessionWriteTokenRef.current, outbox, timelineRef.current.toDiag('pagehide'));
+      } else {
+        void outbox?.flush({ keepalive: true });
+      }
     };
     window.addEventListener('pagehide', onPageHide);
     return () => window.removeEventListener('pagehide', onPageHide);
@@ -1060,7 +1142,7 @@ export function useVoiceSession({
       const writeToken = sessionWriteTokenRef.current;
       const outbox = transcriptOutboxRef.current;
       transcriptOutboxRef.current = null;
-      if (sid) void finishSession(sid, writeToken, outbox, { ...sessionDiagRef.current, endReason: 'unmount' });
+      if (sid) void finishSession(sid, writeToken, outbox, timelineRef.current.toDiag('unmount'));
 
       stopMic();
       stopPlayback();

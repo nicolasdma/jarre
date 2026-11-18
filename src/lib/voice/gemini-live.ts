@@ -73,6 +73,26 @@ interface GeminiLiveCallbacks {
   onResumptionUpdate?: (handle: string, resumable: boolean, lastIndex?: string) => void;
   onToolCall?: (functionCalls: FunctionCall[]) => void;
   onToolCallCancellation?: (cancelledIds: string[]) => void;
+  /** Token use the server reports (usageMetadata), as it comes. */
+  onUsage?: (usage: LiveUsage) => void;
+  /** Every socket close that was not ours, with its code (before any retry). */
+  onSocketClose?: (code: number, reason: string) => void;
+}
+
+/** What one usageMetadata message says, by modality. */
+export interface LiveUsage {
+  promptTokens: number;
+  responseTokens: number;
+  promptText: number;
+  promptAudio: number;
+  responseAudio: number;
+}
+
+function modalityTokens(details: unknown, modality: string): number {
+  if (!Array.isArray(details)) return 0;
+  return details
+    .filter((d) => d && typeof d === 'object' && (d as Record<string, unknown>).modality === modality)
+    .reduce((sum, d) => sum + (Number((d as Record<string, unknown>).tokenCount) || 0), 0);
 }
 
 // ============================================================================
@@ -242,6 +262,18 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 }
               }
 
+              // Token use: the Live API bills every token in the context on every turn.
+              const usage = (message as unknown as Record<string, unknown>).usageMetadata as Record<string, unknown> | undefined;
+              if (usage && callbacks.onUsage) {
+                callbacks.onUsage({
+                  promptTokens: Number(usage.promptTokenCount) || 0,
+                  responseTokens: Number(usage.responseTokenCount) || 0,
+                  promptText: modalityTokens(usage.promptTokensDetails, 'TEXT'),
+                  promptAudio: modalityTokens(usage.promptTokensDetails, 'AUDIO'),
+                  responseAudio: modalityTokens(usage.responseTokensDetails, 'AUDIO'),
+                });
+              }
+
               // Interruption: model was cut off by user speech
               if (message.serverContent?.interrupted) {
                 audioInTurn = false;
@@ -334,6 +366,7 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
               const reason = event instanceof CloseEvent
                 ? `code=${event.code} reason=${event.reason}`
                 : String(event);
+              callbacks.onSocketClose?.(closeCode, event instanceof CloseEvent ? event.reason : '');
 
               // Retry unless the close code indicates a permanent/structural error
               if (
