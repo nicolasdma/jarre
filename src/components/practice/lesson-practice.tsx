@@ -9,7 +9,7 @@
  * practice click.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
@@ -34,9 +34,12 @@ interface LessonPracticeValue {
   mode: DrillMode;
   setMode: (mode: DrillMode) => void;
   select: (slug: string, mode?: DrillMode) => void;
-  /** The drill opened inline under a reading section, if any. */
-  openSlug: string | null;
-  setOpenSlug: (slug: string | null) => void;
+  /**
+   * Opens a drill in the Decirlo step (from the reading, a coding exercise):
+   * the learn view registers how it changes step with `setStepNavigator`.
+   */
+  goToDrill: (slug: string, mode?: DrillMode) => void;
+  setStepNavigator: (open: (() => void) | null) => void;
   /** Approved modes of a drill (lib/practice/drill-progress.ts). */
   progressOf: (drill: PracticeDrill) => DrillProgress;
 }
@@ -68,7 +71,6 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
     () => (initialSlug && drills.some((d) => d.slug === initialSlug) ? initialSlug : groups[0]?.drills[0]?.slug ?? null),
   );
   const [mode, setMode] = useState<DrillMode>(initialMode ?? 'listen');
-  const [openSlug, setOpenSlug] = useState<string | null>(null);
   // A drill with no recording plays in the browser voice; with neither, Escuchar and Frase por frase are not there.
   const hasVoice = useSyncExternalStore(noSubscribe, () => 'speechSynthesis' in window, () => true);
 
@@ -86,9 +88,22 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
     if (nextMode) setMode(nextMode);
   }, []);
 
+  const navigatorRef = useRef<(() => void) | null>(null);
+  const setStepNavigator = useCallback((open: (() => void) | null) => {
+    navigatorRef.current = open;
+  }, []);
+  const goToDrill = useCallback(
+    (slug: string, nextMode?: DrillMode) => {
+      select(slug, nextMode);
+      navigatorRef.current?.();
+      requestAnimationFrame(() => window.scrollTo({ top: 0 }));
+    },
+    [select],
+  );
+
   const value = useMemo(
-    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug, progressOf }),
-    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, openSlug, progressOf],
+    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, goToDrill, setStepNavigator, progressOf }),
+    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, goToDrill, setStepNavigator, progressOf],
   );
   return <LessonPracticeContext.Provider value={value}>{children}</LessonPracticeContext.Provider>;
 }
@@ -97,83 +112,38 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 // Under a reading section
 // ---------------------------------------------------------------------------
 
-/**
- * Where a phrase stands, in words: "sin empezar", "en curso" (the approved
- * modes in the title) or "hecha" in the success color.
- */
-function ProgressCount({ p }: { p: DrillProgress }) {
-  if (!p.started) {
-    return (
-      <span className="shrink-0 font-mono text-[10px] text-j-text-tertiary" data-testid="drill-pending">
-        sin empezar
-      </span>
-    );
-  }
-  return (
-    <span
-      className={cn('shrink-0 font-mono text-[10px]', p.complete ? 'text-j-success' : 'text-j-text-tertiary')}
-      title={modesTitle(p)}
-      data-testid="drill-progress"
-    >
-      {p.complete ? 'hecha' : 'en curso'}
-    </span>
-  );
-}
-
 function modesTitle(p: DrillProgress): string {
   return `${p.done} de ${p.total} formas de practicar aprobadas`;
 }
 
-/** The section's drills, under its reading: one opens inline with every mode. */
+/**
+ * Under a section's reading, one row: how many phrases this part has to say
+ * in English, and a way to Decirlo at the first of them (the practice itself
+ * lives there, so the reading stays light).
+ */
 export function SectionDrills({ conceptId }: { conceptId: string }) {
   const practice = useLessonPractice();
   if (!practice) return null;
   const group = practice.groups.find((g) => g.id === conceptId);
-  if (!group) return null;
+  if (!group || group.drills.length === 0) return null;
   const complete = group.drills.filter((d) => practice.progressOf(d).complete).length;
+  const next = group.drills.find((d) => !practice.progressOf(d).complete) ?? group.drills[0];
 
   return (
     <section className="mt-8 border-t border-j-border pt-6" aria-label="Para decir en inglés" data-testid="section-drills">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Para decir en inglés</p>
-        <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary" data-testid="section-complete">
-          {phrasesLine(group.drills.length, complete)}
-        </p>
-      </div>
-      <ul className="space-y-2">
-        {group.drills.map((d) => {
-          const open = practice.openSlug === d.slug;
-          return (
-            <li key={d.slug} id={`drill-${d.slug}`} className={cn('border', open ? 'border-j-accent' : 'border-j-border')}>
-              <button
-                type="button"
-                onClick={() => practice.setOpenSlug(open ? null : d.slug)}
-                aria-expanded={open}
-                className="flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-left hover:bg-j-bg-alt"
-              >
-                <span className="min-w-0 flex-1 text-sm text-j-text">{d.title}</span>
-                {!d.audioUrl && <AutoVoiceTag />}
-                <ProgressCount p={practice.progressOf(d)} />
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">{open ? 'Cerrar' : 'Practicar'}</span>
-              </button>
-              {open && (
-                <div className="border-t border-j-border px-3 py-4">
-                  <DrillTrainer
-                    resourceId={practice.resourceId}
-                    drill={d}
-                    ask={practice.asks[d.slug]}
-                    keyTerms={practice.keyTerms}
-                    mode={practice.mode}
-                    onModeChange={practice.setMode}
-                    scores={practice.scores}
-                    onScores={practice.setScores}
-                  />
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <button
+        type="button"
+        onClick={() => practice.goToDrill(next.slug)}
+        className="flex min-h-[52px] w-full items-center gap-3 border border-j-border px-4 py-3 text-left transition-colors hover:border-j-accent"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-j-text">Para decir en inglés</span>
+          <span className="block font-mono text-[10px] tabular-nums text-j-text-tertiary" data-testid="section-complete">
+            {phrasesLine(group.drills.length, complete)}
+          </span>
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-accent">Decirlo →</span>
+      </button>
     </section>
   );
 }
@@ -347,15 +317,6 @@ function phrasesLine(total: number, done: number): string {
 function dueLine(count: number, presentation: boolean): string {
   const noun = presentation ? (count === 1 ? 'frase' : 'frases') : count === 1 ? 'respuesta' : 'respuestas';
   return `${count} ${noun} para repasar hoy`;
-}
-
-/** A phrase with no recording plays in the device's voice: said once, on that phrase only. */
-function AutoVoiceTag() {
-  return (
-    <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-j-text-tertiary" title="Esta frase no tiene grabación: la lee una voz automática">
-      voz automática
-    </span>
-  );
 }
 
 /** The drill picker on a phone: "✓ " complete, "3/5 " started, nothing pending. */
