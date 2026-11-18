@@ -110,12 +110,13 @@ export function RecallMode({
     if (judgedRating && !touchedRef.current) dispatch({ type: 'select', rating: judgedRating });
   }, [judgedRating]);
 
-  // The answer plays as soon as the countdown ends (or is skipped), once.
-  const { restart, pause, setLoop, loop } = audio;
+  // The reference recording no longer plays on its own when the answer is
+  // revealed (owner, 2026-11-18: it "aparece de la nada"): the learner plays it
+  // from the AudioBar below. Loop is still cleared on reveal so a manual play
+  // here does not repeat (Escuchar's loop is shared across modes).
+  const { pause, setLoop, loop } = audio;
   useEffect(() => {
-    if (state.phase !== 'answer') return;
-    if (loop) setLoop(false);
-    restart();
+    if (state.phase === 'answer' && loop) setLoop(false);
     // Only on entering the answer: loop and the audio's identity are not triggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase]);
@@ -182,23 +183,27 @@ export function RecallMode({
 
   return (
     <div ref={rootRef} className="space-y-6" data-mode="recall" data-phase={state.phase}>
-      <div className="border border-j-border bg-j-bg-white px-4 py-5 sm:px-6">
-        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.15em]">
-          <span className="text-j-warm-dark">Pregunta</span>
-          {prompt.tag && <span className="text-j-text-tertiary">{prompt.tag}</span>}
-          {prompt.target && <span className="text-j-text-tertiary">objetivo {prompt.target}</span>}
+      {/* The prompt is what they must recall, so it is out of sight while they answer
+          and during the countdown ("respondé sin mirar"); it returns with the result. */}
+      {state.phase !== 'thinking' && (
+        <div className="border border-j-border bg-j-bg-white px-4 py-5 sm:px-6" data-testid="recall-prompt-card">
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.15em]">
+            <span className="text-j-warm-dark">Pregunta</span>
+            {prompt.tag && <span className="text-j-text-tertiary">{prompt.tag}</span>}
+            {prompt.target && <span className="text-j-text-tertiary">objetivo {prompt.target}</span>}
+          </div>
+          <p
+            className="text-xl font-semibold leading-snug text-j-text sm:text-2xl"
+            lang={prompt.source === 'ask' ? 'en' : 'es'}
+            data-testid="recall-prompt"
+            data-source={prompt.source}
+          >
+            {prompt.question}
+          </p>
+          {prompt.topic && <p className="mt-1 text-sm text-j-text-tertiary" lang="es">{prompt.topic}</p>}
+          <p className="mt-2 text-sm text-j-text-secondary">Respondé en voz alta, en inglés, sin mirar.</p>
         </div>
-        <p
-          className="text-xl font-semibold leading-snug text-j-text sm:text-2xl"
-          lang={prompt.source === 'ask' ? 'en' : 'es'}
-          data-testid="recall-prompt"
-          data-source={prompt.source}
-        >
-          {prompt.question}
-        </p>
-        {prompt.topic && <p className="mt-1 text-sm text-j-text-tertiary" lang="es">{prompt.topic}</p>}
-        <p className="mt-2 text-sm text-j-text-secondary">Respondé en voz alta, en inglés, sin mirar.</p>
-      </div>
+      )}
 
       {state.phase === 'ready' && (
         <div className="space-y-4">
