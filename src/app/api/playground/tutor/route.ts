@@ -13,6 +13,7 @@ import { callDeepSeek } from '@/lib/llm/deepseek';
 import { buildTutorMessages } from '@/lib/llm/tutor-prompts';
 import { createLogger } from '@/lib/logger';
 import { TOKEN_BUDGETS } from '@/lib/constants';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('Tutor');
 
@@ -23,8 +24,16 @@ function isValidPlayground(value: unknown): value is Playground {
   return typeof value === 'string' && VALID_PLAYGROUNDS.includes(value as Playground);
 }
 
-export const POST = withAuth(async (request, { }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
+      return NextResponse.json(
+        { error: budget.message, reason: budget.reason, used: budget.used, limit: budget.limit },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const { playground, state, history, userMessage } = body as {
       playground: unknown;

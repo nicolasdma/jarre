@@ -4,6 +4,7 @@ import { callDeepSeek } from '@/lib/llm/deepseek';
 import { SELF_EXPLANATION_AUTO_GENUINE_LENGTH, TOKEN_BUDGETS } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
 import { logTokenUsage } from '@/lib/db/token-usage';
+import { checkTokenBudget } from '@/lib/api/rate-limit';
 
 const log = createLogger('SelfExplanation/Validate');
 
@@ -17,7 +18,7 @@ const log = createLogger('SelfExplanation/Validate');
  * Body: { explanation: string, conceptName: string }
  * Returns: { isGenuine: boolean }
  */
-export const POST = withAuth(async (request, { user }) => {
+export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   try {
     const { explanation, conceptName } = await request.json();
 
@@ -27,6 +28,12 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Skip validation for substantial explanations
     if (explanation.trim().length > SELF_EXPLANATION_AUTO_GENUINE_LENGTH) {
+      return NextResponse.json({ isGenuine: true });
+    }
+
+    // Over the cap the check is skipped, never the learner: it is advisory.
+    const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
+    if (!budget.allowed) {
       return NextResponse.json({ isGenuine: true });
     }
 

@@ -43,7 +43,7 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
 
   const budget = await checkTokenBudget(supabase, user.id, !!byokKeys.deepseek);
   if (!budget.allowed) {
-    return NextResponse.json({ error: 'Monthly token limit exceeded', used: budget.used, limit: budget.limit }, { status: 429 });
+    return NextResponse.json({ error: budget.message, reason: budget.reason, used: budget.used, limit: budget.limit }, { status: 429 });
   }
 
   // `*`: `interview` exists only once its migration is applied.
