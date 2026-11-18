@@ -366,15 +366,15 @@ function StickyHeader({
 
       {/* Below lg: the lesson and where you are in it (on lg the sidebar and the line above say it). */}
       {!isFocusMode && (
-        <div className="mx-auto max-w-6xl px-4 pb-3 sm:px-8 lg:hidden" data-testid="learn-position">
+        <div className="mx-auto flex max-w-6xl items-baseline gap-2 px-4 pb-3 sm:px-8 lg:hidden" data-testid="learn-position">
           <button
             type="button"
             onClick={onCover}
-            className="block w-full truncate text-left text-sm font-medium text-j-text hover:text-j-accent"
+            className="min-w-0 flex-1 truncate text-left text-sm font-medium text-j-text hover:text-j-accent"
           >
             {resourceTitle}
           </button>
-          <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">
             {stepPosition}
           </span>
         </div>
@@ -636,14 +636,6 @@ function LearnFlowInner({
     },
     [resourceId, buildProgress, currentStep]
   );
-
-  // "Decirlo →" under a section's reading (and a coding exercise's "practice it") open that drill here.
-  const setStepNavigator = practice?.setStepNavigator;
-  useEffect(() => {
-    if (!setStepNavigator) return;
-    setStepNavigator(() => changeStep('apply'));
-    return () => setStepNavigator(null);
-  }, [setStepNavigator, changeStep]);
 
   // Keep the place in the URL, so a reload or a shared link opens the same step
   // (and, in Practice, the same drill and mode).

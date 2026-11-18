@@ -113,10 +113,6 @@ export const ConceptSection = memo(function ConceptSection({
 
   const [preFetchFailed, setPreFetchFailed] = useState(false);
   const [voiceCompleted, setVoiceCompleted] = useState(initialState?.voiceCompleted ?? false);
-  /** The optional guess before reading, folded until asked for. */
-  const [guessOpen, setGuessOpen] = useState(false);
-  /** The section's voice talk: optional, opened from a link under the reading. */
-  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const { cancel: cancelWhisper } = useWhisper();
 
@@ -363,56 +359,75 @@ export const ConceptSection = memo(function ConceptSection({
         </span>
       </div>
 
-      {/* The optional guess before reading (productive failure): one folded line, and
-          nothing at all when the section has no question. The reading is already below. */}
-      {phase === 'pre-question' && preQuestion && (
-        <div className="mb-6 border border-j-border bg-j-bg-alt" data-testid="pre-question">
-          <button
-            type="button"
-            onClick={() => setGuessOpen((v) => !v)}
-            aria-expanded={guessOpen}
-            className="flex min-h-[44px] w-full items-center gap-2 px-4 py-2 text-left"
-          >
-            <span aria-hidden className="font-mono text-[10px] text-j-warm">{guessOpen ? '▾' : '▸'}</span>
-            <span className="text-sm text-j-text">{t('learn.preQuestion.title', language)}</span>
-            <span className="font-mono text-[10px] text-j-text-tertiary">{language === 'es' ? '(opcional)' : '(optional)'}</span>
-          </button>
-          {guessOpen && (
-            <div className="space-y-3 border-t border-j-border px-4 py-4">
-              <p className="text-xs text-j-text-tertiary">{t('learn.preQuestion.instruction', language)}</p>
-              <p className="text-sm text-j-text leading-relaxed">{preQuestion.questionText}</p>
+      {/* Phase: Pre-question (productive failure) */}
+      {phase === 'pre-question' && (
+        <div className="bg-j-bg-alt border border-j-border p-6 mb-6">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-j-warm uppercase mb-3">
+            {t('learn.preQuestion.title', language)}
+          </p>
+          <p className="text-xs text-j-text-tertiary mb-4">
+            {t('learn.preQuestion.instruction', language)}
+          </p>
+
+          {preLoading && (
+            <p className="text-sm text-j-text-tertiary">{t('common.loading', language)}</p>
+          )}
+
+          {preQuestion && (
+            <div className="space-y-3">
+              <p className="text-sm text-j-text leading-relaxed">
+                {preQuestion.questionText}
+              </p>
+
               <textarea
                 value={preAnswer}
                 onChange={(e) => setPreAnswer(e.target.value)}
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
                 className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field immediately when pre-reading question appears
+                autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey) handlePreSubmit();
                 }}
               />
+
               <div className="flex gap-2">
                 <button
                   onClick={handlePreSubmit}
                   disabled={!preAnswer.trim()}
-                  className="min-h-[44px] font-mono text-[10px] tracking-[0.15em] border border-j-accent text-j-accent px-4 py-2 uppercase hover:bg-j-accent-light transition-colors disabled:opacity-50"
+                  className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors disabled:opacity-50"
                 >
                   {t('learn.preQuestion.submit', language)}
                 </button>
                 <button
                   onClick={skipToContent}
-                  className="min-h-[44px] font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary px-3 py-2 uppercase hover:text-j-text-secondary transition-colors"
+                  className="font-mono text-[10px] tracking-[0.15em] border border-j-border-input text-j-text-secondary px-3 py-2 uppercase hover:border-j-accent transition-colors"
                 >
                   {t('learn.preQuestion.skip', language)}
                 </button>
               </div>
             </div>
           )}
+
+          {!preLoading && !preQuestion && (
+            <div>
+              <p className="text-xs text-j-text-tertiary mb-3">
+                {t('learn.question.none', language)}
+              </p>
+              <button
+                onClick={skipToContent}
+                className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-4 py-2 uppercase hover:bg-j-accent-hover transition-colors"
+              >
+                {t('learn.preQuestion.skip', language)}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Phase: Content (reading) — also shown in review mode for completed sections */}
-      {(phase === 'pre-question' || phase === 'content' || phase === 'exercise' || phase === 'post-test' || phase === 'completed') && (
+      {(phase === 'content' || phase === 'exercise' || phase === 'post-test' || phase === 'completed') && (
         <div className="mb-6">
           {preAttempted && preAnswer.trim() && (
             <div className="bg-j-bg-alt border border-j-border p-3 mb-6 text-xs text-j-text-tertiary">
@@ -435,44 +450,57 @@ export const ConceptSection = memo(function ConceptSection({
 
           {afterContent}
 
-          {(phase === 'pre-question' || phase === 'content') && (
-            <div className="mt-8 pt-6 border-t border-j-border" data-testid="section-done">
-              <button
-                type="button"
-                onClick={handleContentDone}
-                className="min-h-[44px] font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-6 py-2.5 uppercase hover:bg-j-accent-hover transition-colors"
-              >
-                {t('learn.postTest.title', language)} →
-              </button>
-
-              {/* The talk about this part: optional, a link and not a second big button. */}
-              <div className="mt-6">
-                {voiceOpen ? (
-                  <VoicePanel
-                    sectionId={section.id}
-                    sectionContent={section.contentMarkdown}
-                    sectionTitle={section.sectionTitle}
-                    language={language}
-                    onSessionComplete={() => {
-                      setVoiceCompleted(true);
-                      setVoiceOpen(false);
-                      onStateChange?.({ ...initialState, phase: 'content', preAnswer, preAttempted, voiceCompleted: true });
-                    }}
-                    onSkip={() => setVoiceOpen(false)}
-                  />
-                ) : (
+          {phase === 'content' && (
+            <div className="mt-8 pt-6 border-t border-j-border">
+              {!voiceCompleted ? (
+                <VoicePanel
+                  sectionId={section.id}
+                  sectionContent={section.contentMarkdown}
+                  sectionTitle={section.sectionTitle}
+                  language={language}
+                  onSessionComplete={() => {
+                    setVoiceCompleted(true);
+                    onStateChange?.({
+                      ...initialState,
+                      phase: 'content',
+                      preAnswer: preAnswer,
+                      preAttempted,
+                      voiceCompleted: true,
+                    });
+                  }}
+                  onSkip={() => {
+                    setVoiceCompleted(true);
+                    onStateChange?.({
+                      ...initialState,
+                      phase: 'content',
+                      preAnswer: preAnswer,
+                      preAttempted,
+                      voiceCompleted: true,
+                    });
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center py-8">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-j-accent mb-3">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase mb-1">
+                    {language === 'es' ? 'Charla terminada' : 'Talk finished'}
+                  </p>
+                  <p className="text-sm text-j-text-secondary mb-6">
+                    {language === 'es'
+                      ? 'Te queda una pregunta para cerrar esta parte.'
+                      : 'One question left to close this part.'}
+                  </p>
                   <button
-                    type="button"
-                    onClick={() => setVoiceOpen(true)}
-                    className="min-h-[44px] text-sm text-j-text-secondary underline underline-offset-4 hover:text-j-text"
-                    data-testid="section-voice-link"
+                    onClick={handleContentDone}
+                    className="font-mono text-[10px] tracking-[0.15em] bg-j-accent text-j-text-on-accent px-8 py-3 uppercase hover:bg-j-accent-hover transition-colors"
                   >
-                    {voiceCompleted
-                      ? language === 'es' ? 'Charlarlo otra vez con el tutor' : 'Talk it through with the tutor again'
-                      : language === 'es' ? 'Charlarlo con el tutor (opcional)' : 'Talk it through with the tutor (optional)'}
+                    {t('learn.postTest.title', language)} →
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -515,6 +543,8 @@ export const ConceptSection = memo(function ConceptSection({
                 placeholder={t('review.answerPlaceholder', language)}
                 rows={3}
                 className="w-full border border-j-border-input bg-j-bg-white p-3 text-sm text-j-text placeholder-j-text-tertiary focus:outline-none focus:border-j-accent resize-none"
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: focus answer field immediately when post-reading question appears
+                autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.metaKey && postAnswer.trim()) {
                     handlePostSubmit();

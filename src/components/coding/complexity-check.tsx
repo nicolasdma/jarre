@@ -100,7 +100,9 @@ function SayIt({ check }: { check: Check }) {
 
   const practiceIt = () => {
     if (!practice || !drill) return;
-    practice.goToDrill(drill.slug, 'repeat');
+    practice.setMode('repeat');
+    practice.setOpenSlug(drill.slug);
+    requestAnimationFrame(() => document.getElementById(`drill-${drill.slug}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   };
 
   return (

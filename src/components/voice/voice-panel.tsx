@@ -140,7 +140,7 @@ export function VoicePanel({
             onClick={onSkip}
             className="mt-6 font-mono text-[10px] text-j-text-tertiary hover:text-j-text-secondary transition-colors underline underline-offset-2"
           >
-            {language === 'es' ? 'Cerrar' : 'Close'}
+            {language === 'es' ? 'Saltar a la pregunta final' : 'Skip to the last question'}
           </button>
         )}
       </div>
