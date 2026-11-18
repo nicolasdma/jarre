@@ -10,6 +10,8 @@ interface Section {
 
 interface LearnTOCProps {
   language: Language;
+  /** The lesson's title: the first entry, it opens the cover. */
+  title?: string;
   sections: Section[];
   activeSection: number;
   completedSections: Set<number>;
@@ -29,7 +31,7 @@ interface LearnTOCProps {
   onMobileOpenChange: (open: boolean) => void;
 }
 
-const STEP_ORDER: Step[] = ['activate', 'learn', 'apply', 'practice-eval', 'evaluate'];
+const STEP_ORDER: Step[] = ['learn', 'apply', 'practice-eval', 'evaluate'];
 
 const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
   activate: 'learn.step.activate',
@@ -47,6 +49,7 @@ const STEP_KEYS: Record<Step, Parameters<typeof t>[0]> = {
  */
 export function LearnTOC({
   language,
+  title,
   sections,
   activeSection,
   completedSections,
@@ -74,6 +77,23 @@ export function LearnTOC({
 
   const content = (
     <nav className="py-4">
+      {/* The cover */}
+      {title && (
+        <button
+          type="button"
+          onClick={() => handleStepClick('activate')}
+          aria-current={currentStep === 'activate' ? 'page' : undefined}
+          className={`mb-4 block w-full px-4 py-1.5 text-left text-[13px] font-medium leading-snug transition-colors ${
+            currentStep === 'activate' ? 'text-j-accent' : 'text-j-text hover:text-j-accent'
+          }`}
+        >
+          {title}
+          <span className="mt-0.5 block font-mono text-[9px] font-normal uppercase tracking-[0.2em] text-j-text-tertiary">
+            {t('learn.step.activate', language)}
+          </span>
+        </button>
+      )}
+
       {/* Steps */}
       <div className="mb-6">
         <p className="font-mono text-[9px] tracking-[0.2em] text-j-text-tertiary uppercase mb-2 px-4">
