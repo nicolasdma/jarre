@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { TRACE_INDEX } from '@/lib/code-trace/registry';
 import type { TraceDef } from '@/lib/code-trace/trace';
 import { CodeTrace } from '@/components/code-trace/code-trace';
-import { TraceLauncher } from '@/components/code-trace/trace-launcher';
+import { TracedCode } from '@/components/code-trace/traced-code';
+import { CodeTabsBlock } from '@/components/coding/code-tabs-lazy';
 
-export function TracePreview({ id, example, step, dialog }: { id: string | null; example: number; step: number; dialog: boolean }) {
+export function TracePreview({ id, example, step, block }: { id: string | null; example: number; step: number; block: boolean }) {
   const entry = TRACE_INDEX.find((e) => e.id === id) ?? TRACE_INDEX[0];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [def, setDef] = useState<TraceDef<any, any> | null>(null);
@@ -27,7 +28,7 @@ export function TracePreview({ id, example, step, dialog }: { id: string | null;
         {TRACE_INDEX.map((e) => (
           <a
             key={e.id}
-            href={`?id=${e.id}${dialog ? '&dialog=1' : ''}`}
+            href={`?id=${e.id}${block ? '&block=1' : ''}`}
             className={'shrink-0 rounded border px-2 py-0.5 font-mono text-[11px] ' + (e.id === entry.id ? 'border-j-accent bg-j-accent text-j-text-on-accent' : 'border-j-border text-j-text-secondary')}
           >
             {e.id}
@@ -35,13 +36,14 @@ export function TracePreview({ id, example, step, dialog }: { id: string | null;
         ))}
       </nav>
       {def && (
-        <div className="mx-auto max-w-[1120px]">
+        <div className="mx-auto max-w-[680px]">
           <h1 className="mb-1 text-xl font-light">{def.title}</h1>
           <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">{def.pattern}</p>
-          {dialog ? (
+          {block ? (
             <div className="max-w-[680px]">
-              <pre className="overflow-x-auto rounded-lg border border-j-border bg-j-bg-white p-3 font-mono text-xs">{def.code}</pre>
-              <TraceLauncher code={def.code} />
+              <TracedCode code={def.code} buttonClassName="-mt-4 mb-6">
+                <CodeTabsBlock code={def.code} lang="ts" />
+              </TracedCode>
             </div>
           ) : (
             <CodeTrace key={def.id} def={def} initialExample={example} initialStep={step} />

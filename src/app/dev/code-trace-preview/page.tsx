@@ -17,14 +17,14 @@ export const metadata: Metadata = {
  *   open http://localhost:3000/dev/code-trace-preview?id=two-sum&ex=0&step=4
  *
  * `id` picks the problem, `ex` the example, `step` the starting step (0-based);
- * `dialog=1` shows the lesson's button and its dialog instead of the inline player.
+ * `block=1` shows the code block with its "Ver paso a paso" button, as a lesson does.
  */
 export default async function CodeTracePreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; ex?: string; step?: string; dialog?: string }>;
+  searchParams: Promise<{ id?: string; ex?: string; step?: string; block?: string }>;
 }) {
   if (process.env.NODE_ENV !== 'development') notFound();
-  const { id, ex, step, dialog } = await searchParams;
-  return <TracePreview id={id ?? null} example={Number(ex ?? 0) || 0} step={Number(step ?? 0) || 0} dialog={dialog === '1'} />;
+  const { id, ex, step, block } = await searchParams;
+  return <TracePreview id={id ?? null} example={Number(ex ?? 0) || 0} step={Number(step ?? 0) || 0} block={block === '1'} />;
 }

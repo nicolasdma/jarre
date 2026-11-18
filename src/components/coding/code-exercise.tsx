@@ -22,7 +22,7 @@ import { clearDraft, loadDraft, saveDraft } from './coding-store';
 import { ComplexityCheck } from './complexity-check';
 import { useCodeTabsEnabled } from './code-tabs-context';
 import { CodeTabsBlock } from './code-tabs-lazy';
-import { TraceLauncher } from '../code-trace/trace-launcher';
+import { TracedCode } from '../code-trace/traced-code';
 
 interface CodeExerciseProps {
   resourceId: string;
@@ -158,12 +158,13 @@ export function SolutionPanel({ problem }: { problem: CodingProblem }) {
       <p className="text-sm text-j-text" lang="en">
         {problem.solution.approach}
       </p>
-      {codeTabs ? (
-        <CodeTabsBlock code={problem.solution.code} lang="ts" />
-      ) : (
-        <pre className="overflow-x-auto bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{problem.solution.code}</pre>
-      )}
-      <TraceLauncher code={problem.solution.code} className={codeTabs ? '-mt-4' : ''} />
+      <TracedCode code={problem.solution.code} buttonClassName={codeTabs ? '-mt-4' : ''}>
+        {codeTabs ? (
+          <CodeTabsBlock code={problem.solution.code} lang="ts" />
+        ) : (
+          <pre className="overflow-x-auto bg-j-bg-white p-3 font-mono text-xs leading-relaxed text-j-text">{problem.solution.code}</pre>
+        )}
+      </TracedCode>
       {problem.pitfalls.length > 0 && (
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Errores típicos</p>
