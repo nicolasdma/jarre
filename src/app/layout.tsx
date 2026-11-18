@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { TutorContextProvider } from "@/lib/tutor-context";
 import { ByokProvider } from "@/components/contexts/byok-provider";
-import type { Language } from "@/lib/translations";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,8 +40,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Detect user language for voice overlay + get session for BYOK
-  let language: Language = 'es';
+  // Get session for BYOK
   let sessionToken: string | undefined;
   let userId: string | undefined;
   try {
@@ -50,17 +48,11 @@ export default async function RootLayout({
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       userId = user.id;
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('language')
-        .eq('id', user.id)
-        .single();
-      language = (profile?.language || 'es') as Language;
       const { data: sessionData } = await supabase.auth.getSession();
       sessionToken = sessionData.session?.access_token;
     }
   } catch {
-    // Not authenticated or DB error — default to 'es'
+    // Not authenticated or DB error
   }
 
   return (
@@ -85,7 +77,7 @@ export default async function RootLayout({
         </a>
         <ByokProvider userId={userId} sessionToken={sessionToken}>
           <TutorContextProvider>
-            <AppShell language={language}>
+            <AppShell>
               <main id="main-content">
                 {children}
               </main>

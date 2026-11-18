@@ -688,8 +688,8 @@ function LearnFlowInner({
         </div>
       )}
 
-      {/* Step content — centered relative to full viewport (compensates for TOC + tutor sidebar) */}
-      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-484px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
+      {/* Step content — centered in the band to the right of the 220px fixed TOC (the right tutor panel was removed) */}
+      <div className={`max-w-3xl pl-0 pr-4 sm:px-8 mx-auto lg:ml-[calc(50vw-274px)] ${currentStep === 'apply' && !hasPractice ? 'hidden' : ''}`}>
         {/* STEP 3 with drills: PRACTICE — every answer of the call, every mode */}
         {currentStep === 'apply' && hasPractice && <PracticeStep onInterview={() => changeStep('interview')} />}
 
