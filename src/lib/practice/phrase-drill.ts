@@ -5,6 +5,15 @@
  * (play the phrase, open the mic, wait a beat) and feeds what happened back
  * as events; every transition lives here. Pure: tested in
  * __tests__/phrase-drill.test.ts.
+ *
+ * Skipping (owner, 2026-11-18: "in phrase-by-phrase we should be able to skip
+ * a phrase if we get stuck"): Saltar leaves a phrase at any moment of its turn
+ * (playing, listening, after a try) without a try counted. A skipped phrase
+ * stays not said well, so it never helps approve the mode, and is remembered:
+ * when the pass reaches its end with skipped phrases still not said well, the
+ * drill stops at `leftover` ("Te quedaron N frases") and offers a pass over
+ * only those, in drill order, before the summary. Without speech recognition
+ * nothing is judged and nothing is a skip: Siguiente is the normal way on.
  */
 
 import type { KeyTerm } from './key-terms';
@@ -41,6 +50,8 @@ export type PhrasePhase =
   | 'result'
   /** No speech recognition: the learner says it and moves on by hand. */
   | 'your-turn'
+  /** The pass ended with skipped phrases not said well: go over them, or see the summary. */
+  | 'leftover'
   | 'summary';
 
 export interface PhraseResult {
@@ -60,12 +71,20 @@ export interface PhraseDrillState {
   silent: boolean;
   /** Bumped on every play or listen, so the same phase on the same phrase runs again. */
   run: number;
+  /** Phrases left before they were said well, in drill order. One said well later no longer counts as left. */
+  skipped: number[];
+  /** A pass over the skipped phrases only (their indices, in order), or null for the whole drill. */
+  queue: number[] | null;
+  /** There is speech recognition (from the last `played`): without it nothing is judged, so nothing is a skip. */
+  canListen: boolean;
 }
 
 export type PhraseEvent =
   | { type: 'start' }
   | { type: 'go'; index: number }
   | { type: 'next' }
+  /** Leave the phrase now, at any moment of its turn: no try counted, it comes back at the end. */
+  | { type: 'skip' }
   | { type: 'prev' }
   | { type: 'replay' }
   /** The phrase finished playing (`ok`) or was cut; `canListen`: there is speech recognition. */
@@ -74,35 +93,85 @@ export type PhraseEvent =
   | { type: 'scored'; score: number }
   | { type: 'silent' }
   /** The beat after a phrase said well. */
-  | { type: 'advance' };
+  | { type: 'advance' }
+  /** At `leftover`: go over the phrases still left. */
+  | { type: 'review' }
+  /** At `leftover`: leave them for later and see the summary. */
+  | { type: 'finish' };
 
 const fresh = (n: number): PhraseResult[] => Array.from({ length: n }, () => ({ tries: 0, passed: false, best: 0 }));
 
 export function initialPhraseState(count: number): PhraseDrillState {
-  return { count, index: 0, phase: 'ready', results: fresh(count), score: null, silent: false, run: 0 };
+  return {
+    count,
+    index: 0,
+    phase: 'ready',
+    results: fresh(count),
+    score: null,
+    silent: false,
+    run: 0,
+    skipped: [],
+    queue: null,
+    canListen: true,
+  };
+}
+
+/** The skipped phrases not said well yet, in drill order. */
+export function leftoverPhrases(s: Pick<PhraseDrillState, 'skipped' | 'results'>): number[] {
+  return s.skipped.filter((i) => !s.results[i]?.passed);
 }
 
 function play(s: PhraseDrillState, index: number): PhraseDrillState {
-  if (index >= s.count) return { ...s, phase: 'summary', score: null, silent: false };
+  if (index >= s.count) return end(s);
   return { ...s, index: Math.max(0, index), phase: 'playing', score: null, silent: false, run: s.run + 1 };
 }
+
+/** The pass is over: the skipped phrases still left first, then the summary. */
+function end(s: PhraseDrillState): PhraseDrillState {
+  const left = s.canListen ? leftoverPhrases(s) : [];
+  return { ...s, phase: left.length > 0 ? 'leftover' : 'summary', queue: null, score: null, silent: false };
+}
+
+/** The phrase after the current one in this pass (the whole drill, or the skipped ones), or `count` at the end. */
+function after(s: PhraseDrillState): number {
+  if (!s.queue) return s.index + 1;
+  return s.queue.find((i) => i > s.index) ?? s.count;
+}
+
+function before(s: PhraseDrillState): number {
+  if (!s.queue) return Math.max(0, s.index - 1);
+  return [...s.queue].reverse().find((i) => i < s.index) ?? s.index;
+}
+
+/** Leaving the current phrase before it was said well, in a turn that judges it, remembers it as skipped. */
+function leave(s: PhraseDrillState): PhraseDrillState {
+  const judged = s.canListen && (s.phase === 'playing' || s.phase === 'listening' || s.phase === 'result');
+  if (!judged || s.results[s.index]?.passed || s.skipped.includes(s.index)) return s;
+  return { ...s, skipped: [...s.skipped, s.index].sort((a, b) => a - b) };
+}
+
+const idle = (s: PhraseDrillState) => s.phase === 'ready' || s.phase === 'summary' || s.phase === 'leftover';
 
 export function phraseDrillReducer(s: PhraseDrillState, e: PhraseEvent): PhraseDrillState {
   switch (e.type) {
     case 'start':
-      return play({ ...s, results: fresh(s.count) }, 0);
+      return play({ ...s, results: fresh(s.count), skipped: [], queue: null }, 0);
     case 'go':
-      return play(s, e.index);
+      // Picking a phrase by hand leaves a pass over the skipped ones.
+      return play({ ...s, queue: s.queue?.includes(e.index) ? s.queue : null }, e.index);
     case 'next':
-      return s.phase === 'ready' || s.phase === 'summary' ? s : play(s, s.index + 1);
+    case 'skip':
+      return idle(s) ? s : play(leave(s), after(s));
     case 'prev':
-      return s.phase === 'ready' || s.phase === 'summary' ? s : play(s, Math.max(0, s.index - 1));
+      return idle(s) ? s : play(s, before(s));
     case 'replay':
-      return s.phase === 'ready' || s.phase === 'summary' ? s : play(s, s.index);
+      return idle(s) ? s : play(s, s.index);
     case 'played':
       if (s.phase !== 'playing') return s;
-      if (!e.ok) return { ...s, phase: 'result' };
-      return e.canListen ? { ...s, phase: 'listening', run: s.run + 1 } : { ...s, phase: 'your-turn' };
+      if (!e.ok) return { ...s, phase: 'result', canListen: e.canListen };
+      return e.canListen
+        ? { ...s, phase: 'listening', run: s.run + 1, canListen: true }
+        : { ...s, phase: 'your-turn', canListen: false };
     case 'again':
       return s.phase === 'result' || s.phase === 'passed' || s.phase === 'your-turn'
         ? { ...s, phase: 'listening', score: null, silent: false, run: s.run + 1 }
@@ -118,7 +187,14 @@ export function phraseDrillReducer(s: PhraseDrillState, e: PhraseEvent): PhraseD
     case 'silent':
       return s.phase === 'listening' ? { ...s, phase: 'result', score: null, silent: true } : s;
     case 'advance':
-      return s.phase === 'passed' ? play(s, s.index + 1) : s;
+      return s.phase === 'passed' ? play(s, after(s)) : s;
+    case 'review': {
+      if (s.phase !== 'leftover') return s;
+      const queue = leftoverPhrases(s);
+      return queue.length ? play({ ...s, queue }, queue[0]) : { ...s, phase: 'summary' };
+    }
+    case 'finish':
+      return s.phase === 'leftover' ? { ...s, phase: 'summary' } : s;
   }
 }
 

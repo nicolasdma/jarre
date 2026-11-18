@@ -3,6 +3,7 @@ import {
   firstTryPercent,
   saidWellPercent,
   initialPhraseState,
+  leftoverPhrases,
   PASS_SCORE,
   phraseDrillReducer as step,
   practicePhrases,
@@ -105,7 +106,7 @@ describe('Frase por frase', () => {
   });
 
   it('starting again clears the results', () => {
-    const done = run(initialPhraseState(1), { type: 'start' }, played, { type: 'scored', score: 40 }, { type: 'next' });
+    const done = run(initialPhraseState(1), { type: 'start' }, played, { type: 'scored', score: 40 }, { type: 'next' }, { type: 'finish' });
     expect(done.phase).toBe('summary');
     const s = step(done, { type: 'start' });
     expect(s).toMatchObject({ index: 0, phase: 'playing' });
@@ -137,5 +138,103 @@ describe('Frase por frase', () => {
     expect(s.results[0]).toMatchObject({ tries: 2, passed: true });
     expect(saidWellPercent(s.results)).toBe(100);
     expect(firstTryPercent(s.results)).toBe(0);
+  });
+});
+
+describe('Saltar (owner, 2026-11-18: skip a phrase if we get stuck)', () => {
+  const skip: PhraseEvent = { type: 'skip' };
+  const pass: PhraseEvent[] = [played, { type: 'scored', score: 95 }, { type: 'advance' }];
+
+  it('leaves the phrase at any moment of its turn, with no try counted', () => {
+    const playing = run(initialPhraseState(3), { type: 'start' });
+    const fromPlaying = step(playing, skip);
+    expect(fromPlaying).toMatchObject({ index: 1, phase: 'playing', skipped: [0] });
+    expect(fromPlaying.run).toBeGreaterThan(playing.run);
+    const fromListening = run(initialPhraseState(3), { type: 'start' }, played, skip);
+    expect(fromListening).toMatchObject({ index: 1, phase: 'playing', skipped: [0] });
+    expect(fromListening.results[0]).toEqual({ tries: 0, passed: false, best: 0 });
+    const afterTry = run(initialPhraseState(3), { type: 'start' }, played, { type: 'scored', score: 60 }, skip);
+    expect(afterTry).toMatchObject({ index: 1, skipped: [0] });
+    expect(afterTry.results[0]).toEqual({ tries: 1, passed: false, best: 60 });
+  });
+
+  it('does nothing before starting or once the drill is over', () => {
+    const ready = initialPhraseState(2);
+    expect(step(ready, skip)).toBe(ready);
+    const done = run(initialPhraseState(1), { type: 'start' }, ...pass);
+    expect(done.phase).toBe('summary');
+    expect(step(done, skip)).toBe(done);
+  });
+
+  it('moving on from a phrase said well is not a skip', () => {
+    const s = run(initialPhraseState(2), { type: 'start' }, played, { type: 'scored', score: 90 }, { type: 'next' });
+    expect(s).toMatchObject({ index: 1, skipped: [] });
+  });
+
+  it('the skipped phrases come back at the end, only those, in drill order', () => {
+    // Phrase 2 skipped, 0 said, 3 skipped after a try, 1 said.
+    let s = run(initialPhraseState(4), { type: 'start' }, { type: 'go', index: 2 }, skip, { type: 'go', index: 0 }, ...pass);
+    expect(s).toMatchObject({ index: 1, phase: 'playing' });
+    s = run(s, ...pass);
+    expect(s.index).toBe(2);
+    s = run(s, ...pass, played, { type: 'scored', score: 50 }, skip);
+    expect(s.phase).toBe('leftover');
+    expect(leftoverPhrases(s)).toEqual([3]);
+    // Phrase 2 was skipped but said well later: it is not left.
+    expect(s.skipped).toEqual([2, 3]);
+  });
+
+  it('going over them plays only the skipped phrases, then the summary', () => {
+    let s = run(initialPhraseState(4), { type: 'start' }, skip, ...pass, skip, ...pass);
+    expect(s.phase).toBe('leftover');
+    expect(leftoverPhrases(s)).toEqual([0, 2]);
+    s = step(s, { type: 'review' });
+    expect(s).toMatchObject({ index: 0, phase: 'playing', queue: [0, 2] });
+    s = run(s, ...pass);
+    expect(s).toMatchObject({ index: 2, phase: 'playing' });
+    s = run(s, ...pass);
+    expect(s).toMatchObject({ phase: 'summary', queue: null });
+    expect(saidWellPercent(s.results)).toBe(100);
+    // Said well after a skip, never on the first try.
+    expect(s.results[0]).toMatchObject({ tries: 1, passed: true });
+  });
+
+  it('a phrase skipped again in the review stays left, and the offer comes back', () => {
+    let s = run(initialPhraseState(3), { type: 'start' }, skip, ...pass, skip, { type: 'review' });
+    expect(s.queue).toEqual([0, 2]);
+    s = run(s, skip);
+    expect(s.index).toBe(2);
+    s = run(s, ...pass);
+    expect(s.phase).toBe('leftover');
+    expect(leftoverPhrases(s)).toEqual([0]);
+    // ← in a review goes to the previous skipped phrase, not to the one before in the drill.
+    s = run(s, { type: 'review' });
+    expect(s.index).toBe(0);
+    expect(step(s, { type: 'prev' }).index).toBe(0);
+  });
+
+  it('skipped phrases are not said well, so they never help approve', () => {
+    const s = run(initialPhraseState(3), { type: 'start' }, ...pass, skip, ...pass, { type: 'finish' });
+    expect(s.phase).toBe('summary');
+    expect(saidWellPercent(s.results)).toBe(67);
+    expect(firstTryPercent(s.results)).toBe(67);
+  });
+
+  it('leaving them for later goes to the summary', () => {
+    const s = run(initialPhraseState(2), { type: 'start' }, skip, ...pass);
+    expect(s.phase).toBe('leftover');
+    expect(step(s, { type: 'finish' }).phase).toBe('summary');
+    expect(step(s, { type: 'skip' })).toBe(s);
+  });
+
+  it('without speech recognition nothing is judged, so nothing is left for the end', () => {
+    const byHand: PhraseEvent = { type: 'played', ok: true, canListen: false };
+    const s = run(initialPhraseState(2), { type: 'start' }, byHand, { type: 'next' }, byHand, { type: 'next' });
+    expect(s).toMatchObject({ phase: 'summary', skipped: [] });
+  });
+
+  it('starting again forgets the skipped phrases', () => {
+    const s = run(initialPhraseState(2), { type: 'start' }, skip, { type: 'start' });
+    expect(s).toMatchObject({ index: 0, skipped: [], queue: null });
   });
 });

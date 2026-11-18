@@ -8,8 +8,10 @@
  * phrase plays again and the mic reopens, in a loop until it passes or the
  * learner skips it (owner, 2026-11-15). Until it passes, the words missed on
  * the last try are written in the phrase as they sound
- * (use-missed-respellings.ts). A summary at the end says which phrases needed
- * retries.
+ * (use-missed-respellings.ts). Saltar (S, or →) leaves the phrase at any moment
+ * of its turn, stops its audio and mic, and keeps it for the end: "Te quedaron
+ * N frases" offers a pass over only those before the summary (owner,
+ * 2026-11-18). A summary at the end says which phrases needed retries.
  *
  * The turns are the drill's " / " phrases (its sentences when it has no
  * marks). Every transition is in src/lib/practice/phrase-drill.ts; this
@@ -31,10 +33,12 @@ import {
   firstTryPercent,
   saidWellPercent,
   initialPhraseState,
+  leftoverPhrases,
   PASS_SCORE,
   phraseDrillReducer,
   practicePhrases,
   scorePhrase,
+  type PhrasePhase,
   type PhraseResult,
   type SentencesResult,
 } from '@/lib/practice/phrase-drill';
@@ -74,12 +78,17 @@ function BigButton({
   primary,
   disabled,
   testId,
+  label,
+  shortcut,
 }: {
   onClick: () => void;
   children: React.ReactNode;
   primary?: boolean;
   disabled?: boolean;
   testId?: string;
+  /** Accessible name, when the visible text is not enough; it starts with the visible word. */
+  label?: string;
+  shortcut?: string;
 }) {
   return (
     <button
@@ -87,6 +96,8 @@ function BigButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
+      aria-label={label}
+      aria-keyshortcuts={shortcut}
       className={cn(
         'flex min-h-[48px] items-center justify-center gap-2 px-4 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors disabled:opacity-40',
         primary
@@ -123,7 +134,7 @@ export function SentenceMode({
   const Ctor = useRecognitionCtor();
 
   const [state, dispatch] = useReducer(phraseDrillReducer, phrases.length, initialPhraseState);
-  const { index, phase, results, run } = state;
+  const { index, phase, results, run, queue } = state;
   // What the mic heard and what went wrong, tagged with the turn they belong to.
   const [heardState, setHeard] = useState({ run: -1, text: '' });
   const [errorState, setError] = useState({ run: -1, text: '' });
@@ -243,19 +254,20 @@ export function SentenceMode({
     return () => window.clearTimeout(t);
   }, [failedScore, run, Ctor, helpOpen]);
 
-  // The summary is reported once per pass through the drill.
-  const reportedRef = useRef(false);
+  // Reported once at each end: the leftover offer (the learner may stop there) and the summary after it. The
+  // scores only keep the best, so a second report adds only what going over the skipped phrases earned.
+  const reportedRef = useRef<PhrasePhase | null>(null);
   const onFinishedRef = useRef(onFinished);
   useEffect(() => {
     onFinishedRef.current = onFinished;
   });
   useEffect(() => {
-    if (phase !== 'summary') {
-      reportedRef.current = false;
+    if (phase !== 'summary' && phase !== 'leftover') {
+      reportedRef.current = null;
       return;
     }
-    if (reportedRef.current) return;
-    reportedRef.current = true;
+    if (reportedRef.current === phase) return;
+    reportedRef.current = phase;
     onFinishedRef.current(Ctor ? { saidWell: saidWellPercent(results), firstTry: firstTryPercent(results) } : null);
   }, [phase, results, Ctor]);
 
@@ -275,26 +287,44 @@ export function SentenceMode({
   const act = (e: Parameters<typeof dispatch>[0]) => {
     setHelp(null);
     // Another phrase (or the drill again): the last attempt's words no longer apply.
-    if (e.type === 'go' || e.type === 'next' || e.type === 'prev' || e.type === 'start') missedSay.clear();
+    if (e.type === 'go' || e.type === 'next' || e.type === 'skip' || e.type === 'prev' || e.type === 'start' || e.type === 'review') {
+      missedSay.clear();
+    }
     dispatch(e);
   };
   const start = () => act({ type: 'start' });
   const next = () => act({ type: 'next' });
+  // Leaving the phrase stops its audio and closes the mic: the effects of `playing` and `listening` clean up
+  // when the phrase changes, and nothing of this turn is scored.
+  const skip = () => act({ type: 'skip' });
+  const review = () => act({ type: 'review' });
+  const finish = () => act({ type: 'finish' });
   const prev = () => act({ type: 'prev' });
   const replay = () => act({ type: 'replay' });
   const again = () => act({ type: 'again' });
   // Ends the turn now: the recognizer delivers what it has and its onend scores it.
   const stopListening = () => recRef.current?.stop();
 
-  // Space: start, then listen again; Enter: done talking, then next; R: say it again; ←/→: previous/next phrase.
-  const keysRef = useRef({ phase, start, next, prev, replay, again, stopListening, canRetry: Boolean(Ctor), canStart: hasSegments });
+  // Space: start, then listen again; Enter: done talking, then next; R: say it again; S: skip this phrase;
+  // ←/→: previous/next phrase (→ before the phrase was said well is a skip). At the leftover offer, Enter goes
+  // over the skipped phrases.
+  const canSkip = Boolean(Ctor);
+  const keys = { phase, start, next, skip, prev, replay, again, review, stopListening, canRetry: Boolean(Ctor), canSkip, canStart: hasSegments };
+  const keysRef = useRef(keys);
   useEffect(() => {
-    keysRef.current = { phase, start, next, prev, replay, again, stopListening, canRetry: Boolean(Ctor), canStart: hasSegments };
+    keysRef.current = keys;
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
       const k = keysRef.current;
+      if (k.phase === 'leftover') {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          k.review();
+        }
+        return;
+      }
       const idle = k.phase === 'ready' || k.phase === 'summary';
       if (idle && !k.canStart) return;
       if (e.key === ' ') {
@@ -315,6 +345,9 @@ export function SentenceMode({
       } else if ((e.key === 'r' || e.key === 'R') && k.canRetry && (k.phase === 'result' || k.phase === 'passed' || k.phase === 'your-turn')) {
         e.preventDefault();
         k.again();
+      } else if ((e.key === 's' || e.key === 'S') && k.canSkip && (k.phase === 'playing' || k.phase === 'listening' || k.phase === 'result')) {
+        e.preventDefault();
+        k.skip();
       } else if (e.key === 'ArrowRight' && !idle) {
         e.preventDefault();
         k.next();
@@ -340,11 +373,16 @@ export function SentenceMode({
   const missed = phase === 'result' ? wordsToPractice(alignment, terms) : [];
   const approximate = status === 'ready' || status === 'error';
   const unit = marked ? 'frase' : 'oración';
+  const left = leftoverPhrases(state);
+  const skippedHere = (i: number) => state.skipped.includes(i) && !results[i].passed;
+  // The turn of a phrase that a skip can leave: it is playing, listening, or waiting after a try below the bar.
+  const skippable = canSkip && (phase === 'playing' || phase === 'listening' || phase === 'result');
 
   return (
     <div className="space-y-5" data-mode="sentences" data-timing={status}>
       <p className="text-sm text-j-text-secondary" data-testid="sentences-instruction">
         Escuchá la frase, después decí solo esa frase. Cuando la digas bien, pasa a la siguiente.
+        {Ctor && ' Si te trabás, Saltar la deja para el final.'}
       </p>
       {!Ctor && (
         <p className="border border-j-warm bg-j-warm-light px-3 py-2 text-sm text-j-warm-dark">
@@ -363,11 +401,15 @@ export function SentenceMode({
 
       {phase === 'summary' ? (
         <Summary phrases={phrases} results={results} scored={Boolean(Ctor)} onRestart={start} />
+      ) : phase === 'leftover' ? (
+        <Leftover phrases={phrases} left={left} onReview={review} onFinish={finish} />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-j-text-secondary" data-testid="sentence-progress">
-              Frase {index + 1} de {phrases.length}
+              {queue
+                ? `Repaso · frase ${index + 1} · ${queue.indexOf(index) + 1} de ${queue.length}`
+                : `Frase ${index + 1} de ${phrases.length}`}
             </p>
             <div className="flex items-center gap-1">
               {audio.kind === 'speech' && <SpeechLabel />}
@@ -386,7 +428,7 @@ export function SentenceMode({
                     onClick={() => act({ type: 'go', index: i })}
                     disabled={!segments}
                     title={s}
-                    aria-label={`Frase ${i + 1}`}
+                    aria-label={`Frase ${i + 1}${skippedHere(i) ? ', salteada' : ''}`}
                     aria-current={i === index}
                     className="block w-full py-2"
                   >
@@ -395,7 +437,7 @@ export function SentenceMode({
                       aria-hidden
                       className={cn(
                         'block h-2 w-full',
-                        r.passed ? (r.tries > 1 ? 'bg-j-warm' : 'bg-j-success') : r.tries > 0 ? 'bg-j-error' : 'bg-j-border',
+                        r.passed ? (r.tries > 1 ? 'bg-j-warm' : 'bg-j-success') : r.tries > 0 ? 'bg-j-error' : skippedHere(i) ? 'bg-j-warm-light' : 'bg-j-border',
                         i === index && 'outline outline-2 outline-offset-2 outline-j-accent',
                       )}
                     />
@@ -455,14 +497,21 @@ export function SentenceMode({
                 <BigButton onClick={replay} testId="sentence-replay">
                   <Ear size={14} /> Escuchar de nuevo · Espacio
                 </BigButton>
-                <BigButton onClick={next} testId="sentence-next">
-                  <SkipForward size={14} /> {failedScore ? 'Saltear' : index + 1 < phrases.length ? 'Siguiente' : 'Terminar'} · Enter
-                </BigButton>
+                {!skippable && (
+                  <BigButton onClick={next} testId="sentence-next">
+                    <SkipForward size={14} /> {index + 1 < phrases.length ? 'Siguiente' : 'Terminar'} · Enter
+                  </BigButton>
+                )}
               </>
             )}
             {phase === 'playing' && (
               <BigButton onClick={replay} testId="sentence-restart">
                 <RotateCcw size={14} /> Desde el principio de la frase
+              </BigButton>
+            )}
+            {skippable && (
+              <BigButton onClick={skip} testId="sentence-skip" label="Saltar esta frase: queda para repasar al final" shortcut="S">
+                <SkipForward size={14} /> Saltar · S
               </BigButton>
             )}
             {phase === 'passed' && (
@@ -484,6 +533,44 @@ export function SentenceMode({
         </>
       )}
     </div>
+  );
+}
+
+/** The pass ended with skipped phrases not said well yet: go over only those, or leave them and see the summary. */
+function Leftover({
+  phrases,
+  left,
+  onReview,
+  onFinish,
+}: {
+  phrases: string[];
+  left: number[];
+  onReview: () => void;
+  onFinish: () => void;
+}) {
+  const n = left.length;
+  return (
+    <section className="space-y-4" data-testid="sentences-leftover" aria-live="polite">
+      <p className="text-base text-j-text">
+        {n === 1 ? 'Te quedó 1 frase' : `Te quedaron ${n} frases`}: ¿{n === 1 ? 'la repasamos' : 'las repasamos'}?
+      </p>
+      <ol className="space-y-2">
+        {left.map((i) => (
+          <li key={i} className="flex gap-3 border-l-2 border-j-warm pl-3 text-sm">
+            <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Frase {i + 1}</span>
+            <span className="min-w-0 text-j-text-secondary" lang="en">{phrases[i]}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+        <BigButton primary onClick={onReview} testId="sentences-review">
+          <RotateCcw size={14} /> {n === 1 ? 'Repasarla' : 'Repasarlas'} · Enter
+        </BigButton>
+        <BigButton onClick={onFinish} testId="sentences-finish">
+          <Check size={14} /> Ver resumen
+        </BigButton>
+      </div>
+    </section>
   );
 }
 
