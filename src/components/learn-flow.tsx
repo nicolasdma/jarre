@@ -30,6 +30,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
 import type { ActivateSummary } from '@/lib/lessons/activate-summary';
 import { Hint } from '@/components/help/first-time';
+import { IntroCard } from '@/components/onboarding/intro-card';
 import { LearnTOC } from './learn-toc';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
@@ -1123,6 +1124,13 @@ function LearnFlowInner({
                 ))}
               </div>
             </header>
+
+            {/* The voice intro: how Jarre works, adapted to how new this learner is */}
+            <IntroCard
+              resourceId={resourceId}
+              language={language}
+              hasProgress={Boolean(initialProgress && ((initialProgress.completedSections?.length ?? 0) > 0 || (initialProgress.currentStep && initialProgress.currentStep !== 'activate' && initialProgress.currentStep !== 'learn')))}
+            />
 
             {/* Video player — inline at the top when video exists */}
             {youtubeVideoId && (
