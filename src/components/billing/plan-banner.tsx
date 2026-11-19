@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PricingModal } from '@/components/billing/pricing-modal';
+import { PricingModal } from '@/components/billing/pricing-modal-lazy';
 import { useByok } from '@/components/contexts/byok-provider';
 
 interface PlanBannerProps {

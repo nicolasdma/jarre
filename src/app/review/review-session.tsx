@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { PricingModal } from '@/components/billing/pricing-modal';
+import { PricingModal } from '@/components/billing/pricing-modal-lazy';
 import { toast } from 'sonner';
 import { InlineQuiz } from '@/components/inline-quiz';
 import { ReviewPrediction } from '@/components/review-prediction';

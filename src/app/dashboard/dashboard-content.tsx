@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { PricingModal } from '@/components/billing/pricing-modal';
+import { PricingModal } from '@/components/billing/pricing-modal-lazy';
 import type { Language } from '@/lib/translations';
 import { PipelineCourseCard, type PipelineCourseData } from './pipeline-course-card';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';

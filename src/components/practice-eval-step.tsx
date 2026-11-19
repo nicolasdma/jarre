@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { SectionLabel } from '@/components/ui/section-label';
-import { PricingModal } from '@/components/billing/pricing-modal';
+import { PricingModal } from '@/components/billing/pricing-modal-lazy';
 import { t, type Language } from '@/lib/translations';
 import type { PracticeEvalState, PracticeEvalAnswer } from '@/lib/learn-progress';
 import type { ReviewSubmitResponse } from '@/types';

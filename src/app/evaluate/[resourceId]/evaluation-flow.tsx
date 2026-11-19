@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorMessage } from '@/components/error-message';
-import { PricingModal } from '@/components/billing/pricing-modal';
+import { PricingModal } from '@/components/billing/pricing-modal-lazy';
 import { SectionLabel } from '@/components/ui/section-label';
 import { categorizeError } from '@/lib/utils/categorize-error';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
