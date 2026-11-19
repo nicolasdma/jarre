@@ -47,6 +47,11 @@ const theme = EditorView.theme({
   '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--j-accent) 6%, transparent)' },
   '.cm-activeLineGutter': { backgroundColor: 'color-mix(in srgb, var(--j-accent) 10%, transparent)' },
   '.cm-scroller': { overflow: 'auto' },
+  // CodeMirror's light defaults: a black caret and a pale grey selection, invisible on the dark theme.
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--j-text)' },
+  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground': {
+    backgroundColor: 'color-mix(in srgb, var(--j-accent) 30%, transparent)',
+  },
 });
 
 export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaLabel = 'Editor de código', readOnly = false }: CodeEditorProps) {
