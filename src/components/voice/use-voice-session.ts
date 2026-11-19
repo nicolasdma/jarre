@@ -190,6 +190,13 @@ interface VoiceSession {
 const VOICE_NAME = 'Kore';
 /** Under the token's 10-minute window to open a socket (src/lib/voice/live-token.ts). */
 const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
+/**
+ * The token is prefetched once the learner stays on a section this long, not on
+ * every section that flashes by: each prefetch mints a Gemini token and counts
+ * toward JARRE_VOICE_TOKENS_PER_MINUTE (20), so flipping through the table of
+ * contents used to spend the minute's budget and the real "start" got a 429.
+ */
+const PREFETCH_SETTLE_MS = 2500;
 const MIC_CHUNK_INTERVAL_MS = 100;
 // What ends a session on its own: src/lib/voice/session-end.ts.
 const SESSION_END_WINDOW_CHARS = 320;
@@ -345,11 +352,15 @@ export function useVoiceSession({
   // (e.g. useUnifiedVoiceSession) manages its own context fetching and will
   // call connect() with the instruction already built. Prefetching here would
   // cause duplicate token/context requests and 400 errors from empty sectionId.
+  // Keyed on the section, not on the callback: re-renders that rebuild it (a new
+  // conceptIds array) must not keep pushing the timer back.
+  const prefetchRef = useRef(prefetchTokenAndContext);
+  prefetchRef.current = prefetchTokenAndContext;
   useEffect(() => {
-    if (!systemInstructionOverride) {
-      prefetchTokenAndContext();
-    }
-  }, [prefetchTokenAndContext, systemInstructionOverride]);
+    if (systemInstructionOverride) return;
+    const timer = setTimeout(() => void prefetchRef.current(), PREFETCH_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [sectionId, sessionType, resourceId, systemInstructionOverride]);
 
   useEffect(() => {
     resendLeftovers(sessionIdRef.current);
