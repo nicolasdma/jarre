@@ -180,7 +180,7 @@ export function LibraryContent({
   const totalSessionResources = phases.reduce((sum, phase) => sum + countByPhase(phase), 0);
 
   return (
-    <div className="grid gap-0 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-0 lg:grid-cols-4">
       <aside className="border-b border-j-border lg:col-span-1 lg:border-r lg:border-b-0">
         <div className="p-4 sm:p-5 lg:sticky lg:top-[74px] lg:h-[calc(100vh-74px)] lg:overflow-y-auto">
           <p className="font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
@@ -273,7 +273,7 @@ export function LibraryContent({
         )}
 
         {isLoggedIn && (
-          <div className="mb-2 flex items-center gap-6 border-y border-j-border/50 py-3">
+          <div className="mb-2 flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-j-border/50 py-3">
             <StatChip value={totalResources} label={t('library.resources', language)} />
             <span className="text-j-border">·</span>
             <StatChip value={totalUnlocked} label={language === 'es' ? 'desbloqueados' : 'unlocked'} accent />
@@ -321,7 +321,7 @@ export function LibraryContent({
                   <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                     {language === 'es' ? 'Ruta Base' : 'Core Curriculum'}
                   </p>
-                  <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {phaseResources.map((resource) => (
                       <ResourceCard
                         key={resource.id}
@@ -339,7 +339,7 @@ export function LibraryContent({
                   <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-j-text-tertiary uppercase">
                     {language === 'es' ? 'Recursos Añadidos' : 'Added Resources'}
                   </p>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {phaseExternalResources.map((resource) => (
                       <UserResourceCard key={resource.id} resource={resource} language={language} />
                     ))}
@@ -380,7 +380,7 @@ export function LibraryContent({
               </div>
             </summary>
             <div className="border-t border-j-border p-4 sm:p-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {supplementaryResources.map((resource) => (
                   <a
                     key={resource.id}
