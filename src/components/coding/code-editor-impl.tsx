@@ -16,7 +16,8 @@ import { EditorView, basicSetup } from 'codemirror';
 import { EditorState, Prec } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
-import { indentUnit } from '@codemirror/language';
+import { HighlightStyle, indentUnit, syntaxHighlighting } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 import { javascript } from '@codemirror/lang-javascript';
 
 export interface CodeEditorProps {
@@ -54,6 +55,21 @@ const theme = EditorView.theme({
   },
 });
 
+/**
+ * Token colors from the app's own palette, so they read on both themes
+ * (CodeMirror's default style is made for a white page: #00f and #708 on the
+ * dark background are under 2:1).
+ */
+const highlight = HighlightStyle.define([
+  { tag: [tags.keyword, tags.modifier, tags.operatorKeyword, tags.controlKeyword, tags.definitionKeyword, tags.moduleKeyword], color: 'var(--j-accent)' },
+  { tag: [tags.string, tags.special(tags.string), tags.regexp], color: 'var(--j-success)' },
+  { tag: [tags.comment, tags.lineComment, tags.blockComment], color: 'var(--j-text-tertiary)', fontStyle: 'italic' },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: 'var(--j-warm)' },
+  { tag: [tags.typeName, tags.className, tags.namespace], color: 'var(--j-info)' },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.definition(tags.function(tags.variableName))], color: 'var(--j-text)', fontWeight: '600' },
+  { tag: [tags.variableName, tags.propertyName, tags.definition(tags.variableName)], color: 'var(--j-text)' },
+]);
+
 export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaLabel = 'Editor de código', readOnly = false }: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -87,6 +103,7 @@ export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaL
           EditorState.tabSize.of(2),
           EditorState.readOnly.of(readOnly),
           theme,
+          Prec.high(syntaxHighlighting(highlight)),
           EditorView.theme({ '&': { height }, '.cm-scroller': { minHeight: height } }),
           EditorView.contentAttributes.of({ 'aria-label': ariaLabel, spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off' }),
           EditorView.updateListener.of((u) => {
