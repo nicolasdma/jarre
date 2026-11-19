@@ -52,9 +52,9 @@ interface Props {
 // ============================================================================
 
 const tr = {
-  practiceTitle: { es: 'Practica guiada', en: 'Guided practice' },
+  practiceTitle: { es: 'Práctica guiada', en: 'Guided practice' },
   introDesc: {
-    es: 'Vamos a repasar juntos estos conceptos. Te voy a guiar — esto NO es la evaluacion final.',
+    es: 'Vamos a repasar juntos estos conceptos. Te voy a guiar — esto NO es la evaluación final.',
     en: 'Let\'s review these concepts together. I\'ll guide you — this is NOT the final evaluation.',
   },
   conceptsToPractice: { es: 'Conceptos a practicar', en: 'Concepts to practice' },
