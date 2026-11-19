@@ -5,7 +5,7 @@
  *
  *   - loopback (the local Supabase stack, the app itself): passes through;
  *   - the model providers the app calls server-side (DeepSeek, Gemini token
- *     minting, DeepL): a canned answer from e2e/mocks/, never the provider;
+ *     minting, Gemini transcription, DeepL): a canned answer, never the provider;
  *   - YouTube thumbnails (next/image's optimizer): a placeholder PNG;
  *   - Google Fonts (next/font at build time): passes through, read-only GETs;
  *   - anything else, the hosted Supabase project included: refused (throws).
@@ -103,6 +103,16 @@ async function guardedFetch(input, init) {
     log({ host, url, decision: 'mock', rule: 'gemini-live-token' });
     const expire = new Date(Date.now() + 30 * 60_000).toISOString();
     return json({ name: 'auth_tokens/e2e-fake-live-token', expireTime: expire, newSessionExpireTime: expire });
+  }
+
+  // The drills' server recognizer (/api/practice/transcribe): every take "says" one line.
+  if (host === 'generativelanguage.googleapis.com' && /:generateContent\b/.test(url)) {
+    const text = process.env.E2E_TRANSCRIPT ?? 'data integrity means the record is complete consistent and accurate';
+    log({ host, url, decision: 'mock', rule: 'gemini-transcribe' });
+    return json({
+      candidates: [{ content: { role: 'model', parts: [{ text }] }, finishReason: 'STOP' }],
+      usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 12, totalTokenCount: 212 },
+    });
   }
 
   if (host === 'api.deepl.com' || host === 'api-free.deepl.com') {
