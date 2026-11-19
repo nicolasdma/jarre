@@ -106,10 +106,26 @@ function flushPendingSave(): void {
   send?.();
 }
 
+/**
+ * The last progress this page saved, per lesson. Going back to the lesson
+ * from the feed or the library (browser back) reuses the page the router
+ * cached when the lesson was first opened, whose server progress is from
+ * then: the lesson reopened on the section it had at that time. What this
+ * page saved since is newer than any server copy it loaded, so the lesson
+ * starts from it (learn-flow.tsx). Lost on a reload, when the server copy is
+ * current again.
+ */
+const _latest = new Map<string, LearnProgress>();
+
+export function latestLearnProgress(resourceId: string): LearnProgress | undefined {
+  return _latest.get(resourceId);
+}
+
 export function saveLearnProgress(
   resourceId: string,
   progress: LearnProgress
 ): void {
+  _latest.set(resourceId, progress);
   if (!_flushOnHide && typeof window !== 'undefined') {
     _flushOnHide = true;
     window.addEventListener('pagehide', flushPendingSave);

@@ -33,7 +33,7 @@ import { useLessonScroll } from './use-lesson-scroll';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
 import { PracticeEvalStep } from './practice-eval-step';
-import { saveLearnProgress, type LearnProgress, type SectionState, type PracticeEvalState } from '@/lib/learn-progress';
+import { latestLearnProgress, saveLearnProgress, type LearnProgress, type SectionState, type PracticeEvalState } from '@/lib/learn-progress';
 import { WhisperProvider } from '@/lib/whisper/whisper-context';
 import { useTutorContext } from '@/lib/tutor-context';
 import type { VoiceMode } from '@/lib/llm/voice-unified-prompt';
@@ -413,11 +413,13 @@ function LearnFlowInner({
   concepts,
   userId,
   guidedQuestions,
-  initialProgress,
+  initialProgress: serverProgress,
   figureRegistry,
   quizzesBySectionId,
   videoSegmentsBySectionId,
 }: LearnFlowProps & { linkedStep: Step | null }) {
+  // What this page saved since (back from the feed shows the cached page, with the progress it was first loaded with).
+  const [initialProgress] = useState(() => latestLearnProgress(resourceId) ?? serverProgress);
   const practice = useLessonPractice();
   const practiceProgress = usePracticeProgress();
   const hasPractice = !!practice;
