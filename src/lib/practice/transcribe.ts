@@ -19,9 +19,7 @@ import type { BudgetCheck } from '@/lib/api/rate-limit';
 /** Flash Lite: ~1.5 s for a 6 s m4a or webm clip, ~250 tokens (probe on Jarre's key, 2026-11-18). */
 export const TRANSCRIBE_MODEL = 'gemini-3.5-flash-lite';
 
-/** The longest take the client records (src/components/practice/server-recognition.ts stops there). */
-export const MAX_RECORDING_MS = 90_000;
-/** 90 s at the 32 kb/s the client asks for is ~360 kB; room for a browser that ignores the bitrate. */
+/** The client stops a take at 90 s (MAX_RECORDING_MS in src/components/practice/server-recognition.ts): 90 s at the 32 kb/s the client asks for is ~360 kB; room for a browser that ignores the bitrate. */
 export const MAX_AUDIO_BYTES = 3_000_000;
 /** The whole multipart body: the clip plus its form fields. */
 export const MAX_BODY_BYTES = MAX_AUDIO_BYTES + 64_000;

@@ -33,8 +33,22 @@ export interface RecallAnswer {
   reset: () => void;
 }
 
-/** Errors after which listening again is pointless. */
-const FATAL = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'network']);
+/**
+ * Errors after which listening again is pointless. The server recognizer's
+ * (iOS) are here too: a failed transcription is said as such, never judged as
+ * an answer that was not heard.
+ */
+const FATAL = new Set([
+  'not-allowed',
+  'service-not-allowed',
+  'audio-capture',
+  'network',
+  'mic-blocked-ios',
+  'transcribe-network',
+  'transcribe-failed',
+  'transcribe-limit',
+  'transcribe-too-long',
+]);
 
 export function useRecallAnswer(resourceId: string, drill: string): RecallAnswer {
   const Ctor = useRecognitionCtor();
