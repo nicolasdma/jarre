@@ -248,7 +248,7 @@ export function ResourceCard({ resource, isLoggedIn, language }: ResourceCardPro
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
         <div className="flex items-center gap-4">
           {resource.estimated_hours && (
             <span className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase">
