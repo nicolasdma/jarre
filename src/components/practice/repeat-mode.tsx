@@ -14,7 +14,8 @@ import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
 import { useMissedRespellings } from './use-missed-respellings';
 import type { DrillAudio } from './use-drill-audio';
 import type { PracticeDrill } from './types';
-import { RECOGNITION_ERRORS as ERRORS, recognitionError, useRecognitionCtor, type Recognition } from './recognition';
+import { RECOGNITION_ERRORS as ERRORS, recognitionError, recordsItsOwnTake, useRecognitionCtor, type Recognition } from './recognition';
+import { CaptureStatus, type Capture } from './capture-status';
 
 const noSubscribe = () => () => {};
 const canRecordMic = () => typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
@@ -46,6 +47,8 @@ export function RepeatMode({
 }) {
   // Browser capabilities: null/false on the server, read once on the client (no hydration mismatch).
   const Ctor = useRecognitionCtor();
+  // The server recognizer (iOS, Firefox) records the take itself: no second capture, its clip is the take.
+  const serverTake = recordsItsOwnTake(Ctor);
   const canRecord = useSyncExternalStore(noSubscribe, canRecordMic, () => false);
   const isIos = useSyncExternalStore(noSubscribe, isIosDevice, () => false);
   // iOS gives the mic to the last capture, which would starve the recognizer.
@@ -57,6 +60,8 @@ export function RepeatMode({
   const [error, setError] = useState<string | null>(null);
   const [takeUrl, setTakeUrl] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // Server recognizer only: recording, then transcribing.
+  const [capture, setCapture] = useState<Capture | null>(null);
 
   const recRef = useRef<Recognition | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -101,7 +106,7 @@ export function RepeatMode({
     audio.pause();
     if (takeUrl) setTakeUrl(null);
 
-    if (keepTake && canRecord) {
+    if (keepTake && canRecord && !serverTake) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         streamRef.current = stream;
@@ -128,6 +133,10 @@ export function RepeatMode({
     rec.lang = 'en-US';
     rec.continuous = true;
     rec.interimResults = true;
+    rec.onphase = (phase) => setCapture({ phase, since: Date.now() });
+    rec.onaudio = (clip) => {
+      if (keepTake && clip.size) setTakeUrl(URL.createObjectURL(clip));
+    };
     rec.onresult = (e) => {
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -142,6 +151,7 @@ export function RepeatMode({
       if (e.error !== 'aborted') setError(recognitionError(e.error));
     };
     rec.onend = () => {
+      setCapture(null);
       setListening(false);
       setInterim('');
       setDone(true);
@@ -194,7 +204,11 @@ export function RepeatMode({
             <Mic size={14} /> {Ctor ? 'Hablar' : 'Grabarme'}
           </PrimaryButton>
         ) : (
-          <PrimaryButton onClick={stop} className="flex min-w-[8.5rem] items-center justify-center gap-2 bg-j-error hover:bg-j-error">
+          <PrimaryButton
+            onClick={stop}
+            disabled={capture?.phase === 'transcribing'}
+            className="flex min-w-[8.5rem] items-center justify-center gap-2 bg-j-error hover:bg-j-error"
+          >
             <Square size={14} /> Terminar
           </PrimaryButton>
         )}
@@ -208,7 +222,13 @@ export function RepeatMode({
             Mostrar pronunciación
           </Chip>
         )}
-        <span className={cn('font-mono text-[11px] text-j-error', !listening && 'invisible')} aria-hidden={!listening}>● escuchando…</span>
+        {capture ? (
+          <span className="font-mono text-[11px]" aria-live="polite">
+            <CaptureStatus capture={capture} hint={capture.phase === 'recording' ? 'tocá Terminar' : undefined} />
+          </span>
+        ) : (
+          <span className={cn('font-mono text-[11px] text-j-error', !listening && 'invisible')} aria-hidden={!listening}>● escuchando…</span>
+        )}
       </div>
 
       <TargetText

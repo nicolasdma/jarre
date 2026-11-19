@@ -47,6 +47,7 @@ import { wordsToPractice } from '@/lib/practice/pronunciation';
 import { alignWords } from '@/lib/practice/scoring';
 import { Chip, SpeechLabel } from './controls';
 import { recognitionError, useRecognitionCtor, type Recognition } from './recognition';
+import { CaptureStatus, type Capture } from './capture-status';
 import { TargetLegend, TargetText } from './target-text';
 import { PracticeWords, subjectFor, WordHelpPopover } from './word-help';
 import { useSentenceSegments } from './use-sentence-spans';
@@ -140,6 +141,9 @@ export function SentenceMode({
   const [errorState, setError] = useState({ run: -1, text: '' });
   const heard = heardState.run === run ? heardState.text : '';
   const error = errorState.run === run ? errorState.text : null;
+  // Server recognizer only (iOS, Firefox): the take recording, then transcribing.
+  const [captureState, setCapture] = useState<{ run: number; capture: Capture | null }>({ run: -1, capture: null });
+  const capture = captureState.run === run && phase === 'listening' ? captureState.capture : null;
   const [help, setHelp] = useState<{ index: number; el: HTMLElement } | null>(null);
 
   // The effect of each phase. A new run (or leaving the phase) cancels the old one.
@@ -181,6 +185,17 @@ export function SentenceMode({
     rec.lang = 'en-US';
     rec.continuous = true;
     rec.interimResults = true;
+    // The server recognizer ends the take on the same quiet the browser's turn waits for.
+    rec.endOnSilenceMs = END_OF_TURN_MS;
+    rec.onphase = (p) => {
+      if (!live) return;
+      setCapture({ run, capture: { phase: p, since: Date.now() } });
+      // The no-speech wait counts from when the mic records, not from a permission prompt before it.
+      if (p === 'recording') {
+        clearTimers();
+        later(endTurn, NO_SPEECH_MS);
+      } else clearTimers();
+    };
     let finalText = '';
     let latest = '';
     const endTurn = () => {
@@ -450,7 +465,12 @@ export function SentenceMode({
           <div className="min-h-[1.5rem] font-mono text-[11px] uppercase tracking-[0.15em]" aria-live="polite" data-testid="sentence-status">
             {phase === 'ready' && <span className="text-j-text-tertiary">{segments ? 'Listo para empezar' : 'Preparando las frases…'}</span>}
             {phase === 'playing' && <span className="text-j-accent">▶ Escuchá…</span>}
-            {phase === 'listening' && <span className="text-j-error">● Tu turno: decí esta frase</span>}
+            {phase === 'listening' &&
+              (capture ? (
+                <CaptureStatus capture={capture} hint={capture.phase === 'recording' ? 'decí esta frase' : undefined} />
+              ) : (
+                <span className="text-j-error">● Tu turno: decí esta frase</span>
+              ))}
             {phase === 'passed' && <span className="text-j-success">✓ Bien · {state.score}%</span>}
             {phase === 'result' && <span className="text-j-error">{state.silent ? 'No te escuché' : state.score === null ? 'No pude reproducir la frase' : `${state.score}% · va de nuevo…`}</span>}
             {phase === 'your-turn' && <span className="text-j-accent">Tu turno: decila</span>}
@@ -483,7 +503,7 @@ export function SentenceMode({
               </BigButton>
             )}
             {phase === 'listening' && (
-              <BigButton primary onClick={stopListening} testId="sentence-done">
+              <BigButton primary onClick={stopListening} disabled={capture?.phase === 'transcribing'} testId="sentence-done">
                 <Mic size={14} /> Listo · Enter
               </BigButton>
             )}
