@@ -13,6 +13,7 @@
  * the prompt is src/lib/coding/mock-session.ts.
  */
 
+import { appScroller } from '@/lib/learn/app-scroller';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUnifiedVoiceSession } from '@/components/voice/use-unified-voice-session';
@@ -407,7 +408,8 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     setStage('setup');
     setCurrent(null);
     setOutput(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // The page scrolls AppShell's column, not the window.
+    appScroller().scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   // ------------------------------------------------------------------ setup
