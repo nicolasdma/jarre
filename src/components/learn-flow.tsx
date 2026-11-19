@@ -29,6 +29,7 @@ import { ConceptSection } from './concept-section';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ScrollProgress } from './scroll-progress';
 import { LearnTOC } from './learn-toc';
+import { useLessonScroll } from './use-lesson-scroll';
 import { t, type Language } from '@/lib/translations';
 import type { ReadingQuestion } from '@/app/learn/[resourceId]/reading-questions';
 import { PracticeEvalStep } from './practice-eval-step';
@@ -190,6 +191,8 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
   );
 
   return (
+    // The handle the lesson's scroll memory measures from (use-lesson-scroll.ts).
+    <div data-learn-section={section.id}>
     <ConceptSection
       section={section}
       language={language}
@@ -205,6 +208,7 @@ const ConceptSectionWrapper = memo(function ConceptSectionWrapper({
       afterContent={drills}
       number={index + 1}
     />
+    </div>
   );
 });
 
@@ -257,7 +261,7 @@ function StickyHeader({
 
   return (
     // Solid, not a 90% wash with backdrop blur: the blur was re-filtered on every scroll frame.
-    <div className={`sticky top-0 z-50 border-b border-j-border bg-j-bg transition-all duration-300 ${
+    <div data-lesson-header className={`sticky top-0 z-50 border-b border-j-border bg-j-bg transition-all duration-300 ${
       isFocusMode ? 'py-0' : ''
     }`}>
       <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-8 transition-all duration-300 ${
@@ -604,12 +608,23 @@ function LearnFlowInner({
     [resourceId, buildProgress]
   );
 
+  const { toSectionHeading } = useLessonScroll({
+    lessonId: resourceId,
+    step: currentStep,
+    sectionId: sections[activeSection]?.id ?? null,
+  });
+
   const navigateToSection = useCallback(
     (index: number) => {
+      // The open one again (its entry in the table of contents): back to its heading.
+      if (index === activeSection) {
+        toSectionHeading();
+        return;
+      }
       setActiveSection(index);
       saveLearnProgress(resourceId, buildProgress({ section: index }));
     },
-    [resourceId, buildProgress]
+    [resourceId, buildProgress, activeSection, toSectionHeading]
   );
   useEffect(() => {
     goToSectionRef.current = navigateToSection;

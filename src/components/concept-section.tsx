@@ -356,15 +356,15 @@ export const ConceptSection = memo(function ConceptSection({
 
   return (
     <div className="border-l-2 border-j-accent pl-6 py-6">
-      {/* Section header */}
-      <div className="flex items-center gap-3 mb-6">
+      {/* Section header: where focus lands when the learner opens this section (use-lesson-scroll.ts). */}
+      <h2 data-section-heading tabIndex={-1} className="flex items-center gap-3 mb-6 outline-none">
         <span className="font-mono text-[10px] tracking-[0.15em] text-j-accent uppercase font-medium">
           {label}
         </span>
         <span className="text-sm font-medium text-j-text">
           {section.sectionTitle}
         </span>
-      </div>
+      </h2>
 
       {/* Phase: Pre-question (productive failure) */}
       {phase === 'pre-question' && (
