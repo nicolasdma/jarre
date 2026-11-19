@@ -24,6 +24,12 @@ const START_READING = /^((empezar|seguir): (entender|aprender)|aprender\s*→)/i
 const SKIP_TO_TEXT = /leer directamente|just read|ir al contenido/i;
 
 async function open(page: Page, path: string) {
+  // Leave the way a person does, not 50 ms after the last tap: the lesson saves progress 1 s after a change,
+  // and a goto in that second cancels it (a "Failed to fetch" that is the walk's, not the learner's).
+  if (/^https?:/.test(page.url())) {
+    await page.waitForTimeout(1100);
+    await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {});
+  }
   await page.goto(path, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
 }
@@ -158,6 +164,20 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
     await expect(tabs.first()).toBeVisible({ timeout: 15_000 });
     const n = await tabs.count();
     for (let i = 0; i < n; i++) await walk.tap(tabs.nth(i), `code tab ${(await tabs.nth(i).innerText()).trim()}`);
+  });
+  await walk.step('reading: section 03 code trace (paso a paso)', async () => {
+    const launcher = page.locator('[data-testid="trace-launcher"]').filter({ visible: true }).first();
+    if (!(await launcher.count())) {
+      walk.note('no "Ver paso a paso" block in section 03');
+      return;
+    }
+    await walk.tap(launcher, 'ver paso a paso');
+    const trace = page.locator('[data-testid="code-trace"]').first();
+    await expect(trace).toBeVisible({ timeout: 15_000 });
+    const before = await trace.locator('[data-testid="code-trace-caption"]').innerText();
+    for (let i = 0; i < 3; i++) await walk.tap(trace.locator('[data-testid="code-trace-next"]'), `trace: siguiente ${i + 1}`);
+    expect(await trace.locator('[data-testid="code-trace-caption"]').innerText(), 'the caption follows the steps').not.toBe(before);
+    await walk.sweep(trace, { max: 12 });
   });
   await walk.step('reading: section 03 code exercise (open, run, verify)', async () => {
     const list = page.locator('[data-testid="section-exercises"]');

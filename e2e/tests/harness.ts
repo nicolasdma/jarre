@@ -51,6 +51,10 @@ export interface StepRecord {
   screenshot?: string;
   /** Buttons clicked by walk.sweep() in this step. */
   buttons?: ButtonRecord[];
+  /** Tap targets on screen under 44 px at the end of the step ("label WxH"). */
+  smallTargets?: string[];
+  /** Elements on screen whose own text is under 12 px. */
+  tinyTextNodes?: number;
   /** Pixels of content wider than the viewport when the step ended (0: nothing overflows). */
   overflowXPx?: number;
   /** Things worth a look that are not failures (a control that is gone, an optional path not taken). */
@@ -279,6 +283,30 @@ export const test = base.extend<{ walk: Walk; flowName: string }>({
             longTasks: s?.longTasks ?? [],
             events: s?.events ?? [],
             nav: nav ? { ttfbMs: nav.responseStart, domContentLoadedMs: nav.domContentLoadedEventEnd, loadMs: nav.loadEventEnd } : null,
+            // Tap targets on screen smaller than 44 px (the owner's bar; WCAG 2.5.8 asks 24), and text under 12 px.
+            ...(() => {
+              const small: string[] = [];
+              const seen = new Set<Element>();
+              for (const el of document.querySelectorAll('button, a[href], [role="button"], [role="tab"], [role="radio"], input, select, textarea, summary')) {
+                const r = el.getBoundingClientRect();
+                if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
+                if (getComputedStyle(el).visibility === 'hidden' || seen.has(el)) continue;
+                seen.add(el);
+                if (Math.min(r.width, r.height) >= 44 || (r.width <= 1 && r.height <= 1)) continue; // sr-only skip links are 1x1
+                const name = (el.getAttribute('aria-label') || (el as HTMLElement).innerText || el.getAttribute('title') || el.tagName).replace(/\s+/g, ' ').trim().slice(0, 30);
+                small.push(`${name} ${Math.round(r.width)}x${Math.round(r.height)}`);
+              }
+              let tinyText = 0;
+              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              const parents = new Set<Element>();
+              for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.textContent?.trim() && n.parentElement) parents.add(n.parentElement);
+              for (const el of parents) {
+                const r = el.getBoundingClientRect();
+                if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
+                if (parseFloat(getComputedStyle(el).fontSize) < 12) tinyText++;
+              }
+              return { smallTargets: small, tinyTextNodes: tinyText };
+            })(),
             // Content wider than the screen: the page scrolls sideways, or the app shell (overflow-x hidden) cuts it off.
             overflowXPx: (() => {
               const shell = document.getElementById('main-content')?.closest('.overflow-y-auto');
@@ -447,6 +475,8 @@ export const test = base.extend<{ walk: Walk; flowName: string }>({
           screenshot,
           buttons: buttons.length ? buttons : undefined,
           overflowXPx: after?.overflowXPx ?? 0,
+          smallTargets: after?.smallTargets?.length ? after.smallTargets : undefined,
+          tinyTextNodes: after?.tinyTextNodes ?? 0,
           notes: notes.length ? notes : undefined,
         };
         appendFileSync(rawFile, JSON.stringify(record) + '\n');

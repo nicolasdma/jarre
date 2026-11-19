@@ -11,7 +11,7 @@
  */
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { APP_PORT, E2E_HOME, REPO, RESERVED_PORTS, childEnv, loadE2eEnv } from './env.mjs';
 
@@ -39,10 +39,15 @@ export function syncApp() {
   }
   const lockHash = createHash('sha1').update(readFileSync(join(REPO, 'package-lock.json'))).digest('hex');
   const stamp = join(APP_DIR, '.e2e-node-modules');
-  if (!existsSync(stamp) || readFileSync(stamp, 'utf8') !== lockHash) {
+  // A worktree whose node_modules is a symlink must not leave a symlink here: Turbopack refuses
+  // a package root outside the app ("Could not find the Next.js package").
+  // rsync can also drop it when the source has none.
+  const linked = existsSync(join(APP_DIR, 'node_modules')) && lstatSync(join(APP_DIR, 'node_modules')).isSymbolicLink();
+  const missing = !existsSync(join(APP_DIR, 'node_modules', 'next', 'package.json'));
+  if (linked || missing || !existsSync(stamp) || readFileSync(stamp, 'utf8') !== lockHash) {
     rmSync(join(APP_DIR, 'node_modules'), { recursive: true, force: true });
     // -c: APFS clonefile, copy-on-write (fast, no extra space until written).
-    sh('cp', ['-cR', join(REPO, 'node_modules'), join(APP_DIR, 'node_modules')]);
+    sh('cp', ['-cR', realpathSync(join(REPO, 'node_modules')), join(APP_DIR, 'node_modules')]);
     writeFileSync(stamp, lockHash);
   }
   return out.split('\n').filter((l) => l && !l.startsWith('.d..t')).length;
