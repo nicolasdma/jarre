@@ -265,7 +265,7 @@ function StickyHeader({
       }`}>
         <Link
           href="/library"
-          className={`text-j-text-tertiary hover:text-j-text transition-all duration-300 ${
+          className={`relative text-j-text-tertiary hover:text-j-text transition-all duration-300 after:absolute after:-inset-3 after:content-[''] ${
             isFocusMode ? 'text-xs' : 'text-sm'
           }`}
         >
@@ -323,7 +323,7 @@ function StickyHeader({
           {/* The feed: the same lesson as a relaxed scroll of cards, on every screen. */}
           <Link
             href={`/learn/${encodeURIComponent(resourceId)}/feed`}
-            className="flex min-h-[32px] items-center border border-j-border px-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-text hover:text-j-text"
+            className="relative flex min-h-[32px] items-center border border-j-border px-2.5 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-secondary transition-colors hover:border-j-text hover:text-j-text"
           >
             {t('learn.feedMode', language)}
           </Link>
