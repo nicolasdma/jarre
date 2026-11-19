@@ -147,9 +147,15 @@ export const ConceptSection = memo(function ConceptSection({
     setPreLoading(true);
     const q = await fetchQuestion();
     setPreQuestion(q);
-    if (!q) setPreFetchFailed(true);
+    if (!q) {
+      setPreFetchFailed(true);
+      // Nothing to try before reading: open the text instead of a box that only says so.
+      setPreAttempted(true);
+      setPhase('content');
+      onStateChange?.({ phase: 'content', preAnswer: '', preAttempted: true });
+    }
     setPreLoading(false);
-  }, [preQuestion, preLoading, preFetchFailed, fetchQuestion]);
+  }, [preQuestion, preLoading, preFetchFailed, fetchQuestion, onStateChange]);
 
   // Start loading when this section becomes active
   useEffect(() => {
