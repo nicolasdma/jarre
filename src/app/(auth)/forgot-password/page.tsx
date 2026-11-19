@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useBrowserLanguage } from '@/lib/use-browser-language';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -22,14 +23,9 @@ const STRINGS: Record<string, Record<Lang, string>> = {
   successMessage: { es: 'Si existe una cuenta con ese correo, recibirás un link para restablecer tu contraseña.', en: 'If an account exists with that email, you will receive a password reset link.' },
 };
 
-function detectLanguage(): Lang {
-  if (typeof navigator === 'undefined') return 'es';
-  const browserLang = navigator.language?.split('-')[0];
-  return browserLang === 'en' ? 'en' : 'es';
-}
 
 export default function ForgotPasswordPage() {
-  const language = useMemo(() => detectLanguage(), []);
+  const language = useBrowserLanguage();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

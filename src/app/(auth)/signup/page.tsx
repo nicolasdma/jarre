@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useBrowserLanguage } from '@/lib/use-browser-language';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -31,14 +32,9 @@ const AUTH_STRINGS: Record<string, Record<Lang, string>> = {
   clickLink: { es: 'Haz clic en el link de tu correo para activar tu cuenta.', en: 'Click the link in your email to activate your account.' },
 };
 
-function detectLanguage(): Lang {
-  if (typeof navigator === 'undefined') return 'es';
-  const browserLang = navigator.language?.split('-')[0];
-  return browserLang === 'en' ? 'en' : 'es';
-}
 
 export default function SignupPage() {
-  const language = useMemo(() => detectLanguage(), []);
+  const language = useBrowserLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

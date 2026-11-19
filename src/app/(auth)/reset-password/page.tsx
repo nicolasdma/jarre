@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useBrowserLanguage } from '@/lib/use-browser-language';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -23,15 +24,10 @@ const STRINGS: Record<string, Record<Lang, string>> = {
   update: { es: 'Actualizar contraseña', en: 'Update password' },
 };
 
-function detectLanguage(): Lang {
-  if (typeof navigator === 'undefined') return 'es';
-  const browserLang = navigator.language?.split('-')[0];
-  return browserLang === 'en' ? 'en' : 'es';
-}
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const language = useMemo(() => detectLanguage(), []);
+  const language = useBrowserLanguage();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

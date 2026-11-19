@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState } from 'react';
+import { useBrowserLanguage } from '@/lib/use-browser-language';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
@@ -31,24 +32,19 @@ const AUTH_STRINGS: Record<string, Record<Lang, string>> = {
   notAllowed: { es: 'Esta cuenta no tiene acceso a Jarre.', en: 'This account does not have access to Jarre.' },
 };
 
-function detectLanguage(): Lang {
-  if (typeof navigator === 'undefined') return 'es';
-  const browserLang = navigator.language?.split('-')[0];
-  return browserLang === 'en' ? 'en' : 'es';
-}
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = safeRedirectPath(searchParams.get('redirect'));
-  const language = useMemo(() => detectLanguage(), []);
+  const language = useBrowserLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    searchParams.get('error') === 'not_allowed' ? AUTH_STRINGS.notAllowed[language] : null,
-  );
+  const [error, setError] = useState<string | null>(null);
+  // Kept as a flag, not a string: the language is only known after hydration.
+  const [notAllowed, setNotAllowed] = useState(searchParams.get('error') === 'not_allowed');
   const [loading, setLoading] = useState(false);
 
   const s = (key: string) => AUTH_STRINGS[key]?.[language] ?? AUTH_STRINGS[key]?.en ?? key;
@@ -66,6 +62,7 @@ function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotAllowed(false);
     setLoading(true);
 
     const supabase = createClient();
@@ -159,7 +156,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {error && <ErrorMessage message={error} variant="inline" />}
+            {(error || notAllowed) && <ErrorMessage message={error ?? s('notAllowed')} variant="inline" />}
 
             <JarreButton type="submit" className="w-full" disabled={loading}>
               {loading ? s('signingIn') : s('signIn')}
