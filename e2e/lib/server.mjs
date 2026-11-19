@@ -1,7 +1,7 @@
 /**
  * The app the suite runs against: a production build of the CURRENT WORKING
  * TREE, copied to $JARRE_E2E_HOME/app (default ~/.cache/jarre-e2e/app) and
- * served by `next start` on E2E_APP_PORT (3107).
+ * served by `next start` on E2E_APP_PORT (3117).
  *
  * Why a copy: building in the repo would share `.next` with the owner's dev
  * server (port 3005) and let Next load the real `.env.local`. The copy never

@@ -17,10 +17,10 @@ export const E2E_DIR = join(REPO, 'e2e');
 export const ENV_FILE = join(REPO, '.env.e2e.local');
 /** Where the app copy, the seed cwd and the server log live (outside the repo: no tsconfig/turbopack overlap). */
 export const E2E_HOME = process.env.JARRE_E2E_HOME ?? join(os.homedir(), '.cache', 'jarre-e2e');
-export const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3107);
+export const APP_PORT = Number(process.env.E2E_APP_PORT ?? 3117);
 export const SUPABASE_API_PORT = 55421;
-/** The owner's dev server. The harness never binds it. */
-export const RESERVED_PORTS = new Set([3005]);
+/** Ports the harness never binds. */
+export const RESERVED_PORTS = new Set([3005, 3107]); // owner's dev server; scripts/perf/measure-learn.mjs
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 

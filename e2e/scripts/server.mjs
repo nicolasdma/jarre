@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * npm run e2e:server -- [--no-build] [--stop]
- * Copies the working tree, builds it against the local stack and serves it on :3107.
+ * Copies the working tree, builds it against the local stack and serves it on :3117.
  */
 import { BASE_URL, buildApp, startServer, stopServer, syncApp } from '../lib/server.mjs';
 

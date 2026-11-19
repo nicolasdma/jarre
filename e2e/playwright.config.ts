@@ -10,7 +10,7 @@ import { defineConfig } from '@playwright/test';
 import { join } from 'node:path';
 import { REPORT_DIR } from './tests/paths';
 
-const PORT = Number(process.env.E2E_APP_PORT ?? 3107);
+const PORT = Number(process.env.E2E_APP_PORT ?? 3117);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 // Google Chrome plays the drills' AAC audio; Playwright's Chromium has no proprietary codecs.
 const channel = process.env.E2E_CHANNEL === 'chromium' ? undefined : (process.env.E2E_CHANNEL ?? 'chrome');

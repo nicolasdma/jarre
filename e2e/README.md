@@ -9,7 +9,7 @@ verify" loop can test the logged-in app without touching production.
 
 ```sh
 npm run e2e:up      # local Supabase + migrations + test user + lessons (idempotent)
-npm run e2e:local   # build the working tree, serve it on :3107, walk it (desktop, then phone)
+npm run e2e:local   # build the working tree, serve it on :3117, walk it (desktop, then phone)
 npm run e2e:down    # stop the app server and the local Supabase stack (data stays in its Docker volume)
 ```
 
@@ -41,7 +41,7 @@ Output:
 | Writing to the hosted Supabase (shared by local dev and production) | `.env.e2e.local` is written from `supabase status` of the local stack; `e2e/lib/env.mjs` refuses any Supabase URL that is not loopback. The app is built and served from a copy of the working tree in `~/.cache/jarre-e2e/app` that never receives a `.env*` file, and every secret the real `.env.local` sets is overridden in the process env. |
 | Server-side calls to DeepSeek, Gemini, DeepL, YouTube | `e2e/server/net-guard.mjs` is preloaded into the seed tool, `next build` and `next start`: loopback passes, DeepSeek / the Gemini Live token / DeepL get canned answers (`e2e/mocks/`), YouTube thumbnails a placeholder PNG, Google Fonts pass (build time), anything else throws. Every non-loopback call goes to `~/.cache/jarre-e2e/net-guard.log`. |
 | Browser calls to Gemini Live, YouTube, CDNs | Chrome runs with `--host-resolver-rules` that resolve only loopback. The Gemini Live socket is answered by `routeWebSocket` (setup completes, nothing is said). Web Speech is a fake recognizer. Blocked requests are listed per step as `blockedExternal`, not as failures. |
-| The owner's dev server | The harness uses port 3107 and refuses 3005. It never builds in the repo's `.next`. |
+| The owner's dev server, other harnesses | The harness uses port 3117 and refuses 3005 (the owner's `next dev`). Not 3107: `scripts/perf/measure-learn.mjs` serves there, and a run on 2026-11-18 lost its server mid-walk while sharing it. It never builds in the repo's `.next`. |
 | Other local Supabase stacks | Ports 55420-55429 (`e2e/supabase/config.toml`), project id `jarre-e2e`. The workdir is `e2e/`, so the CLI never sees the link to the hosted project in `supabase/.temp`. |
 
 The test user (random email and password) exists only in the local auth

@@ -35,6 +35,7 @@ function control(page: Page, name: RegExp): Locator {
     .or(page.getByRole('radio', { name }))
     .or(page.getByRole('tab', { name }))
     .or(page.getByRole('link', { name }))
+    .filter({ visible: true })
     .first();
 }
 
@@ -113,8 +114,11 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
   /** Opens a reading section from the table of contents ("03Two Sum…"). */
   const section = async (n: string) => {
     if (!/step=learn/.test(page.url())) await open(page, `${base}?step=learn`);
-    // The table of contents is a sidebar on desktop and a list in the column on the phone: take the visible one.
-    await walk.tap(page.getByRole('button', { name: new RegExp(`^${n}\\s?\\S`) }).filter({ visible: true }).first(), `section ${n}`);
+    // The table of contents is a sidebar on desktop and a slide-over behind "Table of contents" on the phone
+    // (the column also lists the other sections, but never the open one).
+    const entry = page.getByRole('button', { name: new RegExp(`^${n}\\s?\\S`) }).filter({ visible: true }).first();
+    if (!(await entry.isVisible().catch(() => false))) await walk.tap(page.getByRole('button', { name: /^table of contents$/i }).filter({ visible: true }).first(), 'table of contents');
+    await walk.tap(entry, `section ${n}`);
     await page.waitForTimeout(500);
   };
   await walk.step('summary (activate)', async () => {
@@ -135,9 +139,11 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
     await page.getByRole('button', { name: SKIP_TO_TEXT }).first().click({ timeout: 2000 }).catch(() => {});
     await tapIfPresent(walk, page.locator('#intro-skip'), 'intro: entendido');
     await tapIfPresent(walk, control(page, SKIP_TO_TEXT), 'skip to text');
-    await walk.tap(control(page, /^A[.)]?\s?\S/), 'quiz option A');
-    await walk.tap(control(page, /^verificar$/i), 'quiz verificar');
-    await walk.tap(control(page, /^verdadero$/i), 'quiz verdadero');
+    // The quiz's own options (role radio inside its radiogroup): /^A.../ alone also matched the step navigator's "Aprender".
+    const options = page.getByRole('radiogroup', { name: /opciones de respuesta/i }).filter({ visible: true }).first().getByRole('radio');
+    await walk.tap(options.first(), 'quiz option A');
+    if (!(await tapIfPresent(walk, control(page, /^(verificar|comprobar|check)$/i), 'quiz verificar'))) walk.note('no check button after choosing a quiz option');
+    if (!(await tapIfPresent(walk, control(page, /^(verdadero|true)$/i), 'quiz verdadero'))) walk.note('no true/false question in section 01');
   });
   await walk.step('reading: section 02 before-reading question', async () => {
     await section('02');
@@ -177,11 +183,13 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
       walk.note('no "Iniciar sesión de voz" in the reading section (the tutor lives in Ensayar)');
       return;
     }
-    await walk.tap(entry, 'tutor from the section');
-    // The entry may open a panel first; start it if it has its own start button.
+    // The entry starts the session itself; older versions opened a panel with its own start button first.
     await walk.expectLiveSession(async () => {
-      await tapIfPresent(walk, control(page, /^(empezar|comenzar|iniciar)/i), 'empezar (section tutor)');
+      const before = walk.liveSockets();
+      await walk.tap(entry, 'tutor from the section');
       await allowMicIfAsked(page, walk);
+      await page.waitForTimeout(1500);
+      if (walk.liveSockets() === before) await tapIfPresent(walk, control(page, /^(empezar|comenzar)/i), 'empezar (section tutor)');
     });
   });
   await walk.step('reading: section 03 every button', async () => {
@@ -195,6 +203,8 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
     for (let i = 1; i <= 15; i++) {
       const n = String(i).padStart(2, '0');
       const b = page.getByRole('button', { name: new RegExp(`^${n}\\s?\\S`) }).filter({ visible: true }).first();
+      const toc = page.getByRole('button', { name: /^table of contents$/i }).filter({ visible: true }).first();
+      if (!(await b.isVisible().catch(() => false)) && (await toc.isVisible().catch(() => false))) await walk.tap(toc, 'table of contents');
       if (!(await b.isVisible().catch(() => false))) break;
       await walk.tap(b, `section ${n}`);
       await page.waitForTimeout(300);
@@ -351,6 +361,10 @@ test('feed: posts, flip card, YouTube facade', async ({ page, walk }) => {
   });
   await walk.step('feed: flip a card', async () => {
     const flip = page.getByRole('button', { name: /dar vuelta/i }).first();
+    if (!(await flip.count())) {
+      walk.note('no flashcard post in the loaded part of the feed');
+      return;
+    }
     await flip.scrollIntoViewIfNeeded();
     await walk.tap(flip, 'dar vuelta');
   });
@@ -382,13 +396,15 @@ test('review deck', async ({ page, walk }) => {
     await page.waitForTimeout(1500);
   });
   await walk.step('review: card controls', async () => {
-    await walk.sweep(page.locator('#main-content'), { max: 12, escape: false });
+    // The phone's header menu would stay open over the card (escape is off here): leave it out.
+    await walk.sweep(page.locator('#main-content'), { max: 12, escape: false, deny: /toggle menu/i });
   });
   await walk.step('review deck page', async () => {
     await open(page, '/review/deck');
   });
   await walk.step('review deck: controls', async () => {
-    await walk.sweep(page.locator('#main-content'), { max: 12, escape: false });
+    // The phone's header menu would stay open over the card (escape is off here): leave it out.
+    await walk.sweep(page.locator('#main-content'), { max: 12, escape: false, deny: /toggle menu/i });
   });
   expectNoBrokenSteps(walk);
 });

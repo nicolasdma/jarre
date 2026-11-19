@@ -8,7 +8,7 @@ import { RAW_DIR, REPORT_DIR, ROUND, SHOTS_DIR } from './paths';
 
 export default async function globalSetup() {
   const env = loadE2eEnv(); // throws unless .env.e2e.local points at a loopback Supabase
-  const base = `http://127.0.0.1:${env.E2E_APP_PORT ?? 3107}`;
+  const base = `http://127.0.0.1:${env.E2E_APP_PORT ?? 3117}`;
   if (!isLoopbackUrl(base)) throw new Error('e2e guard: app URL must be loopback');
   const res = await fetch(`${base}/login`, { redirect: 'manual' }).catch(() => null);
   if (!res) throw new Error(`No app on ${base}: run \`npm run e2e:server\` (or \`npm run e2e:local\`, which starts it).`);

@@ -51,6 +51,8 @@ export interface StepRecord {
   screenshot?: string;
   /** Buttons clicked by walk.sweep() in this step. */
   buttons?: ButtonRecord[];
+  /** Pixels of content wider than the viewport when the step ended (0: nothing overflows). */
+  overflowXPx?: number;
   /** Things worth a look that are not failures (a control that is gone, an optional path not taken). */
   notes?: string[];
 }
@@ -241,7 +243,8 @@ export const test = base.extend<{ walk: Walk; flowName: string }>({
 
     page.on('console', (m) => {
       // A resource on a host the harness blocks (DNS) is listed in blockedExternal, not as an app error.
-      if (m.type() === 'error' && !BLOCKED_NET.test(m.text())) consoleErrors.push(m.text().slice(0, 400));
+      // "Failed to load resource" says nothing about which one: keep the URL the browser attached to it.
+      if (m.type() === 'error' && !BLOCKED_NET.test(m.text())) consoleErrors.push(`${m.text()}${m.location()?.url ? ` @ ${m.location().url.replace(/^https?:\/\/[^/]+/, '')}` : ''}`.slice(0, 400));
     });
     page.on('pageerror', (e) => pageErrors.push(`${e.name}: ${e.message}`.slice(0, 400)));
     page.on('requestfailed', (r) => {
@@ -276,6 +279,11 @@ export const test = base.extend<{ walk: Walk; flowName: string }>({
             longTasks: s?.longTasks ?? [],
             events: s?.events ?? [],
             nav: nav ? { ttfbMs: nav.responseStart, domContentLoadedMs: nav.domContentLoadedEventEnd, loadMs: nav.loadEventEnd } : null,
+            // Content wider than the screen: the page scrolls sideways, or the app shell (overflow-x hidden) cuts it off.
+            overflowXPx: (() => {
+              const shell = document.getElementById('main-content')?.closest('.overflow-y-auto');
+              return Math.max(0, document.documentElement.scrollWidth - innerWidth, shell ? shell.scrollWidth - shell.clientWidth : 0);
+            })(),
           };
         })
         .catch(() => null);
@@ -438,6 +446,7 @@ export const test = base.extend<{ walk: Walk; flowName: string }>({
           totalTransferredKB: Math.round(allBytes / 1024),
           screenshot,
           buttons: buttons.length ? buttons : undefined,
+          overflowXPx: after?.overflowXPx ?? 0,
           notes: notes.length ? notes : undefined,
         };
         appendFileSync(rawFile, JSON.stringify(record) + '\n');

@@ -3,7 +3,7 @@
  * npm run e2e:local -- [--reuse-server] [--keep-server] [--keep-state] [--viewports desktop,mobile] [--round N] [-- <playwright args>]
  *
  * 1. Checks the local Supabase stack (`npm run e2e:up` first).
- * 2. Copies the working tree, rebuilds if anything changed, serves it on :3107.
+ * 2. Copies the working tree, rebuilds if anything changed, serves it on :3117.
  * 3. Resets the test user's learner state (local DB), then runs the walk once per viewport (desktop-1440, then mobile-390), each in
  *    its own Playwright invocation: logout revokes every session of the user.
  * 4. Writes e2e/report/latest.json (+ screenshots in
@@ -71,17 +71,21 @@ rmSync(join(reportDir, 'run-meta.json'), { force: true });
 const projects = { desktop: 'desktop-1440', mobile: 'mobile-390' };
 const viewports = opt('--viewports', 'desktop,mobile').split(',');
 let worst = 0;
-viewports.forEach((v, i) => {
+for (const [i, v] of viewports.entries()) {
   const project = projects[v] ?? v;
   console.log(`\n▸ ${project}`);
   resetLearnerState(); // each viewport starts from the same state
+  if (!(await isUp())) {
+    console.log('app server was down: starting it again');
+    await startServer();
+  }
   const r = spawnSync(join(REPO, 'node_modules', '.bin', 'playwright'), ['test', '-c', join(E2E_DIR, 'playwright.config.ts'), `--project=${project}`, ...passthrough], {
     cwd: REPO,
     stdio: 'inherit',
     env: { ...process.env, E2E_ROUND: opt('--round', process.env.E2E_ROUND ?? '0'), E2E_KEEP_META: i > 0 ? '1' : '0' },
   });
   worst = Math.max(worst, r.status ?? 1);
-});
+}
 
 if (!has('--keep-server')) {
   await stopServer();

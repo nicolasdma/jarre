@@ -94,6 +94,7 @@ export default async function globalTeardown() {
       heaviestPages: pages.slice(0, 15),
       worstLcp: lcp.slice(0, 15),
       layoutShift: cls,
+      horizontalOverflow: steps.filter((s) => (s.overflowXPx ?? 0) > 1).map((s) => ({ where: where(s), px: s.overflowXPx, screenshot: s.screenshot })),
       notes: steps.filter((s) => s.notes?.length).map((s) => ({ where: where(s), notes: s.notes })),
       longTasks: longTasks.slice(0, 15),
       serverCalls,

@@ -19,11 +19,19 @@ test('logout', async ({ page, walk }) => {
     await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 30_000 });
   });
   await walk.step('logout: SALIR', async () => {
-    const salir = page.getByRole('button', { name: /^(salir|cerrar sesión|log ?out)$/i }).or(page.getByText(/^salir$/i)).first();
-    // Phone: the header folds into a menu.
-    if (!(await salir.isVisible().catch(() => false))) await walk.tap(page.getByRole('button', { name: /toggle menu|menú/i }).first(), 'menu');
+    const salir = page
+      .getByRole('button', { name: /^(salir|cerrar sesión|log ?out)$/i })
+      .or(page.getByText(/^salir$/i))
+      .filter({ visible: true })
+      .first();
+    // Phone: the header folds into a menu. Give the page its first paint before deciding which one this is.
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
+    if (!(await salir.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false))) await walk.tap(page.getByRole('button', { name: /toggle menu|menú/i }).filter({ visible: true }).first(), 'menu');
     await walk.tap(salir, 'salir');
-    await page.waitForURL(/\/(login)?(\?.*)?$/, { timeout: 15_000 });
+    // Logout sends the user to "/", which redirects to /library: the sign that it worked is the session cookie gone.
+    await expect
+      .poll(async () => (await page.context().cookies()).some((c) => /^sb-.*-auth-token/.test(c.name)), { timeout: 15_000 })
+      .toBe(false);
   });
   await walk.step('logout: protected page after logout', async () => {
     await page.goto('/review');
