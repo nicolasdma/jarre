@@ -106,15 +106,18 @@ function FormatBadge({ format }: { format: string }) {
 function SelfRatingBar({
   onRate,
   disabled,
+  language,
 }: {
   onRate: (rating: 'wrong' | 'hard' | 'good' | 'easy') => void;
   disabled: boolean;
+  language: Language;
 }) {
+  const es = language === 'es';
   const buttons = [
-    { rating: 'wrong' as const, label: 'Again', color: 'text-j-error border-j-error hover:bg-j-error/10' },
-    { rating: 'hard' as const, label: 'Hard', color: 'text-j-warm border-j-warm hover:bg-j-warm/10' },
-    { rating: 'good' as const, label: 'Good', color: 'text-j-accent border-j-accent hover:bg-j-accent/10' },
-    { rating: 'easy' as const, label: 'Easy', color: 'text-green-600 border-green-600 hover:bg-green-600/10' },
+    { rating: 'wrong' as const, label: es ? 'Otra vez' : 'Again', color: 'text-j-error border-j-error hover:bg-j-error/10' },
+    { rating: 'hard' as const, label: es ? 'Difícil' : 'Hard', color: 'text-j-warm border-j-warm hover:bg-j-warm/10' },
+    { rating: 'good' as const, label: es ? 'Bien' : 'Good', color: 'text-j-accent border-j-accent hover:bg-j-accent/10' },
+    { rating: 'easy' as const, label: es ? 'Fácil' : 'Easy', color: 'text-green-600 border-green-600 hover:bg-green-600/10' },
   ];
 
   return (
@@ -650,9 +653,9 @@ export function ReviewSession({ dueCount, totalCards, language, reviewedToday }:
                 </div>
 
                 <p className="font-mono text-[10px] tracking-[0.15em] text-j-text-tertiary uppercase text-center mb-4">
-                  {language === 'es' ? 'Como fue tu recall?' : 'How was your recall?'}
+                  {language === 'es' ? '¿Qué tan bien lo recordaste?' : 'How was your recall?'}
                 </p>
-                <SelfRatingBar onRate={submitSelfRating} disabled={isLoading} />
+                <SelfRatingBar onRate={submitSelfRating} disabled={isLoading} language={language} />
               </div>
             )}
           </div>
