@@ -15,7 +15,7 @@
  * (and are warmed on hover); until they arrive the plain block stays on screen.
  */
 
-import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Footprints } from 'lucide-react';
 import { findTrace } from '@/lib/code-trace/registry';
 import type { TraceDef } from '@/lib/code-trace/trace';
@@ -28,6 +28,14 @@ export function TracedCode({ code, children, buttonClassName = 'mt-2' }: { code:
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [def, setDef] = useState<TraceDef<any, any> | null>(null);
   const [failed, setFailed] = useState(false);
+  // Closing removes the button that had focus: give it back to "Ver paso a paso", without moving the page.
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const closedRef = useRef(false);
+  useEffect(() => {
+    if (open || !closedRef.current) return;
+    closedRef.current = false;
+    launcherRef.current?.focus({ preventScroll: true });
+  }, [open]);
 
   if (!entry) return <>{children}</>;
 
@@ -46,7 +54,14 @@ export function TracedCode({ code, children, buttonClassName = 'mt-2' }: { code:
     return (
       <div className="mb-6" data-testid="traced-code-open">
         <Suspense fallback={children}>
-          <CodeTrace def={def} autoFocus onClose={() => setOpen(false)} />
+          <CodeTrace
+            def={def}
+            autoFocus
+            onClose={() => {
+              closedRef.current = true;
+              setOpen(false);
+            }}
+          />
         </Suspense>
       </div>
     );
@@ -56,6 +71,7 @@ export function TracedCode({ code, children, buttonClassName = 'mt-2' }: { code:
     <>
       {children}
       <button
+        ref={launcherRef}
         type="button"
         onClick={show}
         onPointerEnter={() => void import('./code-trace')}
