@@ -109,7 +109,7 @@ export function DeckOverview({ language }: { language: Language }) {
       {sortedPhases.map(([phase, concepts]) => (
         <div key={phase} className="mb-10">
           <h2 className="font-mono text-[11px] tracking-[0.15em] text-j-text-tertiary uppercase mb-4">
-            Phase {phase}
+            {language === 'es' ? 'Fase' : 'Phase'} {phase}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {concepts.map(concept => (

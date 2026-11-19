@@ -39,7 +39,7 @@ export function DeckCard({
       <div className="p-4 border border-j-border bg-j-bg-alt opacity-50">
         <div className="flex items-center justify-between mb-2">
           <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase">
-            Phase {phase}
+            {language === 'es' ? 'Fase' : 'Phase'} {phase}
           </span>
           <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase">
             🔒
@@ -47,7 +47,7 @@ export function DeckCard({
         </div>
         <p className="text-sm text-j-text-tertiary font-medium truncate">{conceptName}</p>
         <p className="text-[10px] text-j-text-tertiary mt-2">
-          {language === 'es' ? 'Avanza en el learn flow' : 'Progress in learn flow'}
+          {language === 'es' ? 'Se desbloquea al avanzar en la lección' : 'Unlocks as you progress in the lesson'}
         </p>
       </div>
     );
@@ -57,7 +57,7 @@ export function DeckCard({
     <div className="p-4 border border-j-border bg-white dark:bg-j-bg-alt hover:border-j-accent transition-colors j-card-glow">
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-[9px] tracking-[0.1em] text-j-text-tertiary uppercase">
-          Phase {phase}
+          {language === 'es' ? 'Fase' : 'Phase'} {phase}
         </span>
         <span className="font-mono text-[9px] tracking-[0.1em] text-j-accent uppercase">
           {MASTERY_LABELS[masteryLevel]?.[language] || `Lvl ${masteryLevel}`}
