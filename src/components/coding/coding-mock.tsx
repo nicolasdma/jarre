@@ -621,7 +621,8 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
 
       {voice.error && <p className="text-sm text-j-error">{voice.error}</p>}
 
-      <div className={cn('grid gap-4', showGuide ? 'lg:grid-cols-[340px_minmax(0,1fr)]' : 'grid-cols-1')}>
+      {/* grid-cols-1 below lg too: an implicit track grows to the editor's longest line and pushes the page past the screen. */}
+      <div className={cn('grid grid-cols-1 gap-4', showGuide && 'lg:grid-cols-[340px_minmax(0,1fr)]')}>
         {showGuide && (
           <aside className="space-y-4" aria-label="Problema y guía">
             <div className="border border-j-border p-3">
