@@ -13,6 +13,10 @@ const log = createLogger('Review/Random');
  * then falls back to concept-scoped questions.
  * If `concepts` param is provided, scopes to those concept IDs.
  * Otherwise, scopes to concepts the user has studied (concept_progress).
+ *
+ * Having no question is a normal state (most lesson sections have none), not an
+ * error: it answers 200 `{ empty: true, error }` so the browser does not log a
+ * failed request on every section the learner opens.
  */
 export const GET = withAuth(async (request, { supabase, user }) => {
   try {
@@ -38,10 +42,7 @@ export const GET = withAuth(async (request, { supabase, user }) => {
     }
 
     if (conceptIds.length === 0) {
-      return NextResponse.json(
-        { error: 'No hay conceptos para repasar.' },
-        { status: 404 }
-      );
+      return NextResponse.json({ empty: true, error: 'No hay conceptos para repasar.' });
     }
 
     // Helper: count + fetch a random question with given filters
@@ -99,10 +100,7 @@ export const GET = withAuth(async (request, { supabase, user }) => {
       : await fetchRandom({ useSectionId: false });
 
     if (!question) {
-      return NextResponse.json(
-        { error: 'No hay preguntas disponibles para estos conceptos.' },
-        { status: 404 }
-      );
+      return NextResponse.json({ empty: true, error: 'No hay preguntas disponibles para estos conceptos.' });
     }
 
     const conceptName = extractConceptName(question.concepts, question.concept_id);

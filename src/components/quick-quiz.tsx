@@ -40,11 +40,8 @@ export function QuickQuiz({ language, conceptIds, onClose }: QuickQuizProps) {
       if (question?.questionId) params.set('exclude', question.questionId);
       const qs = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`/api/review/random${qs}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'No questions available');
-      }
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.empty) throw new Error(data.error || 'No questions available');
       setQuestion(data);
       setPhase('question');
     } catch (err) {

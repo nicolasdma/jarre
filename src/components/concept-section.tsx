@@ -135,7 +135,8 @@ export const ConceptSection = memo(function ConceptSection({
 
       const res = await fetch(`/api/review/random?${params.toString()}`);
       if (!res.ok) return null;
-      return res.json();
+      const data = await res.json();
+      return data?.empty ? null : data;
     },
     [section.conceptId, section.id]
   );
