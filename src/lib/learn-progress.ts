@@ -73,22 +73,54 @@ export interface LearnProgress {
 /**
  * Persists learn progress to the server. Debounced (1s) fire-and-forget:
  * rapid state changes coalesce into a single POST.
+ *
+ * Leaving the page (closing the tab, a full navigation) used to drop the last
+ * second of progress: the debounce timer never fired, or the POST in flight was
+ * cancelled ("Failed to fetch"). A pending save is now sent on pagehide, and
+ * the request is `keepalive` so it outlives the page (bodies over the 64 kB
+ * keepalive quota go as a normal request).
  */
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+let _pendingSave: (() => void) | null = null;
+let _flushOnHide = false;
+
+const KEEPALIVE_MAX_BYTES = 60_000;
+
+function postProgress(body: string): void {
+  fetch('/api/learn/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    keepalive: body.length < KEEPALIVE_MAX_BYTES,
+  }).catch((err) => {
+    console.error('[Learn/Progress] Failed to save:', err);
+  });
+}
+
+function flushPendingSave(): void {
+  if (!_saveTimer) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+  const send = _pendingSave;
+  _pendingSave = null;
+  send?.();
+}
 
 export function saveLearnProgress(
   resourceId: string,
   progress: LearnProgress
 ): void {
+  if (!_flushOnHide && typeof window !== 'undefined') {
+    _flushOnHide = true;
+    window.addEventListener('pagehide', flushPendingSave);
+  }
   if (_saveTimer) clearTimeout(_saveTimer);
+  const body = JSON.stringify({ resourceId, ...progress });
+  _pendingSave = () => postProgress(body);
   _saveTimer = setTimeout(() => {
     _saveTimer = null;
-    fetch('/api/learn/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resourceId, ...progress }),
-    }).catch((err) => {
-      console.error('[Learn/Progress] Failed to save:', err);
-    });
+    const send = _pendingSave;
+    _pendingSave = null;
+    send?.();
   }, 1000);
 }
