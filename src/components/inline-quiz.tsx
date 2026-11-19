@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { fetchWithKeys } from '@/lib/api/fetch-with-keys';
+import { InlineText } from '@/components/feed/posts/inline-text';
 
 // ============================================================================
 // Types
@@ -474,7 +475,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
 
       {/* Question */}
       <p className="text-sm text-j-text leading-relaxed mb-5">
-        {quiz.questionText}
+        <InlineText text={quiz.questionText} />
       </p>
 
       {/* MC / MC2 Mode */}
@@ -531,7 +532,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
               <span className="font-mono text-[11px] tracking-[0.1em] text-j-text-tertiary flex-shrink-0">
                 {option.label}.
               </span>
-              <span className="text-sm text-j-text">{option.text}</span>
+              <span className="text-sm text-j-text"><InlineText text={option.text} /></span>
             </button>
           ))}
         </div>
@@ -658,7 +659,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
                 </div>
               ) : (
                 <p className="text-sm text-j-text-secondary leading-relaxed">
-                  {quiz.explanation}
+                  <InlineText text={quiz.explanation} />
                 </p>
               )}
             </div>
@@ -692,7 +693,7 @@ export function InlineQuiz({ quiz, overrideState, onAnswer }: InlineQuizProps) {
                   Explicación de referencia
                 </p>
                 <p className="text-sm text-j-text-secondary leading-relaxed">
-                  {quiz.explanation}
+                  <InlineText text={quiz.explanation} />
                 </p>
               </div>
             )}
