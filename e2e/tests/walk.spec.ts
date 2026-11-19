@@ -179,6 +179,17 @@ test('lesson v2: summary, reading, before-reading question, quiz, code tabs', as
     expect(await trace.locator('[data-testid="code-trace-caption"]').innerText(), 'the caption follows the steps').not.toBe(before);
     await walk.sweep(trace, { max: 12 });
   });
+  await walk.step('reading: section 03 code trace closes back to its button', async () => {
+    const launcher = page.locator('[data-testid="trace-launcher"]').filter({ visible: true }).first();
+    if (await launcher.isVisible().catch(() => false)) await walk.tap(launcher, 'ver paso a paso (again)');
+    const close = page.locator('[data-testid="code-trace-close"]').filter({ visible: true }).first();
+    if (!(await close.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      walk.note('no open trace to close');
+      return;
+    }
+    await walk.tap(close, 'cerrar paso a paso');
+    await expect(page.locator('[data-testid="trace-launcher"]').filter({ visible: true }).first()).toBeFocused();
+  });
   await walk.step('reading: section 03 code exercise (open, run, verify)', async () => {
     const list = page.locator('[data-testid="section-exercises"]');
     await list.scrollIntoViewIfNeeded({ timeout: 15_000 });
