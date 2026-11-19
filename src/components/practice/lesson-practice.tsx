@@ -16,6 +16,7 @@ import { loadBestScores, type BestScores } from './best-scores';
 import { DrillTrainer } from './drill-trainer';
 import { isRecallDue } from '@/lib/practice/recall';
 import { drillModes, drillProgress, type DrillProgress } from '@/lib/practice/drill-progress';
+import { firstMode, modeOf, type DrillModeState } from '@/lib/practice/drill-mode';
 import type { DrillMode, PracticeDrill } from './types';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 
@@ -31,12 +32,19 @@ interface LessonPracticeValue {
   setScores: (scores: BestScores) => void;
   /** The drill the Practice step shows (and the nav highlights). */
   selectedSlug: string | null;
+  /** The mode of the selected drill. */
   mode: DrillMode;
-  setMode: (mode: DrillMode) => void;
+  /**
+   * The mode a drill shows: the one it was left in if it is the drill being
+   * practiced, else the first of the flow (lib/practice/drill-mode.ts).
+   */
+  modeFor: (slug: string) => DrillMode;
+  setModeFor: (slug: string, mode: DrillMode) => void;
+  /** Shows a drill in the Practice step; it opens in `mode`, else as modeFor says. */
   select: (slug: string, mode?: DrillMode) => void;
   /** The drill opened inline under a reading section, if any. */
   openSlug: string | null;
-  setOpenSlug: (slug: string | null) => void;
+  setOpenSlug: (slug: string | null, mode?: DrillMode) => void;
   /** Approved modes of a drill (lib/practice/drill-progress.ts). */
   progressOf: (drill: PracticeDrill) => DrillProgress;
 }
@@ -67,10 +75,22 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
     () => (initialSlug && drills.some((d) => d.slug === initialSlug) ? initialSlug : groups[0]?.drills[0]?.slug ?? null),
   );
-  const [mode, setMode] = useState<DrillMode>(initialMode ?? 'listen');
-  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  // The mode belongs to the drill being practiced: moving to another drill starts it from the first mode.
+  const [modeState, setModeState] = useState<DrillModeState>(() => ({ slug: initialMode ? selectedSlug : null, mode: initialMode ?? 'listen' }));
+  const [openSlug, setOpenSlugState] = useState<string | null>(null);
   // A drill with no recording plays in the browser voice; with neither, Escuchar and Frase por frase are not there.
   const hasVoice = useSyncExternalStore(noSubscribe, () => 'speechSynthesis' in window, () => true);
+
+  const modeFor = useCallback(
+    (slug: string) => modeOf(modeState, slug, firstMode(Boolean(drills.find((d) => d.slug === slug)?.audioUrl) || hasVoice)),
+    [modeState, drills, hasVoice],
+  );
+  const setModeFor = useCallback((slug: string, mode: DrillMode) => setModeState({ slug, mode }), []);
+  const setOpenSlug = useCallback((slug: string | null, mode?: DrillMode) => {
+    setOpenSlugState(slug);
+    if (slug && mode) setModeState({ slug, mode });
+  }, []);
+  const mode = selectedSlug ? modeFor(selectedSlug) : 'listen';
 
   useEffect(() => {
     setScores(loadBestScores(resourceId));
@@ -83,12 +103,12 @@ export function LessonPracticeProvider({ resourceId, drills, keyTerms, asks = NO
 
   const select = useCallback((slug: string, nextMode?: DrillMode) => {
     setSelectedSlug(slug);
-    if (nextMode) setMode(nextMode);
+    if (nextMode) setModeState({ slug, mode: nextMode });
   }, []);
 
   const value = useMemo(
-    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, setMode, select, openSlug, setOpenSlug, progressOf }),
-    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, select, openSlug, progressOf],
+    () => ({ resourceId, drills, keyTerms, asks, groups, scores, setScores, selectedSlug, mode, modeFor, setModeFor, select, openSlug, setOpenSlug, progressOf }),
+    [resourceId, drills, keyTerms, asks, groups, scores, selectedSlug, mode, modeFor, setModeFor, select, openSlug, setOpenSlug, progressOf],
   );
   return <LessonPracticeContext.Provider value={value}>{children}</LessonPracticeContext.Provider>;
 }
@@ -159,8 +179,8 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
                     drill={d}
                     ask={practice.asks[d.slug]}
                     keyTerms={practice.keyTerms}
-                    mode={practice.mode}
-                    onModeChange={practice.setMode}
+                    mode={practice.modeFor(d.slug)}
+                    onModeChange={(m) => practice.setModeFor(d.slug, m)}
                     scores={practice.scores}
                     onScores={practice.setScores}
                   />
@@ -242,13 +262,14 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         ask={practice.asks[drill.slug]}
         keyTerms={practice.keyTerms}
         mode={practice.mode}
-        onModeChange={practice.setMode}
+        onModeChange={(m) => practice.setModeFor(drill.slug, m)}
         scores={practice.scores}
         onScores={practice.setScores}
         onPrev={index > 0 ? () => practice.select(order[index - 1].slug) : undefined}
         onNext={index < order.length - 1 ? () => practice.select(order[index + 1].slug) : undefined}
         position={`${index + 1}/${order.length}`}
-        onNextDue={reviewing && nextDue ? () => practice.select(nextDue.slug) : undefined}
+        // Reviewing is a run of Pregunta → respuesta: the next one due stays in it.
+        onNextDue={reviewing && nextDue ? () => practice.select(nextDue.slug, 'recall') : undefined}
       />
 
       {onInterview && (
