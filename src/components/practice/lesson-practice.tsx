@@ -9,7 +9,7 @@
  * practice click.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { groupDrills, type DrillGroup } from '@/lib/lessons/drill-groups';
 import { loadBestScores, type BestScores } from './best-scores';
@@ -17,6 +17,7 @@ import { DrillTrainer } from './drill-trainer';
 import { isRecallDue } from '@/lib/practice/recall';
 import { drillModes, drillProgress, type DrillProgress } from '@/lib/practice/drill-progress';
 import { firstMode, modeOf, type DrillModeState } from '@/lib/practice/drill-mode';
+import { revealBelowHeader } from '@/lib/learn/app-scroller';
 import type { DrillMode, PracticeDrill } from './types';
 import type { KeyTerm } from '@/lib/practice/key-terms';
 
@@ -143,13 +144,21 @@ function ProgressCount({ p }: { p: DrillProgress }) {
 /** The section's drills, under its reading: one opens inline with every mode. */
 export function SectionDrills({ conceptId }: { conceptId: string }) {
   const practice = useLessonPractice();
+  const openSlug = practice?.openSlug ?? null;
+  // Opening a drill closes the one that was open, maybe above it: keep the opened row on screen.
+  const shownRef = useRef(openSlug);
+  useLayoutEffect(() => {
+    if (shownRef.current === openSlug) return;
+    shownRef.current = openSlug;
+    if (openSlug) revealBelowHeader(document.querySelector(`[data-section-drills="${CSS.escape(conceptId)}"] [id="drill-${CSS.escape(openSlug)}"]`));
+  }, [openSlug, conceptId]);
   if (!practice) return null;
   const group = practice.groups.find((g) => g.id === conceptId);
   if (!group) return null;
   const complete = group.drills.filter((d) => practice.progressOf(d).complete).length;
 
   return (
-    <section className="mt-8 border-t border-j-border pt-6" aria-label="Decilo en inglés" data-testid="section-drills">
+    <section className="mt-8 border-t border-j-border pt-6" aria-label="Decilo en inglés" data-testid="section-drills" data-section-drills={conceptId}>
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-j-warm">Decilo en inglés</p>
         <p className="font-mono text-[10px] tabular-nums text-j-text-tertiary" data-testid="section-complete">
@@ -200,6 +209,7 @@ export function SectionDrills({ conceptId }: { conceptId: string }) {
 
 export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
   const practice = useLessonPractice();
+  const shown = useDrillChange(practice?.selectedSlug ?? null);
   if (!practice || practice.drills.length === 0) return null;
   const order = practice.groups.flatMap((g) => g.drills);
   const index = Math.max(0, order.findIndex((d) => d.slug === practice.selectedSlug));
@@ -254,6 +264,7 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         </select>
       </header>
 
+      <div ref={shown.ref}>
       {group && <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.15em] text-j-warm">{group.title}</p>}
       <DrillTrainer
         key={drill.slug}
@@ -265,12 +276,13 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
         onModeChange={(m) => practice.setModeFor(drill.slug, m)}
         scores={practice.scores}
         onScores={practice.setScores}
-        onPrev={index > 0 ? () => practice.select(order[index - 1].slug) : undefined}
-        onNext={index < order.length - 1 ? () => practice.select(order[index + 1].slug) : undefined}
+        onPrev={index > 0 ? () => shown.go('prev', () => practice.select(order[index - 1].slug)) : undefined}
+        onNext={index < order.length - 1 ? () => shown.go('next', () => practice.select(order[index + 1].slug)) : undefined}
         position={`${index + 1}/${order.length}`}
         // Reviewing is a run of Pregunta → respuesta: the next one due stays in it.
         onNextDue={reviewing && nextDue ? () => practice.select(nextDue.slug, 'recall') : undefined}
       />
+      </div>
 
       {onInterview && (
         <div className="mt-16 border-t border-j-border pt-10 text-center">
@@ -286,6 +298,37 @@ export function PracticeStep({ onInterview }: { onInterview?: () => void }) {
       )}
     </div>
   );
+}
+
+/**
+ * When the Practice step moves to another drill (arrows, the list, a mode's
+ * own "Siguiente"): its top comes on screen if the learner had scrolled past
+ * it, and focus, which went away with the old drill's controls, goes to the
+ * same arrow in the new one, or to its title.
+ */
+function useDrillChange(slug: string | null) {
+  const ref = useRef<HTMLDivElement>(null);
+  const viaRef = useRef<'prev' | 'next' | null>(null);
+  const lastRef = useRef(slug);
+  useLayoutEffect(() => {
+    if (lastRef.current === slug) return;
+    lastRef.current = slug;
+    const via = viaRef.current;
+    viaRef.current = null;
+    const root = ref.current;
+    if (!root) return;
+    revealBelowHeader(root);
+    const active = document.activeElement;
+    // Focus still on something that stayed (the list, the picker): leave it there.
+    if (active && active !== document.body) return;
+    const arrow = via && root.querySelector<HTMLButtonElement>(`button[aria-label="${via === 'prev' ? 'Drill anterior' : 'Drill siguiente'}"]:not(:disabled)`);
+    (arrow || root.querySelector<HTMLElement>('[data-testid="drill-title"]'))?.focus({ preventScroll: true });
+  }, [slug]);
+  const go = useCallback((via: 'prev' | 'next', move: () => void) => {
+    viaRef.current = via;
+    move();
+  }, []);
+  return { ref, go };
 }
 
 // ---------------------------------------------------------------------------

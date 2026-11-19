@@ -120,7 +120,7 @@ export function DrillTrainer({ resourceId, drill, ask, keyTerms, mode, onModeCha
     <div className="space-y-4" data-drill-trainer data-testid="drill-trainer">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-base font-medium text-j-text" data-testid="drill-title">{drill.title}</p>
+          <p className="text-base font-medium text-j-text outline-none" data-testid="drill-title" tabIndex={-1}>{drill.title}</p>
           {best && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-accent">Mejor: {best}</p>}
           {!drill.audioUrl && <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Voz del navegador</p>}
         </div>
