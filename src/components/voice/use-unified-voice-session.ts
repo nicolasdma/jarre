@@ -592,7 +592,12 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
   // ---- Derive state from base session ----
 
   useEffect(() => {
-    if (state === 'loading' || state === 'scoring' || state === 'summarizing' || state === 'done') return;
+    if (state === 'scoring' || state === 'summarizing' || state === 'done') return;
+    // While loading, only the connection this start opened moves the state on: a stale
+    // 'error' or 'disconnected' from an earlier session must not. Before, 'loading' returned
+    // here unconditionally, so a session that connected stayed 'loading' for good (the
+    // coding mock's clock never started and its notes never reached the interviewer).
+    if (state === 'loading' && voiceSession.connectionState !== 'connected') return;
     if (voiceSession.connectionState === 'connected' || voiceSession.connectionState === 'reconnecting') {
       setState('active');
     } else if (voiceSession.connectionState === 'connecting') {
