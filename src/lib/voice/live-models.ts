@@ -79,9 +79,12 @@ export function voiceLiveModelProfile(model: string): VoiceLiveModelProfile | nu
  * The prebuilt voices a session can ask for; the token locks the one it was
  * minted with (src/lib/voice/live-token.ts). Kore (female) is the tutor;
  * Charon is Jarre's male voice, the one the drills are recorded in
- * (DRILL_TTS_VOICE in src/lib/llm/gemini-tts.ts).
+ * (DRILL_TTS_VOICE in src/lib/llm/gemini-tts.ts); Schedar ("even") and
+ * Iapetus ("clear") are male voices for an interviewer that should not sound
+ * like the study material. The 30 TTS voices work in Live; gender per voice:
+ * firebase.google.com/docs/ai-logic/live-api/configuration (read 2026-11-20).
  */
-export const LIVE_VOICES = ['Kore', 'Charon'] as const;
+export const LIVE_VOICES = ['Kore', 'Charon', 'Schedar', 'Iapetus'] as const;
 export type LiveVoice = (typeof LIVE_VOICES)[number];
 export const DEFAULT_LIVE_VOICE: LiveVoice = 'Kore';
 

@@ -76,6 +76,22 @@ describe('coding mock session: a realistic opening, not a cold problem dump', ()
     expect(instruction).toContain('"Sorry, could you say that again?"');
     expect(instruction).toContain('never carry on as if they had said nothing');
     expect(instruction).toContain('never ask them to explain something they just explained');
+    // The why of each decision, asked once, briefly (what the real interviewer values).
+    expect(instruction).toContain('"Why a map here?"');
+    expect(instruction).toContain('once per decision');
+    // Confirming what was heard, and repeating simpler when asked.
+    expect(instruction).toContain('"Did you say n log n?"');
+    expect(instruction).toContain('slower and in simpler words');
+    // Redirecting: rare and polite.
+    expect(instruction).toContain('"Sorry to jump in. I think I follow. Can you start coding that?"');
+    expect(instruction).toContain('Before you go further: what does this do with');
+    // A real ending: an extension to code when they finish early, then questions for the interviewer.
+    expect(instruction).toContain('give them an extension to code, not a new problem');
+    expect(instruction).toContain('any questions for me?');
+    expect(instruction).toContain('never invent facts about the company');
+    // The hint ladder is closed by default: offered when stuck, given on a yes or a request.
+    expect(instruction).toContain('"Want a small hint?"');
+    expect(instruction).toContain('you do not give the hint in that turn');
     expect(instruction).toContain('Testing:');
     expect(instruction).toContain("ask \"What's the time and space complexity?\"");
     expect(instruction).toContain('senior follow-ups');

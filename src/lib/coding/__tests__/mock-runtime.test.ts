@@ -5,6 +5,7 @@ import {
   editorNote,
   runNote,
   hintNote,
+  isHintAccept,
   isHintRequest,
   phaseIndexAt,
   QUIET_AFTER_ANSWER_MS,
@@ -13,6 +14,7 @@ import {
   shouldSnapshot,
   SILENCE_CHECK_MS,
   SNAPSHOT_GAP_MS,
+  START_CODING_AT,
   STUCK_AFTER_CHECK_MS,
   type CueId,
   type MockClockState,
@@ -48,13 +50,19 @@ describe('dueCue: the clock', () => {
     expect(dueCue(state(talking(at)), at)).toBeNull();
   });
 
-  it('gives ten minutes left at 20 of 30, then five left, then time is up', () => {
+  it('gives ten minutes left at 20 of 30, then five, then "any questions for me?" at three, then time is up', () => {
     const at10 = T0 + 20 * MIN;
     expect(dueCue(state(talking(at10)), at10)?.id).toBe('ten-left');
     const at5 = T0 + 25 * MIN;
     expect(dueCue(state({ ...talking(at5), fired: new Set(['ten-left']) }), at5)?.id).toBe('five-left');
+    const at3 = T0 + 27 * MIN;
+    const questions = dueCue(state({ ...talking(at3), fired: new Set(['ten-left', 'five-left']) }), at3);
+    expect(questions).toMatchObject({ id: 'questions', respond: true });
+    expect(questions?.note).toContain('any questions for me?');
+    // A late tick never goes back to five-left once the questions opened.
+    expect(dueCue(state({ ...talking(at3), fired: new Set(['ten-left', 'questions']) }), at3)).toBeNull();
     const atUp = T0 + 30 * MIN;
-    const up = dueCue(state({ ...talking(atUp), fired: new Set(['ten-left', 'five-left']) }), atUp);
+    const up = dueCue(state({ ...talking(atUp), fired: new Set(['ten-left', 'five-left', 'questions']) }), atUp);
     expect(up).toMatchObject({ id: 'time-up', respond: true });
     expect(up?.note).toContain('interview complete');
   });
@@ -72,7 +80,7 @@ describe('dueCue: the clock', () => {
 
   it('closes after time is up even if they never stop talking, a minute later', () => {
     const at = T0 + 31 * MIN;
-    const s = state({ lastCandidateSpeechAt: at - 200, fired: new Set(['ten-left', 'five-left']) });
+    const s = state({ lastCandidateSpeechAt: at - 200, fired: new Set(['ten-left', 'five-left', 'questions']) });
     expect(dueCue(s, at)?.id).toBe('time-up');
   });
 
@@ -85,13 +93,17 @@ describe('dueCue: the clock', () => {
 });
 
 describe('dueCue: silence, no code, stuck', () => {
-  it('nudges to start coding at 40% with no code', () => {
-    const at = T0 + 12 * MIN;
+  it('moves them on to code at minute 8 of 30 with no code: "in the interest of time"', () => {
+    const early = T0 + 7 * MIN;
+    expect(dueCue(state({ ...talking(early), codeTouched: false }), early)).toBeNull();
+    const at = T0 + START_CODING_AT * 30 * MIN + 1000;
     const cue = dueCue(state({ ...talking(at), codeTouched: false }), at);
     expect(cue?.id).toBe('no-code');
+    expect(cue?.note).toContain('In the interest of time');
+    expect(dueCue(state({ ...talking(at), codeTouched: true }), at)).toBeNull();
   });
 
-  it('checks in after two minutes of silence, asking to narrate when they type', () => {
+  it('checks in after a minute and a half of silence, asking to narrate when they type', () => {
     const at = T0 + 10 * MIN;
     const quiet = { lastCandidateSpeechAt: at - SILENCE_CHECK_MS, lastModelSpeechAt: at - SILENCE_CHECK_MS };
     const typing = dueCue(state({ ...quiet, lastCodeChangeAt: at - 5000 }), at);
@@ -107,11 +119,14 @@ describe('dueCue: silence, no code, stuck', () => {
     expect(dueCue(state({ ...quiet, lastCheckInAt: at - CHECK_GAP_MS + 1000, codeChangedSinceCheckIn: true }), at)).toBeNull();
   });
 
-  it('offers a hint when the code has not moved since the check-in, and never past the ladder', () => {
+  it('offers a hint, without giving it, when the code has not moved since the check-in, and never past the ladder', () => {
     const at = T0 + 15 * MIN;
     const quiet = { lastCandidateSpeechAt: at - 20_000, lastModelSpeechAt: at - 20_000 };
     const s = state({ ...quiet, lastCheckInAt: at - STUCK_AFTER_CHECK_MS, codeChangedSinceCheckIn: false });
-    expect(dueCue(s, at)?.id).toBe('stuck-hint');
+    const offer = dueCue(s, at);
+    expect(offer?.id).toBe('hint-offer');
+    expect(offer?.note).toContain('Want a small hint?');
+    expect(offer?.note).toContain('Do not give any hint in this turn');
     expect(dueCue({ ...s, hintsGiven: 3 }, at)).toBeNull();
     expect(dueCue({ ...s, codeChangedSinceCheckIn: true }, at)).toBeNull();
   });
@@ -120,9 +135,21 @@ describe('dueCue: silence, no code, stuck', () => {
 describe('hints', () => {
   it('hears a request for help, not a refusal', () => {
     expect(isHintRequest("Can I get a hint on this part?")).toBe(true);
-    expect(isHintRequest("I'm stuck on the window")).toBe(true);
+    expect(isHintRequest('Could you help me out here?')).toBe(true);
+    // Describing is not asking: the interviewer asks where they are, the ladder stays closed.
+    expect(isHintRequest("I'm stuck on the window")).toBe(false);
+    expect(isHintRequest('I was stuck on this before, now I see it')).toBe(false);
     expect(isHintRequest("I don't need a hint, I think I have it")).toBe(false);
     expect(isHintRequest('Let me write the loop')).toBe(false);
+  });
+
+  it('takes a yes to "Want a small hint?", not a no and not thinking aloud', () => {
+    expect(isHintAccept('Yes, please.')).toBe(true);
+    expect(isHintAccept('Sure, that would help')).toBe(true);
+    expect(isHintAccept('No, I think I have it')).toBe(false);
+    expect(isHintAccept("No thanks, I don't need a hint")).toBe(false);
+    expect(isHintAccept('Okay so I will loop over the array')).toBe(false);
+    expect(isHintAccept('The map holds the index')).toBe(false);
   });
 
   it('hands out the ladder one rung at a time, then says it is spent', () => {

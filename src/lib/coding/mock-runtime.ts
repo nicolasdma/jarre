@@ -8,11 +8,16 @@
  *   check-in. A real interviewer watches the shared screen.
  * - [RUN] what a run printed and which example tests passed.
  * - [HINT n] the next rung of the problem's hint ladder, only when the
- *   candidate asks for help or has been stuck after a check-in. The ladder is
- *   the runtime's, not the model's: the prompt never carries the hints, so the
- *   model cannot hand out a bigger one than the candidate earned.
- * - [TIME] and [CHECK-IN] cues: ten and five minutes left, time is up, no code
- *   yet, and two minutes of silence ("talk me through it").
+ *   candidate asks for help, or says yes after the interviewer offered one
+ *   because they looked stuck (the ladder is closed by default: a hint costs
+ *   on the scorecard). The ladder is the runtime's, not the model's: the
+ *   prompt never carries the hints, so the model cannot hand out a bigger one
+ *   than the candidate earned.
+ * - [TIME] and [CHECK-IN] cues: no code a quarter of the way in ("in the
+ *   interest of time"), ten, five and three minutes left (the last one opens
+ *   "any questions for me?"), time is up, and ninety seconds of silence.
+ *   Thresholds follow docs/research/2026-11-20-entrevistador-tecnico-realista.md
+ *   (sections 6.4 and 6.8).
  *
  * Every note, spoken or not, waits for a quiet moment (`quietToSend`): text
  * that reaches the Live API while the candidate is mid-utterance can make it
@@ -33,11 +38,17 @@
 const MIN = 60_000;
 
 /** Silence (no one talking) before the interviewer checks in. */
-export const SILENCE_CHECK_MS = 2 * MIN;
+export const SILENCE_CHECK_MS = 1.5 * MIN;
 /** After a check-in, how long with the code unchanged before offering a hint. */
-export const STUCK_AFTER_CHECK_MS = 3 * MIN;
+export const STUCK_AFTER_CHECK_MS = 1.5 * MIN;
 /** Minimum gap between two check-ins. */
-export const CHECK_GAP_MS = 2.5 * MIN;
+export const CHECK_GAP_MS = 2 * MIN;
+/** No code by this fraction of the session: the interviewer moves them on (minute 8 of 30). */
+export const START_CODING_AT = 0.27;
+/** With this much left, the technical part closes and "any questions for me?" opens. */
+export const QUESTIONS_AT_LEFT_MS = 3 * MIN;
+/** After the interviewer offers a hint, how long a "yes" counts as accepting it. */
+export const HINT_OFFER_OPEN_MS = 45_000;
 /** How long the candidate must be quiet before the interviewer interjects a time cue. */
 export const QUIET_FOR_TIME_MS = 3000;
 /** How long the candidate must be quiet before a check-in or nudge. */
@@ -73,7 +84,7 @@ export function quietToSend(params: {
   return quietFor >= (lastModelSpeechAt > lastCandidateSpeechAt ? QUIET_AFTER_ANSWER_MS : QUIET_UNANSWERED_MS);
 }
 
-export type CueId = 'no-code' | 'ten-left' | 'five-left' | 'time-up' | 'check-in' | 'stuck-hint';
+export type CueId = 'no-code' | 'ten-left' | 'five-left' | 'questions' | 'time-up' | 'check-in' | 'hint-offer';
 
 export interface MockClockState {
   /** Session start, ms (performance or Date clock, consistently). */
@@ -135,7 +146,16 @@ export function dueCue(s: MockClockState, now: number): Cue | null {
     return null;
   }
 
-  if (s.durationMs >= 15 * MIN && left <= 5 * MIN && !s.fired.has('five-left') && !s.fired.has('time-up')) {
+  if (s.durationMs >= 15 * MIN && left <= QUESTIONS_AT_LEFT_MS && !s.fired.has('questions')) {
+    if (!canInterject(QUIET_FOR_TIME_MS)) return null;
+    return {
+      id: 'questions',
+      respond: true,
+      note: `[TIME ${mmss(elapsed)} · About three minutes left. Close the technical part now: if they are still writing, "Let's pause the code here."; if you never asked for the complexity, ask for it first, in one question. Then: "That's the technical part. We have a couple of minutes: any questions for me?" and answer what they ask, briefly.]`,
+    };
+  }
+
+  if (s.durationMs >= 15 * MIN && left <= 5 * MIN && !s.fired.has('five-left') && !s.fired.has('questions') && !s.fired.has('time-up')) {
     if (!canInterject(QUIET_FOR_TIME_MS)) return null;
     return {
       id: 'five-left',
@@ -153,12 +173,12 @@ export function dueCue(s: MockClockState, now: number): Cue | null {
     };
   }
 
-  if (!s.codeTouched && elapsed >= 0.4 * s.durationMs && !s.fired.has('no-code')) {
-    if (!canInterject(QUIET_FOR_NUDGE_MS)) return null;
+  if (!s.codeTouched && elapsed >= START_CODING_AT * s.durationMs && !s.fired.has('no-code')) {
+    if (!canInterject(QUIET_FOR_TIME_MS)) return null;
     return {
       id: 'no-code',
       respond: true,
-      note: `[TIME ${mmss(elapsed)} · No code yet and ${mmss(left)} left. Suggest, in one sentence, that they start writing the version they have in mind, even the brute force.]`,
+      note: `[TIME ${mmss(elapsed)} · No code yet and ${mmss(left)} left. Move them on, politely, in one sentence: "In the interest of time, let's get some code down.", the version they have in mind, even the brute force.]`,
     };
   }
 
@@ -173,9 +193,9 @@ export function dueCue(s: MockClockState, now: number): Cue | null {
     canInterject(QUIET_FOR_NUDGE_MS)
   ) {
     return {
-      id: 'stuck-hint',
+      id: 'hint-offer',
       respond: true,
-      note: `[CHECK-IN ${mmss(elapsed)} · They still look stuck: the code has not changed since your last check-in. Offer a small hint, as a nudge or a question. The hint follows.]`,
+      note: `[CHECK-IN ${mmss(elapsed)} · They still look stuck: the code has not changed since your last check-in. Offer help and wait: "Want a small hint?". Do not give any hint in this turn.]`,
     };
   }
 
@@ -185,8 +205,8 @@ export function dueCue(s: MockClockState, now: number): Cue | null {
       id: 'check-in',
       respond: true,
       note: typing
-        ? `[CHECK-IN ${mmss(elapsed)} · They have been coding in silence for two minutes. Ask them, in one short sentence, to talk you through what they are writing.]`
-        : `[CHECK-IN ${mmss(elapsed)} · Two minutes of silence and the code has not changed. Check in briefly, like an interviewer: ask where they are and what they are thinking. Do not give a hint yet.]`,
+        ? `[CHECK-IN ${mmss(elapsed)} · They have been coding without a word for a minute and a half. Ask them, in one short sentence, to talk you through what they are writing.]`
+        : `[CHECK-IN ${mmss(elapsed)} · A minute and a half of silence and the code has not changed. Check in briefly, like an interviewer: "Take your time. What are you thinking?". Do not give a hint yet.]`,
     };
   }
 
@@ -197,12 +217,19 @@ export function dueCue(s: MockClockState, now: number): Cue | null {
 // Hints
 // ---------------------------------------------------------------------------
 
-const HINT_ASK = /\b(hint|clue|nudge|pointer|stuck|help me|some help|any help|a little help)\b/i;
+// Asking, not describing: "I'm stuck" alone gets "where are you?" from the interviewer, not a rung of the ladder.
+const HINT_ASK = /\b(hint|clue|nudge|pointer|help me|some help|any help|a little help|can you help|could you help)\b/i;
+const HINT_ACCEPT = /^\W*(yes|yeah|yep|yup|sure|please|ok|okay|go ahead|that would help|that'd help|why not)\b/i;
 const HINT_DECLINE = /\b(no|don'?t|do not|without)\s+(need\s+)?(a\s+|any\s+)?(hint|help)/i;
 
 /** The candidate is asking for help in this utterance. */
 export function isHintRequest(utterance: string): boolean {
   return HINT_ASK.test(utterance) && !HINT_DECLINE.test(utterance);
+}
+
+/** After "Want a small hint?": the candidate says yes. */
+export function isHintAccept(utterance: string): boolean {
+  return HINT_ACCEPT.test(utterance.trim()) && !HINT_DECLINE.test(utterance) && !/^\W*(ok|okay|sure)\W+(so|let me|i'?ll|i will|i think)\b/i.test(utterance.trim());
 }
 
 /** The note that hands the interviewer the next rung of the ladder, or that the ladder is spent. */

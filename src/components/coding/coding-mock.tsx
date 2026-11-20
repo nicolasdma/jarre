@@ -24,6 +24,8 @@ import {
   editorNote,
   formatClock,
   hintNote,
+  HINT_OFFER_OPEN_MS,
+  isHintAccept,
   HARD_STOP_AFTER_MS,
   isHintRequest,
   phaseIndexAt,
@@ -54,9 +56,9 @@ interface CodingMockProps {
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 const DIFFICULTY_LABEL = { easy: 'Fácil', medium: 'Medio', hard: 'Difícil' } as const;
-const TIER_LABEL = { core: 'Núcleo', safety_net: 'Red de seguridad' } as const;
-/** Core problems first, then by difficulty; the input order breaks ties. */
-const TIER_ORDER = { core: 0, safety_net: 1 } as const;
+const TIER_LABEL = { core: 'Núcleo', safety_net: 'Red de seguridad', unseen: 'No visto' } as const;
+/** Unseen problems first (the real round's problem is new), then core, then by difficulty; the input order breaks ties. */
+const TIER_ORDER = { unseen: 0, core: 1, safety_net: 2 } as const;
 
 const STATE_LABEL: Record<string, string> = {
   idle: '',
@@ -81,6 +83,8 @@ interface Runtime {
   lastCheckInAt: number | null;
   codeChangedSinceCheckIn: boolean;
   hintsGiven: number;
+  /** When the interviewer last offered a hint that was not answered yet. */
+  hintOfferedAt: number | null;
   checkIns: number;
   runs: number;
   exampleRuns: number;
@@ -102,6 +106,7 @@ const freshRuntime = (): Runtime => ({
   lastCheckInAt: null,
   codeChangedSinceCheckIn: false,
   hintsGiven: 0,
+  hintOfferedAt: null,
   checkIns: 0,
   runs: 0,
   exampleRuns: 0,
@@ -130,12 +135,25 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     [config.problems],
   );
   const [attempts, setAttempts] = useState<MockAttempt[]>([]);
-  useEffect(() => setAttempts(loadAttempts(resourceId)), [resourceId]);
 
-  // A core medium, like the round: never a safety-net problem the lesson says not to write from scratch.
+  // A medium like the round's, never a safety-net problem the lesson says not to write from scratch;
+  // an unseen one comes first (they sort first), and once attempts load, the first not tried yet.
   const [problemId, setProblemId] = useState(
     () => (problemsSorted.find((p) => p.difficulty === 'medium' && p.tier !== 'safety_net') ?? problemsSorted[0]).id,
   );
+  const pickedRef = useRef(false);
+  useEffect(() => {
+    const stored = loadAttempts(resourceId);
+    setAttempts(stored);
+    if (pickedRef.current) return;
+    const tried = new Set(stored.map((a) => a.problemId));
+    const fresh = problemsSorted.find((p) => p.tier === 'unseen' && p.difficulty === 'medium' && !tried.has(p.id));
+    if (fresh) setProblemId(fresh.id);
+  }, [resourceId, problemsSorted]);
+  const choose = useCallback((id: string) => {
+    pickedRef.current = true;
+    setProblemId(id);
+  }, []);
   const problem = findProblem(config, problemId) ?? problemsSorted[0];
   const [minutes, setMinutes] = useState(config.minutes);
   const durationMs = minutes * 60_000;
@@ -168,7 +186,8 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const [now, setNow] = useState(() => Date.now());
   const [stage, setStage] = useState<'setup' | 'live' | 'closing' | 'done'>('setup');
   const [current, setCurrent] = useState<MockAttempt | null>(null);
-  const [showGuide, setShowGuide] = useState(true);
+  // Closed by default: on the real call there is no guide on screen.
+  const [showGuide, setShowGuide] = useState(false);
 
   /** Send the editor as the interviewer would see it, when it changed. */
   const snapshot = useCallback((reason: SnapshotReason, force = false): string | null => {
@@ -226,7 +245,9 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     }
     r.lastCandidateSpeechAt = t;
     // The hint waits in the outbox like every note: sent now, it would land on what they are saying.
-    if (i !== r.hintIndex && isHintRequest(line.text)) {
+    const accepted = r.hintOfferedAt !== null && t - r.hintOfferedAt < HINT_OFFER_OPEN_MS && isHintAccept(line.text);
+    if (i !== r.hintIndex && (isHintRequest(line.text) || accepted)) {
+      r.hintOfferedAt = null;
       r.hintIndex = i;
       const { note } = hintNote(problem.hints, r.hintsGiven);
       r.hintsGiven = Math.min(problem.hints.length, r.hintsGiven + 1);
@@ -292,17 +313,15 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         t,
       );
       // A dead microphone is not a silent candidate: the page says so, the interviewer does not ask.
-      const micDown = voice.micHealth !== 'ok' && (cue?.id === 'check-in' || cue?.id === 'stuck-hint');
+      const micDown = voice.micHealth !== 'ok' && (cue?.id === 'check-in' || cue?.id === 'hint-offer');
       if (cue && !micDown) {
         const parts: string[] = [];
-        const screen = snapshot('check-in', cue.id === 'check-in' || cue.id === 'stuck-hint');
+        const screen = snapshot('check-in', cue.id === 'check-in' || cue.id === 'hint-offer');
         if (screen) parts.push(screen);
         parts.push(cue.note);
-        if (cue.id === 'stuck-hint') {
-          parts.push(hintNote(problem.hints, r.hintsGiven).note);
-          r.hintsGiven = Math.min(problem.hints.length, r.hintsGiven + 1);
-        }
-        if (cue.id === 'check-in' || cue.id === 'stuck-hint') {
+        // The ladder stays closed: the interviewer offers, and the hint goes out only on a yes.
+        if (cue.id === 'hint-offer') r.hintOfferedAt = t;
+        if (cue.id === 'check-in' || cue.id === 'hint-offer') {
           r.lastCheckInAt = t;
           r.codeChangedSinceCheckIn = false;
           r.checkIns += 1;
@@ -517,16 +536,18 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
                   type="button"
                   role="radio"
                   aria-checked={p.id === problem.id}
-                  onClick={() => setProblemId(p.id)}
+                  onClick={() => choose(p.id)}
                   className={cn(
                     'min-h-[56px] border px-3 py-2 text-left transition-colors',
                     p.id === problem.id ? 'border-j-accent bg-j-accent/10' : 'border-j-border-input hover:border-j-accent',
                   )}
                 >
-                  <span className="block text-sm font-medium text-j-text">{p.title}</span>
+                  {/* Not tried yet: no title and no pattern, as on the call, where the name of the trick is not on the screen. */}
+                  <span className="block text-sm font-medium text-j-text">{p.tier === 'unseen' && !tries ? 'Problema nuevo' : p.title}</span>
                   <span className="block text-xs text-j-text-secondary">
                     {p.tier ? `${TIER_LABEL[p.tier]} · ` : ''}
-                    {DIFFICULTY_LABEL[p.difficulty]} · {p.pattern}
+                    {DIFFICULTY_LABEL[p.difficulty]}
+                    {p.tier === 'unseen' && !tries ? '' : ` · ${p.pattern}`}
                     {tries ? ` · ${tries} intento${tries > 1 ? 's' : ''}` : ''}
                   </span>
                 </button>
