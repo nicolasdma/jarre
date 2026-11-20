@@ -41,6 +41,7 @@ import { pythonRunner, type PythonStatus } from '@/lib/coding/run-python';
 import { CODE_LANGUAGES, LANGUAGE_LABEL, type CodeLanguage } from '@/lib/coding/languages';
 import { starterFor } from '@/lib/coding/starters';
 import { hasCandidateSpeech, type CodingReport, type CodingSessionFacts } from '@/lib/coding/report';
+import { applyPaceRequest, DEFAULT_PACE, findPaceRequest, paceLabel, PACE_STEPS, type Pace } from '@/lib/voice/speech-pace';
 import { CodeEditor } from './code-editor';
 import { RunOutput, summarizeRun } from './run-output';
 import { ProblemStatement } from './problem-statement';
@@ -94,6 +95,9 @@ interface Runtime {
   hintIndex: number;
   /** Context notes waiting for the interviewer to stop speaking. */
   pending: string[];
+  /** The transcript line last read for a request about the pace, and how far into it. */
+  paceIndex: number;
+  paceOffset: number;
 }
 
 const freshRuntime = (): Runtime => ({
@@ -114,6 +118,8 @@ const freshRuntime = (): Runtime => ({
   lastSentAt: null,
   hintIndex: -1,
   pending: [],
+  paceIndex: -1,
+  paceOffset: 0,
 });
 
 export function CodingMock({ resourceTitle, onPracticeDrill }: CodingMockProps) {
@@ -163,8 +169,19 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const interview = useMemo(() => ({ session }), [session]);
 
   // The pad: language picker and autocomplete, as on CoderPad (off by default, as in the interview).
-  const [pad, setPad] = useState<PadPrefs>({ language: 'typescript', autocomplete: false, adaptiveTurns: false });
+  const [pad, setPad] = useState<PadPrefs>({ language: 'typescript', autocomplete: false, adaptiveTurns: false, pace: DEFAULT_PACE });
   useEffect(() => setPad(loadPadPrefs()), []);
+  /** The interviewer's pace: the control on the page, or what the candidate asks for out loud. */
+  const changePace = useCallback((next: Pace | ((pace: Pace) => Pace)) => {
+    setPad((p) => {
+      const pace = typeof next === 'function' ? next(p.pace) : next;
+      if (pace === p.pace) return p;
+      const merged = { ...p, pace };
+      savePadPrefs(merged);
+      return merged;
+    });
+  }, []);
+
   const offered = useMemo(
     () => CODE_LANGUAGES.filter((l) => starterFor(problem, l) !== null),
     [problem],
@@ -209,6 +226,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     interview,
     turnTaking: pad.adaptiveTurns ? 'adaptive' : 'thinking-aloud',
     voiceName: config.interviewer.voice,
+    playbackTempo: pad.pace,
     onReconnected: () => {
       // A fresh connection lost the screen: show it again, once the interviewer
       // is done answering the reconnection (sending while it speaks could cut it).
@@ -245,6 +263,16 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
       return;
     }
     r.lastCandidateSpeechAt = t;
+    // "Could you speak slower?", "can you repeat that?", "normal speed": the playback follows, for the rest of the session.
+    if (i !== r.paceIndex) {
+      r.paceIndex = i;
+      r.paceOffset = 0;
+    }
+    const paceRequest = findPaceRequest(line.text, r.paceOffset);
+    if (paceRequest) {
+      r.paceOffset = paceRequest.end;
+      changePace((pace) => applyPaceRequest(pace, paceRequest.kind));
+    }
     // The hint waits in the outbox like every note: sent now, it would land on what they are saying.
     const accepted = r.hintOfferedAt !== null && t - r.hintOfferedAt < HINT_OFFER_OPEN_MS && isHintAccept(line.text);
     if (i !== r.hintIndex && (isHintRequest(line.text) || accepted)) {
@@ -599,6 +627,17 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           </span>
         </label>
 
+        <fieldset className="space-y-2">
+          <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
+            Velocidad de la voz de {config.interviewer.name}
+          </legend>
+          <PaceControl pace={pad.pace} onPick={changePace} size="large" />
+          <p className="text-xs text-j-text-tertiary">
+            1.0× es su velocidad real; más bajo habla más lento con la misma voz. También se lo podés pedir en la llamada:
+            &quot;Could you speak slower?&quot;, &quot;Can you repeat that?&quot; o &quot;Normal speed, please&quot;.
+          </p>
+        </fieldset>
+
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -743,6 +782,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           </span>
         )}
         <span className="ml-auto" />
+        <PaceControl pace={pad.pace} onPick={changePace} size="small" />
         <button
           type="button"
           onClick={() => setShowGuide((v) => !v)}
@@ -819,6 +859,36 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * How fast the interviewer's voice plays. It also moves on its own when the
+ * candidate asks out loud (src/lib/voice/speech-pace.ts); a change applies to
+ * what the interviewer says next.
+ */
+function PaceControl({ pace, onPick, size }: { pace: Pace; onPick: (pace: Pace) => void; size: 'small' | 'large' }) {
+  return (
+    <div className="flex items-center gap-1" role="radiogroup" aria-label="Velocidad de la voz" data-testid="coding-mock-pace" data-pace={pace}>
+      {size === 'small' && <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.12em] text-j-text-tertiary">Velocidad</span>}
+      {PACE_STEPS.map((step) => (
+        <button
+          key={step}
+          type="button"
+          role="radio"
+          aria-checked={step === pace}
+          title={step === 1 ? 'Su velocidad real' : `${Math.round((1 - step) * 100)} % más lento, misma voz`}
+          onClick={() => onPick(step)}
+          className={cn(
+            'border px-2 font-mono text-[11px] tabular-nums transition-colors',
+            size === 'small' ? 'min-h-[36px]' : 'min-h-[44px] flex-1',
+            step === pace ? 'border-j-accent bg-j-accent/10 text-j-text' : 'border-j-border-input text-j-text-secondary hover:border-j-accent',
+          )}
+        >
+          {paceLabel(step)}
+        </button>
+      ))}
     </div>
   );
 }

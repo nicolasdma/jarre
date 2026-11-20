@@ -1,0 +1,65 @@
+{
+  "at": "2026-11-20T23:43:06.157Z",
+  "model": "gemini-3.8-live",
+  "voice": "Schedar",
+  "problem": "two-sum",
+  "results": [
+    {
+      "arm": "after",
+      "closed": null,
+      "opening": {
+        "said": "Hi, I'm Sam. This is a coding session, about thirty minutes long. Please think out loud and share your screen. Let's start with a warm-up. You get an array of integers, say claim amounts in cents, and a target amount. Return the indices of the two numbers that add up to the target. You can assume there's exactly one answer, and you can't use the same element twice. You can return the two indices in any order. For example, if the array is `[2, 7, 11, 15]` and the target is `9`, the result should be `[0, 1]` because `2 + 7 = 9`. This example is also on your screen.",
+        "words": 111,
+        "audio_s": 35.39,
+        "words_per_s": 3.14,
+        "words_per_min": 188,
+        "pause_share": 0.25,
+        "articulation_words_per_s": 4.17,
+        "audio_arrived_in_s": 6.37,
+        "first_audio_to_turn_complete_s": 35.32,
+        "generation_complete_seen": true
+      },
+      "asked_heard": "Sorry, could you speak slower, please?",
+      "page_reads": "slower",
+      "page_pace_after": 0.7,
+      "repeat": {
+        "said": "For example, if the array is `[2, 7, 11, 15]` and the target is `9`, the result should be `[0, 1]` because `2 + 7 = 9`.",
+        "words": 27,
+        "audio_s": 10.95,
+        "words_per_s": 2.47,
+        "words_per_min": 148,
+        "pause_share": 0.21,
+        "articulation_words_per_s": 3.11,
+        "audio_arrived_in_s": 0.28,
+        "first_audio_to_turn_complete_s": 10.96,
+        "generation_complete_seen": true
+      },
+      "playback": [
+        {
+          "pace": 0.7,
+          "plays_s": 50.56,
+          "median_pitch_hz": 126.3,
+          "cpu_ms_per_s_of_voice": 22
+        },
+        {
+          "pace": 0.8,
+          "plays_s": 44.24,
+          "median_pitch_hz": 126.3,
+          "cpu_ms_per_s_of_voice": 17.32
+        },
+        {
+          "pace": 0.9,
+          "plays_s": 39.32,
+          "median_pitch_hz": 130.4,
+          "cpu_ms_per_s_of_voice": 15.48
+        },
+        {
+          "pace": 1,
+          "plays_s": 35.39,
+          "median_pitch_hz": 130.4,
+          "cpu_ms_per_s_of_voice": 0
+        }
+      ]
+    }
+  ]
+}

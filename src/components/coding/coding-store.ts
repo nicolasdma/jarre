@@ -7,6 +7,7 @@
  */
 
 import type { CodingReport, CodingSessionFacts, ReportTranscriptLine } from '@/lib/coding/report';
+import { DEFAULT_PACE, isPace, type Pace } from '@/lib/voice/speech-pace';
 import { isCodeLanguage, type CodeLanguage } from '@/lib/coding/languages';
 
 const key = (kind: string, resourceId: string, id?: string) => `jarre.coding.${kind}.${resourceId}${id ? `.${id}` : ''}`;
@@ -105,6 +106,8 @@ export interface PadPrefs {
   language: CodeLanguage;
   autocomplete: boolean;
   adaptiveTurns: boolean;
+  /** How fast the interviewer's voice plays (src/lib/voice/speech-pace.ts). */
+  pace: Pace;
 }
 
 const PAD_KEY = 'jarre.coding.pad';
@@ -115,6 +118,7 @@ export function loadPadPrefs(): PadPrefs {
     language: isCodeLanguage(raw.language) ? raw.language : 'typescript',
     autocomplete: raw.autocomplete === true,
     adaptiveTurns: raw.adaptiveTurns === true,
+    pace: isPace(raw.pace) ? raw.pace : DEFAULT_PACE,
   };
 }
 

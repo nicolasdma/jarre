@@ -1,0 +1,122 @@
+{
+  "at": "2026-11-20T23:36:16.868Z",
+  "model": "gemini-3.8-live",
+  "voice": "Schedar",
+  "problem": "two-sum",
+  "results": [
+    {
+      "arm": "before",
+      "closed": null,
+      "opening": {
+        "said": "Hi, I'm Sam. We'll do a live coding session for about thirty minutes. Please think out loud, and make sure you're sharing your screen. For the problem, you get an array of integers and a target amount. Return the indices of the two numbers that add up to the target. For example, if the array is two, seven, eleven, fifteen, and the target is nine, you'd return zero and one. You can see this on your screen.",
+        "words": 77,
+        "audio_s": 24.42,
+        "words_per_s": 3.15,
+        "words_per_min": 189,
+        "pause_share": 0.24,
+        "articulation_words_per_s": 4.12,
+        "audio_arrived_in_s": 3.47,
+        "first_audio_to_turn_complete_s": 24.35,
+        "generation_complete_seen": true
+      },
+      "asked_heard": "",
+      "page_reads": null,
+      "page_pace_after": 0.9,
+      "repeat": {
+        "said": "",
+        "words": 0,
+        "audio_s": 0,
+        "words_per_s": null,
+        "words_per_min": null,
+        "pause_share": 0,
+        "articulation_words_per_s": null,
+        "audio_arrived_in_s": null,
+        "first_audio_to_turn_complete_s": null,
+        "generation_complete_seen": false
+      },
+      "playback": [
+        {
+          "pace": 0.7,
+          "plays_s": 34.89,
+          "median_pitch_hz": 135.6,
+          "cpu_ms_per_s_of_voice": 23.31
+        },
+        {
+          "pace": 0.8,
+          "plays_s": 30.52,
+          "median_pitch_hz": 135.6,
+          "cpu_ms_per_s_of_voice": 18.57
+        },
+        {
+          "pace": 0.9,
+          "plays_s": 27.13,
+          "median_pitch_hz": 133.3,
+          "cpu_ms_per_s_of_voice": 16.09
+        },
+        {
+          "pace": 1,
+          "plays_s": 24.42,
+          "median_pitch_hz": 133.3,
+          "cpu_ms_per_s_of_voice": 0
+        }
+      ]
+    },
+    {
+      "arm": "after",
+      "closed": null,
+      "opening": {
+        "said": "Hi, I'm Sam. Let's start with a live coding round. We will spend about thirty minutes, and please think out loud while you work in your editor. You get an array of integers, say claim amounts in cents, and a target amount. Return the indices of the two numbers that add up to the target. You can assume there's exactly one answer, and you can't use the same element twice. For example, if the numbers are two, seven, eleven, and fifteen, and the target is nine, you return zero and one. You can see this on your screen.",
+        "words": 98,
+        "audio_s": 30.56,
+        "words_per_s": 3.21,
+        "words_per_min": 192,
+        "pause_share": 0.2,
+        "articulation_words_per_s": 3.99,
+        "audio_arrived_in_s": 4.49,
+        "first_audio_to_turn_complete_s": 30.56,
+        "generation_complete_seen": true
+      },
+      "asked_heard": "Sorry, could you speak slower, please?",
+      "page_reads": "slower",
+      "page_pace_after": 0.8,
+      "repeat": {
+        "said": "I understand. For example, if the numbers are two, seven, eleven, and fifteen, and the target is nine, you return zero and one.",
+        "words": 23,
+        "audio_s": 9.03,
+        "words_per_s": 2.55,
+        "words_per_min": 153,
+        "pause_share": 0.24,
+        "articulation_words_per_s": 3.33,
+        "audio_arrived_in_s": 0.26,
+        "first_audio_to_turn_complete_s": 9.04,
+        "generation_complete_seen": true
+      },
+      "playback": [
+        {
+          "pace": 0.7,
+          "plays_s": 43.66,
+          "median_pitch_hz": 131.9,
+          "cpu_ms_per_s_of_voice": 21.18
+        },
+        {
+          "pace": 0.8,
+          "plays_s": 38.2,
+          "median_pitch_hz": 131.9,
+          "cpu_ms_per_s_of_voice": 17.18
+        },
+        {
+          "pace": 0.9,
+          "plays_s": 33.96,
+          "median_pitch_hz": 134.8,
+          "cpu_ms_per_s_of_voice": 15.27
+        },
+        {
+          "pace": 1,
+          "plays_s": 30.56,
+          "median_pitch_hz": 132.6,
+          "cpu_ms_per_s_of_voice": 0
+        }
+      ]
+    }
+  ]
+}

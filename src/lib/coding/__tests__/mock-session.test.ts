@@ -93,6 +93,11 @@ describe('coding mock session: a realistic opening, not a cold problem dump', ()
     expect(instruction).toContain('"Want a small hint?"');
     expect(instruction).toContain('you do not give the hint in that turn');
     expect(instruction).toContain('Testing:');
+    // A candidate listening in a second language: slow from the first word, slower when asked, for the rest of the call.
+    expect(instruction).toContain('Speak slowly and clearly');
+    expect(instruction).toContain('a brief pause between ideas');
+    expect(instruction).toContain('"Could you speak slower?"');
+    expect(instruction).toContain('keep that slower pace for the rest of the call');
     expect(instruction).toContain("ask \"What's the time and space complexity?\"");
     expect(instruction).toContain('senior follow-ups');
     expect(instruction).toContain('interview complete');
