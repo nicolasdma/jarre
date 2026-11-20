@@ -7,8 +7,10 @@ import { TUTOR_TOOLS } from '../tool-declarations';
 // strings so the lesson bundle does not carry the SDK. They must stay equal.
 describe('SDK enum literals', () => {
   it('turn taking uses the SDK end-of-speech value', () => {
-    for (const cfg of Object.values(TURN_TAKING)) {
-      expect(cfg.automaticActivityDetection?.endOfSpeechSensitivity).toBe(EndSensitivity.END_SENSITIVITY_LOW);
+    for (const [name, cfg] of Object.entries(TURN_TAKING)) {
+      // `adaptive` turns the server's detection off: the page marks the turns.
+      if (name === 'adaptive') expect(cfg.automaticActivityDetection).toEqual({ disabled: true });
+      else expect(cfg.automaticActivityDetection?.endOfSpeechSensitivity).toBe(EndSensitivity.END_SENSITIVITY_LOW);
     }
   });
 

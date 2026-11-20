@@ -28,6 +28,9 @@ export type TimelineKind =
   | 'tool_call'
   | 'notes_injected'
   | 'mute_nudge'
+  | 'deaf_restart'
+  | 'turn_start'
+  | 'turn_end'
   | 'socket_close'
   | 'reconnected'
   | 'error';

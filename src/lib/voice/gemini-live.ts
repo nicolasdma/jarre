@@ -158,10 +158,10 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
   }
 
   return {
-    async connect(ephemeralToken: string, config: GeminiLiveConfig): Promise<void> {
+    async connect(ephemeralToken: string, config: GeminiLiveConfig, opening: ConnectionState = 'connecting'): Promise<void> {
       intentionalClose = false;
       const epoch = ++connectionEpoch;
-      setState('connecting');
+      setState(opening);
       lastConfig = config;
       retryCount = 0;
 
@@ -428,6 +428,26 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
       retryCount = savedRetryCount;
     },
 
+    /**
+     * Drop this socket and open a fresh session with the same setup and no
+     * resumption handle: for a session that stopped hearing the microphone
+     * (src/lib/voice/mic-activity.ts, `unheard`). The caller feeds the new
+     * session the conversation so far.
+     */
+    async restart(ephemeralToken: string): Promise<void> {
+      if (!lastConfig) throw new Error('No previous config to restart with');
+      const old = session;
+      session = null;
+      // Its close is ours: the epoch bump makes its callbacks stale.
+      connectionEpoch++;
+      try {
+        old?.close();
+      } catch {
+        // Already closed
+      }
+      await this.connect(ephemeralToken, { ...lastConfig, resumptionHandle: undefined }, 'reconnecting');
+    },
+
     resetRetryCount() {
       retryCount = 0;
     },
@@ -444,6 +464,20 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
         });
       } catch (err) {
         log.error('Failed to send audio:', err);
+      }
+    },
+
+    /**
+     * Mark the start or the end of the learner's turn, for a session whose
+     * automatic activity detection is disabled (TURN_TAKING.adaptive).
+     */
+    sendActivity(edge: 'start' | 'end') {
+      if (!session || state !== 'connected') return;
+
+      try {
+        session.sendRealtimeInput(edge === 'start' ? { activityStart: {} } : { activityEnd: {} });
+      } catch (err) {
+        log.error('Failed to send activity signal:', err);
       }
     },
 

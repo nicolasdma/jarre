@@ -96,7 +96,7 @@ export function isLiveVoice(value: unknown): value is LiveVoice {
 // Turn taking
 // ---------------------------------------------------------------------------
 
-export type TurnTaking = 'default' | 'patient' | 'thinking-aloud';
+export type TurnTaking = 'default' | 'patient' | 'thinking-aloud' | 'adaptive';
 
 /**
  * End-of-speech settings sent to the Live API (realtimeInputConfig). The API
@@ -117,10 +117,26 @@ export const TURN_TAKING: Record<TurnTaking, RealtimeInputConfig> = {
   /**
    * The coding mock: the candidate thinks aloud while typing, with pauses
    * that are not the end of a turn. A longer window keeps the interviewer
-   * from answering every pause; a question still gets an answer ~2.5 s after
-   * it ends. Not measured with a probe yet: tune from the owner's sessions.
+   * from answering every pause. Measured on 2026-11-20 with
+   * scripts/probe-coding-mock-turns.ts (three sentences thought aloud with
+   * pauses of 1.2, 2.0 and 2.8 s, then a direct question; two runs each,
+   * docs/research/voice-probe/coding-mock-turns-window.json): at 2500 ms the
+   * interviewer never cut in and answered the question 3.0 and 3.1 s after
+   * it ended; at 1500 ms it answered in 1.9 and 2.0 s but cut in during the
+   * 2.8 s pause both times. So 2500 stays; `adaptive` gets both.
    */
   'thinking-aloud': {
     automaticActivityDetection: { endOfSpeechSensitivity: END_SENSITIVITY_LOW, silenceDurationMs: 2500 },
   },
+  /**
+   * The coding mock, opt-in: the server detects nothing and the page marks
+   * the turns (activityStart / activityEnd), ending one 0.9 s after the last
+   * word when the candidate is not typing and 3.5 s after it while they type
+   * (src/lib/voice/turn-detector.ts). Same probe: no cut-in and the question
+   * answered in 1.7 s, both runs. Off by default all the same: its voice
+   * detection is a level over the room's floor, not yet tried on the owner's
+   * microphone and keyboard, and while the interviewer speaks the page opens
+   * no turn, so it cannot be interrupted by voice in this mode.
+   */
+  adaptive: { automaticActivityDetection: { disabled: true } },
 };

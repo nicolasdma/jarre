@@ -56,9 +56,9 @@ interface CodingMockProps {
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 const DIFFICULTY_LABEL = { easy: 'Fácil', medium: 'Medio', hard: 'Difícil' } as const;
-const TIER_LABEL = { core: 'Núcleo', safety_net: 'Red de seguridad', unseen: 'No visto' } as const;
+const TIER_LABEL = { core: 'Núcleo', safety_net: 'Red de seguridad' } as const;
 /** Unseen problems first (the real round's problem is new), then core, then by difficulty; the input order breaks ties. */
-const TIER_ORDER = { unseen: 0, core: 1, safety_net: 2 } as const;
+const TIER_ORDER = { core: 0, safety_net: 1 } as const;
 
 const STATE_LABEL: Record<string, string> = {
   idle: '',
@@ -70,7 +70,7 @@ const STATE_LABEL: Record<string, string> = {
 /** The microphone is not doing its job: said on screen, never left for the interviewer to read as silence. */
 const MIC_WARNING = {
   'no-signal': 'No te escucho: el micrófono no entrega audio. Revisá que no esté silenciado o tomado por otra app.',
-  unheard: `No te escucho: tu voz llega al micrófono pero el entrevistador no la recibe. Terminá y volvé a empezar la llamada.`,
+  unheard: 'No te escucho: tu voz llega al micrófono pero el entrevistador no la recibe. Reconectando el audio: repetí lo último cuando vuelva.',
 } as const;
 
 interface Runtime {
@@ -129,6 +129,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     () =>
       [...config.problems].sort(
         (a, b) =>
+          Number(b.unseen) - Number(a.unseen) ||
           TIER_ORDER[a.tier ?? 'core'] - TIER_ORDER[b.tier ?? 'core'] ||
           DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty],
       ),
@@ -147,7 +148,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     setAttempts(stored);
     if (pickedRef.current) return;
     const tried = new Set(stored.map((a) => a.problemId));
-    const fresh = problemsSorted.find((p) => p.tier === 'unseen' && p.difficulty === 'medium' && !tried.has(p.id));
+    const fresh = problemsSorted.find((p) => p.unseen && p.difficulty === 'medium' && !tried.has(p.id));
     if (fresh) setProblemId(fresh.id);
   }, [resourceId, problemsSorted]);
   const choose = useCallback((id: string) => {
@@ -162,7 +163,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const interview = useMemo(() => ({ session }), [session]);
 
   // The pad: language picker and autocomplete, as on CoderPad (off by default, as in the interview).
-  const [pad, setPad] = useState<PadPrefs>({ language: 'typescript', autocomplete: false });
+  const [pad, setPad] = useState<PadPrefs>({ language: 'typescript', autocomplete: false, adaptiveTurns: false });
   useEffect(() => setPad(loadPadPrefs()), []);
   const offered = useMemo(
     () => CODE_LANGUAGES.filter((l) => starterFor(problem, l) !== null),
@@ -206,7 +207,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     resourceId,
     resourceTitle,
     interview,
-    turnTaking: 'thinking-aloud',
+    turnTaking: pad.adaptiveTurns ? 'adaptive' : 'thinking-aloud',
     voiceName: config.interviewer.voice,
     onReconnected: () => {
       // A fresh connection lost the screen: show it again, once the interviewer
@@ -343,6 +344,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     (next: string) => {
       codeRef.current = next;
       setCode(next);
+      voiceRef.current.noteTyping();
       const r = rt.current;
       const t = Date.now();
       r.lastCodeChangeAt = t;
@@ -543,11 +545,11 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
                   )}
                 >
                   {/* Not tried yet: no title and no pattern, as on the call, where the name of the trick is not on the screen. */}
-                  <span className="block text-sm font-medium text-j-text">{p.tier === 'unseen' && !tries ? 'Problema nuevo' : p.title}</span>
+                  <span className="block text-sm font-medium text-j-text">{p.unseen && !tries ? 'Problema nuevo' : p.title}</span>
                   <span className="block text-xs text-j-text-secondary">
-                    {p.tier ? `${TIER_LABEL[p.tier]} · ` : ''}
+                    {p.unseen ? 'No visto · ' : p.tier ? `${TIER_LABEL[p.tier]} · ` : ''}
                     {DIFFICULTY_LABEL[p.difficulty]}
-                    {p.tier === 'unseen' && !tries ? '' : ` · ${p.pattern}`}
+                    {p.unseen && !tries ? '' : ` · ${p.pattern}`}
                     {tries ? ` · ${tries} intento${tries > 1 ? 's' : ''}` : ''}
                   </span>
                 </button>
@@ -581,6 +583,21 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Lenguaje</legend>
           <LanguageChoice language={language} offered={offered} onPick={pickLanguage} pythonStatus={pythonStatus} />
         </fieldset>
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-j-text-secondary">
+          <input
+            type="checkbox"
+            checked={pad.adaptiveTurns}
+            onChange={(e) => changePad({ adaptiveTurns: e.target.checked })}
+            className="mt-1 accent-[var(--j-accent)]"
+            data-testid="coding-mock-adaptive"
+          />
+          <span>
+            <strong className="text-j-text">Turnos adaptativos (beta).</strong> {config.interviewer.name} contesta en cerca de un
+            segundo cuando le hablás sin tipear, y espera 3,5 segundos de silencio mientras tipeás. En este modo no lo podés
+            interrumpir con la voz mientras habla. Apagado: espera siempre 2,5 segundos.
+          </span>
+        </label>
 
         <div className="flex items-center gap-3">
           <button

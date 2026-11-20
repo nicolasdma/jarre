@@ -19,17 +19,14 @@
  *   Thresholds follow docs/research/2026-11-20-entrevistador-tecnico-realista.md
  *   (sections 6.4 and 6.8).
  *
- * Every note, spoken or not, waits for a quiet moment (`quietToSend`): text
- * that reaches the Live API while the candidate is mid-utterance can make it
- * drop that utterance, and sometimes everything said after it. Measured with
- * scripts/probe-coding-mock-audio.ts on gemini-3.8-live (2026-11-20,
- * docs/research/voice-probe/coding-mock-audio-before-*.json): a note sent 3 s
- * into a 13 s spoken question left nothing transcribed and no answer in 2 of
- * 4 sessions, with either transport (sendClientContent turnComplete=false,
- * sendRealtimeInput text), and in one the session heard nothing after it; the
- * same note sent before the question was heard, answered and used in 4 of 4.
- * That was the owner's session 522c1b71: 150 s of thinking aloud, no input
- * transcription, then "could you talk me through what you're writing?".
+ * Every note, spoken or not, waits for a quiet moment (`quietToSend`). Text
+ * sent while the candidate is mid-utterance has no defined order against
+ * their audio, a turn asked for then interrupts the answer the interviewer is
+ * about to give, and sessions that stopped hearing the microphone were more
+ * frequent with a note sent mid-sentence (3 of 8) than without (2 of 20):
+ * docs/research/voice-probe/coding-mock-deaf.md. A session that does not hear
+ * is not this module's to fix: the voice hook replaces it
+ * (use-voice-session.ts, "A session that does not hear").
  * "Talking" is read on the microphone itself (src/lib/voice/mic-activity.ts):
  * input transcription arrives seconds late. Everything here is pure and tested
  * (src/lib/coding/__tests__/mock-runtime.test.ts); the component only wires it.

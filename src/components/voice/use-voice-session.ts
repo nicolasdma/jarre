@@ -12,6 +12,7 @@ import { buildLearningSession, TUTOR_PROMPT_VERSION } from '@/lib/llm/voice-tuto
 import { DEFAULT_LIVE_VOICE, resolveVoiceLiveModel, TURN_TAKING, type LiveVoice, type TurnTaking } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { MicActivity, type MicHealth } from '@/lib/voice/mic-activity';
+import { TurnDetector } from '@/lib/voice/turn-detector';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
@@ -177,6 +178,8 @@ interface VoiceSession {
   micHealth: MicHealth;
   /** Last time the mic carried the learner's voice (Date.now clock), or null: known at once, unlike the transcript. */
   micLastVoiceAt: () => number | null;
+  /** The learner pressed a key in the editor: with `adaptive` turn taking, a pause now is thinking, not the end of the turn. */
+  noteTyping: () => void;
   /** Send tool responses back to Gemini */
   sendToolResponse: (responses: FunctionResponse[]) => void;
   /** AnalyserNode for tutor playback audio frequency data */
@@ -204,6 +207,8 @@ const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
  */
 const PREFETCH_SETTLE_MS = 2500;
 const MIC_CHUNK_INTERVAL_MS = 100;
+/** How many times one session replaces a socket that does not hear before it only says so on screen. */
+const MAX_DEAF_RECOVERIES = 3;
 // What ends a session on its own: src/lib/voice/session-end.ts.
 const SESSION_END_WINDOW_CHARS = 320;
 
@@ -244,6 +249,13 @@ export function useVoiceSession({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [micHealth, setMicHealth] = useState<MicHealth>('ok');
   const micActivityRef = useRef(new MicActivity());
+  /** Replaces a session that stopped hearing (set in an effect below; startMic calls it through the ref). */
+  const recoverDeafRef = useRef<(client: GeminiLiveClientInstance, mic: MicActivity) => void>(() => {});
+  const deafRecoveryRef = useRef({ busy: false, count: 0 });
+  /** Set in `adaptive` turn taking: the page marks the learner's turns. */
+  const turnDetectorRef = useRef<TurnDetector | null>(null);
+  /** The last key pressed in an editor the learner types in while talking (noteTyping). */
+  const lastKeyAtRef = useRef<number | null>(null);
   const [lessonMemory, setLessonMemory] = useState<VoiceContext['lessonMemory'] | null>(null);
   /** Audio arrived in the reply being generated (for the mute-after-tool nudge). */
   const audioInTurnRef = useRef(false);
@@ -442,6 +454,9 @@ export function useVoiceSession({
     audioContextRef.current = audioContext;
     const mic = new MicActivity();
     micActivityRef.current = mic;
+    deafRecoveryRef.current = { busy: false, count: 0 };
+    const detector = paramsRef.current.turnTaking === 'adaptive' ? new TurnDetector() : null;
+    turnDetectorRef.current = detector;
     mic.start(Date.now());
     setMicHealth('ok');
 
@@ -486,6 +501,8 @@ export function useVoiceSession({
       const health = mic.health(Date.now());
       setMicHealth((prev) => (prev === health ? prev : health));
       Object.assign(timelineRef.current.facts, mic.facts());
+      // A session that stopped hearing is replaced, not waited on.
+      if (health === 'unheard') recoverDeafRef.current(client, mic);
     };
 
     sendTimer = setInterval(() => {
@@ -504,12 +521,26 @@ export function useVoiceSession({
       }
       pcmBuffer = [];
 
-      client.sendAudio(arrayBufferToBase64(merged.buffer));
-      timelineRef.current.counters.audioChunksSent += 1;
       // The tutor's own voice coming back through the mic is signal, not the learner talking.
       const playback = playbackContextRef.current;
       const echo = playback !== null && nextPlayTimeRef.current > playback.currentTime;
-      mic.feed(merged, audioContext.sampleRate, Date.now(), echo);
+      const now = Date.now();
+      const voiced = mic.feed(merged, audioContext.sampleRate, now, echo);
+      if (!detector) {
+        client.sendAudio(arrayBufferToBase64(merged.buffer));
+        timelineRef.current.counters.audioChunksSent += 1;
+      } else {
+        // The page marks the turns: nothing is sent between them (turn-detector.ts).
+        for (const out of detector.feed({ chunk: merged, voiced, now, lastKeyAt: lastKeyAtRef.current })) {
+          if (out.type === 'audio') {
+            client.sendAudio(arrayBufferToBase64(out.chunk.buffer as ArrayBuffer));
+            timelineRef.current.counters.audioChunksSent += 1;
+          } else {
+            client.sendActivity(out.type);
+            timelineRef.current.mark(out.type === 'start' ? 'turn_start' : 'turn_end');
+          }
+        }
+      }
       reportHealth();
     }, MIC_CHUNK_INTERVAL_MS);
 
@@ -1002,6 +1033,8 @@ export function useVoiceSession({
               c.resetRetryCount();
               log.info('[Reconnect] Proactive GoAway succeeded (session resumed)');
               onReconnectedRef.current?.();
+              // A turn left open on the old socket does not exist on the new one.
+              turnDetectorRef.current?.reset();
               timeline.mark('reconnected');
               logTransition('listening', 'goaway_reconnect');
               setTutorState('listening');
@@ -1050,8 +1083,10 @@ export function useVoiceSession({
                   await c.reconnect(freshToken, handle);
                   c.resetRetryCount();
                   log.info('[Reconnect] Layer 1 succeeded (session resumed with handle)');
-              onReconnectedRef.current?.();
-              timeline.mark('reconnected');
+                  onReconnectedRef.current?.();
+                  // A turn left open on the old socket does not exist on the new one.
+                  turnDetectorRef.current?.reset();
+                  timeline.mark('reconnected');
                   logTransition('listening', 'layer1_reconnect');
                   setTutorState('listening');
                   return;
@@ -1074,8 +1109,10 @@ export function useVoiceSession({
                     c.sendText(fallbackContext);
                   }
                   log.info('[Reconnect] Layer 2 succeeded (context reconstructed from buffer)');
-              onReconnectedRef.current?.();
-              timeline.mark('reconnected');
+                  onReconnectedRef.current?.();
+                  // A turn left open on the old socket does not exist on the new one.
+                  turnDetectorRef.current?.reset();
+                  timeline.mark('reconnected');
                   logTransition('listening', 'layer2_reconnect');
                   setTutorState('listening');
                   return;
@@ -1091,6 +1128,8 @@ export function useVoiceSession({
               }
               log.info('[Reconnect] Layer 2 succeeded (no handle, context from buffer)');
               onReconnectedRef.current?.();
+              // A turn left open on the old socket does not exist on the new one.
+              turnDetectorRef.current?.reset();
               timeline.mark('reconnected');
               logTransition('listening', 'layer2_reconnect');
               setTutorState('listening');
@@ -1228,7 +1267,64 @@ export function useVoiceSession({
     }, MUTE_AFTER_TOOL_MS);
   }, []);
 
+  // ---- A session that does not hear: replace it ----
+  //
+  // gemini-3.8-live sometimes opens a session that speaks but never takes the
+  // microphone: no input transcription, no answer to anything said, while a
+  // text turn still gets a reply. 5 of 28 probe sessions on 2026-11-20, with
+  // and without notes sent meanwhile (docs/research/voice-probe/
+  // coding-mock-deaf.md), and the owner's session 522c1b71: 150 s of talking,
+  // nothing transcribed. MicActivity sees it (voice on the mic, nothing
+  // transcribed for 15 s); the fix is a fresh socket fed the conversation so
+  // far, and one line asking the tutor to say it lost them and to ask again.
+  useEffect(() => {
+    recoverDeafRef.current = (client, mic) => {
+      if (deafRecoveryRef.current.busy || deafRecoveryRef.current.count >= MAX_DEAF_RECOVERIES) return;
+      if (clientRef.current !== client || sessionEndDetectedRef.current || !sessionIdRef.current) return;
+      deafRecoveryRef.current.busy = true;
+      deafRecoveryRef.current.count += 1;
+      timelineRef.current.mark('deaf_restart', { n: deafRecoveryRef.current.count });
+      log.info(`[Deaf] Voice on the mic and nothing transcribed: restarting the session (${deafRecoveryRef.current.count})`);
+      stopPlayback();
+      void (async () => {
+        try {
+          const res = await fetchWithKeys('/api/voice/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'deaf_restart', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
+          });
+          if (!res.ok) throw new Error('Failed to get a token to restart a deaf session');
+          const { token } = await res.json();
+          if (clientRef.current !== client) return;
+          resumptionHandleRef.current = null;
+          await client.restart(token);
+          client.resetRetryCount();
+          const context = await buildFallbackContext();
+          const sorry =
+            paramsRef.current.language === 'es'
+              ? 'El audio se cortó un momento y no escuchaste lo último que dijo. Decí en una frase corta que lo perdiste un momento y pedile que lo repita.'
+              : 'The audio dropped for a moment and you did not hear what they just said. Say, in one short sentence, that you lost them for a moment, and ask them to say it again.';
+          client.sendText([context?.replace(/\n\n[^\n]+$/, ''), `[${sorry}]`].filter(Boolean).join('\n\n'));
+          turnDetectorRef.current?.reset();
+          onReconnectedRef.current?.();
+          timelineRef.current.mark('reconnected');
+          setTutorState('listening');
+        } catch (err) {
+          log.error('[Deaf] Restart failed:', err);
+          timelineRef.current.counters.lastError = `deaf_restart: ${err instanceof Error ? err.message : String(err)}`.slice(0, 200);
+        } finally {
+          // What was said into the deaf session is gone: the count starts again on the new one.
+          mic.heard();
+          deafRecoveryRef.current.busy = false;
+        }
+      })();
+    };
+  }, [buildFallbackContext, stopPlayback]);
+
   const micLastVoiceAt = useCallback(() => micActivityRef.current.lastVoiceAt, []);
+  const noteTyping = useCallback(() => {
+    lastKeyAtRef.current = Date.now();
+  }, []);
 
   const sendText = useCallback((text: string, options?: { respond?: boolean }) => {
     clientRef.current?.sendText(text, options?.respond ?? false);
@@ -1298,6 +1394,7 @@ export function useVoiceSession({
     stream,
     micHealth,
     micLastVoiceAt,
+    noteTyping,
     sendToolResponse,
     playbackAnalyser: playbackAnalyserRef.current,
     sendText,

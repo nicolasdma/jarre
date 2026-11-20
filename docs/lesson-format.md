@@ -127,7 +127,7 @@ A lesson for a live-coding interview adds `interview.coding` (stored with the in
 ```json
 "coding": {
   "context": "The round being rehearsed (English).",
-  "interviewer": { "name": "Sam", "role": "…", "tone": "…" },
+  "interviewer": { "name": "Sam", "role": "…", "tone": "…", "voice": "Schedar" },
   "minutes": 30,
   "phases": [{ "id": "clarify", "title": "Aclarar", "from": 0, "to": 0.1, "what": "…", "drill": "tt-f2-aclarar" }],
   "stuck_drills": ["tt-f6-trabado"],
@@ -145,13 +145,17 @@ A lesson for a live-coding interview adds `interview.coding` (stored with the in
 }
 ```
 
+- **The interviewer's voice.** `interviewer.voice` (optional): one of `LIVE_VOICES` in `src/lib/voice/live-models.ts` (Kore, Charon, Schedar, Iapetus); the coding interviewer speaks with Charon when it is not set. An interview persona (`interview.personas[]`) takes the same `voice`; without it, the tutor's (Kore).
+- **No vistos.** `problem.unseen: true` (optional): a problem the lesson never shows (no `concept`, no exercises), for the mock only, where the problem of a real round is new. The mock lists these first, starts on the first one not tried yet, and hides its title and pattern on the card until it has been tried.
 - **Núcleo / red de seguridad.** `problem.tier` (optional): `core` (write it from a blank page) or `safety_net` (read it and say its complexity). The mock lists core problems first, labels each card and preselects the first core medium; without tiers it preselects the first medium.
 - **Complejidad.** `problem.complexity` (optional): `{ time, space, brute?, say, drill? }`, where `time` and `space` are `{ answer, options, why }` (the answer among 2 to 6 options, `why` one line in the learner's language), `brute` is `{ time: { answer, options, why }, space, why }` when the brute force costs something else, `say` is the answer as said on the call (English, " / " marks) and `drill` the lesson drill with that sentence and its recording. Once an exercise passes every test, a **Complejidad** step appears under it: pick time and space (and the brute force's time), or say it aloud (the browser's recognizer, `en-US`; `src/lib/coding/big-o.ts` maps what it heard to the options), then **Ver respuesta** marks each part with its reason and shows the sentence with **Escuchar** and **Repetirla con el micrófono** (opens its drill in Repetir). Answers are kept in the browser. The mock interviewer always asks for the time and space of the final code and probes a vague answer; the scorecard scores `complexity` as its own dimension against it.
 - `coding.complexity_drill` (optional): `{ concept, title, instructions, items }`, each item a complexity check plus `id`, `title` and `code` (a short TypeScript fragment). It shows under that concept's reading in place of code exercises: read the fragment, say its Big-O, see the correction.
 - Tests are TypeScript against the candidate's file (`import … from './solution'`), with `test` and a small Jest-like `expect` (`src/lib/coding/harness.ts`: toBe, toEqual, toThrow, toContain, toBeLessThan, `.not`, `.rejects`…). They run in a Web Worker (Sucrase strips the types; a run is killed after 6 s), never on a server. `example_tests` and `tests` run as two files, each in its own scope, so both may declare the same helper (`const sorted = …`).
 - Python runs on Pyodide (0.29, from jsDelivr) in one worker that stays loaded (`src/lib/coding/run-python.ts`; a run is killed after 10 s and a fresh interpreter loads). The same TypeScript tests call the candidate's Python: `src/lib/coding/python-run.ts` looks the imported name up as written, in snake_case or as a method of `class Solution`, turns arguments into Python lists and dicts and results back into arrays and objects, and wraps a class the tests construct.
 - `phases[].drill` and `stuck_drills` name drills whose text (cut at " / ") is the phrase list the mock's guide shows.
-- The hint ladder never goes into the interviewer's prompt: the page hands it one rung at a time, when the candidate asks for help or stays stuck after a check-in (`src/lib/coding/mock-runtime.ts`).
+- The hint ladder never goes into the interviewer's prompt, and it is closed by default: the page hands it one rung at a time, when the candidate asks for help, or says yes after the interviewer offered one because the code had not moved since a check-in (`src/lib/coding/mock-runtime.ts`).
+- Every note the page sends the interviewer (`[EDITOR]`, `[RUN]`, `[HINT]`, `[TIME]`, `[CHECK-IN]`) waits for a quiet moment (`quietToSend`): text that reaches the Live session while the candidate is mid-sentence can make it drop what they are saying. "Talking" is read on the microphone (`src/lib/voice/mic-activity.ts`), which also puts "No te escucho" on screen when the microphone delivers nothing or the voice is not transcribed.
+- **Turnos adaptativos (beta)**, a checkbox on the mock's setup screen, off by default: the page marks the turns instead of the server (`src/lib/voice/turn-detector.ts`), ending one 0.9 s after the last word when the candidate is not typing and 3.5 s after it while they type. Measured with `npx tsx scripts/probe-coding-mock-turns.ts <lesson.json>` (paid: one session per arm and rep).
 - `npx tsx scripts/verify-coding.ts <lesson.json>` proves every reference solution passes its tests and every starter fails one; `seed-lesson.ts` runs the same check (also with `--dry-run`) and writes nothing if it fails.
 - `npx tsx scripts/probe-coding-mock.ts <lesson.json>` checks the interviewer against the real Live API (paid: one session).
 

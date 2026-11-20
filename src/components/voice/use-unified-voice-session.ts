@@ -194,6 +194,8 @@ export interface UnifiedVoiceSession {
   micHealth: MicHealth;
   /** Last time the mic carried the learner's voice (Date.now clock), or null. */
   micLastVoiceAt: () => number | null;
+  /** The learner pressed a key in the editor (for `adaptive` turn taking). */
+  noteTyping: () => void;
   /** AnalyserNode for tutor playback audio frequency data */
   playbackAnalyser: AnalyserNode | null;
   /** Text into the live conversation (context, or `respond` to make the model speak now). */
@@ -861,6 +863,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     stream: voiceSession.stream,
     micHealth: voiceSession.micHealth,
     micLastVoiceAt: voiceSession.micLastVoiceAt,
+    noteTyping: voiceSession.noteTyping,
     playbackAnalyser: voiceSession.playbackAnalyser,
     sendText: voiceSession.sendText,
     start,

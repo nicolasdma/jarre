@@ -90,13 +90,18 @@ export const CodingProblemSchema = z.object({
   pattern: z.string().min(1),
   /**
    * `core`: the lesson asks to write it from a blank page; `safety_net`: read
-   * it and say its complexity; `unseen`: the lesson never shows it (no reading
-   * section, no exercises), it exists for the mock, where the problem of a
-   * real round is new. The mock starts on an unseen problem not tried yet,
-   * else on a core one, and labels each card. Absent: the lesson does not tier
-   * its problems.
+   * it and say its complexity. The mock labels each card. Absent: the lesson
+   * does not tier its problems.
    */
-  tier: z.enum(['core', 'safety_net', 'unseen']).optional(),
+  tier: z.enum(['core', 'safety_net']).optional(),
+  /**
+   * The lesson never shows it (no reading section, no exercises): it exists
+   * for the mock, where the problem of a real round is new. The mock lists
+   * these first, starts on one not tried yet, and hides its title and pattern
+   * until then. A flag of its own, not a tier: a build from before it reads
+   * the lesson unchanged (it drops the key) instead of rejecting the tier.
+   */
+  unseen: z.boolean().optional(),
   /** Lesson concept whose reading section shows the exercises. */
   concept: z.string().optional(),
   /** Minutes the interviewer budgets for it in the mock. */

@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-20T21:42:19.797Z",
+  "model": "gemini-3.8-live",
+  "voice": "Schedar",
+  "results": [
+    {
+      "rep": 1,
+      "arm": "2500",
+      "closed": null,
+      "cut_ins": [],
+      "said_in_the_quiet_after": "Okay, makes sense. Go ahead and code it.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array. And for each number, I compute the complement. If the complement is in the map, I return both indexes. Otherwise, I store the number with its index and keep going.quick question Can the same number appear twice in the array?",
+      "question_latency_s": 3.1,
+      "answer": "Yes, values can repeat in the array.",
+      "signals": []
+    },
+    {
+      "rep": 1,
+      "arm": "1500",
+      "closed": null,
+      "cut_ins": [
+        {
+          "during": "pause-2.8",
+          "said": "Mm-hm. And what do you do if the complement is not in the map?"
+        }
+      ],
+      "said_in_the_quiet_after": "Okay, makes sense. Go ahead and code it.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array. And for each number, I compute the complement. If the complement is in the map, I return both indexes.Otherwise, I store the number with its index and keep going.Quick question. Can the same number appear twice in the array?",
+      "question_latency_s": 1.89,
+      "answer": "Yes, values can repeat.",
+      "signals": []
+    },
+    {
+      "rep": 1,
+      "arm": "adaptive",
+      "closed": null,
+      "cut_ins": [],
+      "said_in_the_quiet_after": "Okay, makes sense. Go ahead and code it.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array and for each number I compute the complement. If the complement is in the map, I return both indexes. Otherwise, I store the number with its index and keep going.Quick question, can the same number appear twice in the array?",
+      "question_latency_s": 1.71,
+      "answer": "Yes, values can repeat in the array.",
+      "signals": [
+        {
+          "t": 1.22,
+          "seg": "a",
+          "signal": "start"
+        },
+        {
+          "t": 19.42,
+          "seg": "d",
+          "signal": "end"
+        },
+        {
+          "t": 19.62,
+          "seg": "d",
+          "signal": "start"
+        },
+        {
+          "t": 24.91,
+          "seg": "quiet",
+          "signal": "end"
+        },
+        {
+          "t": 32.29,
+          "seg": "question",
+          "signal": "start"
+        },
+        {
+          "t": 36.35,
+          "seg": "after-question",
+          "signal": "end"
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "arm": "2500",
+      "closed": null,
+      "cut_ins": [],
+      "said_in_the_quiet_after": "Okay, that makes sense. Go ahead and code it.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array. And for each number, I compute the complement. If the complement is in the map, I return both indexes. Otherwise, I store the number with its index and keep going.quick question Can the same number appear twice in the array?",
+      "question_latency_s": 3,
+      "answer": "Yes, values can repeat, like `[3, 3]` with target `6`.",
+      "signals": []
+    },
+    {
+      "rep": 2,
+      "arm": "1500",
+      "closed": null,
+      "cut_ins": [
+        {
+          "during": "pause-2.8",
+          "said": "Okay, that makes sense. Go ahead and code it."
+        }
+      ],
+      "said_in_the_quiet_after": "Mm-hm.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array. And for each number, I compute the complement. If the complement is in the map, I return both indexes.Otherwise, I store the number with its index and keep going.Quick question. Can the same number appear twice in the array?",
+      "question_latency_s": 2.04,
+      "answer": "Yes, values can repeat, like multiple trees with the same number.",
+      "signals": []
+    },
+    {
+      "rep": 2,
+      "arm": "adaptive",
+      "closed": null,
+      "cut_ins": [],
+      "said_in_the_quiet_after": "Okay, makes sense. Go ahead and code it.",
+      "heard": "Okay, so first I will create a map to keep the numbers I have already seen. Then I loop over the array and for each number I compute the complement. If the complement is in the map, I return both indexes. Otherwise, I store the number with its index and keep going.Quick question, can the same number appear twice in the array?",
+      "question_latency_s": 1.71,
+      "answer": "Yes, numbers can repeat, like in an array with three and three and a target of six.",
+      "signals": [
+        {
+          "t": 1.22,
+          "seg": "a",
+          "signal": "start"
+        },
+        {
+          "t": 19.63,
+          "seg": "d",
+          "signal": "end"
+        },
+        {
+          "t": 19.83,
+          "seg": "d",
+          "signal": "start"
+        },
+        {
+          "t": 25.12,
+          "seg": "quiet",
+          "signal": "end"
+        },
+        {
+          "t": 32.49,
+          "seg": "question",
+          "signal": "start"
+        },
+        {
+          "t": 36.55,
+          "seg": "after-question",
+          "signal": "end"
+        }
+      ]
+    }
+  ]
+}

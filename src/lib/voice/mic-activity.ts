@@ -66,10 +66,11 @@ export class MicActivity {
   /**
    * One chunk of what the mic captured. `echo` marks audio captured while the
    * tutor's voice plays: it still proves the mic delivers signal, but it is
-   * not counted as the learner talking.
+   * not counted as the learner talking. Returns whether this chunk is the
+   * learner's voice.
    */
-  feed(samples: Int16Array, sampleRate: number, now: number, echo = false): void {
-    if (!samples.length) return;
+  feed(samples: Int16Array, sampleRate: number, now: number, echo = false): boolean {
+    if (!samples.length) return false;
     this.startedAt ??= now;
     let peak = 0;
     let sum = 0;
@@ -88,14 +89,15 @@ export class MicActivity {
     this.floor = floor;
     if (echo || rms < Math.max(VOICE_RMS, floor * VOICE_OVER_FLOOR)) {
       this.loudRunMs = 0;
-      return;
+      return false;
     }
     this.loudRunMs += ms;
-    if (this.loudRunMs < VOICE_SUSTAIN_MS) return;
+    if (this.loudRunMs < VOICE_SUSTAIN_MS) return false;
     this.lastVoiceAt = now;
     this.voiceMs += ms;
     this.voiceSinceHeardMs += ms;
     this.voiceSinceHeardFrom ??= now;
+    return true;
   }
 
   /** The server transcribed something the learner said: they are heard. */

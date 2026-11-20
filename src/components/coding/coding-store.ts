@@ -95,10 +95,16 @@ export function saveComplexity(resourceId: string, checkId: string, result: Comp
   return all;
 }
 
-/** The pad's settings, the same in every lesson: the language picked and whether autocomplete is on (off by default, as in the interview). */
+/**
+ * The pad's settings, the same in every lesson: the language picked, whether
+ * autocomplete is on (off by default, as in the interview), and whether the
+ * mock's interviewer takes its turn with the adaptive rule (off by default:
+ * src/lib/voice/turn-detector.ts).
+ */
 export interface PadPrefs {
   language: CodeLanguage;
   autocomplete: boolean;
+  adaptiveTurns: boolean;
 }
 
 const PAD_KEY = 'jarre.coding.pad';
@@ -108,6 +114,7 @@ export function loadPadPrefs(): PadPrefs {
   return {
     language: isCodeLanguage(raw.language) ? raw.language : 'typescript',
     autocomplete: raw.autocomplete === true,
+    adaptiveTurns: raw.adaptiveTurns === true,
   };
 }
 

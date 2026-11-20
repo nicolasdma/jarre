@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-20T21:44:16.019Z",
+  "model": "gemini-3.8-live",
+  "voice": "Schedar",
+  "results": [
+    {
+      "rep": 1,
+      "arm": "adaptive",
+      "closed": null,
+      "cut_ins": [],
+      "said_in_the_quiet_after": "",
+      "heard": "",
+      "question_latency_s": null,
+      "answer": "",
+      "signals": [
+        {
+          "t": 1.22,
+          "seg": "a",
+          "signal": "start"
+        },
+        {
+          "t": 25.04,
+          "seg": "quiet",
+          "signal": "end"
+        },
+        {
+          "t": 32.44,
+          "seg": "question",
+          "signal": "start"
+        },
+        {
+          "t": 36.52,
+          "seg": "after-question",
+          "signal": "end"
+        }
+      ]
+    }
+  ]
+}
