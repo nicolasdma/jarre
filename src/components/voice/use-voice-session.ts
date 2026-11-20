@@ -13,6 +13,7 @@ import { DEFAULT_LIVE_VOICE, resolveVoiceLiveModel, TURN_TAKING, type LiveVoice,
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
 import { MicActivity, type MicHealth } from '@/lib/voice/mic-activity';
 import { TurnDetector } from '@/lib/voice/turn-detector';
+import { StreamingWsola } from '@/lib/voice/wsola';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
@@ -142,6 +143,12 @@ interface UseVoiceSessionParams {
   onUtterance?: (role: 'user' | 'model', text: string) => void;
   /** The tutor finished a turn: the moment to add context for the next one. */
   onModelTurnComplete?: () => void;
+  /**
+   * How fast the tutor's voice plays, same pitch (src/lib/voice/wsola.ts):
+   * 0.9 is 10 % slower. Read on every chunk, so it can change mid-session; a
+   * change applies to the audio that arrives after it. Default 1: untouched.
+   */
+  playbackTempo?: number;
 }
 
 
@@ -207,6 +214,13 @@ const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
  */
 const PREFETCH_SETTLE_MS = 2500;
 const MIC_CHUNK_INTERVAL_MS = 100;
+/** Gemini Live's output sample rate. */
+const PLAYBACK_RATE_HZ = 24000;
+/** Tempos the stretcher is asked for: outside this range speech stops sounding like the same person talking. */
+const MIN_TEMPO = 0.6;
+const MAX_TEMPO = 1.25;
+/** Playback this far behind the audio as sent, and still playing this long after the server ended the turn, keeps the tutor "speaking". */
+const SLOWED_TAIL_MIN_MS = 150;
 /** How many times one session replaces a socket that does not hear before it only says so on screen. */
 const MAX_DEAF_RECOVERIES = 3;
 // What ends a session on its own: src/lib/voice/session-end.ts.
@@ -239,6 +253,7 @@ export function useVoiceSession({
   lessonTools = false,
   onUtterance,
   onModelTurnComplete,
+  playbackTempo = 1,
 }: UseVoiceSessionParams): VoiceSession {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [tutorState, setTutorState] = useState<TutorState>('idle');
@@ -269,6 +284,15 @@ export function useVoiceSession({
   const playbackContextRef = useRef<AudioContext | null>(null);
   const playbackAnalyserRef = useRef<AnalyserNode | null>(null);
   const nextPlayTimeRef = useRef(0);
+  // Slower playback (src/lib/voice/wsola.ts). The server paces a turn on the
+  // audio it sent, so slowed audio outlasts it: `stretchLagRef` is how many
+  // seconds the queue is behind where it would be untouched, and the tail
+  // timer holds "speaking" until the voice really stops.
+  const tempoRef = useRef(1);
+  tempoRef.current = Number.isFinite(playbackTempo) ? Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, playbackTempo)) : 1;
+  const stretcherRef = useRef<StreamingWsola | null>(null);
+  const stretchLagRef = useRef(0);
+  const tailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
@@ -389,9 +413,11 @@ export function useVoiceSession({
 
   // ---- Playback: schedule PCM audio chunks on AudioContext ----
 
-  const playAudioChunk = useCallback((pcmData: ArrayBuffer) => {
+  /** Schedules samples right after what is already queued. */
+  const scheduleSamples = useCallback((samples: Float32Array) => {
+    if (!samples.length) return;
     if (!playbackContextRef.current) {
-      const ctx = new AudioContext({ sampleRate: 24000 });
+      const ctx = new AudioContext({ sampleRate: PLAYBACK_RATE_HZ });
       playbackContextRef.current = ctx;
 
       // Create AnalyserNode for tutor audio frequency analysis
@@ -404,15 +430,8 @@ export function useVoiceSession({
     const ctx = playbackContextRef.current;
     const analyser = playbackAnalyserRef.current;
 
-    // PCM 16-bit LE mono → Float32
-    const int16 = new Int16Array(pcmData);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) {
-      float32[i] = int16[i] / 32768;
-    }
-
-    const buffer = ctx.createBuffer(1, float32.length, 24000);
-    buffer.getChannelData(0).set(float32);
+    const buffer = ctx.createBuffer(1, samples.length, PLAYBACK_RATE_HZ);
+    buffer.getChannelData(0).set(samples);
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -423,11 +442,56 @@ export function useVoiceSession({
     const startTime = Math.max(now, nextPlayTimeRef.current);
     source.start(startTime);
     nextPlayTimeRef.current = startTime + buffer.duration;
+    stretchLagRef.current += buffer.duration;
+  }, []);
+
+  /** The end of a reply, or a change of tempo: what the stretcher still holds goes out. */
+  const flushStretcher = useCallback(() => {
+    const stretcher = stretcherRef.current;
+    if (!stretcher) return;
+    stretcherRef.current = null;
+    scheduleSamples(stretcher.flush());
+  }, [scheduleSamples]);
+
+  const playAudioChunk = useCallback((pcmData: ArrayBuffer) => {
+    // PCM 16-bit LE mono → Float32
+    const int16 = new Int16Array(pcmData);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) {
+      float32[i] = int16[i] / 32768;
+    }
+
+    const tempo = tempoRef.current;
+    if (stretcherRef.current && stretcherRef.current.tempo !== tempo) flushStretcher();
+    // The queue ran dry: nothing is behind anymore.
+    const ctx = playbackContextRef.current;
+    if (!ctx || nextPlayTimeRef.current <= ctx.currentTime) stretchLagRef.current = 0;
+    // What this chunk would have added untouched; scheduleSamples adds what it does add.
+    stretchLagRef.current -= float32.length / PLAYBACK_RATE_HZ;
+    if (tempo === 1) {
+      scheduleSamples(float32);
+      return;
+    }
+    stretcherRef.current ??= new StreamingWsola(tempo);
+    scheduleSamples(stretcherRef.current.push(float32));
+  }, [flushStretcher, scheduleSamples]);
+
+  /** Milliseconds of the tutor's voice still to play. */
+  const playbackRemainingMs = useCallback(() => {
+    const ctx = playbackContextRef.current;
+    return ctx ? Math.max(0, (nextPlayTimeRef.current - ctx.currentTime) * 1000) : 0;
   }, []);
 
   const stopPlayback = useCallback(() => {
     // Reset playback scheduling so any queued chunks are effectively skipped
     nextPlayTimeRef.current = 0;
+    stretcherRef.current?.reset();
+    stretcherRef.current = null;
+    stretchLagRef.current = 0;
+    if (tailTimerRef.current) {
+      clearTimeout(tailTimerRef.current);
+      tailTimerRef.current = null;
+    }
     playbackAnalyserRef.current = null;
     if (playbackContextRef.current) {
       playbackContextRef.current.close().catch(() => {});
@@ -642,6 +706,13 @@ export function useVoiceSession({
     if (role === 'user') {
       timelineRef.current.userFragment();
       micActivityRef.current.heard();
+      // The learner talks over a slowed tail: for the server that turn is over,
+      // so it sends no `interrupted`. The page stops the voice, as an interruption does.
+      if (tailTimerRef.current) {
+        stopPlayback();
+        logTransition('listening', 'slowed_tail_cut');
+        setTutorState('listening');
+      }
     }
     else timelineRef.current.counters.modelFragments += 1;
 
@@ -676,17 +747,19 @@ export function useVoiceSession({
       });
       if (decision.end) {
         sessionEndDetectedRef.current = true;
-        log.info(`[Session] ${decision.signal} end signal: ${decision.reason}; auto-disconnecting in 1s`);
+        // Slowed playback is behind the transcript by its lag: the goodbye gets that much longer.
+        const waitMs = 1000 + Math.max(0, stretchLagRef.current) * 1000;
+        log.info(`[Session] ${decision.signal} end signal: ${decision.reason}; auto-disconnecting in ${Math.round(waitMs)}ms`);
         endKeywordTimerRef.current = setTimeout(() => {
           commitUtterance();
           disconnectRef.current();
           onSessionCompleteRef.current?.();
-        }, 1000);
+        }, waitMs);
       } else if (decision.signal) {
         log.info(`[Session] ${decision.signal} end signal ignored: ${decision.reason}`);
       }
     }
-  }, [commitUtterance]);
+  }, [commitUtterance, logTransition, stopPlayback]);
 
   // ---- Compress conversation via API ----
 
@@ -930,6 +1003,11 @@ export function useVoiceSession({
         onAudioResponse: (audioChunk) => {
           timeline.audio();
           audioInTurnRef.current = true;
+          // A new reply while the last one's slowed tail plays: it queues after it, and its own end decides.
+          if (tailTimerRef.current) {
+            clearTimeout(tailTimerRef.current);
+            tailTimerRef.current = null;
+          }
           if (muteNudgeTimerRef.current) {
             clearTimeout(muteNudgeTimerRef.current);
             muteNudgeTimerRef.current = null;
@@ -940,12 +1018,26 @@ export function useVoiceSession({
           });
           playAudioChunk(audioChunk);
         },
+        onGenerationComplete: flushStretcher,
         onTurnComplete: () => {
           timeline.turnComplete();
           commitUtterance();
+          flushStretcher();
           audioInTurnRef.current = false;
           muteNudgedThisTurnRef.current = false;
           paramsRef.current.onModelTurnComplete?.();
+          // Slowed audio outlasts the turn the server just ended: the tutor is
+          // "speaking" (nothing is sent over it, the page says so) until it stops.
+          const tailMs = stretchLagRef.current * 1000 > SLOWED_TAIL_MIN_MS ? playbackRemainingMs() : 0;
+          if (tailMs > SLOWED_TAIL_MIN_MS) {
+            if (tailTimerRef.current) clearTimeout(tailTimerRef.current);
+            tailTimerRef.current = setTimeout(() => {
+              tailTimerRef.current = null;
+              logTransition('listening', 'slowed_tail_played');
+              setTutorState((prev) => (prev === 'speaking' ? 'listening' : prev));
+            }, tailMs);
+            return;
+          }
           logTransition('listening', 'turn_complete');
           setTutorState('listening');
         },
@@ -1186,7 +1278,7 @@ export function useVoiceSession({
       setTutorState('idle');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playAudioChunk, stopPlayback, startMic, startTimer, saveTranscript, commitUtterance, buildFallbackContext, logTransition]);
+  }, [playAudioChunk, flushStretcher, playbackRemainingMs, stopPlayback, startMic, startTimer, saveTranscript, commitUtterance, buildFallbackContext, logTransition]);
 
   // ---- Disconnect ----
 

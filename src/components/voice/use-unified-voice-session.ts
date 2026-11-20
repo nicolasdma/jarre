@@ -165,6 +165,8 @@ export interface UseUnifiedVoiceSessionParams {
   turnTaking?: TurnTaking;
   /** The voice of this session's tutor or interviewer; default Kore. */
   voiceName?: LiveVoice;
+  /** How fast that voice plays, same pitch (src/lib/voice/speech-pace.ts); default 1. */
+  playbackTempo?: number;
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -301,6 +303,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     onReconnected,
     turnTaking,
     voiceName,
+    playbackTempo,
   } = params;
 
   const [state, setState] = useState<UnifiedSessionState>('idle');
@@ -587,6 +590,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     lessonSections,
     turnTaking: turnTaking ?? (mode === 'interview' ? 'patient' : 'default'),
     voiceName,
+    playbackTempo,
     endPolicy: mode === 'interview' ? 'interview' : mode === 'learning' ? 'learning' : 'default',
     onReconnected,
   });

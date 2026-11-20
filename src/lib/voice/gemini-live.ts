@@ -63,6 +63,8 @@ export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'rec
 interface GeminiLiveCallbacks {
   onAudioResponse: (pcmData: ArrayBuffer) => void;
   onTurnComplete: () => void;
+  /** The model finished generating this reply: no more audio comes for it (the turn ends later, paced on playback). */
+  onGenerationComplete?: () => void;
   onInterrupted: () => void;
   onConnectionStateChange: (state: ConnectionState) => void;
   onError: (error: string) => void;
@@ -279,6 +281,8 @@ export function createGeminiLiveClient(callbacks: GeminiLiveCallbacks) {
                 audioInTurn = false;
                 callbacks.onInterrupted();
               }
+
+              if (message.serverContent?.generationComplete) callbacks.onGenerationComplete?.();
 
               // Turn complete: model finished speaking
               if (message.serverContent?.turnComplete) {
