@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import { KeyTermEntrySchema, keyTermName } from '../practice/key-terms';
 import { CodingConfigSchema } from '../coding/format';
+import { LIVE_VOICES } from '../voice/live-models';
 
 export const InterviewPersonaSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
@@ -43,6 +44,8 @@ export const InterviewPersonaSchema = z.object({
    * seconds?"), throws more curveballs and praises only complete answers.
    */
   toughness: z.enum(['standard', 'tough']).default('standard'),
+  /** The voice they speak with (LIVE_VOICES); the tutor's when not set. */
+  voice: z.enum(LIVE_VOICES).optional(),
 });
 
 /**

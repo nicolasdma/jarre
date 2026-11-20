@@ -15,8 +15,7 @@ import { withAuth } from '@/lib/api/middleware';
 import { jsonOk } from '@/lib/api/errors';
 import { createLogger } from '@/lib/logger';
 import { checkTokenBudget, checkVoiceTimeBudget } from '@/lib/api/rate-limit';
-import { GEMINI_VOICE_NAME } from '@/lib/constants';
-import { DEFAULT_VOICE_LIVE_MODEL, isVoiceLiveModel } from '@/lib/voice/live-models';
+import { DEFAULT_LIVE_VOICE, DEFAULT_VOICE_LIVE_MODEL, isLiveVoice, isVoiceLiveModel } from '@/lib/voice/live-models';
 import { buildVoiceTokenConfig } from '@/lib/voice/live-token';
 
 const log = createLogger('VoiceToken');
@@ -50,7 +49,8 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
     throw new Error('Voice service not configured');
   }
 
-  const config = buildVoiceTokenConfig(model);
+  const voiceName = isLiveVoice(body?.voiceName) ? body.voiceName : DEFAULT_LIVE_VOICE;
+  const config = buildVoiceTokenConfig(model, Date.now(), voiceName);
   let tokenName: string | undefined;
   try {
     const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: 'v1alpha' } });
@@ -73,7 +73,7 @@ export const POST = withAuth(async (request, { supabase, user, byokKeys }) => {
   return jsonOk({
     token: tokenName,
     model,
-    voiceName: GEMINI_VOICE_NAME,
+    voiceName,
     expiresAt: config.expireTime,
     newSessionExpiresAt: config.newSessionExpireTime,
     remainingSeconds,

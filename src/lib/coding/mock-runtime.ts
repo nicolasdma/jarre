@@ -3,9 +3,9 @@
  * interviewer, and when. The model has no clock and no screen, so the runtime
  * gives it both, as text notes it never reads aloud:
  *
- * - [EDITOR] the candidate's code, with line numbers, when they start talking
- *   (if it changed), after a run, before any check-in, and at most once a
- *   minute while they type. A real interviewer watches the shared screen.
+ * - [EDITOR] the candidate's code, with line numbers, when it changed: at the
+ *   next quiet moment and at most every 20 s, after a run and before any
+ *   check-in. A real interviewer watches the shared screen.
  * - [RUN] what a run printed and which example tests passed.
  * - [HINT n] the next rung of the problem's hint ladder, only when the
  *   candidate asks for help or has been stuck after a check-in. The ladder is
@@ -14,9 +14,19 @@
  * - [TIME] and [CHECK-IN] cues: ten and five minutes left, time is up, no code
  *   yet, and two minutes of silence ("talk me through it").
  *
- * Notes that need the interviewer to speak now (`respond`) wait for a quiet
- * moment: the candidate not talking for a few seconds and the model not
- * speaking. Everything here is pure and tested
+ * Every note, spoken or not, waits for a quiet moment (`quietToSend`): text
+ * that reaches the Live API while the candidate is mid-utterance can make it
+ * drop that utterance, and sometimes everything said after it. Measured with
+ * scripts/probe-coding-mock-audio.ts on gemini-3.8-live (2026-11-20,
+ * docs/research/voice-probe/coding-mock-audio-before-*.json): a note sent 3 s
+ * into a 13 s spoken question left nothing transcribed and no answer in 2 of
+ * 4 sessions, with either transport (sendClientContent turnComplete=false,
+ * sendRealtimeInput text), and in one the session heard nothing after it; the
+ * same note sent before the question was heard, answered and used in 4 of 4.
+ * That was the owner's session 522c1b71: 150 s of thinking aloud, no input
+ * transcription, then "could you talk me through what you're writing?".
+ * "Talking" is read on the microphone itself (src/lib/voice/mic-activity.ts):
+ * input transcription arrives seconds late. Everything here is pure and tested
  * (src/lib/coding/__tests__/mock-runtime.test.ts); the component only wires it.
  */
 
@@ -35,7 +45,33 @@ export const QUIET_FOR_NUDGE_MS = 6000;
 /** After time is up, how long to wait for a quiet moment before closing anyway. */
 export const HARD_STOP_AFTER_MS = 3 * MIN;
 /** Minimum gap between two editor snapshots sent while typing. */
-export const SNAPSHOT_GAP_MS = MIN;
+export const SNAPSHOT_GAP_MS = 20_000;
+/**
+ * Quiet needed before any text goes into the session once the interviewer
+ * has answered what the candidate last said: past the 2.5 s end-of-speech
+ * window of `thinking-aloud` (src/lib/voice/live-models.ts).
+ */
+export const QUIET_AFTER_ANSWER_MS = 3000;
+/**
+ * Quiet needed when the interviewer has not spoken since: it may still be
+ * about to answer (first audio came 3.5 to 4.2 s after the question ended in
+ * the probe), and text sent then would cut that answer.
+ */
+export const QUIET_UNANSWERED_MS = 7000;
+
+/** Whether text can go into the live session now without landing on the candidate's speech or the interviewer's answer. */
+export function quietToSend(params: {
+  now: number;
+  /** Last time the candidate's voice was on the microphone (or transcribed). */
+  lastCandidateSpeechAt: number;
+  lastModelSpeechAt: number;
+  modelSpeaking: boolean;
+}): boolean {
+  const { now, lastCandidateSpeechAt, lastModelSpeechAt, modelSpeaking } = params;
+  if (modelSpeaking) return false;
+  const quietFor = now - lastCandidateSpeechAt;
+  return quietFor >= (lastModelSpeechAt > lastCandidateSpeechAt ? QUIET_AFTER_ANSWER_MS : QUIET_UNANSWERED_MS);
+}
 
 export type CueId = 'no-code' | 'ten-left' | 'five-left' | 'time-up' | 'check-in' | 'stuck-hint';
 
@@ -188,7 +224,7 @@ export function hintNote(hints: readonly string[], given: number): { note: strin
 // What the interviewer sees
 // ---------------------------------------------------------------------------
 
-export type SnapshotReason = 'speaking' | 'typing' | 'run' | 'check-in' | 'reconnect' | 'start' | 'language';
+export type SnapshotReason = 'typing' | 'update' | 'run' | 'check-in' | 'reconnect' | 'start' | 'language';
 
 export function withLineNumbers(code: string): string {
   const lines = code.replace(/\s+$/, '').split('\n');

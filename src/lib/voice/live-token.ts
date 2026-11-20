@@ -14,7 +14,7 @@
  */
 
 import { Modality } from '@google/genai';
-import { GEMINI_VOICE_NAME } from '@/lib/constants';
+import { DEFAULT_LIVE_VOICE, type LiveVoice } from '@/lib/voice/live-models';
 
 /** A socket must open within this window (the client refreshes prefetched tokens before it ends). */
 export const VOICE_TOKEN_NEW_SESSION_MS = 10 * 60 * 1000;
@@ -23,7 +23,7 @@ export const VOICE_TOKEN_EXPIRE_MS = 30 * 60 * 1000;
 /** One connect plus one retry; every reconnect asks for a fresh token. */
 export const VOICE_TOKEN_USES = 2;
 
-export function buildVoiceTokenConfig(model: string, now: number = Date.now()) {
+export function buildVoiceTokenConfig(model: string, now: number = Date.now(), voiceName: LiveVoice = DEFAULT_LIVE_VOICE) {
   return {
     uses: VOICE_TOKEN_USES,
     expireTime: new Date(now + VOICE_TOKEN_EXPIRE_MS).toISOString(),
@@ -35,7 +35,7 @@ export function buildVoiceTokenConfig(model: string, now: number = Date.now()) {
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE_NAME } },
+          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
         },
       },
     },

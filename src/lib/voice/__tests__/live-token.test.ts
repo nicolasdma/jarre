@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { CodingPersonaSchema } from '../../coding/format';
+import { isLiveVoice } from '../live-models';
 import { buildVoiceTokenConfig, VOICE_TOKEN_EXPIRE_MS, VOICE_TOKEN_NEW_SESSION_MS } from '../live-token';
 
 describe('buildVoiceTokenConfig', () => {
@@ -26,5 +28,14 @@ describe('buildVoiceTokenConfig', () => {
       expect(lockedConfig[field]).toBeUndefined();
       expect(config.lockAdditionalFields).not.toContain(field);
     }
+  });
+
+  it("locks the voice the session asked for: the tutor's by default, the male one for the coding interviewer", () => {
+    const voice = (c: ReturnType<typeof buildVoiceTokenConfig>) => c.liveConnectConstraints.config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName;
+    expect(voice(config)).toBe('Kore');
+    expect(voice(buildVoiceTokenConfig('gemini-3.8-live', now, 'Charon'))).toBe('Charon');
+    expect(CodingPersonaSchema.parse({ name: 'Sam', role: 'an engineer', tone: 'calm' }).voice).toBe('Charon');
+    expect(isLiveVoice('Charon')).toBe(true);
+    expect(isLiveVoice('Zephyr; drop')).toBe(false);
   });
 });

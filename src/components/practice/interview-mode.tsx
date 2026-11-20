@@ -56,6 +56,7 @@ export function InterviewMode({ resourceId, resourceTitle, lesson, interviewConf
     resourceId,
     resourceTitle,
     interview,
+    voiceName: setup.persona.voice,
   });
 
   const drillTitles = useMemo(

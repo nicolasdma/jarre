@@ -9,8 +9,9 @@ import {
   preloadGeminiSdk,
 } from '@/lib/voice/gemini-live';
 import { buildLearningSession, TUTOR_PROMPT_VERSION } from '@/lib/llm/voice-tutor-session';
-import { resolveVoiceLiveModel, TURN_TAKING, type TurnTaking } from '@/lib/voice/live-models';
+import { DEFAULT_LIVE_VOICE, resolveVoiceLiveModel, TURN_TAKING, type LiveVoice, type TurnTaking } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
+import { MicActivity, type MicHealth } from '@/lib/voice/mic-activity';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
 import type { Language } from '@/lib/translations';
@@ -122,6 +123,8 @@ interface UseVoiceSessionParams {
    * second language, where people stop to find the word.
    */
   turnTaking?: TurnTaking;
+  /** The tutor's voice; the token is minted for it. Default Kore. */
+  voiceName?: LiveVoice;
   /**
    * Who may end the session by what the tutor says (src/lib/voice/session-end.ts).
    * `learning`: only after the learner agrees; `interview`: only the end
@@ -170,6 +173,10 @@ interface VoiceSession {
   transcript: TranscriptEntry[];
   /** Mic MediaStream for audio level analysis */
   stream: MediaStream | null;
+  /** Whether the mic delivers signal and the model transcribes it (src/lib/voice/mic-activity.ts). */
+  micHealth: MicHealth;
+  /** Last time the mic carried the learner's voice (Date.now clock), or null: known at once, unlike the transcript. */
+  micLastVoiceAt: () => number | null;
   /** Send tool responses back to Gemini */
   sendToolResponse: (responses: FunctionResponse[]) => void;
   /** AnalyserNode for tutor playback audio frequency data */
@@ -187,7 +194,6 @@ interface VoiceSession {
 // Constants
 // ============================================================================
 
-const VOICE_NAME = 'Kore';
 /** Under the token's 10-minute window to open a socket (src/lib/voice/live-token.ts). */
 const PREFETCHED_TOKEN_MAX_AGE_MS = 8 * 60 * 1000;
 /**
@@ -221,6 +227,7 @@ export function useVoiceSession({
   lessonTitle,
   lessonSections,
   turnTaking = 'default',
+  voiceName = DEFAULT_LIVE_VOICE,
   endPolicy = 'default',
   bilingual = false,
   onReconnected,
@@ -235,6 +242,8 @@ export function useVoiceSession({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [micHealth, setMicHealth] = useState<MicHealth>('ok');
+  const micActivityRef = useRef(new MicActivity());
   const [lessonMemory, setLessonMemory] = useState<VoiceContext['lessonMemory'] | null>(null);
   /** Audio arrived in the reply being generated (for the mute-after-tool nudge). */
   const audioInTurnRef = useRef(false);
@@ -292,8 +301,8 @@ export function useVoiceSession({
   const prefetchSectionIdRef = useRef<string | null>(null);
 
   // Track params in ref so callbacks don't go stale
-  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete });
-  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete };
+  const paramsRef = useRef({ sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, voiceName, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete });
+  paramsRef.current = { sectionId, sectionContent, sectionTitle, language, systemInstructionOverride, sessionType, resourceId, initialMessage, conceptIds, tools, onToolCall, lessonTitle, lessonSections, turnTaking, voiceName, endPolicy, bilingual, lessonTools, onUtterance, onModelTurnComplete };
 
   const onReconnectedRef = useRef(onReconnected);
   onReconnectedRef.current = onReconnected;
@@ -332,7 +341,7 @@ export function useVoiceSession({
       fetchWithKeys('/api/voice/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'prefetch', sessionType, model: resolveVoiceLiveModel() }),
+        body: JSON.stringify({ reason: 'prefetch', sessionType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
       })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
@@ -431,6 +440,10 @@ export function useVoiceSession({
 
     const audioContext = new AudioContext({ sampleRate: 16000 });
     audioContextRef.current = audioContext;
+    const mic = new MicActivity();
+    micActivityRef.current = mic;
+    mic.start(Date.now());
+    setMicHealth('ok');
 
     // Load the AudioWorklet processor inline via Blob
     const workletCode = `
@@ -469,8 +482,17 @@ export function useVoiceSession({
       pcmBuffer.push(new Int16Array(event.data));
     };
 
+    const reportHealth = () => {
+      const health = mic.health(Date.now());
+      setMicHealth((prev) => (prev === health ? prev : health));
+      Object.assign(timelineRef.current.facts, mic.facts());
+    };
+
     sendTimer = setInterval(() => {
-      if (pcmBuffer.length === 0) return;
+      if (pcmBuffer.length === 0) {
+        reportHealth();
+        return;
+      }
 
       // Concatenate buffered chunks
       const totalLength = pcmBuffer.reduce((sum, chunk) => sum + chunk.length, 0);
@@ -484,6 +506,11 @@ export function useVoiceSession({
 
       client.sendAudio(arrayBufferToBase64(merged.buffer));
       timelineRef.current.counters.audioChunksSent += 1;
+      // The tutor's own voice coming back through the mic is signal, not the learner talking.
+      const playback = playbackContextRef.current;
+      const echo = playback !== null && nextPlayTimeRef.current > playback.currentTime;
+      mic.feed(merged, audioContext.sampleRate, Date.now(), echo);
+      reportHealth();
     }, MIC_CHUNK_INTERVAL_MS);
 
     source.connect(workletNode);
@@ -581,7 +608,10 @@ export function useVoiceSession({
 
   const saveTranscript = useCallback((role: 'user' | 'model', text: string) => {
     if (!sessionIdRef.current) return;
-    if (role === 'user') timelineRef.current.userFragment();
+    if (role === 'user') {
+      timelineRef.current.userFragment();
+      micActivityRef.current.heard();
+    }
     else timelineRef.current.counters.modelFragments += 1;
 
     if (utteranceRef.current && utteranceRef.current.role !== role) commitUtterance();
@@ -744,7 +774,7 @@ export function useVoiceSession({
         : fetchWithKeys('/api/voice/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason: 'connect', sessionType: sessType, model: resolveVoiceLiveModel() }),
+            body: JSON.stringify({ reason: 'connect', sessionType: sessType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
           })
             .then((r) => {
               if (!r.ok) throw new Error('Failed to get voice token');
@@ -962,7 +992,7 @@ export function useVoiceSession({
               const res = await fetchWithKeys('/api/voice/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: 'goaway_reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
+                body: JSON.stringify({ reason: 'goaway_reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
               });
               if (!res.ok) throw new Error('Failed to get token for proactive reconnect');
               const { token: freshToken } = await res.json();
@@ -1005,7 +1035,7 @@ export function useVoiceSession({
               const res = await fetchWithKeys('/api/voice/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: 'reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
+                body: JSON.stringify({ reason: 'reconnect', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
               });
               if (!res.ok) throw new Error('Failed to get fresh token for reconnect');
               const { token: freshToken } = await res.json();
@@ -1032,7 +1062,7 @@ export function useVoiceSession({
                   const res2 = await fetchWithKeys('/api/voice/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: 'reconnect_layer2', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel() }),
+                    body: JSON.stringify({ reason: 'reconnect_layer2', sessionType: paramsRef.current.sessionType, model: resolveVoiceLiveModel(), voiceName: paramsRef.current.voiceName }),
                   });
                   if (!res2.ok) throw new Error('Failed to get token for Layer 2');
                   const { token: freshToken2 } = await res2.json();
@@ -1089,7 +1119,7 @@ export function useVoiceSession({
       await client.connect(token, {
         model: resolveVoiceLiveModel(),
         systemInstruction,
-        voiceName: VOICE_NAME,
+        voiceName: paramsRef.current.voiceName,
         realtimeInputConfig: TURN_TAKING[paramsRef.current.turnTaking],
         ...(paramsRef.current.tools ? { tools: paramsRef.current.tools } : {}),
       });
@@ -1198,6 +1228,8 @@ export function useVoiceSession({
     }, MUTE_AFTER_TOOL_MS);
   }, []);
 
+  const micLastVoiceAt = useCallback(() => micActivityRef.current.lastVoiceAt, []);
+
   const sendText = useCallback((text: string, options?: { respond?: boolean }) => {
     clientRef.current?.sendText(text, options?.respond ?? false);
   }, []);
@@ -1264,6 +1296,8 @@ export function useVoiceSession({
     sessionId,
     transcript,
     stream,
+    micHealth,
+    micLastVoiceAt,
     sendToolResponse,
     playbackAnalyser: playbackAnalyserRef.current,
     sendText,

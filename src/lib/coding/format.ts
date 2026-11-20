@@ -16,6 +16,7 @@
  */
 
 import { z } from 'zod';
+import { LIVE_VOICES } from '../voice/live-models';
 
 const slug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lowercase letters, digits and dashes');
 
@@ -150,6 +151,8 @@ export const CodingPersonaSchema = z.object({
   role: z.string().min(1),
   /** How they talk (English). */
   tone: z.string().min(1),
+  /** The voice they speak with (LIVE_VOICES). Default: the male voice. */
+  voice: z.enum(LIVE_VOICES).default('Charon'),
 });
 
 /** A phase of the round, for the on-screen guide. Times are fractions of the session. */

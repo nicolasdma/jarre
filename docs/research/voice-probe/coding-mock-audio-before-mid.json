@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-20T20:53:53.290Z",
+  "model": "gemini-3.8-live",
+  "results": [
+    {
+      "arm": "none",
+      "closed": null,
+      "spoke_after_note": "",
+      "heard": "Okay, so I am going to walk the array once. And keep a map from each value to its index. For every number I check whether the complement is already there. Quick question about my what did I name the map on line two?",
+      "answered": "On line two, you named the map `indices`.",
+      "first_answer_s": 16.48,
+      "question_s": 12.93,
+      "heard_at": [
+        10.94,
+        16.48
+      ],
+      "interrupted": false
+    },
+    {
+      "arm": "open-turn-mid",
+      "closed": null,
+      "spoke_after_note": "",
+      "heard": "",
+      "answered": "",
+      "first_answer_s": null,
+      "question_s": 12.93,
+      "heard_at": [],
+      "interrupted": false
+    },
+    {
+      "arm": "realtime-text-mid",
+      "closed": null,
+      "spoke_after_note": "",
+      "heard": "Okay, so I am going to walk the array once. And keep a map from each value to its index. For every number, I check whether the complement is already there. Quick question about my code. What did I name the map on line two?",
+      "answered": "You named the map \"pineapple.\"",
+      "first_answer_s": 16.3,
+      "question_s": 12.93,
+      "heard_at": [
+        9.5,
+        16.29
+      ],
+      "interrupted": false
+    }
+  ]
+}

@@ -68,6 +68,14 @@ describe('coding mock session: a realistic opening, not a cold problem dump', ()
     expect(instruction).toContain('Clarifying:');
     expect(instruction).toContain('Approach:');
     expect(instruction).toContain('Coding:');
+    // Chapter 1 of the lesson announces these; the interviewer listens and may cut in with them.
+    expect(instruction).toContain('"Why are you doing it that way?"');
+    expect(instruction).toContain('"What do you mean by ...?"');
+    expect(instruction).toContain('"Can you say that more simply?"');
+    // Not understood is asked again, never guessed and never treated as silence.
+    expect(instruction).toContain('"Sorry, could you say that again?"');
+    expect(instruction).toContain('never carry on as if they had said nothing');
+    expect(instruction).toContain('never ask them to explain something they just explained');
     expect(instruction).toContain('Testing:');
     expect(instruction).toContain("ask \"What's the time and space complexity?\"");
     expect(instruction).toContain('senior follow-ups');

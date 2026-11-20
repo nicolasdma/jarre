@@ -72,6 +72,24 @@ export function voiceLiveModelProfile(model: string): VoiceLiveModelProfile | nu
 }
 
 // ---------------------------------------------------------------------------
+// Voices
+// ---------------------------------------------------------------------------
+
+/**
+ * The prebuilt voices a session can ask for; the token locks the one it was
+ * minted with (src/lib/voice/live-token.ts). Kore (female) is the tutor;
+ * Charon is Jarre's male voice, the one the drills are recorded in
+ * (DRILL_TTS_VOICE in src/lib/llm/gemini-tts.ts).
+ */
+export const LIVE_VOICES = ['Kore', 'Charon'] as const;
+export type LiveVoice = (typeof LIVE_VOICES)[number];
+export const DEFAULT_LIVE_VOICE: LiveVoice = 'Kore';
+
+export function isLiveVoice(value: unknown): value is LiveVoice {
+  return typeof value === 'string' && (LIVE_VOICES as readonly string[]).includes(value);
+}
+
+// ---------------------------------------------------------------------------
 // Turn taking
 // ---------------------------------------------------------------------------
 

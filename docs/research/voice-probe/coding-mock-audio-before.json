@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-20T20:50:45.659Z",
+  "model": "gemini-3.8-live",
+  "results": [
+    {
+      "arm": "none",
+      "closed": null,
+      "spoke_after_note": "",
+      "heard": "Quick question about my code. What did I name the map on line 2?",
+      "answered": "I cannot see your screen right now.",
+      "first_answer_s": 6.86,
+      "question_s": 3.88
+    },
+    {
+      "arm": "open-turn",
+      "closed": null,
+      "spoke_after_note": "",
+      "heard": "Quick question about my code. What did I name the map on line two?",
+      "answered": "You named the map \"pineapple\" on line two.",
+      "first_answer_s": 7.11,
+      "question_s": 3.88
+    },
+    {
+      "arm": "realtime-text",
+      "closed": null,
+      "spoke_after_note": "Mm-hm.",
+      "heard": "Quick question about my code. What did I name the map on line 2?",
+      "answered": "You named the map \"pineapple.\"",
+      "first_answer_s": 6.86,
+      "question_s": 3.88
+    }
+  ]
+}

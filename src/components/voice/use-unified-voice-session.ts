@@ -26,7 +26,8 @@ import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-
 import { buildInterviewSession, type TutorLesson, type TutorSession } from '@/lib/llm/voice-tutor-session';
 import type { InterviewSetup } from '@/lib/interview/personas';
 import { TUTOR_TOOLS } from '@/lib/voice/tool-declarations';
-import type { TurnTaking } from '@/lib/voice/live-models';
+import type { LiveVoice, TurnTaking } from '@/lib/voice/live-models';
+import type { MicHealth } from '@/lib/voice/mic-activity';
 import { handleToolCall, type ToolDispatch } from '@/lib/voice/tool-handler';
 import { createLogger } from '@/lib/logger';
 import type { Language } from '@/lib/translations';
@@ -162,6 +163,8 @@ export interface UseUnifiedVoiceSessionParams {
   onReconnected?: () => void;
   /** How long a pause ends the learner's turn; default by mode (`patient` for the interview). */
   turnTaking?: TurnTaking;
+  /** The voice of this session's tutor or interviewer; default Kore. */
+  voiceName?: LiveVoice;
 
   // Tool handling
   onToolAction?: ToolDispatch;
@@ -187,6 +190,10 @@ export interface UnifiedVoiceSession {
   transcript: TranscriptEntry[];
   /** Mic MediaStream for audio level analysis */
   stream: MediaStream | null;
+  /** Whether the mic delivers signal and the model transcribes it. */
+  micHealth: MicHealth;
+  /** Last time the mic carried the learner's voice (Date.now clock), or null. */
+  micLastVoiceAt: () => number | null;
   /** AnalyserNode for tutor playback audio frequency data */
   playbackAnalyser: AnalyserNode | null;
   /** Text into the live conversation (context, or `respond` to make the model speak now). */
@@ -291,6 +298,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     onExplorationComplete,
     onReconnected,
     turnTaking,
+    voiceName,
   } = params;
 
   const [state, setState] = useState<UnifiedSessionState>('idle');
@@ -576,6 +584,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     lessonTitle: resourceTitle,
     lessonSections,
     turnTaking: turnTaking ?? (mode === 'interview' ? 'patient' : 'default'),
+    voiceName,
     endPolicy: mode === 'interview' ? 'interview' : mode === 'learning' ? 'learning' : 'default',
     onReconnected,
   });
@@ -850,6 +859,8 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     result,
     transcript: voiceSession.transcript,
     stream: voiceSession.stream,
+    micHealth: voiceSession.micHealth,
+    micLastVoiceAt: voiceSession.micLastVoiceAt,
     playbackAnalyser: voiceSession.playbackAnalyser,
     sendText: voiceSession.sendText,
     start,

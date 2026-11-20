@@ -7,6 +7,9 @@ import {
   hintNote,
   isHintRequest,
   phaseIndexAt,
+  QUIET_AFTER_ANSWER_MS,
+  QUIET_UNANSWERED_MS,
+  quietToSend,
   shouldSnapshot,
   SILENCE_CHECK_MS,
   SNAPSHOT_GAP_MS,
@@ -132,9 +135,35 @@ describe('hints', () => {
   });
 });
 
+describe('when a note may go into the live session', () => {
+  const base = { now: T0 + 60_000, lastCandidateSpeechAt: T0, lastModelSpeechAt: T0, modelSpeaking: false };
+
+  it('never while the candidate is talking: a note mid-utterance makes the model drop what they say', () => {
+    expect(quietToSend({ ...base, lastCandidateSpeechAt: base.now - 200 })).toBe(false);
+    expect(quietToSend({ ...base, lastCandidateSpeechAt: base.now - 2600 })).toBe(false);
+  });
+
+  it('never while the interviewer speaks', () => {
+    expect(quietToSend({ ...base, modelSpeaking: true })).toBe(false);
+  });
+
+  it('waits longer when the interviewer may still be about to answer what they said', () => {
+    const spoke = base.now - QUIET_AFTER_ANSWER_MS;
+    // Nothing from the interviewer since: its answer can still be on the way.
+    expect(quietToSend({ ...base, lastCandidateSpeechAt: spoke, lastModelSpeechAt: spoke - 5000 })).toBe(false);
+    expect(quietToSend({ ...base, lastCandidateSpeechAt: base.now - QUIET_UNANSWERED_MS, lastModelSpeechAt: T0 })).toBe(true);
+    // The interviewer already answered: the end-of-speech window is enough.
+    expect(quietToSend({ ...base, lastCandidateSpeechAt: spoke, lastModelSpeechAt: spoke + 1500 })).toBe(true);
+  });
+
+  it('a candidate coding in silence is a quiet moment', () => {
+    expect(quietToSend(base)).toBe(true);
+  });
+});
+
 describe('what the interviewer sees', () => {
   it('numbers the lines of the editor', () => {
-    const note = editorNote('const a = 1;\nreturn a;\n', 65_000, 'speaking');
+    const note = editorNote('const a = 1;\nreturn a;\n', 65_000, 'typing');
     expect(note).toContain('[EDITOR 1:05');
     expect(note).toContain('1| const a = 1;\n2| return a;');
   });
@@ -145,10 +174,10 @@ describe('what the interviewer sees', () => {
     expect(runNote({ kind: 'run', language: 'Python 3', passed: 0, total: 0, failed: [], logs: ['hi'] }, 5_000)).toContain('ran their code (Python 3)');
   });
 
-  it('sends a snapshot only when the code changed, and at most once a minute while typing', () => {
+  it('sends a snapshot only when the code changed, and at most every 20 s while typing', () => {
     const base = { code: 'b', lastSentCode: 'a', lastSentAt: T0, now: T0 + 1000 };
     expect(shouldSnapshot({ ...base, code: 'a', reason: 'run' })).toBe(false);
-    expect(shouldSnapshot({ ...base, reason: 'speaking' })).toBe(true);
+    expect(shouldSnapshot({ ...base, reason: 'check-in' })).toBe(true);
     expect(shouldSnapshot({ ...base, reason: 'typing' })).toBe(false);
     expect(shouldSnapshot({ ...base, now: T0 + SNAPSHOT_GAP_MS, reason: 'typing' })).toBe(true);
   });

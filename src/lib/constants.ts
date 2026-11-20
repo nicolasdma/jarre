@@ -219,9 +219,6 @@ export const VOICE_TIME_WARNING_SECONDS = 120; // 2 min before the "10 min" mark
 /** Gemini model for voice sessions */
 export const GEMINI_VOICE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
-/** Voice persona used in Gemini Live sessions */
-export const GEMINI_VOICE_NAME = 'Kore';
-
 // ============================================================================
 // VOICE COMPRESSION
 // ============================================================================

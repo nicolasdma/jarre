@@ -27,6 +27,7 @@ import {
   HARD_STOP_AFTER_MS,
   isHintRequest,
   phaseIndexAt,
+  quietToSend,
   runNote,
   shouldSnapshot,
   type CueId,
@@ -64,6 +65,12 @@ const STATE_LABEL: Record<string, string> = {
   speaking: 'Hablando…',
 };
 
+/** The microphone is not doing its job: said on screen, never left for the interviewer to read as silence. */
+const MIC_WARNING = {
+  'no-signal': 'No te escucho: el micrófono no entrega audio. Revisá que no esté silenciado o tomado por otra app.',
+  unheard: `No te escucho: tu voz llega al micrófono pero el entrevistador no la recibe. Terminá y volvé a empezar la llamada.`,
+} as const;
+
 interface Runtime {
   startedAt: number | null;
   fired: Set<CueId>;
@@ -80,7 +87,6 @@ interface Runtime {
   lastSentCode: string | null;
   lastSentAt: number | null;
   /** Index of the transcript line already handled as a new utterance / as a hint request. */
-  utteranceIndex: number;
   hintIndex: number;
   /** Context notes waiting for the interviewer to stop speaking. */
   pending: string[];
@@ -101,7 +107,6 @@ const freshRuntime = (): Runtime => ({
   exampleRuns: 0,
   lastSentCode: null,
   lastSentAt: null,
-  utteranceIndex: -1,
   hintIndex: -1,
   pending: [],
 });
@@ -183,6 +188,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     resourceTitle,
     interview,
     turnTaking: 'thinking-aloud',
+    voiceName: config.interviewer.voice,
     onReconnected: () => {
       // A fresh connection lost the screen: show it again, once the interviewer
       // is done answering the reconnection (sending while it speaks could cut it).
@@ -193,7 +199,6 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   // The clock reads the session through a ref, so a transcript update does not restart it.
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
-  const listening = voice.state === 'active' && voice.tutorState === 'listening';
 
   // The clock starts when the call does.
   useEffect(() => {
@@ -220,19 +225,13 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
       return;
     }
     r.lastCandidateSpeechAt = t;
-    const notes: string[] = [];
-    if (i !== r.utteranceIndex) {
-      r.utteranceIndex = i;
-      const note = snapshot('speaking');
-      if (note) notes.push(note);
-    }
+    // The hint waits in the outbox like every note: sent now, it would land on what they are saying.
     if (i !== r.hintIndex && isHintRequest(line.text)) {
       r.hintIndex = i;
       const { note } = hintNote(problem.hints, r.hintsGiven);
       r.hintsGiven = Math.min(problem.hints.length, r.hintsGiven + 1);
-      notes.push(note);
+      r.pending.push(note);
     }
-    if (notes.length) voice.sendText(notes.join('\n\n'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.transcript, stage]);
 
@@ -254,10 +253,24 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         voice.stop();
         return;
       }
-      if (voice.tutorState !== 'listening') return;
+      // The microphone knows they are talking seconds before the transcript does.
+      const voiceAt = voice.micLastVoiceAt();
+      if (voiceAt !== null && voiceAt > r.lastCandidateSpeechAt) r.lastCandidateSpeechAt = voiceAt;
+      // Nothing is sent over the candidate's voice or the interviewer's answer (quietToSend).
+      if (
+        !quietToSend({
+          now: t,
+          lastCandidateSpeechAt: r.lastCandidateSpeechAt,
+          lastModelSpeechAt: r.lastModelSpeechAt,
+          modelSpeaking: voice.tutorState === 'speaking',
+        })
+      ) {
+        return;
+      }
 
       if (r.pending.length) {
-        voice.sendText(r.pending.join('\n\n'));
+        const screen = snapshot('update');
+        voice.sendText([...(screen ? [screen] : []), ...r.pending].join('\n\n'));
         r.pending = [];
       }
 
@@ -278,7 +291,9 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         },
         t,
       );
-      if (cue) {
+      // A dead microphone is not a silent candidate: the page says so, the interviewer does not ask.
+      const micDown = voice.micHealth !== 'ok' && (cue?.id === 'check-in' || cue?.id === 'stuck-hint');
+      if (cue && !micDown) {
         const parts: string[] = [];
         const screen = snapshot('check-in', cue.id === 'check-in' || cue.id === 'stuck-hint');
         if (screen) parts.push(screen);
@@ -298,11 +313,9 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         return;
       }
 
-      // While they type and talk little, keep the interviewer's view of the screen fresh.
-      if (t - r.lastCandidateSpeechAt > 1500) {
-        const note = snapshot('typing');
-        if (note) voice.sendText(note);
-      }
+      // Keep the interviewer's view of the screen fresh.
+      const note = snapshot('typing');
+      if (note) voice.sendText(note);
     }, 1000);
     return () => clearInterval(id);
   }, [stage, durationMs, problem, snapshot]);
@@ -351,10 +364,9 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
       // The interviewer sees the switch on the shared pad.
       const note = snapshot('language', true);
       if (!note) return;
-      if (listening) voice.sendText(note);
-      else rt.current.pending.push(note);
+      rt.current.pending.push(note);
     },
-    [problem, stage, snapshot, listening, voice, changePad],
+    [problem, stage, snapshot, changePad],
   );
 
   const run = useCallback(
@@ -388,10 +400,9 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           r.startedAt ? Date.now() - r.startedAt : 0,
         ),
       ].filter((n): n is string => Boolean(n));
-      if (listening) voice.sendText(notes.join('\n\n'));
-      else r.pending.push(...notes);
+      r.pending.push(...notes);
     },
-    [problem, stage, snapshot, listening, voice],
+    [problem, stage, snapshot],
   );
 
   const start = useCallback(() => {
@@ -657,6 +668,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
 
   // ------------------------------------------------------------------ live
   const left = durationMs - elapsed;
+  const micTalking = now - (voice.micLastVoiceAt() ?? 0) < 1500;
   return (
     <div className="mx-auto max-w-7xl space-y-4 px-4 py-6" data-testid="coding-mock">
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-j-border bg-j-bg py-2">
@@ -678,6 +690,20 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
                 ? `${config.interviewer.name}: ${STATE_LABEL[voice.tutorState]}`
                 : ''}
         </span>
+        {stage === 'live' && voice.state === 'active' && voice.micHealth === 'ok' && (
+          <span
+            className={cn('font-mono text-[10px] uppercase tracking-[0.12em]', micTalking ? 'text-j-accent' : 'text-j-text-tertiary')}
+            data-testid="coding-mock-mic"
+            data-talking={micTalking}
+          >
+            {micTalking ? '● Micrófono: te oye' : '○ Micrófono'}
+          </span>
+        )}
+        {stage === 'live' && voice.state === 'active' && voice.micHealth !== 'ok' && (
+          <span role="alert" className="border border-j-error px-2 py-1 text-sm font-semibold text-j-error" data-testid="coding-mock-mic-warning">
+            {MIC_WARNING[voice.micHealth]}
+          </span>
+        )}
         <span className="ml-auto" />
         <button
           type="button"
