@@ -114,6 +114,12 @@ export const CodingProblemSchema = z.object({
   exports: z.array(z.string().regex(/^[A-Za-z_$][\w$]*$/)).min(1),
   /** The mock's starting file: the signature only. */
   starter: z.string().min(1),
+  /**
+   * The starting file in the pad's other languages, when the generated one
+   * does not fit (src/lib/coding/languages.ts derives JavaScript by stripping
+   * types and Python from the signature). Optional; the tests stay TypeScript.
+   */
+  starters: z.object({ javascript: z.string().min(1).optional(), python: z.string().min(1).optional() }).optional(),
   /** Visible tests (the examples), run by "Probar ejemplos". */
   example_tests: z.string().min(1),
   /** Hidden tests: edges and scale, run at the end of the mock and in the exercises. */
@@ -204,6 +210,11 @@ export function parseCodingConfig(interview: unknown): CodingConfig | null {
   if (!raw) return null;
   const parsed = CodingConfigSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+/** The example tests and the hidden ones, as separate files: each declares its own helpers. */
+export function allTestsOf(problem: Pick<CodingProblem, 'example_tests' | 'tests'>): string[] {
+  return [problem.example_tests, problem.tests];
 }
 
 export function findProblem(config: CodingConfig, problemId: string): CodingProblem | null {

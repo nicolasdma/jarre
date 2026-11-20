@@ -4,13 +4,14 @@
 
 import { cn } from '@/lib/utils';
 import type { RunResult } from '@/lib/coding/harness';
+import type { CodeLanguage } from '@/lib/coding/languages';
 
 export function summarizeRun(r: RunResult): { passed: number; total: number } {
   const lessonTests = r.tests.filter((t) => !t.own);
   return { passed: lessonTests.filter((t) => t.pass).length, total: lessonTests.length };
 }
 
-export function RunOutput({ result, running, label }: { result: RunResult | null; running: boolean; label?: string }) {
+export function RunOutput({ result, running, label, language }: { result: RunResult | null; running: boolean; label?: string; language?: CodeLanguage }) {
   if (running) {
     return (
       <p className="border border-j-border bg-j-bg-alt px-3 py-2 font-mono text-xs text-j-text-secondary" aria-live="polite">
@@ -52,7 +53,7 @@ export function RunOutput({ result, running, label }: { result: RunResult | null
         <pre className="max-h-48 overflow-auto whitespace-pre-wrap border-t border-j-border pt-2 text-j-text">{result.logs.join('\n')}</pre>
       )}
       {result.ok && total === 0 && own.length === 0 && result.logs.length === 0 && (
-        <p className="text-j-text-tertiary">Corrió sin salida. Agregá un console.log o probá los tests.</p>
+        <p className="text-j-text-tertiary">Corrió sin salida. Agregá un {language === 'python' ? 'print' : 'console.log'} o probá los tests.</p>
       )}
     </div>
   );

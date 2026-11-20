@@ -23,6 +23,7 @@ import { findProblem, parseCodingConfig } from '@/lib/coding/format';
 import { buildCodingReportMessages, hasCandidateSpeech, parseCodingReport } from '@/lib/coding/report';
 import { callDeepSeek } from '@/lib/llm/deepseek';
 import { createLogger } from '@/lib/logger';
+import { CODE_LANGUAGES, LANGUAGE_LABEL } from '@/lib/coding/languages';
 
 const log = createLogger('CodingReport');
 
@@ -48,6 +49,7 @@ const BodySchema = z.object({
     }),
     hintsGiven: z.number().int().min(0),
     checkIns: z.number().int().min(0),
+    language: z.enum(CODE_LANGUAGES.map((l) => LANGUAGE_LABEL[l]) as [string, ...string[]]).optional(),
   }),
 });
 

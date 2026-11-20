@@ -15,6 +15,8 @@ import type { NextConfig } from "next";
  *   (no nonce yet); 'unsafe-eval': the code runner worker (src/lib/coding/harness.ts).
  * - Supabase over https and wss, Gemini Live over https and wss.
  * - unpkg: the pdf.js worker (src/app/resource/[resourceId]/pdf-viewer.tsx).
+ * - jsDelivr: Pyodide, the Python interpreter of the coding pad, loaded by its
+ *   worker (src/lib/coding/python.worker.ts): the script, the wasm and the stdlib.
  * - YouTube: thumbnails and the embedded player.
  */
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -31,7 +33,7 @@ const enforcedCsp = [
 
 const fullCsp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://img.youtube.com https://i.ytimg.com ${supabaseOrigin}`,
   "font-src 'self' data:",
@@ -43,6 +45,7 @@ const fullCsp = [
     "https://generativelanguage.googleapis.com",
     "wss://generativelanguage.googleapis.com",
     "https://unpkg.com",
+    "https://cdn.jsdelivr.net",
     isDev ? "ws: http://localhost:*" : "",
   ].filter(Boolean).join(" "),
   "worker-src 'self' blob: https://unpkg.com",

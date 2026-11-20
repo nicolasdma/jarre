@@ -2,11 +2,12 @@
  * What the coding practice keeps in this browser (localStorage): the draft of
  * each exercise, which exercises passed every test, and the mock attempts
  * (transcript, final code, facts and report), and the complexity checks
- * answered. Every read and write is guarded:
+ * answered, and the pad's language and autocomplete. Every read and write is guarded:
  * private windows and full storage just mean nothing is remembered.
  */
 
 import type { CodingReport, CodingSessionFacts, ReportTranscriptLine } from '@/lib/coding/report';
+import { isCodeLanguage, type CodeLanguage } from '@/lib/coding/languages';
 
 const key = (kind: string, resourceId: string, id?: string) => `jarre.coding.${kind}.${resourceId}${id ? `.${id}` : ''}`;
 
@@ -92,4 +93,24 @@ export function saveComplexity(resourceId: string, checkId: string, result: Comp
   const all = { ...loadComplexity(resourceId), [checkId]: result };
   write(key('complexity', resourceId), all);
   return all;
+}
+
+/** The pad's settings, the same in every lesson: the language picked and whether autocomplete is on (off by default, as in the interview). */
+export interface PadPrefs {
+  language: CodeLanguage;
+  autocomplete: boolean;
+}
+
+const PAD_KEY = 'jarre.coding.pad';
+
+export function loadPadPrefs(): PadPrefs {
+  const raw = read<Partial<PadPrefs>>(PAD_KEY, {});
+  return {
+    language: isCodeLanguage(raw.language) ? raw.language : 'typescript',
+    autocomplete: raw.autocomplete === true,
+  };
+}
+
+export function savePadPrefs(prefs: PadPrefs): void {
+  write(PAD_KEY, prefs);
 }

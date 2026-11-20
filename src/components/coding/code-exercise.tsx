@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
-import type { CodingExercise as Exercise, CodingProblem } from '@/lib/coding/format';
+import { allTestsOf, type CodingExercise as Exercise, type CodingProblem } from '@/lib/coding/format';
 import type { RunResult } from '@/lib/coding/harness';
 import { runInWorker } from '@/lib/coding/run-in-worker';
 import { CodeEditor } from './code-editor';
@@ -56,7 +56,7 @@ export function CodeExercise({ resourceId, problem, exercise, solved, onSolved }
     [resourceId, exercise.id],
   );
 
-  const allTests = useMemo(() => `${problem.example_tests}\n${problem.tests}`, [problem]);
+  const allTests = useMemo(() => allTestsOf(problem), [problem]);
 
   const run = useCallback(
     async (withTests: boolean) => {

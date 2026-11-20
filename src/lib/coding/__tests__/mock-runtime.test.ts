@@ -3,6 +3,7 @@ import {
   CHECK_GAP_MS,
   dueCue,
   editorNote,
+  runNote,
   hintNote,
   isHintRequest,
   phaseIndexAt,
@@ -136,6 +137,12 @@ describe('what the interviewer sees', () => {
     const note = editorNote('const a = 1;\nreturn a;\n', 65_000, 'speaking');
     expect(note).toContain('[EDITOR 1:05');
     expect(note).toContain('1| const a = 1;\n2| return a;');
+  });
+
+  it('says which language the pad is in, and a language switch', () => {
+    expect(editorNote('x = 1\n', 5_000, 'typing', 'Python 3')).toContain("the candidate's screen right now (typing), coding in Python 3.");
+    expect(editorNote('def f():\n    pass\n', 5_000, 'language', 'Python 3')).toContain("they switched the pad's language to Python 3");
+    expect(runNote({ kind: 'run', language: 'Python 3', passed: 0, total: 0, failed: [], logs: ['hi'] }, 5_000)).toContain('ran their code (Python 3)');
   });
 
   it('sends a snapshot only when the code changed, and at most once a minute while typing', () => {

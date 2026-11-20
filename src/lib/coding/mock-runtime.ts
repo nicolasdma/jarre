@@ -188,7 +188,7 @@ export function hintNote(hints: readonly string[], given: number): { note: strin
 // What the interviewer sees
 // ---------------------------------------------------------------------------
 
-export type SnapshotReason = 'speaking' | 'typing' | 'run' | 'check-in' | 'reconnect' | 'start';
+export type SnapshotReason = 'speaking' | 'typing' | 'run' | 'check-in' | 'reconnect' | 'start' | 'language';
 
 export function withLineNumbers(code: string): string {
   const lines = code.replace(/\s+$/, '').split('\n');
@@ -196,8 +196,17 @@ export function withLineNumbers(code: string): string {
   return lines.map((l, i) => `${String(i + 1).padStart(width, ' ')}| ${l}`).join('\n');
 }
 
-export function editorNote(code: string, elapsedMs: number, reason: SnapshotReason): string {
-  return `[EDITOR ${mmss(elapsedMs)} · the candidate's screen right now (${reason}). Not spoken: never read it aloud.]\n${withLineNumbers(code)}`;
+/**
+ * The candidate's screen as a note. `language` is the pad's language picker
+ * (TypeScript, JavaScript, Python 3): the interviewer sees which one they code in,
+ * and a switch (`reason` 'language') is said as such.
+ */
+export function editorNote(code: string, elapsedMs: number, reason: SnapshotReason, language?: string): string {
+  const what =
+    reason === 'language' && language
+      ? `they switched the pad's language to ${language}; this is the editor now`
+      : `the candidate's screen right now (${reason})${language ? `, coding in ${language}` : ''}`;
+  return `[EDITOR ${mmss(elapsedMs)} · ${what}. Not spoken: never read it aloud.]\n${withLineNumbers(code)}`;
 }
 
 /** Whether to send a new editor snapshot. */
@@ -216,6 +225,8 @@ export function shouldSnapshot(params: {
 
 export interface RunSummary {
   kind: 'run' | 'examples';
+  /** The pad's language, as on the picker. */
+  language?: string;
   passed: number;
   total: number;
   error?: string;
@@ -224,10 +235,13 @@ export interface RunSummary {
 }
 
 export function runNote(r: RunSummary, elapsedMs: number): string {
-  const lines = [`[RUN ${mmss(elapsedMs)} · they ${r.kind === 'examples' ? 'ran the example tests' : 'ran their code'}. Not spoken.]`];
+  const lines = [
+    `[RUN ${mmss(elapsedMs)} · they ${r.kind === 'examples' ? 'ran the example tests' : 'ran their code'}${r.language ? ` (${r.language})` : ''}. Not spoken.]`,
+  ];
   if (r.error) lines.push(`Error: ${r.error}`);
   if (r.total) lines.push(`Tests: ${r.passed}/${r.total} pass${r.failed.length ? `; failing: ${r.failed.join('; ')}` : ''}`);
   if (r.logs.length) lines.push(`Output:\n${r.logs.slice(0, 15).join('\n')}`);
+  if (!r.error && !r.total && !r.logs.length) lines.push('No output.');
   return lines.join('\n');
 }
 

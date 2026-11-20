@@ -89,6 +89,8 @@ export interface CodingSessionFacts {
   finalTests: { passed: number; total: number; failing: string[]; error?: string };
   hintsGiven: number;
   checkIns: number;
+  /** The pad's language at the end (TypeScript, JavaScript, Python 3). Absent in attempts from before the picker: TypeScript. */
+  language?: string;
 }
 
 export interface ReportTranscriptLine {
@@ -117,7 +119,7 @@ export function buildCodingReportMessages(params: {
 }): { system: string; user: string } {
   const { problem, interviewerName, transcript, finalCode, facts, drills, problems } = params;
 
-  const system = `You write the scorecard of a mock live-coding interview that a Spanish-speaking developer just did in English, in TypeScript, to prepare a real 30-minute LeetCode-style round at SENIOR level. You are the engineer who ran it: demanding, specific and fair. An error you leave out is an error they repeat on the real call.
+  const system = `You write the scorecard of a mock live-coding interview that a Spanish-speaking developer just did in English, in ${facts.language ?? 'TypeScript'}, to prepare a real 30-minute LeetCode-style round at SENIOR level. You are the engineer who ran it: demanding, specific and fair. An error you leave out is an error they repeat on the real call.
 
 Score each of six dimensions from 1 to 4 (1 strong no, 2 lean no, 3 lean yes, 4 strong yes), at senior bar:
 - communication: restates the problem, clarifies and states assumptions, thinks aloud, narrates decisions not keystrokes, uses hints well, never long silences.
@@ -160,7 +162,7 @@ FACTS MEASURED BY THE PAGE
 - FINAL TESTS (examples + hidden edge cases, on the final code): ${facts.finalTests.passed}/${facts.finalTests.total} pass${facts.finalTests.error ? `; error: ${facts.finalTests.error}` : ''}${facts.finalTests.failing.length ? `; failing: ${facts.finalTests.failing.join('; ')}` : ''}
 - Check-ins after silences: ${facts.checkIns}
 
-FINAL CODE
+FINAL CODE (${facts.language ?? 'TypeScript'})
 ${finalCode}
 
 DRILLS (slug: title)

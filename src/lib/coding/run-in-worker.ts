@@ -10,13 +10,25 @@ import type { RunRequest } from './transpile';
 /** Wall-clock budget of one run, ms: transpile, the file, every test. */
 export const RUN_TIMEOUT_MS = 6000;
 
-export function runInWorker(req: RunRequest, timeoutMs = RUN_TIMEOUT_MS): Promise<RunResult> {
+/** The part of the Worker API a run uses; the tests pass a Node worker_threads adapter. */
+export interface RunWorkerLike {
+  postMessage(message: RunRequest): void;
+  terminate(): void;
+  onmessage: ((event: { data: RunResult }) => void) | null;
+  onerror: ((event: { message?: string }) => void) | null;
+}
+
+function createRunnerWorker(): RunWorkerLike {
+  // A classic worker: Turbopack bootstraps workers with importScripts, which module workers do not support.
+  return new Worker(new URL('./runner.worker.ts', import.meta.url)) as unknown as RunWorkerLike;
+}
+
+export function runInWorker(req: RunRequest, timeoutMs = RUN_TIMEOUT_MS, create: () => RunWorkerLike = createRunnerWorker): Promise<RunResult> {
   const started = Date.now();
   return new Promise((resolve) => {
-    let worker: Worker;
+    let worker: RunWorkerLike;
     try {
-      // A classic worker: Turbopack bootstraps workers with importScripts, which module workers do not support.
-      worker = new Worker(new URL('./runner.worker.ts', import.meta.url));
+      worker = create();
     } catch (e) {
       resolve({ ok: false, runtimeError: `Could not start the runner: ${(e as Error).message}`, logs: [], tests: [], ms: 0 });
       return;
@@ -32,7 +44,7 @@ export function runInWorker(req: RunRequest, timeoutMs = RUN_TIMEOUT_MS): Promis
         ms: Date.now() - started,
       });
     }, timeoutMs);
-    worker.onmessage = (event: MessageEvent<RunResult>) => {
+    worker.onmessage = (event) => {
       clearTimeout(timer);
       worker.terminate();
       resolve(event.data);

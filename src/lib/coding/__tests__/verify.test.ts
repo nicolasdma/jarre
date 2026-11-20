@@ -26,4 +26,13 @@ describe('verifyProblem', () => {
     const r = await verifyProblem({ ...SUM_PROBLEM, starter: 'export function sum( {' }, runCode);
     expect(r.problems[0]).toMatch(/^starter does not compile/);
   });
+
+  it('runs the examples and the hidden tests in their own scopes: both may declare the same helper', async () => {
+    const helper = "const sorted = (a: number[]) => [...a].sort((x, y) => x - y);\n";
+    const both = { ...SUM_PROBLEM, example_tests: helper + SUM_PROBLEM.example_tests, tests: helper + SUM_PROBLEM.tests };
+    const r = await verifyProblem(both, runCode);
+    expect(r.problems).toEqual([]);
+    const all = await runCode({ code: SUM_PROBLEM.solution.code, tests: [both.example_tests, both.tests], exportNames: ['sum'] });
+    expect(all.tests.map((t) => t.pass)).toEqual([true, true, true]);
+  });
 });

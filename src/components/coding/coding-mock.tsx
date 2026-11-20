@@ -17,7 +17,7 @@ import { appScroller } from '@/lib/learn/app-scroller';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUnifiedVoiceSession } from '@/components/voice/use-unified-voice-session';
-import { findProblem } from '@/lib/coding/format';
+import { allTestsOf, findProblem } from '@/lib/coding/format';
 import { buildCodingMockSession } from '@/lib/coding/mock-session';
 import {
   dueCue,
@@ -33,7 +33,10 @@ import {
   type SnapshotReason,
 } from '@/lib/coding/mock-runtime';
 import type { RunResult } from '@/lib/coding/harness';
-import { runInWorker } from '@/lib/coding/run-in-worker';
+import { runInLanguage } from '@/lib/coding/run-code';
+import { pythonRunner, type PythonStatus } from '@/lib/coding/run-python';
+import { CODE_LANGUAGES, LANGUAGE_LABEL, type CodeLanguage } from '@/lib/coding/languages';
+import { starterFor } from '@/lib/coding/starters';
 import { hasCandidateSpeech, type CodingReport, type CodingSessionFacts } from '@/lib/coding/report';
 import { CodeEditor } from './code-editor';
 import { RunOutput, summarizeRun } from './run-output';
@@ -41,7 +44,7 @@ import { ProblemStatement } from './problem-statement';
 import { SolutionPanel } from './code-exercise';
 import { CodingReportView } from './coding-report';
 import { drillPhraseList, useCoding } from './coding-context';
-import { loadAttempts, saveAttempt, type MockAttempt } from './coding-store';
+import { loadAttempts, loadPadPrefs, saveAttempt, savePadPrefs, type MockAttempt, type PadPrefs } from './coding-store';
 
 interface CodingMockProps {
   resourceTitle: string;
@@ -135,9 +138,26 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
   const session = useMemo(() => buildCodingMockSession({ config, problem, minutes }), [config, problem, minutes]);
   const interview = useMemo(() => ({ session }), [session]);
 
+  // The pad: language picker and autocomplete, as on CoderPad (off by default, as in the interview).
+  const [pad, setPad] = useState<PadPrefs>({ language: 'typescript', autocomplete: false });
+  useEffect(() => setPad(loadPadPrefs()), []);
+  const offered = useMemo(
+    () => CODE_LANGUAGES.filter((l) => starterFor(problem, l) !== null),
+    [problem],
+  );
+  const language: CodeLanguage = offered.includes(pad.language) ? pad.language : 'typescript';
+  const starter = starterFor(problem, language) ?? problem.starter;
+  const languageRef = useRef(language);
+  languageRef.current = language;
+  const starterRef = useRef(starter);
+  starterRef.current = starter;
+  /** What was typed in each language this attempt: switching back and forth loses nothing. */
+  const drafts = useRef(new Map<CodeLanguage, string>());
+  const pythonStatus = usePythonStatus(language === 'python');
+
   const rt = useRef<Runtime>(freshRuntime());
-  const codeRef = useRef(problem.starter);
-  const [code, setCode] = useState(problem.starter);
+  const codeRef = useRef(starter);
+  const [code, setCode] = useState(starter);
   const [output, setOutput] = useState<{ result: RunResult; label: string } | null>(null);
   const [running, setRunning] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -153,7 +173,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     if (!force && !shouldSnapshot({ code, lastSentCode: r.lastSentCode, lastSentAt: r.lastSentAt, now: t, reason })) return null;
     r.lastSentCode = code;
     r.lastSentAt = t;
-    return editorNote(code, r.startedAt ? t - r.startedAt : 0, reason);
+    return editorNote(code, r.startedAt ? t - r.startedAt : 0, reason, LANGUAGE_LABEL[languageRef.current]);
   }, []);
 
   const voice = useUnifiedVoiceSession({
@@ -250,7 +270,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           lastModelSpeechAt: r.lastModelSpeechAt,
           modelSpeaking: false,
           lastCodeChangeAt: r.lastCodeChangeAt,
-          codeTouched: codeRef.current !== problem.starter,
+          codeTouched: codeRef.current !== starterRef.current,
           lastCheckInAt: r.lastCheckInAt,
           codeChangedSinceCheckIn: r.codeChangedSinceCheckIn,
           hintsGiven: r.hintsGiven,
@@ -295,15 +315,53 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
       const t = Date.now();
       r.lastCodeChangeAt = t;
       r.codeChangedSinceCheckIn = true;
-      if (r.firstEditAt === null && r.startedAt !== null && next !== problem.starter) r.firstEditAt = t;
+      if (r.firstEditAt === null && r.startedAt !== null && next !== starterRef.current) r.firstEditAt = t;
     },
-    [problem.starter],
+    [],
+  );
+
+  // Before the mock or a new attempt: the editor opens on the picked language's starter.
+  useEffect(() => {
+    if (stage !== 'setup') return;
+    drafts.current.clear();
+    codeRef.current = starter;
+    setCode(starter);
+  }, [stage, starter]);
+
+  const changePad = useCallback((next: Partial<PadPrefs>) => {
+    setPad((p) => {
+      const merged = { ...p, ...next };
+      savePadPrefs(merged);
+      return merged;
+    });
+  }, []);
+
+  const pickLanguage = useCallback(
+    (next: CodeLanguage) => {
+      if (next === languageRef.current) return;
+      drafts.current.set(languageRef.current, codeRef.current);
+      const nextCode = drafts.current.get(next) ?? starterFor(problem, next) ?? problem.starter;
+      languageRef.current = next;
+      starterRef.current = starterFor(problem, next) ?? problem.starter;
+      codeRef.current = nextCode;
+      setCode(nextCode);
+      setOutput(null);
+      changePad({ language: next });
+      if (stage !== 'live') return;
+      // The interviewer sees the switch on the shared pad.
+      const note = snapshot('language', true);
+      if (!note) return;
+      if (listening) voice.sendText(note);
+      else rt.current.pending.push(note);
+    },
+    [problem, stage, snapshot, listening, voice, changePad],
   );
 
   const run = useCallback(
     async (kind: 'run' | 'examples') => {
       setRunning(true);
-      const result = await runInWorker({
+      const lang = languageRef.current;
+      const result = await runInLanguage(lang, {
         code: codeRef.current,
         tests: kind === 'examples' ? problem.example_tests : undefined,
         exportNames: problem.exports,
@@ -320,6 +378,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         runNote(
           {
             kind,
+            language: LANGUAGE_LABEL[lang],
             passed,
             total,
             error: result.compileError?.message ?? result.runtimeError,
@@ -337,13 +396,16 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
 
   const start = useCallback(() => {
     rt.current = freshRuntime();
-    codeRef.current = problem.starter;
-    setCode(problem.starter);
+    drafts.current.clear();
+    codeRef.current = starterRef.current;
+    setCode(starterRef.current);
     setOutput(null);
     setCurrent(null);
     setStage('live');
+    // The setup screen is long: the call opens on the pad's top (clock, language, editor), not where the button was.
+    appScroller().scrollTo({ top: 0 });
     void voice.start();
-  }, [problem.starter, voice]);
+  }, [voice]);
 
   // The call ended (the interviewer closed it, or Terminar): run every test on the final code and keep the attempt.
   useEffect(() => {
@@ -352,7 +414,8 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
     const r = rt.current;
     const transcript = voice.transcript.map((l) => ({ role: l.role, text: l.text }));
     const finalCode = codeRef.current;
-    void runInWorker({ code: finalCode, tests: `${problem.example_tests}\n${problem.tests}`, exportNames: problem.exports }).then((result) => {
+    const finalLanguage = languageRef.current;
+    void runInLanguage(finalLanguage, { code: finalCode, tests: allTestsOf(problem), exportNames: problem.exports }).then((result) => {
       const { passed, total } = summarizeRun(result);
       const started = r.startedAt ?? Date.now();
       const facts: CodingSessionFacts = {
@@ -369,6 +432,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         },
         hintsGiven: r.hintsGiven,
         checkIns: r.checkIns,
+        language: LANGUAGE_LABEL[finalLanguage],
       };
       const attempt: MockAttempt = {
         id: `${problem.id}-${started}`,
@@ -424,6 +488,11 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
             te da una por vez, de la más chica a la más grande. Te avisa el tiempo. Durante la llamada no hay feedback; al terminar,
             tu código corre contra todos los tests y aparece el informe escrito con la vara de senior.
           </p>
+          <p className="text-sm leading-relaxed text-j-text-secondary">
+            El editor es como el de CoderPad: elegís el lenguaje, <strong>Correr</strong> ejecuta tu archivo y abajo sale la consola
+            (tus <code>console.log</code> o <code>print</code>). El autocompletado arranca apagado, como en la entrevista real. El
+            entrevistador ve el lenguaje, tu código y lo que imprime cada corrida.
+          </p>
         </div>
 
         <fieldset className="space-y-2">
@@ -474,6 +543,11 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
               </button>
             ))}
           </div>
+        </fieldset>
+
+        <fieldset className="space-y-2">
+          <legend className="font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Lenguaje</legend>
+          <LanguageChoice language={language} offered={offered} onPick={pickLanguage} pythonStatus={pythonStatus} />
         </fieldset>
 
         <div className="flex items-center gap-3">
@@ -560,9 +634,11 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
             No hubo respuestas tuyas en la transcripción, así que no hay informe. Probá de nuevo hablando en voz alta mientras codeás.
           </p>
         )}
-        {output && <RunOutput result={output.result} running={false} label={output.label} />}
+        {output && <RunOutput result={output.result} running={false} label={output.label} language={language} />}
         <details className="border border-j-border px-3 py-2">
-          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Tu código final</summary>
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
+            Tu código final{current.facts.language ? ` · ${current.facts.language}` : ''}
+          </summary>
           <pre className="mt-2 overflow-x-auto bg-j-bg-alt p-3 font-mono text-xs leading-relaxed text-j-text">{current.finalCode}</pre>
         </details>
         <details className="border border-j-border px-3 py-2">
@@ -634,7 +710,23 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
           </aside>
         )}
         <div className="space-y-3">
-          <CodeEditor value={code} onChange={changeCode} onRun={() => void run('run')} height="58vh" ariaLabel="Tu solución" />
+          <PadToolbar
+            language={language}
+            offered={offered}
+            onPick={pickLanguage}
+            autocomplete={pad.autocomplete}
+            onAutocomplete={(on) => changePad({ autocomplete: on })}
+            pythonStatus={pythonStatus}
+          />
+          <CodeEditor
+            value={code}
+            onChange={changeCode}
+            onRun={() => void run('run')}
+            height="58vh"
+            ariaLabel={`Tu solución en ${LANGUAGE_LABEL[language]}`}
+            language={language}
+            autocomplete={pad.autocomplete}
+          />
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -654,7 +746,7 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
             </button>
             <span className="text-xs text-j-text-tertiary">Los casos ocultos corren al final, como en la evaluación del ingeniero.</span>
           </div>
-          <RunOutput result={output?.result ?? null} running={running} label={output?.label} />
+          <RunOutput result={output?.result ?? null} running={running} label={output?.label} language={language} />
           {voice.transcript.length > 0 && (
             <details className="border border-j-border px-3 py-2">
               <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">Transcripción en vivo</summary>
@@ -746,6 +838,103 @@ function PhaseGuide({ phaseIndex, minutes }: { phaseIndex: number; minutes: numb
             ))}
           </div>
         </details>
+      )}
+    </div>
+  );
+}
+
+/** The Python interpreter's state while Python is the pad's language: loading it starts as soon as it is picked. */
+function usePythonStatus(active: boolean): PythonStatus {
+  const [status, setStatus] = useState<PythonStatus>('idle');
+  useEffect(() => {
+    if (!active) return;
+    const runner = pythonRunner();
+    setStatus(runner.status);
+    const off = runner.subscribe(setStatus);
+    void runner.warm();
+    return off;
+  }, [active]);
+  // Leaving the mock frees the interpreter (tens of MB).
+  useEffect(() => () => pythonRunner().dispose(), []);
+  return active ? status : 'idle';
+}
+
+const PYTHON_STATUS_LABEL: Record<PythonStatus, string> = {
+  idle: '',
+  loading: 'Cargando Python…',
+  ready: 'Python listo',
+  error: 'Python no cargó: revisá la conexión y corré de nuevo',
+};
+
+interface LanguageChoiceProps {
+  language: CodeLanguage;
+  offered: readonly CodeLanguage[];
+  onPick: (l: CodeLanguage) => void;
+  pythonStatus: PythonStatus;
+}
+
+/** The language picker before the mock: one button per language, the ones this problem has. */
+function LanguageChoice({ language, offered, onPick, pythonStatus }: LanguageChoiceProps) {
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-1" role="radiogroup" aria-label="Lenguaje">
+        {CODE_LANGUAGES.map((l) => (
+          <button
+            key={l}
+            type="button"
+            role="radio"
+            aria-checked={l === language}
+            disabled={!offered.includes(l)}
+            title={offered.includes(l) ? undefined : 'Este problema es solo TypeScript y JavaScript'}
+            onClick={() => onPick(l)}
+            className={cn(
+              'min-h-[44px] flex-1 border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors disabled:opacity-40',
+              l === language ? 'border-j-accent bg-j-accent/10 text-j-text' : 'border-j-border-input text-j-text-secondary hover:border-j-accent',
+            )}
+          >
+            {LANGUAGE_LABEL[l]}
+          </button>
+        ))}
+      </div>
+      {PYTHON_STATUS_LABEL[pythonStatus] && <p className="text-xs text-j-text-tertiary">{PYTHON_STATUS_LABEL[pythonStatus]}</p>}
+    </div>
+  );
+}
+
+/** The bar over the editor, as on CoderPad: the language and the autocomplete switch. */
+function PadToolbar({
+  language,
+  offered,
+  onPick,
+  autocomplete,
+  onAutocomplete,
+  pythonStatus,
+}: LanguageChoiceProps & { autocomplete: boolean; onAutocomplete: (on: boolean) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border border-j-border bg-j-bg-alt px-2 py-1.5" data-testid="pad-toolbar">
+      <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
+        Lenguaje
+        <select
+          value={language}
+          onChange={(e) => onPick(e.target.value as CodeLanguage)}
+          className="min-h-[32px] border border-j-border-input bg-j-bg px-2 font-mono text-xs normal-case tracking-normal text-j-text"
+        >
+          {CODE_LANGUAGES.map((l) => (
+            <option key={l} value={l} disabled={!offered.includes(l)}>
+              {LANGUAGE_LABEL[l]}
+              {offered.includes(l) ? '' : ' (no en este problema)'}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex min-h-[32px] cursor-pointer items-center gap-2 font-mono text-[10px] uppercase tracking-[0.15em] text-j-text-tertiary">
+        <input type="checkbox" checked={autocomplete} onChange={(e) => onAutocomplete(e.target.checked)} className="accent-[var(--j-accent)]" />
+        Autocompletar
+      </label>
+      {PYTHON_STATUS_LABEL[pythonStatus] && (
+        <span className="text-xs text-j-text-tertiary" aria-live="polite">
+          {PYTHON_STATUS_LABEL[pythonStatus]}
+        </span>
       )}
     </div>
   );

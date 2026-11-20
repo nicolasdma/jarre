@@ -25,11 +25,23 @@ export function transpileTs(code: string): { js: string } | { error: TranspileEr
   }
 }
 
+/** Every test file transpiled, or the first error. Undefined when there are no tests. */
+export function transpileTests(tests: string | string[] | undefined): { js: string[] } | { error: TranspileError } | undefined {
+  if (!tests) return undefined;
+  const js: string[] = [];
+  for (const file of typeof tests === 'string' ? [tests] : tests) {
+    const t = transpileTs(file);
+    if ('error' in t) return t;
+    js.push(t.js);
+  }
+  return { js };
+}
+
 export interface RunRequest {
   /** The candidate's TypeScript file. */
   code: string;
-  /** TypeScript tests importing './solution'; absent: just run the file. */
-  tests?: string;
+  /** TypeScript tests importing './solution', one file or several (each in its own scope); absent: just run the file. */
+  tests?: string | string[];
   exportNames?: string[];
   testTimeoutMs?: number;
 }
@@ -41,14 +53,11 @@ export async function runCode(req: RunRequest): Promise<RunResult> {
   if ('error' in solution) {
     return { ok: false, compileError: { file: 'solution', ...solution.error }, logs: [], tests: [], ms: Date.now() - started };
   }
-  let testsJs: string | undefined;
-  if (req.tests) {
-    const tests = transpileTs(req.tests);
-    if ('error' in tests) {
-      return { ok: false, compileError: { file: 'tests', ...tests.error }, logs: [], tests: [], ms: Date.now() - started };
-    }
-    testsJs = tests.js;
+  const tests = transpileTests(req.tests);
+  if (tests && 'error' in tests) {
+    return { ok: false, compileError: { file: 'tests', ...tests.error }, logs: [], tests: [], ms: Date.now() - started };
   }
+  const testsJs = tests?.js;
   const input: HarnessInput = {
     solutionJs: solution.js,
     testsJs,

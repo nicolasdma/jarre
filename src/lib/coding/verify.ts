@@ -11,7 +11,7 @@
  * forever), the unit tests pass `runCode` directly.
  */
 
-import type { CodingConfig, CodingProblem } from './format';
+import { allTestsOf, type CodingConfig, type CodingProblem } from './format';
 import type { RunResult } from './harness';
 import type { RunRequest } from './transpile';
 
@@ -36,7 +36,7 @@ function describeFailure(r: RunResult): string {
 export async function verifyProblem(problem: CodingProblem, run: Runner): Promise<ProblemReport> {
   const issues: string[] = [];
   const exportNames = problem.exports;
-  const allTests = `${problem.example_tests}\n${problem.tests}`;
+  const allTests = allTestsOf(problem);
 
   const examples = await run({ code: problem.solution.code, tests: problem.example_tests, exportNames });
   if (!examples.ok || total(examples) === 0 || passed(examples) !== total(examples)) {
@@ -55,6 +55,8 @@ export async function verifyProblem(problem: CodingProblem, run: Runner): Promis
     const r = await run({ code: s.code, tests: allTests, exportNames });
     if (r.compileError) {
       issues.push(`${s.label} does not compile: ${r.compileError.message}`);
+    } else if (r.runtimeError?.startsWith('In the tests:')) {
+      issues.push(`the tests do not load: ${r.runtimeError}`);
     } else if (r.ok && total(r) > 0 && passed(r) === total(r)) {
       issues.push(`${s.label} already passes every test: the tests check nothing it lacks`);
     }

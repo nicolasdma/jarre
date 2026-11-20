@@ -2,8 +2,10 @@
 
 /**
  * The code editor of the coding exercises and the mock: CodeMirror 6 with
- * TypeScript highlighting, bracket matching, auto-indent, Tab to indent and
- * the language's own word completion. No AI completion, as in the interview.
+ * TypeScript, JavaScript or Python highlighting, bracket matching,
+ * auto-indent, Tab to indent and, when `autocomplete` is on, the language's
+ * own word completion (never AI completion, as in the interview). The mock
+ * starts with it off, like CoderPad and most interview pads.
  * Cmd/Ctrl+Enter runs. Uncontrolled inside, synced when `value` is replaced
  * from outside (reset, a restored draft).
  *
@@ -13,12 +15,15 @@
 
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState, Prec } from '@codemirror/state';
+import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { HighlightStyle, indentUnit, syntaxHighlighting } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { autocompletion } from '@codemirror/autocomplete';
+import type { CodeLanguage } from '@/lib/coding/languages';
 
 export interface CodeEditorProps {
   value: string;
@@ -29,7 +34,20 @@ export interface CodeEditorProps {
   height?: string;
   ariaLabel?: string;
   readOnly?: boolean;
+  /** Highlighting and indentation. Default TypeScript. */
+  language?: CodeLanguage;
+  /** Word completion as you type and on Ctrl+Space. Default on; the mock turns it off. */
+  autocomplete?: boolean;
 }
+
+/** Highlighting and indent unit per language: Python indents with four spaces (PEP 8), TS and JS with two. */
+function languageExtension(language: CodeLanguage): Extension {
+  if (language === 'python') return [python(), indentUnit.of('    '), EditorState.tabSize.of(4)];
+  return [javascript({ typescript: language === 'typescript' }), indentUnit.of('  '), EditorState.tabSize.of(2)];
+}
+
+/** Off: no completion source at all, so nothing pops up and Ctrl+Space finds nothing. */
+const completionExtension = (on: boolean): Extension => (on ? [] : autocompletion({ override: [] }));
 
 const theme = EditorView.theme({
   '&': {
@@ -70,9 +88,20 @@ const highlight = HighlightStyle.define([
   { tag: [tags.variableName, tags.propertyName, tags.definition(tags.variableName)], color: 'var(--j-text)' },
 ]);
 
-export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaLabel = 'Editor de código', readOnly = false }: CodeEditorProps) {
+export function CodeEditorImpl({
+  value,
+  onChange,
+  onRun,
+  height = '420px',
+  ariaLabel = 'Editor de código',
+  readOnly = false,
+  language = 'typescript',
+  autocomplete = true,
+}: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
+  const languageSlot = useRef(new Compartment());
+  const completionSlot = useRef(new Compartment());
   const onChangeRef = useRef(onChange);
   const onRunRef = useRef(onRun);
   onChangeRef.current = onChange;
@@ -98,9 +127,8 @@ export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaL
           ),
           basicSetup,
           keymap.of([indentWithTab]),
-          javascript({ typescript: true }),
-          indentUnit.of('  '),
-          EditorState.tabSize.of(2),
+          languageSlot.current.of(languageExtension(language)),
+          completionSlot.current.of(completionExtension(autocomplete)),
           EditorState.readOnly.of(readOnly),
           theme,
           Prec.high(syntaxHighlighting(highlight)),
@@ -120,6 +148,14 @@ export function CodeEditorImpl({ value, onChange, onRun, height = '420px', ariaL
     // The editor is created once; `value` changes are synced below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [height, readOnly]);
+
+  useEffect(() => {
+    view.current?.dispatch({ effects: languageSlot.current.reconfigure(languageExtension(language)) });
+  }, [language]);
+
+  useEffect(() => {
+    view.current?.dispatch({ effects: completionSlot.current.reconfigure(completionExtension(autocomplete)) });
+  }, [autocomplete]);
 
   useEffect(() => {
     const v = view.current;

@@ -35,15 +35,30 @@ export interface RunResult {
 export interface HarnessInput {
   /** The candidate's file, CommonJS. */
   solutionJs: string;
-  /** The tests, CommonJS, importing './solution'. Absent: only run the file. */
-  testsJs?: string;
+  /**
+   * The tests, CommonJS, importing './solution'. Several files (the examples
+   * and the hidden cases) run each in its own scope, so two that both declare
+   * a helper do not collide. Absent: only run the file.
+   */
+  testsJs?: string | string[];
   /** Names the tests import: copied onto `exports` when the file forgot `export`. */
   exportNames?: string[];
   /** Per-test limit for async tests, ms. */
   testTimeoutMs?: number;
+  /**
+   * Exports the candidate's module already has before `solutionJs` runs: how a
+   * file in another language (Python, src/lib/coding/python-run.ts) hands its
+   * functions and classes to the TypeScript tests. `solutionJs` is then empty.
+   */
+  solutionExports?: Record<string, unknown>;
+  /**
+   * The output array to append to, shared with a host that also writes to it
+   * (Python's print), so everything lands in the order it happened.
+   */
+  logs?: string[];
 }
 
-const MAX_LOG_LINES = 200;
+export const MAX_LOG_LINES = 200;
 const MAX_VALUE_CHARS = 240;
 
 // ---------------------------------------------------------------------------
@@ -248,7 +263,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
  */
 export async function runHarness(input: HarnessInput): Promise<RunResult> {
   const started = Date.now();
-  const logs: string[] = [];
+  const logs: string[] = input.logs ?? [];
   const push = (prefix: string) => (...args: unknown[]) => {
     if (logs.length < MAX_LOG_LINES) logs.push(`${prefix}${formatLogArgs(args)}`);
     else if (logs.length === MAX_LOG_LINES) logs.push('… (more output cut)');
@@ -269,7 +284,7 @@ export async function runHarness(input: HarnessInput): Promise<RunResult> {
   };
   const describe = (_name: string, fn: () => void) => fn();
 
-  const solutionExports: Record<string, unknown> = {};
+  const solutionExports: Record<string, unknown> = { ...input.solutionExports };
   const evaluate = (js: string, exportsObj: Record<string, unknown>) => {
     const mod = { exports: exportsObj };
     const requireFn = (path: string) => {
@@ -293,10 +308,12 @@ export async function runHarness(input: HarnessInput): Promise<RunResult> {
 
   if (input.testsJs) {
     ownPhase = false;
-    try {
-      evaluate(input.testsJs, {});
-    } catch (e) {
-      return { ok: false, runtimeError: `In the tests: ${errorLine(e)}`, logs, tests: [], ms: Date.now() - started };
+    for (const file of typeof input.testsJs === 'string' ? [input.testsJs] : input.testsJs) {
+      try {
+        evaluate(file, {});
+      } catch (e) {
+        return { ok: false, runtimeError: `In the tests: ${errorLine(e)}`, logs, tests: [], ms: Date.now() - started };
+      }
     }
   }
 
