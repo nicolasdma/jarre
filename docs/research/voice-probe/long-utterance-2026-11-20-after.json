@@ -1,0 +1,38 @@
+{
+  "model": "gemini-3.8-live",
+  "turnTaking": "thinking-aloud",
+  "results": [
+    {
+      "arm": "continuous",
+      "speechSeconds": 40.3,
+      "firstFragmentAt": 20.9,
+      "lastFragmentAt": 43.4,
+      "fragments": 2,
+      "fragmentTimes": [
+        20.9,
+        43.4
+      ],
+      "firstAudioAt": 44.7,
+      "watchdogUnheardAt": null,
+      "heard": "Okay, so let me think about this out loud before I write anything. The brute force would be to check every pair of days, which is quadratic. And with 100,000 days, that is too slow. What I actually need for each day is the next day that is warmer. So this looks like a next greater element problem. I can keep a stack of indices whose answer I do not know yet, and the temperatures at those indices g",
+      "answered": "That is a solid approach and will be efficient enough.",
+      "closed": ""
+    },
+    {
+      "arm": "paused",
+      "speechSeconds": 47.9,
+      "firstFragmentAt": 23.9,
+      "lastFragmentAt": 51,
+      "fragments": 2,
+      "fragmentTimes": [
+        23.9,
+        51
+      ],
+      "firstAudioAt": 51.6,
+      "watchdogUnheardAt": null,
+      "heard": "Okay, so let me think about this out loud before I write anything. The brute force would be to check every pair of days, which is quadratic, and with 100,000 days that is too slow. What I actually need, for each day, is the next day that is warmer, so this looks like a next greater element problem. I can keep a stack of indices whose answer I do not know yet, and the temperatures at those indices ",
+      "answered": "That's a very solid approach, please go ahead and implement your stack solution.",
+      "closed": ""
+    }
+  ]
+}

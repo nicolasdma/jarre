@@ -1,0 +1,113 @@
+{
+  "model": "gemini-3.8-live",
+  "turnTaking": "thinking-aloud",
+  "result": {
+    "arm": "session",
+    "minutes": 11.9,
+    "quietMs": 10500,
+    "utterances": [
+      {
+        "t": 6.4,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 687,
+        "answered": true
+      },
+      {
+        "t": 64.6,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 105.8,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 690,
+        "answered": true
+      },
+      {
+        "t": 163.9,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 207.5,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 688,
+        "answered": true
+      },
+      {
+        "t": 263.6,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 308.5,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 690,
+        "answered": true
+      },
+      {
+        "t": 366,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 410,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 685,
+        "answered": true
+      },
+      {
+        "t": 469.1,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 512.2,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 689,
+        "answered": true
+      },
+      {
+        "t": 568.2,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      },
+      {
+        "t": 612.4,
+        "kind": "thinking-aloud",
+        "seconds": 47,
+        "heardChars": 689,
+        "answered": true
+      },
+      {
+        "t": 671,
+        "kind": "question",
+        "seconds": 5,
+        "heardChars": 87,
+        "answered": true
+      }
+    ],
+    "unheardVerdicts": 0,
+    "healthChanges": [],
+    "fragments": 22,
+    "closed": ""
+  }
+}

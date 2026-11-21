@@ -17,6 +17,7 @@ import { appScroller } from '@/lib/learn/app-scroller';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUnifiedVoiceSession } from '@/components/voice/use-unified-voice-session';
+import { micStatusLine } from '@/lib/voice/mic-watch';
 import { allTestsOf, findProblem } from '@/lib/coding/format';
 import { buildCodingMockSession } from '@/lib/coding/mock-session';
 import {
@@ -71,7 +72,7 @@ const STATE_LABEL: Record<string, string> = {
 /** The microphone is not doing its job: said on screen, never left for the interviewer to read as silence. */
 const MIC_WARNING = {
   'no-signal': 'No te escucho: el micrófono no entrega audio. Revisá que no esté silenciado o tomado por otra app.',
-  unheard: 'No te escucho: tu voz llega al micrófono pero el entrevistador no la recibe. Reconectando el audio: repetí lo último cuando vuelva.',
+  unheard: 'No te escucho: hablaste, esperaste, y al entrevistador no le llegó nada. Reconectando el audio: repetí lo último cuando vuelva.',
 } as const;
 
 interface Runtime {
@@ -779,6 +780,11 @@ function CodingMockInner({ resourceTitle, onPracticeDrill }: CodingMockProps) {
         {stage === 'live' && voice.state === 'active' && voice.micHealth !== 'ok' && (
           <span role="alert" className="border border-j-error px-2 py-1 text-sm font-semibold text-j-error" data-testid="coding-mock-mic-warning">
             {MIC_WARNING[voice.micHealth]}
+          </span>
+        )}
+        {stage === 'live' && voice.state === 'active' && (
+          <span className="font-mono text-[10px] text-j-text-tertiary" data-testid="coding-mock-mic-status">
+            {micStatusLine(voice.micStatus())}
           </span>
         )}
         <span className="ml-auto" />
