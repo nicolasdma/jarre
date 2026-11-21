@@ -11,8 +11,10 @@ import {
 import { buildLearningSession, TUTOR_PROMPT_VERSION } from '@/lib/llm/voice-tutor-session';
 import { DEFAULT_LIVE_VOICE, resolveVoiceLiveModel, TURN_TAKING, type LiveVoice, type TurnTaking } from '@/lib/voice/live-models';
 import { formatMemoryForPrompt, type LearnerConceptMemory } from '@/lib/learner-memory';
-import { MicActivity, type MicHealth } from '@/lib/voice/mic-activity';
-import { TurnDetector } from '@/lib/voice/turn-detector';
+import { addMicFacts, MicActivity, type MicFacts, type MicHealth } from '@/lib/voice/mic-activity';
+import { TurnDetector, TURN_END_TYPING_MS } from '@/lib/voice/turn-detector';
+import { canReplaceDeafSession, MAX_MIC_RESTARTS, watchMicCapture } from '@/lib/voice/mic-watch';
+import { clearDiagCheckpoint, pruneDiagCheckpoints, saveDiagCheckpoint, takeDiagCheckpoint } from '@/lib/voice/diag-checkpoint';
 import { StreamingWsola } from '@/lib/voice/wsola';
 import { createLogger } from '@/lib/logger';
 import { VOICE_COMPRESS_THRESHOLD, VOICE_FALLBACK_RECENT_TURNS } from '@/lib/constants';
@@ -48,6 +50,12 @@ async function finishSession(
     if (!drained) log.error(`[Disconnect] ${outbox.pending} transcript event(s) not stored sid=${sessionId}`);
   }
   await postSessionEnd(sessionId, writeToken, diag).catch(() => {});
+  // The session carried its own diagnostics: the copy kept for a page that dies is not needed.
+  try {
+    clearDiagCheckpoint(window.localStorage, sessionId);
+  } catch {
+    // Storage blocked.
+  }
   log.info('[Disconnect] /api/voice/session/end fired');
 }
 
@@ -79,10 +87,16 @@ function resendLeftovers(liveSessionId: string | null): void {
     void resendStoredOutboxes(
       window.localStorage,
       postTranscriptBatch,
-      (target) => postSessionEnd(target.sessionId, target.writeToken, { endReason: 'resent' }),
+      (target) => {
+        // What that page wrote down before it went away (diag-checkpoint.ts).
+        const kept = takeDiagCheckpoint(window.localStorage, target.sessionId);
+        const endReason = kept && typeof kept.endReason === 'string' ? `resent (${kept.endReason})` : 'resent';
+        return postSessionEnd(target.sessionId, target.writeToken, { ...(kept ?? {}), endReason });
+      },
       { skipSessionId: liveSessionId },
     ).then((ids) => {
       if (ids.length) log.info(`[Outbox] Resent ${ids.length} session(s) left by an earlier page`);
+      pruneDiagCheckpoints(window.localStorage);
     }).catch(() => {});
   } catch {
     // Storage blocked.
@@ -155,6 +169,24 @@ interface UseVoiceSessionParams {
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
+/** The capture and the socket right now, for a status line and for whoever debugs a session that "lost the microphone". */
+export interface MicStatus {
+  /** The microphone track: `none` before the session opens it. */
+  track: 'none' | 'live' | 'muted' | 'ended';
+  /** The capture AudioContext's state (`running` when audio flows). */
+  context: string;
+  socket: ConnectionState;
+  /** Sockets the server closed during this session, and the code of the last one. */
+  socketDrops: number;
+  lastCloseCode: number | null;
+  /** Sessions replaced because they did not hear. */
+  deafRestarts: number;
+  /** Times the microphone was opened again. */
+  micRestarts: number;
+  /** Milliseconds since the model last transcribed the learner, or null if it never did. */
+  heardAgoMs: number | null;
+}
+
 /** GET /api/voice/session/context. */
 interface VoiceContext {
   summary?: string;
@@ -185,6 +217,8 @@ interface VoiceSession {
   micHealth: MicHealth;
   /** Last time the mic carried the learner's voice (Date.now clock), or null: known at once, unlike the transcript. */
   micLastVoiceAt: () => number | null;
+  /** The capture and the socket right now (read on a timer: it is not React state). */
+  micStatus: () => MicStatus;
   /** The learner pressed a key in the editor: with `adaptive` turn taking, a pause now is thinking, not the end of the turn. */
   noteTyping: () => void;
   /** Send tool responses back to Gemini */
@@ -223,6 +257,8 @@ const MAX_TEMPO = 1.25;
 const SLOWED_TAIL_MIN_MS = 150;
 /** How many times one session replaces a socket that does not hear before it only says so on screen. */
 const MAX_DEAF_RECOVERIES = 3;
+/** How often a live session writes its diagnostics where the next page load can find them. */
+const DIAG_CHECKPOINT_MS = 15_000;
 // What ends a session on its own: src/lib/voice/session-end.ts.
 const SESSION_END_WINDOW_CHARS = 320;
 
@@ -267,6 +303,14 @@ export function useVoiceSession({
   /** Replaces a session that stopped hearing (set in an effect below; startMic calls it through the ref). */
   const recoverDeafRef = useRef<(client: GeminiLiveClientInstance, mic: MicActivity) => void>(() => {});
   const deafRecoveryRef = useRef({ busy: false, count: 0 });
+  /** Opens the microphone again when its capture is gone (set in an effect below). */
+  const restartMicRef = useRef<(client: GeminiLiveClientInstance, why: string) => void>(() => {});
+  const micRestartRef = useRef({ busy: false, count: 0 });
+  const unwatchMicRef = useRef<(() => void) | null>(null);
+  /** What the captures before this one measured, when the microphone was opened again. */
+  const micFactsBeforeRef = useRef<MicFacts | null>(null);
+  const socketDropsRef = useRef({ count: 0, lastCode: null as number | null });
+  const lastHeardAtRef = useRef<number | null>(null);
   /** Set in `adaptive` turn taking: the page marks the learner's turns. */
   const turnDetectorRef = useRef<TurnDetector | null>(null);
   /** The last key pressed in an editor the learner types in while talking (noteTyping). */
@@ -501,7 +545,7 @@ export function useVoiceSession({
 
   // ---- Mic: capture PCM 16kHz via AudioWorklet ----
 
-  const startMic = useCallback(async (client: GeminiLiveClientInstance) => {
+  const startMic = useCallback(async (client: GeminiLiveClientInstance, fresh = true) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         sampleRate: 16000,
@@ -516,9 +560,34 @@ export function useVoiceSession({
 
     const audioContext = new AudioContext({ sampleRate: 16000 });
     audioContextRef.current = audioContext;
-    const mic = new MicActivity();
+    // The quiet that proves a session deaf is counted past its own end-of-speech window.
+    const turnConfig = TURN_TAKING[paramsRef.current.turnTaking].automaticActivityDetection;
+    const mic = new MicActivity({ endOfSpeechMs: turnConfig?.disabled ? TURN_END_TYPING_MS : turnConfig?.silenceDurationMs });
+    // A microphone opened again mid-session: what the capture before it measured still counts.
+    const earlier: MicFacts | null = fresh ? null : addMicFacts(micFactsBeforeRef.current, micActivityRef.current.facts());
+    micFactsBeforeRef.current = earlier;
     micActivityRef.current = mic;
-    deafRecoveryRef.current = { busy: false, count: 0 };
+    if (fresh) {
+      deafRecoveryRef.current = { busy: false, count: 0 };
+      micRestartRef.current = { busy: false, count: 0 };
+    }
+    const track = stream.getAudioTracks()[0];
+    if (track) {
+      const settings = track.getSettings();
+      Object.assign(timelineRef.current.facts, {
+        micLabel: track.label.slice(0, 60),
+        micRate: settings.sampleRate ?? 0,
+        micEcho: settings.echoCancellation === true,
+      });
+      unwatchMicRef.current?.();
+      unwatchMicRef.current = watchMicCapture(track, audioContext, {
+        onEvent: (kind, data) => {
+          timelineRef.current.mark(kind, data);
+          log.info(`[Mic] ${kind} ${JSON.stringify(data)}`);
+        },
+        onLost: () => restartMicRef.current(client, 'track_ended'),
+      });
+    }
     const detector = paramsRef.current.turnTaking === 'adaptive' ? new TurnDetector() : null;
     turnDetectorRef.current = detector;
     mic.start(Date.now());
@@ -561,12 +630,19 @@ export function useVoiceSession({
       pcmBuffer.push(new Int16Array(event.data));
     };
 
+    let lastHealth: MicHealth = 'ok';
     const reportHealth = () => {
       const health = mic.health(Date.now());
       setMicHealth((prev) => (prev === health ? prev : health));
-      Object.assign(timelineRef.current.facts, mic.facts());
+      Object.assign(timelineRef.current.facts, addMicFacts(earlier, mic.facts()));
       // A session that stopped hearing is replaced, not waited on.
       if (health === 'unheard') recoverDeafRef.current(client, mic);
+      // A capture that delivers nothing (the device went away, the system muted it) is opened again.
+      if (health === 'no-signal' && lastHealth !== 'no-signal') {
+        timelineRef.current.mark('mic_no_signal', { track: track?.readyState ?? 'none', muted: track?.muted ?? false, context: audioContext.state });
+        restartMicRef.current(client, 'no_signal');
+      }
+      lastHealth = health;
     };
 
     sendTimer = setInterval(() => {
@@ -589,7 +665,9 @@ export function useVoiceSession({
       const playback = playbackContextRef.current;
       const echo = playback !== null && nextPlayTimeRef.current > playback.currentTime;
       const now = Date.now();
-      const voiced = mic.feed(merged, audioContext.sampleRate, now, echo);
+      // While the socket is being replaced nothing reaches the model: no proof of a deaf session.
+      const sent = client.getState() === 'connected';
+      const voiced = mic.feed(merged, audioContext.sampleRate, now, { echo, sent, lastKeyAt: lastKeyAtRef.current });
       if (!detector) {
         client.sendAudio(arrayBufferToBase64(merged.buffer));
         timelineRef.current.counters.audioChunksSent += 1;
@@ -621,6 +699,8 @@ export function useVoiceSession({
   }, []);
 
   const stopMic = useCallback(() => {
+    unwatchMicRef.current?.();
+    unwatchMicRef.current = null;
     if (workletNodeRef.current) {
       const timer = (workletNodeRef.current as unknown as Record<string, unknown>).__sendTimer;
       if (timer) clearInterval(timer as ReturnType<typeof setInterval>);
@@ -706,6 +786,7 @@ export function useVoiceSession({
     if (role === 'user') {
       timelineRef.current.userFragment();
       micActivityRef.current.heard();
+      lastHeardAtRef.current = Date.now();
       // The learner talks over a slowed tail: for the server that turn is over,
       // so it sends no `interrupted`. The page stops the voice, as an interruption does.
       if (tailTimerRef.current) {
@@ -857,6 +938,8 @@ export function useVoiceSession({
     const timeline = new SessionTimeline();
     timeline.mark('mic_click');
     timelineRef.current = timeline;
+    socketDropsRef.current = { count: 0, lastCode: null };
+    lastHeardAtRef.current = null;
     sessionWriteTokenRef.current = null;
     setTranscript([]);
     utteranceRef.current = null;
@@ -998,6 +1081,18 @@ export function useVoiceSession({
         opener = session.opener;
       }
 
+      /** A new socket took over: the microphone, untouched, now feeds it. */
+      const resumed = (how: string) => {
+        onReconnectedRef.current?.();
+        // A turn left open on the old socket does not exist on the new one.
+        turnDetectorRef.current?.reset();
+        // Nor does what the learner said into it: not hearing that is not deafness.
+        micActivityRef.current.heard();
+        timeline.mark('reconnected', { how });
+        logTransition('listening', how);
+        setTutorState('listening');
+      };
+
       // 3. Create Gemini Live client
       const client = createGeminiLiveClient({
         onAudioResponse: (audioChunk) => {
@@ -1050,6 +1145,8 @@ export function useVoiceSession({
           setTutorState('listening');
         },
         onInputTranscriptionComplete: () => {
+          // An input transcription came, even an empty one: the session takes the microphone.
+          micActivityRef.current.heard();
           setTutorState((prev) => {
             if (prev === 'listening') {
               logTransition('thinking', 'input_transcription');
@@ -1077,7 +1174,10 @@ export function useVoiceSession({
           paramsRef.current.onToolCall?.(functionCalls);
         },
         onUsage: (usage) => timeline.addUsage(usage),
-        onSocketClose: (code) => timeline.mark('socket_close', { code }),
+        onSocketClose: (code, reason) => {
+          socketDropsRef.current = { count: socketDropsRef.current.count + 1, lastCode: code };
+          timeline.mark('socket_close', { code, reason: reason.slice(0, 80) });
+        },
         onResumptionUpdate: (handle, resumable) => {
           // A handle sent mid-generation cannot resume the session: keep the last resumable one.
           if (!resumable) return;
@@ -1124,12 +1224,7 @@ export function useVoiceSession({
               await c.reconnect(freshToken, handle);
               c.resetRetryCount();
               log.info('[Reconnect] Proactive GoAway succeeded (session resumed)');
-              onReconnectedRef.current?.();
-              // A turn left open on the old socket does not exist on the new one.
-              turnDetectorRef.current?.reset();
-              timeline.mark('reconnected');
-              logTransition('listening', 'goaway_reconnect');
-              setTutorState('listening');
+              resumed('goaway_reconnect');
             } catch (err) {
               log.error('[Reconnect] Proactive GoAway failed, onclose will handle:', err);
               // Don't set error — let onclose trigger the normal 3-layer flow
@@ -1143,6 +1238,7 @@ export function useVoiceSession({
           }
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
           log.info(`[Reconnect] Scheduling in ${delay}ms (attempt ${attempt + 1})`);
+          timeline.mark('reconnect_wait', { attempt: attempt + 1 });
 
           // Clear stale playback
           stopPlayback();
@@ -1175,12 +1271,7 @@ export function useVoiceSession({
                   await c.reconnect(freshToken, handle);
                   c.resetRetryCount();
                   log.info('[Reconnect] Layer 1 succeeded (session resumed with handle)');
-                  onReconnectedRef.current?.();
-                  // A turn left open on the old socket does not exist on the new one.
-                  turnDetectorRef.current?.reset();
-                  timeline.mark('reconnected');
-                  logTransition('listening', 'layer1_reconnect');
-                  setTutorState('listening');
+                  resumed('layer1_reconnect');
                   return;
                 } catch (layer1Err) {
                   log.info('[Reconnect] Layer 1 failed (handle expired?), falling back to Layer 2:', layer1Err);
@@ -1201,12 +1292,7 @@ export function useVoiceSession({
                     c.sendText(fallbackContext);
                   }
                   log.info('[Reconnect] Layer 2 succeeded (context reconstructed from buffer)');
-                  onReconnectedRef.current?.();
-                  // A turn left open on the old socket does not exist on the new one.
-                  turnDetectorRef.current?.reset();
-                  timeline.mark('reconnected');
-                  logTransition('listening', 'layer2_reconnect');
-                  setTutorState('listening');
+                  resumed('layer2_reconnect');
                   return;
                 }
               }
@@ -1219,12 +1305,7 @@ export function useVoiceSession({
                 c.sendText(fallbackContext);
               }
               log.info('[Reconnect] Layer 2 succeeded (no handle, context from buffer)');
-              onReconnectedRef.current?.();
-              // A turn left open on the old socket does not exist on the new one.
-              turnDetectorRef.current?.reset();
-              timeline.mark('reconnected');
-              logTransition('listening', 'layer2_reconnect');
-              setTutorState('listening');
+              resumed('layer2_reconnect');
             } catch (err) {
               // Layer 3: All reconnect attempts exhausted — show honest error
               const { language: currentLang } = paramsRef.current;
@@ -1232,6 +1313,8 @@ export function useVoiceSession({
                 ? 'La sesión se interrumpió. Tu progreso está guardado.'
                 : 'The session was interrupted. Your progress is saved.';
               log.error('[Reconnect] All layers exhausted:', err);
+              timeline.mark('reconnect_failed');
+              timeline.counters.lastError = `reconnect: ${err instanceof Error ? err.message : String(err)}`.slice(0, 200);
               logTransition('idle', 'reconnect_exhausted');
               setError(msg);
               setConnectionState('error');
@@ -1371,8 +1454,15 @@ export function useVoiceSession({
   // far, and one line asking the tutor to say it lost them and to ask again.
   useEffect(() => {
     recoverDeafRef.current = (client, mic) => {
-      if (deafRecoveryRef.current.busy || deafRecoveryRef.current.count >= MAX_DEAF_RECOVERIES) return;
-      if (clientRef.current !== client || sessionEndDetectedRef.current || !sessionIdRef.current) return;
+      const allowed = canReplaceDeafSession({
+        busy: deafRecoveryRef.current.busy,
+        count: deafRecoveryRef.current.count,
+        max: MAX_DEAF_RECOVERIES,
+        connected: client.getState() === 'connected',
+        current: clientRef.current === client,
+        ending: sessionEndDetectedRef.current || !sessionIdRef.current,
+      });
+      if (!allowed) return;
       deafRecoveryRef.current.busy = true;
       deafRecoveryRef.current.count += 1;
       timelineRef.current.mark('deaf_restart', { n: deafRecoveryRef.current.count });
@@ -1399,10 +1489,11 @@ export function useVoiceSession({
           client.sendText([context?.replace(/\n\n[^\n]+$/, ''), `[${sorry}]`].filter(Boolean).join('\n\n'));
           turnDetectorRef.current?.reset();
           onReconnectedRef.current?.();
-          timelineRef.current.mark('reconnected');
+          timelineRef.current.mark('reconnected', { how: 'deaf_restart' });
           setTutorState('listening');
         } catch (err) {
           log.error('[Deaf] Restart failed:', err);
+          timelineRef.current.mark('deaf_restart_failed');
           timelineRef.current.counters.lastError = `deaf_restart: ${err instanceof Error ? err.message : String(err)}`.slice(0, 200);
         } finally {
           // What was said into the deaf session is gone: the count starts again on the new one.
@@ -1413,7 +1504,81 @@ export function useVoiceSession({
     };
   }, [buildFallbackContext, stopPlayback]);
 
+  // ---- A capture that is gone: open the microphone again ----
+  //
+  // The socket and the microphone are separate: every reconnection above keeps
+  // the same capture feeding the new socket. This is the other half, a capture
+  // that ended (mic-watch.ts) or delivers digital silence: a new getUserMedia
+  // on the same client.
+  useEffect(() => {
+    restartMicRef.current = (client, why) => {
+      const r = micRestartRef.current;
+      if (r.busy || r.count >= MAX_MIC_RESTARTS) return;
+      if (clientRef.current !== client || !sessionIdRef.current) return;
+      r.busy = true;
+      r.count += 1;
+      const n = r.count;
+      log.info(`[Mic] Opening the microphone again (${why}, ${n})`);
+      void (async () => {
+        try {
+          stopMic();
+          await startMic(client, false);
+          // The session ended while the microphone opened: it is not left on.
+          if (clientRef.current !== client) stopMic();
+          timelineRef.current.mark('mic_restarted', { why, n });
+        } catch (err) {
+          log.error('[Mic] Could not open the microphone again:', err);
+          timelineRef.current.mark('mic_restart_failed', { why, n });
+          timelineRef.current.counters.lastError = `mic_restart: ${err instanceof Error ? err.message : String(err)}`.slice(0, 200);
+        } finally {
+          r.busy = false;
+        }
+      })();
+    };
+  }, [startMic, stopMic]);
+
   const micLastVoiceAt = useCallback(() => micActivityRef.current.lastVoiceAt, []);
+  const micStatus = useCallback((): MicStatus => {
+    const track = streamRef.current?.getAudioTracks()[0];
+    return {
+      track: !track ? 'none' : track.readyState === 'ended' ? 'ended' : track.muted ? 'muted' : 'live',
+      context: audioContextRef.current?.state ?? 'none',
+      socket: clientRef.current?.getState() ?? 'disconnected',
+      socketDrops: socketDropsRef.current.count,
+      lastCloseCode: socketDropsRef.current.lastCode,
+      deafRestarts: deafRecoveryRef.current.count,
+      micRestarts: micRestartRef.current.count,
+      heardAgoMs: lastHeardAtRef.current === null ? null : Date.now() - lastHeardAtRef.current,
+    };
+  }, []);
+
+  // ---- What the page did around the session, written down ----
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (sessionIdRef.current) timelineRef.current.mark(document.hidden ? 'page_hidden' : 'page_visible');
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (sessionIdRef.current) timelineRef.current.mark('tempo', { tempo: tempoRef.current });
+  }, [playbackTempo]);
+
+  // The diagnostics survive a page that dies before it can send them (diag-checkpoint.ts).
+  useEffect(() => {
+    if (!sessionId) return;
+    const save = () => {
+      try {
+        saveDiagCheckpoint(window.localStorage, sessionId, timelineRef.current.toDiag('lost'));
+      } catch {
+        // Storage blocked.
+      }
+    };
+    const timer = setInterval(save, DIAG_CHECKPOINT_MS);
+    return () => clearInterval(timer);
+  }, [sessionId]);
   const noteTyping = useCallback(() => {
     lastKeyAtRef.current = Date.now();
   }, []);
@@ -1434,6 +1599,12 @@ export function useVoiceSession({
       if (!sid) return;
       commitUtterance();
       const outbox = transcriptOutboxRef.current;
+      try {
+        // Synchronous: the requests below may not outlive the page.
+        saveDiagCheckpoint(window.localStorage, sid, timelineRef.current.toDiag('pagehide'));
+      } catch {
+        // Storage blocked.
+      }
       if (!event.persisted) {
         // The page is going away for good: close the session now, so it is
         // digested and in the memory of the next one (what is still unsent
@@ -1486,6 +1657,7 @@ export function useVoiceSession({
     stream,
     micHealth,
     micLastVoiceAt,
+    micStatus,
     noteTyping,
     sendToolResponse,
     playbackAnalyser: playbackAnalyserRef.current,

@@ -11,7 +11,8 @@
 
 import type { LiveUsage } from '@/lib/voice/gemini-live';
 
-const MAX_EVENTS = 140;
+/** Under MAX_DIAG_EVENTS (session-diag.ts), which is what the server keeps. */
+const MAX_EVENTS = 300;
 
 export type TimelineKind =
   | 'mic_click'
@@ -32,8 +33,28 @@ export type TimelineKind =
   | 'turn_start'
   | 'turn_end'
   | 'socket_close'
+  | 'reconnect_wait'
   | 'reconnected'
+  | 'reconnect_failed'
+  | 'deaf_restart_failed'
+  | 'mic_ended'
+  | 'mic_muted'
+  | 'mic_unmuted'
+  | 'mic_context'
+  | 'mic_no_signal'
+  | 'mic_restarted'
+  | 'mic_restart_failed'
+  | 'page_hidden'
+  | 'page_visible'
+  | 'tempo'
   | 'error';
+
+/**
+ * What happens every turn. When the timeline is full the oldest of these
+ * makes room: a thirty-minute session must still show the socket that closed
+ * in minute 28, which is what the timeline is for.
+ */
+const ROUTINE: ReadonlySet<string> = new Set(['turn_complete', 'first_audio', 'input_first', 'turn_start', 'turn_end', 'notes_injected', 'interrupted']);
 
 export interface SessionCounters {
   userFragments: number;
@@ -52,13 +73,19 @@ export class SessionTimeline {
   readonly facts: Record<string, number | string | boolean> = {};
   private awaitingAudio: 'opener' | 'answer' | null = null;
   private userTurnOpen = false;
+  private dropped = 0;
 
   constructor(now: number = performanceNow()) {
     this.t0 = now;
   }
 
   mark(k: TimelineKind, data: Record<string, number | string | boolean> = {}, now: number = performanceNow()): void {
-    if (this.events.length >= MAX_EVENTS) return;
+    if (this.events.length >= MAX_EVENTS) {
+      const routine = this.events.findIndex((e) => ROUTINE.has(String(e.k)));
+      if (routine < 0 && ROUTINE.has(k)) return;
+      this.events.splice(Math.max(0, routine), 1);
+      this.dropped += 1;
+    }
     this.events.push({ k, t: Math.round(now - this.t0), ...data });
   }
 
@@ -105,6 +132,7 @@ export class SessionTimeline {
       ...this.counters,
       ...this.facts,
       endReason,
+      ...(this.dropped ? { eventsDropped: this.dropped } : {}),
       events: this.events,
       usage: this.usage,
     };

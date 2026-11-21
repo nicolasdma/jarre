@@ -12,7 +12,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useVoiceSession, type TutorState } from './use-voice-session';
+import { useVoiceSession, type MicStatus, type TutorState } from './use-voice-session';
 import type { FunctionResponse } from '@google/genai';
 import {
   buildUnifiedSystemInstruction,
@@ -196,6 +196,8 @@ export interface UnifiedVoiceSession {
   micHealth: MicHealth;
   /** Last time the mic carried the learner's voice (Date.now clock), or null. */
   micLastVoiceAt: () => number | null;
+  /** The capture and the socket right now, for a status line (read on a timer). */
+  micStatus: () => MicStatus;
   /** The learner pressed a key in the editor (for `adaptive` turn taking). */
   noteTyping: () => void;
   /** AnalyserNode for tutor playback audio frequency data */
@@ -867,6 +869,7 @@ export function useUnifiedVoiceSession(params: UseUnifiedVoiceSessionParams): Un
     stream: voiceSession.stream,
     micHealth: voiceSession.micHealth,
     micLastVoiceAt: voiceSession.micLastVoiceAt,
+    micStatus: voiceSession.micStatus,
     noteTyping: voiceSession.noteTyping,
     playbackAnalyser: voiceSession.playbackAnalyser,
     sendText: voiceSession.sendText,

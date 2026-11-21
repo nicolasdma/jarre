@@ -16,7 +16,7 @@ export function formatClientDiag(raw: unknown): string {
   return ` client{end=${str('endReason') || '?'} userFragments=${num('userFragments')} modelFragments=${num('modelFragments')} audioChunks=${num('audioChunksSent')} queued=${num('stored')}${str('lastError') ? ` lastError="${str('lastError')}"` : ''}}`;
 }
 
-const MAX_DIAG_EVENTS = 150;
+const MAX_DIAG_EVENTS = 320;
 const MAX_DIAG_KEYS = 40;
 
 function cleanString(v: string, max = 120): string {
